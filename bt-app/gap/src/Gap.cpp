@@ -24,8 +24,11 @@
 
 #include "osi/include/log.h"
 #include "Gap.hpp"
+#include "utils.h"
 
 const char *BT_LOCAL_DEV_NAME = "BtLocalDeviceName";
+const char *BT_SCAN_MODE_TYPE = "BtScanMode";
+const char *BT_USR_INPUT     = "UserInteractionNeeded";
 
 #define LOGTAG "GAP"
 
@@ -167,31 +170,30 @@ static void DiscoveryStateChangedCb(bt_discovery_state_t state) {
     PostMessage(THREAD_ID_GAP, event);
 }
 
-static void PinRequestCb(bt_bdaddr_t *bd_addr, bt_bdname_t *bdname,
+static void PinRequestCb(bt_bdaddr_t *bd_addr, bt_bdname_t *bd_name,
                                 uint32_t cod, bool min_16_digit) {
     BtEvent *event = new BtEvent;
 
     ALOGV (LOGTAG " PinRequestCb:");
     event->event_id = GAP_EVENT_PIN_REQUEST;
     memcpy(&event->pin_request_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-    memset(&event->pin_request_event.bd_name, 0, sizeof(bt_bdname_t));
+    memcpy(&event->pin_request_event.bd_name, bd_name, sizeof(bt_bdname_t));
 
     event->pin_request_event.cod = cod;
     event->pin_request_event.secure = min_16_digit;
     PostMessage(THREAD_ID_GAP, event);
 }
 
-static void SspRequestCb(bt_bdaddr_t *bd_addr, bt_bdname_t *bdname, uint32_t cod,
+static void SspRequestCb(bt_bdaddr_t *bd_addr, bt_bdname_t *bd_name, uint32_t cod,
         bt_ssp_variant_t pairing_variant, uint32_t pass_key) {
 
     BtEvent *event = new BtEvent;
+    memset(event, 0, sizeof(BtEvent));
 
-    ALOGV (LOGTAG " SspRequestCb:");
+    ALOGV (LOGTAG " SspRequestCb: name %s ", bd_name);
     event->event_id = GAP_EVENT_SSP_REQUEST;
     memcpy(&event->ssp_request_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-
-    memset(&event->ssp_request_event.bd_name, 0, sizeof(bt_bdname_t));
-
+    memcpy(&event->ssp_request_event.bd_name, bd_name, sizeof(bt_bdname_t));
     event->ssp_request_event.cod = cod;
     event->ssp_request_event.pairing_variant = pairing_variant;
     event->ssp_request_event.pass_key = pass_key;
@@ -264,32 +266,23 @@ void BtGapMsgHandler(void *msg) {
 void Gap::HandlePinRequestEvent(PINRequestEvent *event) {
 
     bt_pin_code_t pincode;
-    DeviceProperties *remote_dev_prop;
     BtEvent *bt_event;
-    bdstr_t bd_str;
 
     memset(&pincode, 0, sizeof(pincode));
-    /* For now auto accept with most common pincode "0000" */
-    pincode.pin[0] = '0';
-    pincode.pin[1] = '0';
-    pincode.pin[2] = '0';
-    pincode.pin[3] = '0';
-
-    bluetooth_interface_->pin_reply(&event->bd_addr, 1, 4, &pincode);
-    BdAddr2Str(&event->bd_addr, &bd_str[0]);
-    string deviceAddress(bd_str);
-
-    std::map<std::string, DeviceProperties*>::iterator it;
-    it = remote_devices_obj_->remote_device_prop.find(deviceAddress);
-    if (it != remote_devices_obj_->remote_device_prop.end()) {
-        ALOGD(LOGTAG "Device in the list");
+    /* go for auto accept incase of user input disabled */
+    if (!is_user_input_enabled_) {
+        /* For now auto accept with most common pincode "0000" */
+        pincode.pin[0] = '0';
+        pincode.pin[1] = '0';
+        pincode.pin[2] = '0';
+        pincode.pin[3] = '0';
+        bluetooth_interface_->pin_reply(&event->bd_addr, 1, 4, &pincode);
     } else {
-        remote_dev_prop = new DeviceProperties;
-        remote_devices_obj_->remote_device_prop[deviceAddress] = remote_dev_prop;
+        // pass the same event to Main thread
         bt_event = new BtEvent;
-        bt_event->device_found_event.event_id = GAP_EVENT_DEVICE_FOUND;
-        memcpy(&bt_event->device_found_event.remoteDevice, remote_dev_prop,
-                                            sizeof(DeviceProperties));
+        memcpy(bt_event, event, sizeof(BtEvent));
+        bt_event->event_id = MAIN_EVENT_PIN_REQUEST;
+        PostMessage(THREAD_ID_MAIN, bt_event);
     }
 }
 
@@ -298,54 +291,71 @@ void Gap::HandleSspRequestEvent(SSPRequestEvent *event) {
     BtEvent *bt_event;
     bdstr_t bd_str;
 
-    /* For now auto accept */
-    bluetooth_interface_->ssp_reply(&event->bd_addr, event->pairing_variant,
-            1, event->pass_key);
-    BdAddr2Str(&event->bd_addr, &bd_str[0]);
+    bdaddr_to_string(&event->bd_addr, &bd_str[0], sizeof(bd_str));
 
     string deviceAddress(bd_str);
+    remote_dev_prop = remote_devices_obj_->GetDeviceProperties(event->bd_addr);
 
-    std::map<std::string, DeviceProperties*>::iterator it;
-    it = remote_devices_obj_->remote_device_prop.find(deviceAddress);
-    if (it != remote_devices_obj_->remote_device_prop.end()) {
-        ALOGD(LOGTAG "Device in the list");
+    if (remote_dev_prop == NULL ) {
+        remote_dev_prop = remote_devices_obj_->AddDeviceProperties(event->bd_addr);
+    }
+
+    /* go for auto accept incase of user input disabled */
+    if (!is_user_input_enabled_) {
+        bluetooth_interface_->ssp_reply(&event->bd_addr, event->pairing_variant,
+            1, event->pass_key);
     } else {
-        remote_dev_prop = new DeviceProperties;
-        remote_devices_obj_->remote_device_prop[deviceAddress] = remote_dev_prop;
+        // pass the same event to Main thread
         bt_event = new BtEvent;
-        bt_event->device_found_event.event_id = GAP_EVENT_DEVICE_FOUND;
-        memcpy(&bt_event->device_found_event.remoteDevice, remote_dev_prop,
-                                    sizeof(DeviceProperties));
+        memcpy(bt_event, event, sizeof(BtEvent));
+        bt_event->event_id = MAIN_EVENT_SSP_REQUEST;
+        PostMessage(THREAD_ID_MAIN, bt_event);
     }
 }
 
+
+void Gap::HandleSspReply(SSPReplyEvent *event) {
+    bluetooth_interface_->ssp_reply(&event->bd_addr, event->pairing_variant,
+            event->accept, event->pass_key);
+}
+
+void Gap::HandlePinReply(PINReplyEvent *event) {
+    bluetooth_interface_->pin_reply(&event->bd_addr, 1, event->pin_len, &event->pincode);
+}
+
 void Gap::HandleBondStateEvent(DeviceBondStateEventInt *event) {
-    DeviceProperties *pRemoteDevice;
+    DeviceProperties *remote_dev_prop;
 
-    pRemoteDevice = remote_devices_obj_->GetDeviceProperties(event->bd_addr);
+    remote_dev_prop = remote_devices_obj_->GetDeviceProperties(event->bd_addr);
 
-    if (pRemoteDevice == NULL ) {
-        pRemoteDevice = remote_devices_obj_->AddDeviceProperties(event->bd_addr);
+    if (remote_dev_prop == NULL ) {
+        remote_dev_prop = remote_devices_obj_->AddDeviceProperties(event->bd_addr);
     }
 
-    if (pRemoteDevice->mBondState == event->state)
+    if (remote_dev_prop->bond_state == event->state)
         return;
 
-    adapter_properties_obj_->OnbondStateChanged(event->bd_addr, event->state);
+    adapter_properties_obj_->OnbondStateChanged(event->bd_addr, event->state, true);
 }
 
 void Gap::HandleEnable(void) {
     BtEvent  *bt_event  = NULL;
-    if ((adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_OFF) &&
-       (bluetooth_interface_->enable() == BT_STATUS_SUCCESS)) {
-        adapter_properties_obj_->SetState(BT_ADAPTER_STATE_TURNING_ON);
-    } else {
-        //Sending update to the UI thread
-        bt_event = new BtEvent;
-        bt_event->event_id = MAIN_EVENT_ENABLED;
-        bt_event->state_event.status = BT_STATE_OFF;
-        PostMessage(THREAD_ID_MAIN, bt_event);
+    if (adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_OFF) {
+       bluetooth_interface_->init(&sBluetoothCallbacks);
+       if(bluetooth_interface_->enable() == BT_STATUS_SUCCESS) {
+           adapter_properties_obj_->SetState(BT_ADAPTER_STATE_TURNING_ON);
+           return;
+       } else {
+           goto error;
+       }
     }
+
+error:
+    //Sending update to the Main thread
+    bt_event = new BtEvent;
+    bt_event->event_id = MAIN_EVENT_ENABLED;
+    bt_event->state_event.status = BT_STATE_OFF;
+    PostMessage(THREAD_ID_MAIN, bt_event);
 }
 
 void Gap::HandleDisable(void) {
@@ -354,7 +364,7 @@ void Gap::HandleDisable(void) {
        (bluetooth_interface_->disable() == BT_STATUS_SUCCESS)) {
         adapter_properties_obj_->SetState(BT_ADAPTER_STATE_TURNING_OFF);
     } else {
-        //Sending update to the UI thread
+        //Sending update to the Main thread
         bt_event = new BtEvent;
         bt_event->event_id = MAIN_EVENT_DISABLED;
         bt_event->state_event.status = BT_STATE_ON;
@@ -366,7 +376,7 @@ void Gap::HandleStartDiscovery(void) {
     if ((adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_ON) &&
        (bluetooth_interface_->start_discovery() == BT_STATUS_SUCCESS)) {
     } else {
-        //Sending update to the UI thread
+        //Sending update to the Main thread
         BtEvent *event = new BtEvent;
         event->event_id = GAP_EVENT_DISCOVERY_STATE_CHANGED;
         event->discovery_state_event.state = BT_DISCOVERY_STOPPED;
@@ -378,7 +388,7 @@ void Gap::HandleStopDiscovery(void) {
     if ((adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_ON) &&
        (bluetooth_interface_->cancel_discovery() == BT_STATUS_SUCCESS)) {
     } else {
-        //Sending update to the UI thread
+        //Sending update to the Main thread
         BtEvent *event = new BtEvent;
         event->event_id = GAP_EVENT_DISCOVERY_STATE_CHANGED;
         event->discovery_state_event.state = BT_DISCOVERY_STARTED;
@@ -388,7 +398,7 @@ void Gap::HandleStopDiscovery(void) {
 
 void Gap::ProcessEvent(BtEvent* event) {
     bt_property_t prop;
-    bt_scan_mode_t scan_mode = BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE;
+    bt_scan_mode_t scan_mode;
     bt_bdname_t bd_name;
     BtEvent  *bt_event  = NULL;
 
@@ -399,25 +409,30 @@ void Gap::ProcessEvent(BtEvent* event) {
             adapter_properties_obj_->SetState((AdapterState)event->state_event.status);
             if ( event->state_event.status == BT_STATE_ON ) {
 
+                //Scan mode is BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE by default
+                scan_mode = (bt_scan_mode_t)config_get_int(config_,
+                            CONFIG_DEFAULT_SECTION, BT_SCAN_MODE_TYPE,
+                                        BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE);
                 prop.type = BT_PROPERTY_ADAPTER_SCAN_MODE;
                 prop.val = &scan_mode;
                 prop.len = sizeof(bt_scan_mode_t);
                 bluetooth_interface_->set_adapter_property(&prop);
-                prop.type = BT_PROPERTY_BDNAME;
 
+                prop.type = BT_PROPERTY_BDNAME;
                 strcpy((char*)&bd_name.name[0], config_get_string (config_,
                    CONFIG_DEFAULT_SECTION, BT_LOCAL_DEV_NAME, "MDM_Fluoride"));
                 prop.val = &bd_name;
                 prop.len = strlen((char*)bd_name.name);
                 bluetooth_interface_->set_adapter_property(&prop);
 
-                //Sending update to the UI thread
+                //Sending update to the Main thread
                 bt_event = new BtEvent;
                 bt_event->event_id = MAIN_EVENT_ENABLED;
                 bt_event->state_event.status = event->state_event.status;
                 PostMessage(THREAD_ID_MAIN, bt_event);
+
             } else if ( event->state_event.status == BT_STATE_OFF) {
-                //Sending update to the UI thread
+                //Sending update to the Main thread
                 //TODO to check the right place for this
                 scan_mode = BT_SCAN_MODE_NONE;
                 prop.type = BT_PROPERTY_ADAPTER_SCAN_MODE;
@@ -432,6 +447,8 @@ void Gap::ProcessEvent(BtEvent* event) {
 
                 adapter_properties_obj_->FlushBondedDeviceList();
                 remote_devices_obj_->FlushDiscoveredDeviceList();
+                // cleanup the stack
+                bluetooth_interface_->cleanup();
             }
             break;
 
@@ -468,10 +485,12 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_EVENT_BOND_STATE_INT:
             HandleBondStateEvent(&event->bond_state_event_int);
             break;
+
         case GAP_EVENT_ACL_STATE_CHANGED:
             remote_devices_obj_->HandleAclStateChange(event->acl_state_event.status,
                 event->acl_state_event.bd_addr, event->acl_state_event.state);
             break;
+
         case GAP_EVENT_DISCOVERY_STATE_CHANGED:
             adapter_properties_obj_->HandleDiscoveryStateChange(
                                             event->discovery_state_event.state);
@@ -479,12 +498,25 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_API_START_INQUIRY:
             HandleStartDiscovery();
             break;
+
         case GAP_API_STOP_INQUIRY:
             HandleStopDiscovery();
             break;
 
         case GAP_API_CREATE_BOND:
             bluetooth_interface_->create_bond(&event->bond_device.bd_addr, 1);
+            break;
+
+        case GAP_API_SSP_REPLY:
+            HandleSspReply(&event->ssp_reply_event);
+            break;
+
+        case GAP_API_PIN_REPLY:
+            HandlePinReply(&event->pin_reply_event);
+            break;
+
+        default:
+            ALOGD(LOGTAG " Unhandled event %d", event->event_id);
             break;
     }
 }
@@ -493,6 +525,10 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
     this->bluetooth_interface_ = bt_interface;
     this->config_ = config;
+
+    //checking for user input
+    is_user_input_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_USR_INPUT, false);
 
     if ((bluetooth_interface_->init(&sBluetoothCallbacks) == BT_STATUS_SUCCESS))
         bt_interface->set_os_callouts(&callouts);

@@ -24,6 +24,7 @@
 #include <hardware/hardware.h>
 #include "Gap.hpp"
 #include "ipc.h"
+#include "utils.h"
 #include "RemoteDevices.hpp"
 
 #define LOGTAG "RemoteDevices"
@@ -31,7 +32,7 @@
 
 DeviceProperties *RemoteDevices :: AddDeviceProperties(bt_bdaddr_t bd_addr) {
     bdstr_t bd_str;
-    BdAddr2Str(&bd_addr, &bd_str[0]);
+    bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
     DeviceProperties *rem_dev_prop;
 
@@ -44,6 +45,8 @@ DeviceProperties *RemoteDevices :: AddDeviceProperties(bt_bdaddr_t bd_addr) {
         return (rem_dev_prop = it->second);
     } else {
         rem_dev_prop = new DeviceProperties;
+        memset(rem_dev_prop, '\0', sizeof(DeviceProperties));
+        rem_dev_prop->broadcast = true;
         memcpy(&rem_dev_prop->address, &bd_addr, sizeof(bt_bdaddr_t));
         remote_device_prop[deviceAddress] = rem_dev_prop;
         pthread_mutex_unlock(&lock_);
@@ -54,7 +57,7 @@ DeviceProperties *RemoteDevices :: AddDeviceProperties(bt_bdaddr_t bd_addr) {
 
 DeviceProperties *RemoteDevices:: GetDeviceProperties(bt_bdaddr_t bd_addr) {
     bdstr_t bd_str;
-    BdAddr2Str(&bd_addr, &bd_str[0]);
+    bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
     DeviceProperties *rem_dev_prop;
 
@@ -150,24 +153,24 @@ void RemoteDevices::DeviceFound(DeviceFoundEventInt *dev_found) {
         rem_dev_prop = AddDeviceProperties(bd_addr);
     }
 
-    memset(rem_dev_prop->mName, 0, sizeof(rem_dev_prop->mName));
+    memset(rem_dev_prop->name, 0, sizeof(rem_dev_prop->name));
     GetValueFromPropertyList(dev_found->num_properties, dev_found->properties,
             BT_PROPERTY_BDADDR, &rem_dev_prop->address);
 
     GetValueFromPropertyList(dev_found->num_properties, dev_found->properties,
-            BT_PROPERTY_CLASS_OF_DEVICE, &rem_dev_prop->mBluetoothClass);
+            BT_PROPERTY_CLASS_OF_DEVICE, &rem_dev_prop->bluetooth_class);
 
     GetValueFromPropertyList(dev_found->num_properties, dev_found->properties,
-            BT_PROPERTY_BDNAME, rem_dev_prop->mName);
+            BT_PROPERTY_BDNAME, rem_dev_prop->name);
 
     GetValueFromPropertyList(dev_found->num_properties, dev_found->properties,
-            BT_PROPERTY_REMOTE_RSSI, &rem_dev_prop->mRssi);
+            BT_PROPERTY_REMOTE_RSSI, &rem_dev_prop->rssi);
 
     /* Free the memory used for properties */
     ClearPropertyList(dev_found->num_properties, dev_found->properties);
 
     /* Update only if remote device Name is available for Now */
-    if (strlen(rem_dev_prop->mName) > 0) {
+    if (strlen(rem_dev_prop->name) > 0) {
         bt_event = new BtEvent;
         bt_event->event_id = MAIN_EVENT_DEVICE_FOUND;
         memcpy(&bt_event->device_found_event.remoteDevice, rem_dev_prop,
@@ -179,7 +182,7 @@ void RemoteDevices::DeviceFound(DeviceFoundEventInt *dev_found) {
 }
 
 void RemoteDevices::RemoteDeviceProperties(RemotePropertiesEvent *event) {
-    DeviceProperties *rem_dev_prop;
+    DeviceProperties *rem_dev_prop = NULL;
     BtEvent *bt_event;
 
     rem_dev_prop = GetDeviceProperties (event->bd_addr);
@@ -187,18 +190,32 @@ void RemoteDevices::RemoteDeviceProperties(RemotePropertiesEvent *event) {
         rem_dev_prop = AddDeviceProperties(event->bd_addr);
     }
 
-    memset(rem_dev_prop->mName, 0, sizeof(rem_dev_prop->mName));
+    memset(rem_dev_prop->name, 0, sizeof(rem_dev_prop->name));
     GetValueFromPropertyList(event->num_properties, event->properties,
             BT_PROPERTY_BDADDR, &rem_dev_prop->address);
 
     GetValueFromPropertyList(event->num_properties, event->properties,
-            BT_PROPERTY_CLASS_OF_DEVICE, &rem_dev_prop->mBluetoothClass);
+            BT_PROPERTY_BDNAME, rem_dev_prop->name);
+
+    if( (rem_dev_prop->name[0] != '\0') &&
+            (rem_dev_prop->bond_state == BT_BOND_STATE_BONDED) &&
+            (rem_dev_prop->broadcast == true)) {
+        bt_event = new BtEvent;
+        bt_event->event_id = MAIN_EVENT_BOND_STATE;
+        bt_event->bond_state_event.state = BT_BOND_STATE_BONDED;
+        memcpy(&bt_event->bond_state_event.bd_addr, &rem_dev_prop->address,
+                                    sizeof(bt_bdaddr_t));
+        memcpy(&bt_event->bond_state_event.bd_name, &rem_dev_prop->name,
+                                   sizeof(bt_bdname_t));
+        PostMessage(THREAD_ID_MAIN, bt_event);
+        rem_dev_prop->broadcast = false;
+    }
 
     GetValueFromPropertyList(event->num_properties, event->properties,
-            BT_PROPERTY_BDNAME, rem_dev_prop->mName);
+            BT_PROPERTY_CLASS_OF_DEVICE, &rem_dev_prop->bluetooth_class);
 
     GetValueFromPropertyList(event->num_properties, event->properties,
-            BT_PROPERTY_REMOTE_RSSI, &rem_dev_prop->mRssi);
+            BT_PROPERTY_REMOTE_RSSI, &rem_dev_prop->rssi);
 
     /* Free the memory used for properties */
     ClearPropertyList(event->num_properties, event->properties);

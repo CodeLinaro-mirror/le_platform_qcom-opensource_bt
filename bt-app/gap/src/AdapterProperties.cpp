@@ -29,6 +29,8 @@
 #include "AdapterProperties.hpp"
 #include "osi/include/log.h"
 
+#include "utils.h"
+
 #define LOGTAG "AdapterProperties"
 
 
@@ -92,21 +94,21 @@ void AdapterProperties::GetBondedDevicesFromPropertyList(int num_properties,
 }
 
 
-void AdapterProperties :: OnbondStateChanged( bt_bdaddr_t ad_addr,
-        bt_bond_state_t new_state) {
-    bdstr_t bt_str;
-    BdAddr2Str(&ad_addr, &bt_str[0]);
-    std::string deviceAddress(bt_str);
+void AdapterProperties :: OnbondStateChanged( bt_bdaddr_t bd_addr,
+        bt_bond_state_t new_state, bool notify) {
+    bdstr_t bd_str;
+    bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
+    std::string deviceAddress(bd_str);
     DeviceProperties *remote_device_prop = NULL;
     std::list<std::string>::iterator bdstring;
     BtEvent *bt_event;
 
-    remote_device_prop = remote_devices_obj_->GetDeviceProperties(ad_addr);
+    remote_device_prop = remote_devices_obj_->GetDeviceProperties(bd_addr);
 
     if (!remote_device_prop)
-        remote_device_prop = remote_devices_obj_->AddDeviceProperties(ad_addr);
+        remote_device_prop = remote_devices_obj_->AddDeviceProperties(bd_addr);
 
-    remote_device_prop->mBondState = new_state;
+    remote_device_prop->bond_state = new_state;
 
     bdstring = std::find(bonded_devices.begin(), bonded_devices.end(), deviceAddress);
 
@@ -118,13 +120,19 @@ void AdapterProperties :: OnbondStateChanged( bt_bdaddr_t ad_addr,
         case BT_BOND_STATE_NONE:
             if (bdstring != bonded_devices.end())
                 bonded_devices.remove(deviceAddress);
-        break;
+            break;
     }
 
-    bt_event = new BtEvent;
-    bt_event->event_id = MAIN_EVENT_BOND_STATE;
-    bt_event->bond_state_event.state = new_state;
-    PostMessage(THREAD_ID_MAIN, bt_event);
+    if(notify) {
+        bt_event = new BtEvent;
+        bt_event->event_id = MAIN_EVENT_BOND_STATE;
+        bt_event->bond_state_event.state = new_state;
+        memcpy(&bt_event->bond_state_event.bd_addr, &bd_addr,
+                                        sizeof(bt_bdaddr_t));
+        memcpy(&bt_event->bond_state_event.bd_name, &remote_device_prop->name,
+                                       sizeof(bt_bdname_t));
+        PostMessage(THREAD_ID_MAIN, bt_event);
+    }
 }
 
 
@@ -137,7 +145,7 @@ void AdapterProperties :: HandleDiscoveryStateChange(bt_discovery_state_t state)
 
     ALOGI (LOGTAG "discovery state changed state %d", state);
 
-    //Sending upadte to the UI thread
+    //Sending upadte to the MAIN thread
     BtEvent *bt_event = new BtEvent;
     bt_event->event_id = MAIN_EVENT_INQUIRY_STATUS;
     bt_event->discovery_state_event.state = state;
@@ -157,5 +165,5 @@ void AdapterProperties :: AdapterPropertiesUpdate(AdapterPropertiesEvent *event)
 
     /* Fetch the properties of bonded devices */
     for (index = 0; index < num_bonded_devices; index++)
-        OnbondStateChanged(rmt_devices[index], BT_BOND_STATE_BONDED);
+        OnbondStateChanged(rmt_devices[index], BT_BOND_STATE_BONDED, false);
 }
