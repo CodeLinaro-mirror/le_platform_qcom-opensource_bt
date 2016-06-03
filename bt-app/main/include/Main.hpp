@@ -130,6 +130,9 @@ typedef enum {
     REWIND,
     FORWARD,
     BACKWARD,
+    PAN_OPTION,
+    CONNECTED_LIST,
+    SET_TETHERING,
     BACK_TO_MAIN,
     END,
 } CommandList;
@@ -148,6 +151,7 @@ typedef enum {
     GAP_MENU,
     TEST_MENU,
     A2DP_SINK_MENU,
+    PAN_MENU,
 } MenuType;
 
 /**
@@ -189,10 +193,23 @@ UserMenuList GapMenu[] = {
  * list of supported commands for Main Menu
  */
 UserMenuList MainMenu[] = {
-    {GAP_OPTION,            "gap_menu",        ZERO_PARAM,    "gap_menu"},
+    {GAP_OPTION,            "gap_menu",         ZERO_PARAM,   "gap_menu"},
+    {PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
+};
+
+/**
+ * list of supported commands for PAN
+ */
+UserMenuList PanMenu[] = {
+    {SET_TETHERING,  "enable_tethering",         ONE_PARAM, \
+    "enable_tethering<space><true or false> eg. enable_tethering true"},
+    {DISCONNECT,     "disconnect",               ONE_PARAM, \
+    "disconnect<space><bt_address> eg. disconnect 00:11:22:33:44:55"},
+    {CONNECTED_LIST, "connected_device_list",    ZERO_PARAM, "connected_device_list"},
+    {BACK_TO_MAIN,   "main_menu",                ZERO_PARAM, "main_menu"},
 };
 
 /**
@@ -218,6 +235,7 @@ UserMenuList A2dpSinkMenu[] = {
     {BACKWARD,              "backward",         ZERO_PARAM,    "backward"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
 };
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -337,6 +355,7 @@ class BluetoothApp {
     bool is_user_input_enabled_;
     bool is_socket_input_enabled_;
     bool is_a2dp_sink_enabled_;
+    bool is_pan_enable_default_;
     reactor_object_t *cmd_reactor_;
     struct hw_device_t *device_;
     bluetooth_device_t *bt_device_;
@@ -378,7 +397,7 @@ class BluetoothApp {
      * @param none
      * @return none
      */
-    bt_bdaddr_t AddFoundedDevice(std::string bdName, const bt_bdaddr_t bdAddr);
+    bt_bdaddr_t AddFoundedDevice(std::string bdName, const bt_bdaddr_t bd_addr);
     /**
      * @brief
      * This function will display inquiry list
@@ -403,7 +422,7 @@ class BluetoothApp {
      * @param none
      * @return none
      */
-    void HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t bdAddr,
+    void HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t bd_addr,
                                                     std::string bd_name);
 
     /**
@@ -415,7 +434,7 @@ class BluetoothApp {
      * @param none
      * @return none
      */
-    void HandleUnPair(bt_bdaddr_t bdAddr);
+    void HandleUnPair(bt_bdaddr_t bd_addr);
 
     /**
      * @brief Bluetooth Application Constructor

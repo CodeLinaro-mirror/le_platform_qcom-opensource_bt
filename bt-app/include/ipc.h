@@ -31,9 +31,10 @@
 
 #define MAIN_MSG_BASE           (0)
 #define GAP_MSG_BASE            (1000)
+#define PAN_MSG_BASE            (2000)
 #define A2DP_SINK_MSG_BASE      (300)
 #define MAX_BD_STR_LEN          (18)
-
+#define BT_IPC_MSG_LEN 2
 
 #define CMD_ID_PLAY             0x44;
 #define CMD_ID_STOP             0x45;
@@ -53,6 +54,7 @@ typedef enum {
     THREAD_ID_MAIN = 0,
     THREAD_ID_GAP,
     THREAD_ID_A2DP_SINK,
+    THREAD_ID_PAN,
     THREAD_ID_MAX,
 } ThreadIdType;
 
@@ -133,12 +135,20 @@ typedef enum {
     GAP_EVENT_ENABLE_TIMEOUT,
     GAP_EVENT_DISABLE_TIMEOUT,
     SKT_API_START_LISTENER,
+    SKT_API_IPC_MSG_WRITE,
+    SKT_API_IPC_MSG_READ,
 
     PROFILE_API_START,
     PROFILE_API_STOP,
     PROFILE_EVENT_START_DONE,
-    PROFILE_EVENT_STOP_DONE
+    PROFILE_EVENT_STOP_DONE,
 
+    PAN_EVENT_CONTROL_STATE_CHANGED = PAN_MSG_BASE,
+    PAN_EVENT_CONNECTION_STATE_CHANGED,
+    PAN_EVENT_SET_TETHERING_REQ,
+    PAN_EVENT_DEVICE_CONNECT_REQ,
+    PAN_EVENT_DEVICE_DISCONNECT_REQ,
+    PAN_EVENT_DEVICE_CONNECTED_LIST_REQ,
 } BluetoothEventId;
 
 typedef struct {
@@ -365,30 +375,139 @@ typedef struct {
     uint8_t             key_id;
 } AvrcpCtrlPassThruCmdReq;
 
+/**
+ * Event for notifying Pan control state
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    uint8_t local_role;
+    uint8_t state;
+    uint8_t error;
+    const char *ifname;
+} PanControlStateEvent;
+
+/**
+ * Event for notifying Pan connection state
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bt_bdaddr_t bd_addr;
+    uint8_t local_role;
+    uint8_t remote_role;
+    uint8_t state;
+    uint8_t error;
+} PanConnectionStateEvent;
+
+/**
+ * Event for notifying tethering on/off from UI
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bool is_tethering_on;
+} PanSetTetheringEvent;
+
+/**
+ * Event for notifying Pan disconnect
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bt_bdaddr_t bd_addr;
+} PanDeviceDisconnectEvent;
+
+/**
+ * Event for notifying Pan connect
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bt_bdaddr_t bd_addr;
+} PanDeviceConnectEvent;
+
+/**
+ * Event for notifying Pan connected device list
+ */
+typedef struct {
+    BluetoothEventId event_id;
+} PanDeviceConnectedListEvent;
+
+/**
+  * @brief BT IPC message between qcbtdaemon & btapp
+  */
+typedef struct{
+    /**
+     * It can be any value of bt_ipc_type
+     */
+    uint8_t type;
+    /**
+     * It can be any value of bt_ipc_status
+     */
+    uint8_t status;
+} BtIpcMsg;
+
+typedef struct {
+    BluetoothEventId event_id;
+    BtIpcMsg ipc_msg;
+} BtIpcMsgEvent;
+
 typedef union {
-    BluetoothEventId        event_id;
-    GapAppEvent             state_event;
-    SSPRequestEvent         ssp_request_event;
-    SSPReplyEvent           ssp_reply_event;
-    PINRequestEvent         pin_request_event;
-    PINReplyEvent           pin_reply_event;
-    DiscoveryStateEvent     discovery_state_event;
-    ACLStateEvent           acl_state_event;
-    DeviceBondStateEvent    bond_state_event;
-    DeviceBondStateEventInt bond_state_event_int;
-    DeviceFoundEvent        device_found_event;
-    DeviceFoundEventInt     device_found_event_int;
-    RemotePropertiesEvent   remote_properties_event;
-    AdapterPropertiesEvent  adapater_properties_event;
-    DeviceDiscoverRequest   discover_request;
-    DeviceBondRequest       bond_device;
-    ProfileStartRequest     profile_start_request;
-    ProfileStopRequest      profile_stop_request;
-    ProfileStartEvent       profile_start_event;
-    ProfileStopEvent        profile_stop_event;
-    A2dpSinkEvent           a2dpSinkEvent;
-    AvrcpCtrlPassThruCmdReq avrcpCtrlEvent;
+    BluetoothEventId                event_id;
+    GapAppEvent                     state_event;
+    SSPRequestEvent                 ssp_request_event;
+    SSPReplyEvent                   ssp_reply_event;
+    PINRequestEvent                 pin_request_event;
+    PINReplyEvent                   pin_reply_event;
+    DiscoveryStateEvent             discovery_state_event;
+    ACLStateEvent                   acl_state_event;
+    DeviceBondStateEvent            bond_state_event;
+    DeviceBondStateEventInt         bond_state_event_int;
+    DeviceFoundEvent                device_found_event;
+    DeviceFoundEventInt             device_found_event_int;
+    RemotePropertiesEvent           remote_properties_event;
+    AdapterPropertiesEvent          adapater_properties_event;
+    DeviceDiscoverRequest           discover_request;
+    DeviceBondRequest               bond_device;
+    ProfileStartRequest             profile_start_request;
+    ProfileStopRequest              profile_stop_request;
+    ProfileStartEvent               profile_start_event;
+    ProfileStopEvent                profile_stop_event;
+    A2dpSinkEvent                   a2dpSinkEvent;
+    AvrcpCtrlPassThruCmdReq         avrcpCtrlEvent;
+    PanControlStateEvent            pan_control_state_event;
+    PanConnectionStateEvent         pan_connection_state_event;
+    PanSetTetheringEvent            pan_set_tethering_event;
+    PanDeviceDisconnectEvent        pan_device_disconnect_event;
+    PanDeviceConnectEvent           pan_device_connect_event;
+    PanDeviceConnectedListEvent     pan_device_connected_list_event;
+    BtIpcMsgEvent                   bt_ipc_msg_event;
 } BtEvent;
+
+/**
+  * @brief BT IPC message type
+  */
+typedef enum{
+    /**
+     * ipc message to enable tethering
+     */
+    BT_IPC_ENABLE_TETHERING = 0x01,
+    /**
+     * ipc message to disable tethering
+     */
+    BT_IPC_DISABLE_TETHERING,
+    /**
+     * ipc message to start WLAN
+     */
+    BT_IPC_REMOTE_START_WLAN,
+    BT_IPC_INAVALID = 0xFF
+} bt_ipc_type;
+
+/**
+ * @brief BT IPC message status
+ */
+typedef enum{
+    SUCCESS = 0x00,
+    FAILED,
+    INITIATED,
+    INVALID = 0xFF
+} bt_ipc_status;
 
 #ifdef __cplusplus
 extern "C" {
@@ -400,6 +519,8 @@ void BtGapMsgHandler(void *context);
 void BtMainMsgHandler(void *context);
 void BtSocketMsgHandler (void *context);
 void BtA2dpSinkMsgHandler(void *msg);
+void BtPanMsgHandler(void *context);
+
 #ifdef __cplusplus
 }
 #endif

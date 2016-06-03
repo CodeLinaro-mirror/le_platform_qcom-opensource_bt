@@ -37,14 +37,17 @@
 #include "Main.hpp"
 #include <syslog.h>
 #include "../../a2dp_sink/include/A2dp_Sink.hpp"
+#include "pan/include/Pan.hpp"
+
 
 #include "utils.h"
 
-#define LOGTAG  "MAIN"
-#define LOCAL_SOCKET_NAME "btappsocket"
+#define LOGTAG  "MAIN "
+#define LOCAL_SOCKET_NAME "/etc/bluetooth/btappsocket"
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
+extern Pan *g_pan;
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 #ifdef __cplusplus
@@ -109,6 +112,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         case GAP_MENU:
             menu = &GapMenu[0];
             num_cmds  = NO_OF_COMMANDS(GapMenu);
+            break;
+        case PAN_MENU:
+            menu = &PanMenu[0];
+            num_cmds  = NO_OF_COMMANDS(PanMenu);
             break;
         case TEST_MENU:
             menu = &TestMenu[0];
@@ -179,6 +186,10 @@ static void DisplayMenu(MenuType menu_type) {
         case GAP_MENU:
             menu = &GapMenu[0];
             num_cmds  = NO_OF_COMMANDS(GapMenu);
+            break;
+        case PAN_MENU:
+            menu = &PanMenu[0];
+            num_cmds  = NO_OF_COMMANDS(PanMenu);
             break;
         case TEST_MENU:
             menu = &TestMenu[0];
@@ -299,12 +310,14 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = GAP_MENU;
             DisplayMenu(menu_type);
             break;
-
+        case PAN_OPTION:
+            menu_type = PAN_MENU;
+            DisplayMenu(menu_type);
+            break;
         case TEST_MODE:
             menu_type = TEST_MENU;
             DisplayMenu(menu_type);
             break;
-
         case A2DP_SINK:
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);
@@ -313,7 +326,6 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             ALOGV (LOGTAG " Self exit of Main thread");
             ExitHandler();
             break;
-
          default:
             ALOGV (LOGTAG " Command not handled");
             break;
@@ -523,9 +535,103 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
+static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+
+    long num;
+    char *end;
+    int index = 0;
+
+    switch (cmd_id) {
+        case DISCONNECT:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                    BtEvent *event = new BtEvent;
+                    event->event_id = PAN_EVENT_DEVICE_DISCONNECT_REQ;
+                    string_to_bdaddr(user_cmd[ONE_PARAM],
+                            &event->pan_device_disconnect_event.bd_addr);
+                    PostMessage (THREAD_ID_PAN, event);
+                } else {
+                    fprintf(stdout, " BD address is NULL/Invalid ");
+                }
+            } else {
+                fprintf(stdout, " Currently BT is in OFF state");
+            }
+            break;
+
+        case CONNECTED_LIST:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                BtEvent *event = new BtEvent;
+                event->event_id = PAN_EVENT_DEVICE_CONNECTED_LIST_REQ;
+                PostMessage (THREAD_ID_PAN, event);
+            } else {
+                fprintf(stdout," Currently BT is in OFF state");
+            }
+            break;
+
+        case SET_TETHERING:
+
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                bool is_tethering_enable;
+
+                if (!strcasecmp (user_cmd[ONE_PARAM], "true")) {
+                    is_tethering_enable = true;
+                } else if (!strcasecmp (user_cmd[ONE_PARAM], "false")) {
+                    is_tethering_enable = false;
+                } else {
+                    fprintf(stdout, " Wrong option selected\n");
+                    return;
+                }
+
+                BtEvent *event = new BtEvent;
+                event->event_id = PAN_EVENT_SET_TETHERING_REQ;
+                event->pan_set_tethering_event.is_tethering_on = is_tethering_enable;
+                PostMessage (THREAD_ID_PAN, event);
+            } else {
+                fprintf(stdout, " Currently BT is in OFF state");
+            }
+            break;
+
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+
+        default:
+        ALOGV (LOGTAG " Command not handled: %d", cmd_id);
+        break;
+    }
+}
+
 
 void BtSocketDataHandler (void *context) {
-    //TODO keep the data handler
+    char ipc_msg[BT_IPC_MSG_LEN]  = {0};
+    int len;
+    if(g_bt_app->client_socket_ != -1) {
+        len = recv(g_bt_app->client_socket_, ipc_msg, BT_IPC_MSG_LEN, 0);
+
+        if (len <= 0) {
+            ALOGE("Not able to receive msg to remote dev: %s", strerror(errno));
+            reactor_unregister (g_bt_app->accept_reactor_);
+            g_bt_app->client_socket_ = -1;
+        } else if(len == BT_IPC_MSG_LEN) {
+            BtEvent *event = new BtEvent;
+            event->event_id = SKT_API_IPC_MSG_READ;
+            event->bt_ipc_msg_event.ipc_msg.type = ipc_msg[0];
+            event->bt_ipc_msg_event.ipc_msg.status = ipc_msg[1];
+
+            switch (event->bt_ipc_msg_event.ipc_msg.type) {
+                /*fall through for PAN IPC message*/
+                case BT_IPC_ENABLE_TETHERING:
+                case BT_IPC_DISABLE_TETHERING:
+                    ALOGV (LOGTAG "  Posting IPC_MSG to PAN thread");
+                    PostMessage (THREAD_ID_PAN, event);
+                    break;
+                default:
+                    delete event;
+                break;
+            }
+        }
+    }
 }
 
 void BtSocketListenHandler (void *context) {
@@ -564,6 +670,9 @@ static void BtCmdHandler (void *context) {
             case GAP_MENU:
                 HandleGapCommand(cmd_id,user_cmd);
                 break;
+            case PAN_MENU:
+                HandlePanCommand(cmd_id, user_cmd);
+                break;
             case TEST_MENU:
                 HandleTestCommand(cmd_id, user_cmd);
                 break;
@@ -600,6 +709,21 @@ void BtMainMsgHandler (void *context) {
     event = (BtEvent *) context;
 
     switch (event->event_id) {
+        case SKT_API_IPC_MSG_WRITE:
+            ALOGV (LOGTAG "client_socket: %d", g_bt_app->client_socket_);
+            if(g_bt_app->client_socket_ != -1) {
+                int len;
+                if((len = send(g_bt_app->client_socket_, &(event->bt_ipc_msg_event.ipc_msg),
+                    BT_IPC_MSG_LEN, 0)) < 0) {
+                    reactor_unregister (g_bt_app->accept_reactor_);
+                    g_bt_app->client_socket_ = -1;
+                    ALOGE (LOGTAG "Local socket send fail %s", strerror(errno));
+                }
+                ALOGV (LOGTAG "sent %d bytes", len);
+            }
+            delete event;
+            break;
+
         case MAIN_API_INIT:
             if (!g_bt_app)
                 g_bt_app = new BluetoothApp();
@@ -959,6 +1083,16 @@ void BluetoothApp :: InitHandler (void) {
         event->event_id = GAP_API_ENABLE;
         ALOGV (LOGTAG "  Posting enable to GAP thread");
         PostMessage (THREAD_ID_GAP, event);
+
+    }
+
+    if (is_pan_enable_default_) {
+        // Starting PAN Thread
+        threadInfo[THREAD_ID_PAN].thread_id = thread_new (
+            threadInfo[THREAD_ID_PAN].thread_name);
+
+        if (threadInfo[THREAD_ID_PAN].thread_id)
+            g_pan = new Pan (bt_interface, config);
     }
 
     // Enable Command line input
@@ -996,6 +1130,14 @@ void BluetoothApp :: DeInitHandler (void) {
             delete g_gap;
     }
 
+    if (is_pan_enable_default_) {
+        // Stop PAN Thread
+        if (threadInfo[THREAD_ID_PAN].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_PAN].thread_id);
+            if (g_pan != NULL)
+                delete g_pan;
+        }
+    }
     // Stop Command Handler
     if (is_user_input_enabled_) {
         reactor_unregister (cmd_reactor_);
@@ -1081,5 +1223,9 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for a2dp sink
     is_a2dp_sink_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_A2DP_SINK_ENABLED, false);
+    //checking for Pan handler
+    is_pan_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_PAN_ENABLED, false);
+
     return true;
 }
