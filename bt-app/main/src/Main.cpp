@@ -37,6 +37,7 @@
 #include "Main.hpp"
 #include <syslog.h>
 #include "../../a2dp_sink/include/A2dp_Sink.hpp"
+#include "HfpClient.hpp"
 #include "pan/include/Pan.hpp"
 #include "gatt/include/Gatt.hpp"
 
@@ -51,6 +52,7 @@ extern Pan *g_pan;
 extern Gatt *g_gatt;
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
+extern Hfp_Client *pHfpClient;
 
 #ifdef __cplusplus
 extern "C"
@@ -126,6 +128,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
             num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
+            break;
+        case HFP_CLIENT_MENU:
+            menu = &HfpClientMenu[0];
+            num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
             break;
         case MAIN_MENU:
         // fallback to default main menu
@@ -204,6 +210,10 @@ static void DisplayMenu(MenuType menu_type) {
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
             num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
+            break;
+        case HFP_CLIENT_MENU:
+            menu = &HfpClientMenu[0];
+            num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
             break;
     }
     fprintf (stdout, " \n***************** Menu *******************\n");
@@ -305,6 +315,159 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             break;
     }
 }
+
+static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+    ALOGD(LOGTAG, "HandleHfpClientCommand cmd_id = %d", cmd_id);
+    BtEvent *event = NULL;
+    switch (cmd_id) {
+        case CONNECT:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_CONNECT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_client_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case DISCONNECT:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_DISCONNECT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_client_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case CREATE_SCO_CONN:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_CONNECT_AUDIO_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_client_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case DESTROY_SCO_CONN:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_DISCONNECT_AUDIO_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_client_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case ACCEPT_CALL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_ACCEPT_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case REJECT_CALL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_REJECT_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case END_CALL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_END_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case HOLD_CALL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_HOLD_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case RELEASE_HELD_CALL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_RELEASE_HELD_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case RELEASE_ACTIVE_ACCEPT_WAITING_OR_HELD_CALL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_RELEASE_ACTIVE_ACCEPT_WAITING_OR_HELD_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case SWAP_CALLS:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_SWAP_CALLS_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case ADD_HELD_CALL_TO_CONF:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_ADD_HELD_CALL_TO_CONF_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case PUT_INCOMING_CALL_ON_HOLD:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_PUT_INCOMING_CALL_ON_HOLD_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case ACCEPT_HELD_INCOMING_CALL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_ACCEPT_HELD_INCOMING_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case REJECT_HELD_INCOMING_CALL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_REJECT_HELD_INCOMING_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case DIAL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_DIAL_REQ;
+            strncpy(event->hfp_client_event.str, user_cmd[ONE_PARAM], 20);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case REDIAL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_REDIAL_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case DIAL_MEMORY:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_DIAL_MEMORY_REQ;
+            event->hfp_client_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case START_VR:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_START_VR_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case STOP_VR:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_STOP_VR_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case CALL_ACTION:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_CALL_ACTION_REQ;
+            event->hfp_client_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            event->hfp_client_event.arg2 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case QUERY_CURRENT_CALLS:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_QUERY_CURRENT_CALLS_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case QUERY_OPERATOR_NAME:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_QUERY_OPERATOR_NAME_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case QUERY_SUBSCRIBER_INFO:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_QUERY_SUBSCRIBER_INFO_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case SCO_VOL_CTRL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_SCO_VOL_CTRL_REQ;
+            event->hfp_client_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            event->hfp_client_event.arg2 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case SEND_DTMF:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_SEND_DTMF_REQ;
+            event->hfp_client_event.arg1 = (char)atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+    }
+}
+
 static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     switch (cmd_id) {
@@ -324,6 +487,12 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);
             break;
+
+        case HFP_CLIENT:
+            menu_type = HFP_CLIENT_MENU;
+            DisplayMenu(menu_type);
+            break;
+
         case MAIN_EXIT:
             ALOGV (LOGTAG " Self exit of Main thread");
             ExitHandler();
@@ -705,6 +874,9 @@ static void BtCmdHandler (void *context) {
                 break;
             case A2DP_SINK_MENU:
                 HandleA2dpSinkCommand(cmd_id,user_cmd );
+                break;
+            case HFP_CLIENT_MENU:
+                HandleHfpClientCommand(cmd_id,user_cmd );
                 break;
         }
     } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
@@ -1091,6 +1263,15 @@ void BluetoothApp :: InitHandler (void) {
         }
     }
 
+    if(is_hfp_client_enabled_) {
+        threadInfo[THREAD_ID_HFP_CLIENT].thread_id = thread_new (
+                threadInfo[THREAD_ID_HFP_CLIENT].thread_name);
+
+        if (threadInfo[THREAD_ID_HFP_CLIENT].thread_id) {
+            pHfpClient = new Hfp_Client(bt_interface, config);
+        }
+    }
+
     // registers reactors for socket
     if (is_socket_input_enabled_) {
         if(LocalSocketCreate() != -1) {
@@ -1154,6 +1335,15 @@ void BluetoothApp :: DeInitHandler (void) {
             thread_free (threadInfo[THREAD_ID_A2DP_SINK].thread_id);
             if ( pA2dpSink != NULL)
                 delete pA2dpSink;
+        }
+    }
+
+    if(is_hfp_client_enabled_) {
+        //STOP HFP client thread
+        if (threadInfo[THREAD_ID_HFP_CLIENT].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_HFP_CLIENT].thread_id);
+            if ( pHfpClient != NULL)
+                delete pHfpClient;
         }
     }
     // Stop GAP Thread
@@ -1263,6 +1453,9 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for a2dp sink
     is_a2dp_sink_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_A2DP_SINK_ENABLED, false);
+    //checking for hfp client
+    is_hfp_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_HFP_CLIENT_ENABLED, false);
     //checking for Pan handler
     is_pan_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_PAN_ENABLED, false);
@@ -1270,6 +1463,5 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for Gatt handler
     is_gatt_enable_default_= config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_GATT_ENABLED, false);
-
     return true;
 }

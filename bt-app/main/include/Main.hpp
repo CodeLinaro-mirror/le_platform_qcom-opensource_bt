@@ -75,6 +75,7 @@ const char *BT_SOCKET_ENABLED      = "BtSockInputEnabled";
 const char *BT_ENABLE_DEFAULT      = "BtEnableByDefault";
 const char *BT_USER_INPUT          = "UserInteractionNeeded";
 const char *BT_A2DP_SINK_ENABLED   = "BtA2dpSinkEnable";
+const char *BT_HFP_CLIENT_ENABLED  = "BtHfClientEnable";
 
 /**
  * The Configuration file path
@@ -135,6 +136,32 @@ typedef enum {
     SET_TETHERING,
     RSP_INIT,
     RSP_START,
+    HFP_CLIENT,
+    CREATE_SCO_CONN,
+    DESTROY_SCO_CONN,
+    ACCEPT_CALL,
+    REJECT_CALL,
+    END_CALL,
+    HOLD_CALL,
+    RELEASE_HELD_CALL,
+    RELEASE_ACTIVE_ACCEPT_WAITING_OR_HELD_CALL,
+    SWAP_CALLS,
+    ADD_HELD_CALL_TO_CONF,
+    PUT_INCOMING_CALL_ON_HOLD,
+    ACCEPT_HELD_INCOMING_CALL,
+    REJECT_HELD_INCOMING_CALL,
+    DIAL,
+    REDIAL,
+    DIAL_MEMORY,
+    START_VR,
+    STOP_VR,
+    CALL_ACTION,
+    QUERY_CURRENT_CALLS,
+    QUERY_OPERATOR_NAME,
+    QUERY_SUBSCRIBER_INFO,
+    SCO_VOL_CTRL,
+    SEND_DTMF,
+    SEND_AT_CMD,
     BACK_TO_MAIN,
     END,
 } CommandList;
@@ -153,7 +180,8 @@ typedef enum {
     GAP_MENU,
     TEST_MENU,
     A2DP_SINK_MENU,
-    PAN_MENU,
+    HFP_CLIENT_MENU,
+    PAN_MENU
 } MenuType;
 
 /**
@@ -199,6 +227,7 @@ UserMenuList MainMenu[] = {
     {PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
+    {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
 
@@ -237,6 +266,40 @@ UserMenuList A2dpSinkMenu[] = {
     {FORWARD,               "forward",          ZERO_PARAM,    "forward"},
     {BACKWARD,              "backward",         ZERO_PARAM,    "backward"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
+};
+
+/**
+ * list of supported commands for HFP_CLIENT Menu
+ */
+UserMenuList HfpClientMenu[] = {
+    {CONNECT,               "connect",       ONE_PARAM,    "connect<space><bt_address>"},
+    {DISCONNECT,            "disconnect",    ONE_PARAM,    "disconnect<space><bt_address>"},
+    {CREATE_SCO_CONN,       "create_sco",    ONE_PARAM,    "create_sco<space><bt_address>"},
+    {DESTROY_SCO_CONN,      "destroy_sco",   ONE_PARAM,    "destroy_sco<space><bt_address>"},
+    {ACCEPT_CALL,           "accept_call",   ZERO_PARAM,   "accept_call"},
+    {REJECT_CALL,           "reject_call",   ZERO_PARAM,   "reject_call"},
+    {END_CALL,              "end_call",      ZERO_PARAM,   "end_call"},
+    {HOLD_CALL,             "hold_call",     ZERO_PARAM,   "hold_call"},
+    {RELEASE_HELD_CALL,     "release_held_call", ZERO_PARAM,   "release_held_call"},
+    {RELEASE_ACTIVE_ACCEPT_WAITING_OR_HELD_CALL,  "release_active_accept_waiting_or_held_call",
+      ZERO_PARAM,"release_active_accept_waiting_or_held_call"},
+    {SWAP_CALLS,            "swap_calls", ZERO_PARAM,   "swap_calls"},
+    {ADD_HELD_CALL_TO_CONF, "add_held_call_to_conference", ZERO_PARAM,   "add_held_call_to_conference"},
+    {PUT_INCOMING_CALL_ON_HOLD, "put_incoming_call_on_hold", ZERO_PARAM,   "put_incoming_call_on_hold"},
+    {ACCEPT_HELD_INCOMING_CALL, "accept_held_incoming_call", ZERO_PARAM,   "accept_held_incoming_call"},
+    {REJECT_HELD_INCOMING_CALL, "reject_held_incoming_call", ZERO_PARAM,   "reject_held_incoming_call"},
+    {DIAL,                  "dial",          ONE_PARAM,    "dial<space><phone_number>"},
+    {REDIAL,                "redial",        ZERO_PARAM,   "redial"},
+    {DIAL_MEMORY,           "dial_memory",   ONE_PARAM,    "dial<space><memory_location>"},
+    {START_VR,              "start_vr",      ZERO_PARAM,   "start_vr"},
+    {STOP_VR,               "stop_vr",       ZERO_PARAM,   "stop_vr"},
+    {CALL_ACTION,           "call_action",   TWO_PARAM,    "call_action<space><action><space><index>"},
+    {QUERY_CURRENT_CALLS,   "query_current_calls", ZERO_PARAM,   "query_current_calls"},
+    {QUERY_OPERATOR_NAME,   "query_operator_name", ZERO_PARAM,   "query_operator_name"},
+    {QUERY_SUBSCRIBER_INFO, "query_subscriber_info", ZERO_PARAM, "query_subscriber_info"},
+    {SCO_VOL_CTRL,          "sco_volume_control",   TWO_PARAM,   "sco_volume_control<space><type><space><value>"},
+    {SEND_DTMF,             "send_dtmf",   ONE_PARAM,    "send_dtmf<space><code>"},
+    {BACK_TO_MAIN,          "main_menu",     ZERO_PARAM,   "main_menu"},
 };
 
 #ifdef __cplusplus
@@ -358,6 +421,7 @@ class BluetoothApp {
     bool is_user_input_enabled_;
     bool is_socket_input_enabled_;
     bool is_a2dp_sink_enabled_;
+    bool is_hfp_client_enabled_;
     bool is_pan_enable_default_;
     bool is_gatt_enable_default_;
     reactor_object_t *cmd_reactor_;
