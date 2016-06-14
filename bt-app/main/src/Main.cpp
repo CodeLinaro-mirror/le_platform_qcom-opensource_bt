@@ -244,6 +244,48 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
             PostMessage (THREAD_ID_A2DP_SINK, event);
             break;
+        case PLAY:
+            event = new BtEvent;
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlEvent.key_id = CMD_ID_PLAY;
+            PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
+        case PAUSE:
+            event = new BtEvent;
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlEvent.key_id = CMD_ID_PAUSE;
+            PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
+        case STOP:
+            event = new BtEvent;
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlEvent.key_id = CMD_ID_STOP;
+            PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
+        case FASTFORWARD:
+            event = new BtEvent;
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlEvent.key_id = CMD_ID_FF;
+            PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
+        case REWIND:
+            event = new BtEvent;
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlEvent.key_id = CMD_ID_REWIND;
+            PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
+        case FORWARD:
+            event = new BtEvent;
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlEvent.key_id = CMD_ID_FORWARD;
+            PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
+        case BACKWARD:
+            event = new BtEvent;
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlEvent.key_id = CMD_ID_BACKWARD;
+            PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);

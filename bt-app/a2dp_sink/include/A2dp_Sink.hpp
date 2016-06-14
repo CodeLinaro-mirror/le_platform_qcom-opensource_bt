@@ -34,6 +34,7 @@
 #include <string>
 #include <hardware/bluetooth.h>
 #include <hardware/bt_av.h>
+#include <hardware/bt_rc.h>
 #include <pthread.h>
 
 #include "osi/include/log.h"
@@ -56,7 +57,9 @@ class A2dp_Sink {
     config_t *config;
     const bt_interface_t * bluetooth_interface;
     const btav_interface_t *sBtA2dpSinkInterface;
+    const btrc_ctrl_interface_t *sBtAvrcpCtrlInterface;
     A2dpSinkState mSinkState;
+    bool mAvrcpConnected;
 
   public:
     A2dp_Sink(const bt_interface_t *bt_interface, config_t *config);
@@ -69,6 +72,8 @@ class A2dp_Sink {
     pthread_mutex_t lock;
     bt_bdaddr_t mConnectingDevice;
     bt_bdaddr_t mConnectedDevice;
+    bt_bdaddr_t mConnectedAvrcpDevice;
+    void HandleAvrcpEvents(BtEvent* pEvent);
     void HandleEnableSink();
     void HandleDisableSink();
 };

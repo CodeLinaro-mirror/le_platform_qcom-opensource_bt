@@ -123,6 +123,13 @@ typedef enum {
     A2DP_SINK,
     CONNECT,
     DISCONNECT,
+    PLAY,
+    PAUSE,
+    STOP,
+    FASTFORWARD,
+    REWIND,
+    FORWARD,
+    BACKWARD,
     BACK_TO_MAIN,
     END,
 } CommandList;
@@ -184,7 +191,7 @@ UserMenuList GapMenu[] = {
 UserMenuList MainMenu[] = {
     {GAP_OPTION,            "gap_menu",        ZERO_PARAM,    "gap_menu"},
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
-    {A2DP_SINK,             "a2dp_sink_menu",        ZERO_PARAM,   "a2dp_sink_menu"},
+    {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
 
@@ -202,6 +209,13 @@ UserMenuList TestMenu[] = {
 UserMenuList A2dpSinkMenu[] = {
     {CONNECT,               "connect",          ONE_PARAM,    "connect<space><bt_address>"},
     {DISCONNECT,            "disconnect",       ONE_PARAM,    "disconnect<space><bt_address>"},
+    {PLAY,                  "play",             ZERO_PARAM,    "play"},
+    {PAUSE,                 "pause",            ZERO_PARAM,    "pause"},
+    {STOP,                  "stop",             ZERO_PARAM,    "stop<"},
+    {REWIND,                "rewind",           ZERO_PARAM,    "rewind"},
+    {FASTFORWARD,           "fastforward",      ZERO_PARAM,    "fastforward"},
+    {FORWARD,               "forward",          ZERO_PARAM,    "forward"},
+    {BACKWARD,              "backward",         ZERO_PARAM,    "backward"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
 };
 #ifdef __cplusplus
