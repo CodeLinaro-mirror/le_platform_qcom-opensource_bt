@@ -133,6 +133,8 @@ typedef enum {
     PAN_OPTION,
     CONNECTED_LIST,
     SET_TETHERING,
+    RSP_INIT,
+    RSP_START,
     BACK_TO_MAIN,
     END,
 } CommandList;
@@ -211,13 +213,14 @@ UserMenuList PanMenu[] = {
     {CONNECTED_LIST, "connected_device_list",    ZERO_PARAM, "connected_device_list"},
     {BACK_TO_MAIN,   "main_menu",                ZERO_PARAM, "main_menu"},
 };
-
 /**
  * list of supported commands for Test Menu
  */
 UserMenuList TestMenu[] = {
     {TEST_ON_OFF,           "on_off",    ONE_PARAM,     "<on_off> <number>   eg: on_off 100"},
     {BACK_TO_MAIN,          "main_menu", ZERO_PARAM,    "main_menu"},
+    {RSP_INIT,              "rsp_init",  ZERO_PARAM,    "rsp_init (only for Init time)"},
+    {RSP_START,             "rsp_start", ZERO_PARAM,    "rsp_start would (re)start adv"},
 };
 
 /**
@@ -356,6 +359,7 @@ class BluetoothApp {
     bool is_socket_input_enabled_;
     bool is_a2dp_sink_enabled_;
     bool is_pan_enable_default_;
+    bool is_gatt_enable_default_;
     reactor_object_t *cmd_reactor_;
     struct hw_device_t *device_;
     bluetooth_device_t *bt_device_;

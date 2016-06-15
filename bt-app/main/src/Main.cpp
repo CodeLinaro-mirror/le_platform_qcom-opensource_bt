@@ -38,7 +38,7 @@
 #include <syslog.h>
 #include "../../a2dp_sink/include/A2dp_Sink.hpp"
 #include "pan/include/Pan.hpp"
-
+#include "gatt/include/Gatt.hpp"
 
 #include "utils.h"
 
@@ -48,8 +48,10 @@
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
 extern Pan *g_pan;
+extern Gatt *g_gatt;
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -356,14 +358,33 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     PostMessage (THREAD_ID_GAP, event_off);
                     sleep(2);
                 }
-           }
-           fprintf( stdout, "Currently not Handled %ld \n", num);
+            }
+            fprintf( stdout, "Currently not Handled %ld \n", num);
             break;
+
+        case RSP_INIT:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                fprintf( stdout, "ENABLE RSP\n");
+                if (g_gatt) g_gatt->rsp->EnableRSP();
+            } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+            }
+            break;
+
+        case RSP_START:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                fprintf( stdout, "(Re)start Advertisement \n");
+                if (g_gatt) g_gatt->rsp->StartAdvertisement();
+            } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+            }
+            break;
+
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
             break;
-         default:
+        default:
             ALOGV (LOGTAG " Command not handled");
             break;
     }
@@ -602,7 +623,6 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
-
 void BtSocketDataHandler (void *context) {
     char ipc_msg[BT_IPC_MSG_LEN]  = {0};
     int len;
@@ -625,6 +645,10 @@ void BtSocketDataHandler (void *context) {
                 case BT_IPC_DISABLE_TETHERING:
                     ALOGV (LOGTAG "  Posting IPC_MSG to PAN thread");
                     PostMessage (THREAD_ID_PAN, event);
+                    break;
+                case BT_IPC_REMOTE_START_WLAN:
+                    ALOGV (LOGTAG "  Posting IPC_MSG to GATT thread");
+                    PostMessage (THREAD_ID_GATT, event);
                     break;
                 default:
                     delete event;
@@ -1095,6 +1119,15 @@ void BluetoothApp :: InitHandler (void) {
             g_pan = new Pan (bt_interface, config);
     }
 
+    if (is_gatt_enable_default_) {
+        ALOGV (LOGTAG "  Starting GATT thread");
+        threadInfo[THREAD_ID_GATT].thread_id = thread_new (
+            threadInfo[THREAD_ID_GATT].thread_name);
+
+        if (threadInfo[THREAD_ID_GATT].thread_id)
+            g_gatt = new Gatt(bt_interface, config);
+    }
+
     // Enable Command line input
     if (is_user_input_enabled_) {
         cmd_reactor_ = reactor_register (thread_get_reactor
@@ -1138,12 +1171,19 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete g_pan;
         }
     }
+    if (is_gatt_enable_default_) {
+        if (threadInfo[THREAD_ID_GATT].thread_id != NULL){
+            thread_free(threadInfo[THREAD_ID_GATT].thread_id);
+            if (g_gatt != NULL)
+                delete g_gatt;
+        }
+    }
+
     // Stop Command Handler
     if (is_user_input_enabled_) {
         reactor_unregister (cmd_reactor_);
     }
 }
-
 
 BluetoothApp :: BluetoothApp () {
 
@@ -1226,6 +1266,10 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for Pan handler
     is_pan_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_PAN_ENABLED, false);
+
+    //checking for Gatt handler
+    is_gatt_enable_default_= config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_GATT_ENABLED, false);
 
     return true;
 }
