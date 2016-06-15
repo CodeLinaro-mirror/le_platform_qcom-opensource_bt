@@ -30,5 +30,6 @@ fi
 AC_SUBST([CFLAGS])
 AC_SUBST([CC])
 AC_CONFIG_FILES([Makefile\
+    osi/Makefile\
     main/Makefile])
 AC_OUTPUT

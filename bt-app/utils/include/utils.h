@@ -1,7 +1,5 @@
 /******************************************************************************
  *
- *  Copyright (c) 2016, The Linux Foundation. All rights reserved.
- *  Not a Contribution.
  *  Copyright (C) 2014 Google, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,20 +15,33 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+#include <assert.h>
+#include <ctype.h>
+#include <stdio.h>
+#include <string.h>
+#include <hardware/bluetooth.h>
+#include <stdbool.h>
 
-#include "ipc.h"
-#include "osi/include/thread.h"
+#include "hash_map.h"
 
-thread_t *g_gap_thread = NULL;
-thread_t *g_main_thread = NULL;
-thread_t *g_socket_thread = NULL;
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-void PostMessage(ThreadIdType thread_id, void *msg) {
-    if(thread_id == THREAD_ID_GAP) {
-        if(g_gap_thread)
-            thread_post(g_gap_thread, BtGapMsgHandler, msg);
-    } else if(thread_id == THREAD_ID_MAIN) {
-        if(g_main_thread)
-            thread_post(g_main_thread, BtMainMsgHandler, msg);
-    }
+bool bdaddr_is_empty(const bt_bdaddr_t *addr);
+
+bool bdaddr_equals(const bt_bdaddr_t *first, const bt_bdaddr_t *second);
+
+bt_bdaddr_t *bdaddr_copy(bt_bdaddr_t *dest, const bt_bdaddr_t *src);
+
+const char *bdaddr_to_string(const bt_bdaddr_t *addr, char *string, size_t size);
+
+bool string_is_bdaddr(const char *string);
+
+bool string_to_bdaddr(const char *string, bt_bdaddr_t *addr);
+
+hash_index_t hash_function_bdaddr(const void *key);
+#ifdef __cplusplus
 }
+#endif

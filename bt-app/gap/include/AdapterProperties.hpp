@@ -31,15 +31,40 @@
 #include <list>
 #include "RemoteDevices.hpp"
 
+/**
+ * @file AdapterProperties.hpp
+ * @brief Adapter Properties header file
+ */
+
+/**
+ * Bluetooth Address length
+*/
 #define BD_ADDR_LEN      6
 
+/**
+ * @class AdapterProperties
+ *
+ * @brief AdapterProperties Class
+ */
 class AdapterProperties {
 
     private:
+        /**
+         *  object for @ref AdapterState class
+         */
         AdapterState state_;
         bool discovering_;
+        /**
+        *  class object for @ref RemoteDevices class
+        */
         RemoteDevices  *remote_devices_obj_;
+        /**
+         * Used to for syncronization accces
+         */
         pthread_mutex_t lock_;
+        /**
+         *  structure object for standard Bluetooth DM interface
+         */
         const bt_interface_t *bluetooth_interface_;
         void GetBondedDevicesFromPropertyList(int num_properties,
             bt_property_t *properties, bt_property_type_t type, bt_bdaddr_t *bd_addr,
@@ -47,16 +72,93 @@ class AdapterProperties {
 
     public:
         std::list <std::string> bonded_devices;
+        /**
+         * @brief @ref AdapterProperties constructor
+         *
+         * It will initialize local @ref bluetooth_interface_ and
+         * @ref remote_devices_obj_
+         * @param[in] bt_interface_t bt_interface
+         * @param[in] RemoteDevices remote_devices_obj
+         */
         AdapterProperties(const bt_interface_t *bt_interface,
                 RemoteDevices *remote_devices_obj);
 
+        /**
+         * @ref distructor for @ref AdapterProperties
+         *
+         * Clear the locks, remove device entries from @ref bonded_devices
+         */
         ~AdapterProperties();
+        /**
+         * @brief FlushBondedDeviceList
+         *
+         *  Function will clears the paring list in @ref bonded_devices
+         *
+         * @param  void
+         * @return none
+         */
         void FlushBondedDeviceList(void);
+
+        /**
+         * @brief AdapterPropertiesUpdate
+         *
+         *
+         *
+         * @param  AdapterPropertiesEvent event
+         * @return none
+         */
         void AdapterPropertiesUpdate(AdapterPropertiesEvent *event);
+
+        /**
+         * @brief HandleDiscoveryStateChange
+         *
+         *
+         *
+         * @param  bt_discovery_state_t
+         * @return none
+         */
         void HandleDiscoveryStateChange(bt_discovery_state_t state);
-        void OnbondStateChanged( bt_bdaddr_t bd_addr, bt_bond_state_t new_state);
+
+        /**
+         * @brief OnbondStateChanged
+         *
+         *
+         *
+         * @param bt_bdaddr_t   bd_addr
+         * @param bt_bond_state_t   new_state
+         * @param bool  notify
+         * @return none
+         */
+        void OnbondStateChanged( bt_bdaddr_t bd_addr, bt_bond_state_t new_state,
+            bool notify);
+
+        /**
+         * @brief SetState
+         *
+         * It will set the AdapterState
+         *
+         * @param AdapterState
+         * @return none
+         */
         void SetState(AdapterState state);
+
+        /**
+         * @brief GetState
+         *
+         * This function will returns the current BT state
+         *
+         * @return int
+         */
         int  GetState();
+
+        /**
+         * @brief IsDiscovering
+         *
+         * It will check discovery state, If discovery is in progress then returns true
+         * else returns false
+         *
+         * @return bool
+         */
         bool IsDiscovering();
 };
 

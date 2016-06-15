@@ -30,12 +30,15 @@
 #include "AdapterProperties.hpp"
 #include "RemoteDevices.hpp"
 
+/**
+ * @file Gap.hpp
+ * @brief gap header file
+*/
+
+/**
+ * Maximum Bonded Device
+*/
 #define MAX_BONDED_DEVICES (20)
-
-#define HANDLER_EVENT_COUNT (2)
-#define ADAPTER_EVENT_MSG   (0)
-#define ADAPTER_EVENT_STOP  (1)
-
 
 const unsigned char g_audiosink_uuid[16] = {0x00, 0x00, 0x11, 0x0B, 0x00, 0x00,
                 0x10, 0x00, 0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB};
@@ -76,30 +79,158 @@ enum ProfileType
   TYPE_AVRCP_CT,
   TYPE_AVRCP_TG
 };
-
+/**
+ * @class Gap
+ *
+ * @brief Gap Class
+ */
 class Gap {
 
   private:
     config_t *config_;
+    /**
+     *  structure object for standard Bluetooth DM interface
+     */
     const bt_interface_t *bluetooth_interface_;
+    /**
+     *  class object for @ref AdapterProperties class
+     */
     AdapterProperties *adapter_properties_obj_;
+    /**
+     *  class object for @ref RemoteDevices class
+     */
     RemoteDevices     *remote_devices_obj_;
+    bool is_user_input_enabled_;
+    /**
+     * @brief HandlePinRequestEvent
+     *
+     * It is used to hadnle PinKey request to the main application and sends
+     * a @ref MAIN_EVENT_PIN_REQUEST event to @ref THREAD_ID_MAIN main thread
+     *
+     * @param  PINRequestEvent  event
+     * @return none
+     */
     void HandlePinRequestEvent(PINRequestEvent *event);
+    /**
+     * @brief HandleSspRequestEvent
+     *
+     * It is used to handle SSP request to the main application and sends a
+     * @ref MAIN_EVENT_SSP_REQUEST event to @ref THREAD_ID_MAIN main thread
+     *
+     * @param  SSPRequestEvent event
+     * @return none
+     */
     void HandleSspRequestEvent(SSPRequestEvent *event);
+
+    /**
+     * @brief HandleBondStateEvent
+     *
+     * It is used to notify bond state to the main application. and calls a
+     * @ref OnbondStateChanged function of @ref AdapterProperties class to handle
+     * bond_state event
+     *
+     * @param  DeviceBondStateEventInt  event
+     * @return none
+     */
     void HandleBondStateEvent(DeviceBondStateEventInt *event);
+
+    /**
+     * @brief HandleEnable
+     *
+     * This function will enable the bluetooth by internally calling
+     * stack provided enable() callback
+     *
+     * @return none
+     */
     void HandleEnable();
+
+    /**
+     * @brief HandleDisable
+     *
+     * This function will disable the bluetooth by internally calling
+     * stack provided disable() callback
+     *
+     * @return none
+     */
     void HandleDisable();
+    /**
+     * @brief HandleStartDiscovery
+     *
+     * This function will initiate the discovery by calling stack provided start_discovery()
+     * callback
+     *
+     * @return none
+     */
     void HandleStartDiscovery();
+    /**
+     * @brief HandleStopDiscovery
+     *
+     * This function will stops the discovery by calling stack provided cancel_discovery()
+     * callback
+     *
+     * @return none
+     */
     void HandleStopDiscovery();
 
+    /**
+     * @brief HandleSspReply
+     *
+     * This function send ssp reply by calling stack provided ssp_reply callback
+     *
+     * @param SSPReplyEvent
+     * @return none
+     */
+    void HandleSspReply(SSPReplyEvent *event);
+    /**
+     * @brief HandlePinReply
+     *
+     * This function send pin reply by calling stack provided pin_reply callback
+     *
+     * @param PINReplyEvent
+     * @return none
+     */
+    void HandlePinReply(PINReplyEvent *event);
   public:
     Gap(const bt_interface_t *bt_interface, config_t *config);
     ~Gap();
+    /**
+
+     * @brief ProcessEvent
+     *
+     * It will handle incomming events
+     *
+     * @param BtEvent
+     * @return none
+     */
     void ProcessEvent(BtEvent* event);
+
+    /**
+     * @brief GetState
+     *
+     * It will check the current BT state, and returns the state of BT
+     *
+     * @return int
+     */
     int  GetState();
-    bool IsEnabled();
-    bool IsDiscovering();
-    int GetBondState(bt_bdaddr_t bd_addr);
+
+    /**
+     * @brief IsEnabled
+     *
+     * It will check the current BT state, If state is BT_STATE_ON it will return true
+     * else it will return false
+     * @return bool
+     */
+     bool IsEnabled();
+
+    /**
+     * @brief IsDiscovering
+     *
+     * It will check discovering state, If discovery is in progress then returns true
+     * else returns false
+     * @return bool
+     */
+     bool IsDiscovering();
+
 };
 
 #endif

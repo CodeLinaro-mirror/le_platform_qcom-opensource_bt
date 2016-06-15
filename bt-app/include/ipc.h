@@ -25,18 +25,39 @@
 
 extern thread_t *g_gap_thread;
 extern thread_t *g_main_thread;
+extern thread_t *g_socket_thread;
 
+/**
+ * @file ipc.h
+ *
+ * @brief It is common header file which contains all event related structures
+ */
 
 #define MAIN_MSG_BASE           (0)
 #define GAP_MSG_BASE            (1000)
 #define MAX_BD_STR_LEN          (18)
 
+/**
+ *   Threads info
+ */
 typedef enum {
     THREAD_ID_MAIN,
     THREAD_ID_GAP,
 } ThreadIdType;
 
+/**
+ *   Profiles info
+ */
+typedef enum {
+    PROFILE_ID_A2DP_SINK,
+    PROFILE_ID_PAN,
+} ProfileIdType;
 
+
+
+/**
+ *  list of EVENTS used by GAP and MAIN thread
+ */
 typedef enum {
     MAIN_API_INIT = (MAIN_MSG_BASE + 1),
     MAIN_API_DEINIT,
@@ -47,6 +68,8 @@ typedef enum {
     MAIN_EVENT_BOND_STATE,
     MAIN_EVENT_ENABLED,
     MAIN_EVENT_DISABLED,
+    MAIN_EVENT_SSP_REQUEST,
+    MAIN_EVENT_PIN_REQUEST,
 
     MAIN_MSG_DISCOVER_DEVICES,
     MAIN_MSG_BOND_DEVICE,
@@ -58,6 +81,8 @@ typedef enum {
     GAP_API_START_INQUIRY,
     GAP_API_STOP_INQUIRY,
     GAP_API_CREATE_BOND,
+    GAP_API_SSP_REPLY,
+    GAP_API_PIN_REPLY,
 
     GAP_EVENT_ADAPTER_STATE,
     GAP_EVENT_ACL_STATE_CHANGED,
@@ -71,18 +96,26 @@ typedef enum {
     GAP_EVENT_BOND_STATE_INT,
     GAP_EVENT_BOND_STATE,
 
+    SKT_API_START_LISTENER,
+
+    PROFILE_API_START,
+    PROFILE_API_STOP,
+    PROFILE_EVENT_START_DONE,
+    PROFILE_EVENT_STOP_DONE
+
 } BluetoothEventId;
 
 typedef struct {
     bt_bdaddr_t address;
-    char mName[248];
-    int mBluetoothClass;
-    short mRssi;
-    bt_uuid_t mUuids[16];
-    int mDeviceType;
-    int retValue;
-    char mAlias[64];
-    int mBondState;
+    char name[248];
+    int bluetooth_class;
+    short rssi;
+    bt_uuid_t uuids[16];
+    int device_type;
+    int ret_value;
+    char alias[64];
+    int bond_state;
+    bool broadcast;
 } DeviceProperties;
 
 typedef enum {
@@ -92,13 +125,17 @@ typedef enum {
     BT_ADAPTER_STATE_TURNING_OFF
 } AdapterState;
 
-/* Events to statemachine */
-
+/**
+ * Generic Event for GAP
+ */
 typedef struct {
     BluetoothEventId event_id;
     bt_state_t          status;
 } GapAppEvent;
 
+/**
+ * Event for notifying Remote Device properties
+ */
 typedef struct {
     BluetoothEventId event_id;
     bt_bdaddr_t         bd_addr;
@@ -106,34 +143,54 @@ typedef struct {
     bt_property_t       *properties;
 } RemotePropertiesEvent;
 
+/**
+ * Event for notifying Adapter Properties
+ */
 typedef struct {
     BluetoothEventId event_id;
     int                 num_properties;
     bt_property_t       *properties;
 } AdapterPropertiesEvent;
 
+/**
+ * Event for notifying Device found, It used only for internall threads
+ */
 typedef struct {
     BluetoothEventId event_id;
     int                 num_properties;
     bt_property_t       *properties;
 } DeviceFoundEventInt;
 
+/**
+ * Event for notifying Device found
+ */
 typedef struct {
     BluetoothEventId event_id;
     DeviceProperties remoteDevice;
 } DeviceFoundEvent;
 
+/**
+ * Event for notifying Device Bond state
+ */
 typedef struct {
     BluetoothEventId event_id;
     bt_bond_state_t     state;
     bt_bdaddr_t         bd_addr;
 } DeviceBondStateEventInt;
 
+/**
+ * Event for notifying Device Bond state
+ */
 typedef struct {
     BluetoothEventId event_id;
     bt_bond_state_t     state;
+    bt_bdaddr_t         bd_addr;
+    bt_bdname_t         bd_name;
 } DeviceBondStateEvent;
 
+/**
+ * Event for notifying ACL state
+ */
 typedef struct {
     BluetoothEventId event_id;
     bt_status_t status;
@@ -141,52 +198,135 @@ typedef struct {
     bt_acl_state_t state;
 } ACLStateEvent;
 
+/**
+ * Event for notifying Discovery state
+ */
 typedef struct {
     BluetoothEventId event_id;
     bt_discovery_state_t state;
 } DiscoveryStateEvent;
 
+/**
+ * Event for notifying pin request
+ */
 typedef struct {
     BluetoothEventId event_id;
     bt_bdaddr_t         bd_addr;
     bt_bdname_t         bd_name;
-    uint32_t            cod;
-    bool             secure;
+    uint32_t           cod;
+    bool               secure;
 } PINRequestEvent;
 
+/**
+ * Event to post pin reply
+ */
 typedef struct {
     BluetoothEventId event_id;
     bt_bdaddr_t         bd_addr;
     bt_bdname_t         bd_name;
-    uint32_t            cod;
+    uint8_t            pin_len;
+    bool               secure;
+    bt_pin_code_t       pincode;
+} PINReplyEvent;
+
+/**
+ * Event for notifying pin request
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bt_bdaddr_t         bd_addr;
+    bt_bdname_t         bd_name;
+    uint32_t           cod;
     bt_ssp_variant_t    pairing_variant;
-    uint32_t            pass_key;
+    uint32_t           pass_key;
 } SSPRequestEvent;
 
+/**
+ * Event to post ssp reply
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bt_bdaddr_t         bd_addr;
+    bt_bdname_t         bd_name;
+    uint32_t           cod;
+    bt_ssp_variant_t    pairing_variant;
+    uint32_t           pass_key;
+    uint8_t            accept;
+} SSPReplyEvent;
+
+/**
+ * Event for notifying Device Discover
+ */
 typedef struct {
     BluetoothEventId event_id;
 } DeviceDiscoverRequest;
 
+/**
+ * Event for notifying Device Bond
+ */
 typedef struct {
     BluetoothEventId event_id;
     bt_bdaddr_t         bd_addr;
 } DeviceBondRequest;
 
+/**
+ * Event for notifying Device connect
+ */
 typedef struct {
     BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
 } DeviceConnectRequest;
 
+/**
+ * Event for notifying Device disconnect
+ */
 typedef struct {
     BluetoothEventId event_id;
     bt_bdaddr_t         bd_addr;
 } DeviceDisconnectRequest;
 
-union BtEvent {
+/**
+ * API to start Profile
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    ProfileIdType    profile_id;
+} ProfileStartRequest;
+
+/**
+ * Event for notifying Profile start status
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    ProfileIdType    profile_id;
+    bool             status;
+} ProfileStartEvent;
+
+
+/**
+ * API to stop Profile
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    ProfileIdType    profile_id;
+} ProfileStopRequest;
+
+/**
+ * Event for notifying Profile stop status
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    ProfileIdType    profile_id;
+    bool             status;
+} ProfileStopEvent;
+
+typedef union {
     BluetoothEventId        event_id;
     GapAppEvent             state_event;
     SSPRequestEvent         ssp_request_event;
+    SSPReplyEvent           ssp_reply_event;
     PINRequestEvent         pin_request_event;
+    PINReplyEvent           pin_reply_event;
     DiscoveryStateEvent     discovery_state_event;
     ACLStateEvent           acl_state_event;
     DeviceBondStateEvent    bond_state_event;
@@ -197,7 +337,11 @@ union BtEvent {
     AdapterPropertiesEvent  adapater_properties_event;
     DeviceDiscoverRequest   discover_request;
     DeviceBondRequest       bond_device;
-};
+    ProfileStartRequest     profile_start_request;
+    ProfileStopRequest      profile_stop_request;
+    ProfileStartEvent       profile_start_event;
+    ProfileStopEvent        profile_stop_event;
+} BtEvent;
 
 #ifdef __cplusplus
 extern "C" {
@@ -205,9 +349,9 @@ extern "C" {
 
 typedef char bdstr_t[MAX_BD_STR_LEN];
 void PostMessage(ThreadIdType thread_id, void *msg);
-const char *BdAddr2Str(const bt_bdaddr_t *bd_addr, char *bd_str);
 void BtGapMsgHandler(void *context);
 void BtMainMsgHandler(void *context);
+void BtSocketMsgHandler (void *context);
 
 #ifdef __cplusplus
 }
