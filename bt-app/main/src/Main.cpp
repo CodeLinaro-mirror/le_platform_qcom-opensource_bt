@@ -36,12 +36,15 @@
 #include <iomanip>
 #include "Main.hpp"
 #include <syslog.h>
+#include "../../a2dp_sink/include/A2dp_Sink.hpp"
+
 #include "utils.h"
 
 #define LOGTAG  "MAIN"
 #define LOCAL_SOCKET_NAME "btappsocket"
 
 extern Gap *g_gap;
+extern A2dp_Sink *pA2dpSink;
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 #ifdef __cplusplus
@@ -110,6 +113,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         case TEST_MENU:
             menu = &TestMenu[0];
             num_cmds  = NO_OF_COMMANDS(TestMenu);
+            break;
+        case A2DP_SINK_MENU:
+            menu = &A2dpSinkMenu[0];
+            num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
             break;
         case MAIN_MENU:
         // fallback to default main menu
@@ -181,6 +188,10 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &MainMenu[0];
             num_cmds  = NO_OF_COMMANDS(MainMenu);
             break;
+        case A2DP_SINK_MENU:
+            menu = &A2dpSinkMenu[0];
+            num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
+            break;
     }
     fprintf (stdout, " \n***************** Menu *******************\n");
     for (index = 0; index < num_cmds; index++)
@@ -217,6 +228,28 @@ static void ExitHandler(void) {
     reactor_stop (thread_get_reactor (threadInfo[THREAD_ID_MAIN].thread_id));
 }
 
+static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+    ALOGD(LOGTAG, "HandleA2DPSinkCommand cmd_id = %d", cmd_id);
+    BtEvent *event = NULL;
+    switch (cmd_id) {
+        case CONNECT:
+            event = new BtEvent;
+            event->a2dpSinkEvent.event_id = A2DP_SINK_API_CONNECT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
+            PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
+        case DISCONNECT:
+            event = new BtEvent;
+            event->a2dpSinkEvent.event_id = A2DP_SINK_API_DISCONNECT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
+            PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+    }
+}
 static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     switch (cmd_id) {
@@ -230,6 +263,10 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             DisplayMenu(menu_type);
             break;
 
+        case A2DP_SINK:
+            menu_type = A2DP_SINK_MENU;
+            DisplayMenu(menu_type);
+            break;
         case MAIN_EXIT:
             ALOGV (LOGTAG " Self exit of Main thread");
             ExitHandler();
@@ -490,6 +527,9 @@ static void BtCmdHandler (void *context) {
                 break;
             case MAIN_MENU:
                 HandleMainCommand(cmd_id,user_cmd );
+                break;
+            case A2DP_SINK_MENU:
+                HandleA2dpSinkCommand(cmd_id,user_cmd );
                 break;
         }
     } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
@@ -852,7 +892,14 @@ void BluetoothApp :: InitHandler (void) {
         g_gap = new Gap (bt_interface, config);
     }
 
-    //TODO error handler
+    if(is_a2dp_sink_enabled_) {
+        threadInfo[THREAD_ID_A2DP_SINK].thread_id = thread_new (
+                threadInfo[THREAD_ID_A2DP_SINK].thread_name);
+
+        if (threadInfo[THREAD_ID_A2DP_SINK].thread_id) {
+            pA2dpSink = new A2dp_Sink (bt_interface, config);
+        }
+    }
 
     // registers reactors for socket
     if (is_socket_input_enabled_) {
@@ -892,6 +939,14 @@ void BluetoothApp :: DeInitHandler (void) {
             reactor_unregister ( accept_reactor_);
     }
 
+    if(is_a2dp_sink_enabled_) {
+        //STOP A2dp Sink thread
+        if (threadInfo[THREAD_ID_A2DP_SINK].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_A2DP_SINK].thread_id);
+            if ( pA2dpSink != NULL)
+                delete pA2dpSink;
+        }
+    }
     // Stop GAP Thread
     if (threadInfo[THREAD_ID_GAP].thread_id != NULL) {
         thread_free (threadInfo[THREAD_ID_GAP].thread_id);
@@ -980,5 +1035,9 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for socket handler
     is_socket_input_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_SOCKET_ENABLED, false);
+
+    //checking for a2dp sink
+    is_a2dp_sink_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_A2DP_SINK_ENABLED, false);
     return true;
 }

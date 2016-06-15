@@ -26,7 +26,7 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     //thread_id thread type            Thread Message Handler  Thread Name
     { NULL ,    THREAD_ID_MAIN,        &BtMainMsgHandler,      "Main_Thread" } ,
     { NULL ,    THREAD_ID_GAP,         &BtGapMsgHandler,       "Gap_Thread" } ,
-    { NULL ,    THREAD_ID_A2DP_SINK,   NULL,                   "A2dp_Sink_Thread" } ,
+    { NULL ,    THREAD_ID_A2DP_SINK,   &BtA2dpSinkMsgHandler,   "A2dp_Sink_Thread" } ,
 };
 
 void PostMessage(ThreadIdType thread_type, void *msg) {

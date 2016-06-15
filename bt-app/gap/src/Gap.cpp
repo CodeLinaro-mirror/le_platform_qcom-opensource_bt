@@ -32,7 +32,7 @@
 const char *BT_LOCAL_DEV_NAME = "BtLocalDeviceName";
 const char *BT_SCAN_MODE_TYPE = "BtScanMode";
 const char *BT_USR_INPUT     = "UserInteractionNeeded";
-const char *BT_A2DP_SINK_ENABLED  = "BtA2dpSinkEnable";
+const char *BT_A2DP_SINK_ENABLED_STRING  = "BtA2dpSinkEnable";
 const char *BT_PAN_ENABLED    = "BtPanEnable";
 
 #define LOGTAG "GAP"
@@ -730,7 +730,7 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
     }
 
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
-                     CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED, false);
+                     CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED_STRING, false);
 
     this->profile_config[PROFILE_ID_PAN].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_PAN_ENABLED, false);
