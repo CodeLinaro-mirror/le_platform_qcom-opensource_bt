@@ -21,6 +21,9 @@
 #include <string.h>
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <signal.h>
 
 #include "osi/include/log.h"
 #include "Gap.hpp"
@@ -29,6 +32,8 @@
 const char *BT_LOCAL_DEV_NAME = "BtLocalDeviceName";
 const char *BT_SCAN_MODE_TYPE = "BtScanMode";
 const char *BT_USR_INPUT     = "UserInteractionNeeded";
+const char *BT_A2DP_SINK_ENABLED  = "BtA2dpSinkEnable";
+const char *BT_PAN_ENABLED    = "BtPanEnable";
 
 #define LOGTAG "GAP"
 
@@ -259,6 +264,37 @@ void BtGapMsgHandler(void *msg) {
     }
 }
 
+void profile_startup_timer_expired(void *context) {
+    ALOGV(LOGTAG, " profile_startup_timer_expired");
+
+    BtEvent *event = new BtEvent;
+    event->event_id = GAP_EVENT_PROFILE_START_TIMEOUT;
+    PostMessage(THREAD_ID_GAP, event);
+}
+
+void profile_stop_timer_expired(void *context) {
+    ALOGV(LOGTAG, " profile_stop_timer_expired");
+
+    BtEvent *event = new BtEvent;
+    event->event_id = GAP_EVENT_PROFILE_STOP_TIMEOUT;
+    PostMessage(THREAD_ID_GAP, event);
+}
+
+void enable_timer_expired(void *context) {
+    ALOGV(LOGTAG, " enable_timer_expired");
+
+    BtEvent *event = new BtEvent;
+    event->event_id = GAP_EVENT_ENABLE_TIMEOUT;
+    PostMessage(THREAD_ID_GAP, event);
+}
+
+void disable_timer_expired(void *context) {
+    ALOGV(LOGTAG, " disable_timer_expired");
+
+    BtEvent *event = new BtEvent;
+    event->event_id = GAP_EVENT_DISABLE_TIMEOUT;
+    PostMessage(THREAD_ID_GAP, event);
+}
 #ifdef __cplusplus
 }
 #endif
@@ -341,8 +377,8 @@ void Gap::HandleBondStateEvent(DeviceBondStateEventInt *event) {
 void Gap::HandleEnable(void) {
     BtEvent  *bt_event  = NULL;
     if (adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_OFF) {
-       bluetooth_interface_->init(&sBluetoothCallbacks);
        if(bluetooth_interface_->enable() == BT_STATUS_SUCCESS) {
+           alarm_set(enable_timer, ENABLE_TIMEOUT_DELAY, enable_timer_expired, NULL);
            adapter_properties_obj_->SetState(BT_ADAPTER_STATE_TURNING_ON);
            return;
        } else {
@@ -362,6 +398,7 @@ void Gap::HandleDisable(void) {
     BtEvent  *bt_event  = NULL;
     if ((adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_ON) &&
        (bluetooth_interface_->disable() == BT_STATUS_SUCCESS)) {
+        alarm_set(disable_timer, DISABLE_TIMEOUT_DELAY, disable_timer_expired, NULL);
         adapter_properties_obj_->SetState(BT_ADAPTER_STATE_TURNING_OFF);
     } else {
         //Sending update to the Main thread
@@ -396,11 +433,20 @@ void Gap::HandleStopDiscovery(void) {
     }
 }
 
+bt_bdaddr_t *Gap::GetBtAddress(void) {
+    return adapter_properties_obj_->GetBtAddress();
+}
+
+bt_bdname_t *Gap::GetBtName(void) {
+    return adapter_properties_obj_->GetBtName();
+}
+
 void Gap::ProcessEvent(BtEvent* event) {
     bt_property_t prop;
     bt_scan_mode_t scan_mode;
     bt_bdname_t bd_name;
     BtEvent  *bt_event  = NULL;
+    int profile_id, profile_count = 0;
 
     ALOGD(LOGTAG " Processing event %d", event->event_id);
 
@@ -408,6 +454,9 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_EVENT_ADAPTER_STATE:
             adapter_properties_obj_->SetState((AdapterState)event->state_event.status);
             if ( event->state_event.status == BT_STATE_ON ) {
+
+                if (enable_timer)
+                    alarm_cancel(enable_timer);
 
                 //Scan mode is BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE by default
                 scan_mode = (bt_scan_mode_t)config_get_int(config_,
@@ -432,6 +481,9 @@ void Gap::ProcessEvent(BtEvent* event) {
                 PostMessage(THREAD_ID_MAIN, bt_event);
 
             } else if ( event->state_event.status == BT_STATE_OFF) {
+                if (disable_timer)
+                    alarm_cancel(disable_timer);
+
                 //Sending update to the Main thread
                 //TODO to check the right place for this
                 scan_mode = BT_SCAN_MODE_NONE;
@@ -453,11 +505,133 @@ void Gap::ProcessEvent(BtEvent* event) {
             break;
 
         case GAP_API_ENABLE:
-            HandleEnable();
+
+            if (adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_OFF) {
+                bluetooth_interface_->init(&sBluetoothCallbacks);
+            }
+
+            // check if there are profiles enabled
+            if(!supported_profiles_count) {
+                HandleEnable();
+                break;
+            }
+
+            // reset start status for all supported profiles
+            for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                                profile_id++) {
+                if(profile_config[profile_id].is_enabled) {
+                    profile_config[profile_id].start_status = false;
+                }
+            }
+
+             // start the profile start timer
+            alarm_set(profile_startup_timer, PROFILE_STARTUP_TIMEOUT_DELAY,
+                                profile_startup_timer_expired, NULL);
+
+            for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                                profile_id++) {
+                if(profile_config[profile_id].is_enabled) {
+                    bt_event = new BtEvent;
+                    bt_event->event_id = PROFILE_API_START;
+                    PostMessage(profile_config[profile_id].thread_id, bt_event);
+                }
+            }
             break;
 
-        case GAP_API_DISABLE:
+        case PROFILE_EVENT_START_DONE:
+
+            // set the start status for the given profile
+            for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                                profile_id++) {
+                if((profile_config[profile_id].is_enabled)  &&
+                   ((profile_config[profile_id].profile_id ==
+                            event->profile_start_event.profile_id))) {
+                    profile_config[profile_id].start_status =
+                    event->profile_start_event.status;
+                }
+            }
+
+            // check if all profiles started
+            for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                                profile_id++) {
+                if((profile_config[profile_id].is_enabled)  &&
+                    (!profile_config[profile_id].start_status)) {
+                    return;
+                }
+            }
+
+            ALOGD(LOGTAG " All profiles started");
+            //stoping profile_startup_timer
+            alarm_cancel(profile_startup_timer);
+            HandleEnable();
+
+            break;
+        case PROFILE_EVENT_STOP_DONE:
+
+            // set the stop status for the given profile
+            for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                                profile_id++) {
+                if((profile_config[profile_id].is_enabled)  &&
+                   ((profile_config[profile_id].profile_id ==
+                        event->profile_stop_event.profile_id))) {
+                    profile_config[profile_id].stop_status =
+                    event->profile_stop_event.status;
+                }
+            }
+
+            // check if all profiles stopped
+            for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                                profile_id++) {
+                if((profile_config[profile_id].is_enabled)  &&
+                    (!profile_config[profile_id].stop_status)) {
+                    return;
+                }
+            }
+
+            ALOGD(LOGTAG " All profiles stopped");
+            //stoping profile_stop_timer
+            alarm_cancel(profile_stop_timer);
             HandleDisable();
+            break;
+
+        case GAP_EVENT_PROFILE_START_TIMEOUT:
+        case GAP_EVENT_PROFILE_STOP_TIMEOUT:
+        case GAP_EVENT_DISABLE_TIMEOUT:
+        case GAP_EVENT_ENABLE_TIMEOUT:
+            ALOGD(LOGTAG " Killing the proces due to timeout %d", event->event_id);
+            fprintf(stderr, " Killing the proces due to timeout %d\n", event->event_id);
+            kill(getpid(), SIGKILL);
+            break;
+        case GAP_API_DISABLE:
+
+            // check if there are profiles enabled
+            if(!supported_profiles_count) {
+                HandleDisable();
+                break;
+            }
+
+            // reset stop status for all supported profiles
+            for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                                profile_id++) {
+                if(profile_config[profile_id].is_enabled) {
+                    profile_config[profile_id].stop_status = false;
+                }
+            }
+
+            // start the profile stop timer
+            alarm_set(profile_stop_timer, PROFILE_STOP_TIMEOUT_DELAY,
+                            profile_stop_timer_expired, NULL);
+
+            for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                            profile_id++) {
+                if(profile_config[profile_id].is_enabled &&
+                    profile_config[profile_id].start_status) {
+                    bt_event = new BtEvent;
+                    bt_event->event_id = PROFILE_API_STOP;
+                    PostMessage(profile_config[profile_id].thread_id, bt_event);
+                }
+            }
+
             break;
 
         case GAP_EVENT_DEVICE_FOUND_INT:
@@ -523,8 +697,15 @@ void Gap::ProcessEvent(BtEvent* event) {
 
 Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
+    int profile_id;
     this->bluetooth_interface_ = bt_interface;
     this->config_ = config;
+
+    profile_startup_timer = NULL;
+    profile_stop_timer = NULL;
+    enable_timer = NULL;
+    disable_timer = NULL;
+    supported_profiles_count = 0;
 
     //checking for user input
     is_user_input_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
@@ -536,11 +717,67 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
     this->remote_devices_obj_ = new RemoteDevices(bluetooth_interface_);
     this->adapter_properties_obj_ = new AdapterProperties(bluetooth_interface_,
                                                         remote_devices_obj_);
+
+    for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                        profile_id++) {
+
+        this->profile_config[profile_id].profile_id =  (ProfileIdType) profile_id;
+        this->profile_config[profile_id].is_enabled = false;
+        this->profile_config[profile_id].start_status = false;
+        this->profile_config[profile_id].stop_status = false;
+        if(profile_id == PROFILE_ID_A2DP_SINK)
+            this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK;
+    }
+
+    this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
+                     CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED, false);
+
+    this->profile_config[PROFILE_ID_PAN].is_enabled = config_get_bool (config,
+                     CONFIG_DEFAULT_SECTION, BT_PAN_ENABLED, false);
+
+    for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                            profile_id++) {
+        if(this->profile_config[profile_id].is_enabled) {
+            this->supported_profiles_count++;
+        }
+    }
+
+    if( !(profile_startup_timer = alarm_new())) {
+        ALOGE(LOGTAG, " unable to create profile_startup_timer timer.");
+        return;
+    }
+
+    if( !(profile_stop_timer = alarm_new())) {
+        ALOGE(LOGTAG, " unable to create profile_stop_timer timer.");
+        return;
+    }
+
+    if( !(enable_timer = alarm_new())) {
+        ALOGE(LOGTAG, " unable to create enable_timer timer.");
+        return;
+    }
+
+    if( !(disable_timer = alarm_new())) {
+        ALOGE(LOGTAG, " unable to create disable_timer timer.");
+        return;
+    }
 }
 
 Gap :: ~Gap() {
     delete adapter_properties_obj_;
     delete remote_devices_obj_;
+
+    alarm_free(profile_startup_timer);
+    profile_startup_timer = NULL;
+
+    alarm_free(profile_stop_timer);
+    profile_stop_timer = NULL;
+
+    alarm_free(enable_timer);
+    enable_timer = NULL;
+
+    alarm_free(disable_timer);
+    disable_timer = NULL;
 }
 
 int Gap:: GetState() {

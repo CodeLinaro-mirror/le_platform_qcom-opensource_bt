@@ -26,6 +26,7 @@
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
+#include "osi/include/alarm.h"
 #include "ipc.h"
 #include "AdapterProperties.hpp"
 #include "RemoteDevices.hpp"
@@ -39,6 +40,10 @@
  * Maximum Bonded Device
 */
 #define MAX_BONDED_DEVICES (20)
+#define PROFILE_STARTUP_TIMEOUT_DELAY     (5000)
+#define PROFILE_STOP_TIMEOUT_DELAY        (5000)
+#define ENABLE_TIMEOUT_DELAY              (12000)
+#define DISABLE_TIMEOUT_DELAY             (8000)
 
 const unsigned char g_audiosink_uuid[16] = {0x00, 0x00, 0x11, 0x0B, 0x00, 0x00,
                 0x10, 0x00, 0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB};
@@ -67,6 +72,16 @@ const unsigned char g_avrcpcontroller_uuid[16] = {0x00, 0x00, 0x11, 0x0E, 0x00, 
 const unsigned char g_avrcptarget_uuid[16] = {0x00, 0x00, 0x11, 0x0C, 0x00, 0x00,
                  0x10, 0x00, 0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB};
 
+
+typedef struct {
+    ProfileIdType profile_id;
+    ThreadIdType  thread_id;
+    bool is_enabled;
+    bool start_status;
+    bool stop_status;
+    char name[248];
+} ProfileConfig;
+
 enum ProfileType
 {
   TYPE_AUDIO_SINK,
@@ -79,6 +94,7 @@ enum ProfileType
   TYPE_AVRCP_CT,
   TYPE_AVRCP_TG
 };
+
 /**
  * @class Gap
  *
@@ -100,6 +116,11 @@ class Gap {
      *  class object for @ref RemoteDevices class
      */
     RemoteDevices     *remote_devices_obj_;
+
+    ProfileConfig  profile_config[PROFILE_ID_MAX];
+
+    int supported_profiles_count;
+
     bool is_user_input_enabled_;
     /**
      * @brief HandlePinRequestEvent
@@ -193,6 +214,11 @@ class Gap {
   public:
     Gap(const bt_interface_t *bt_interface, config_t *config);
     ~Gap();
+    alarm_t *profile_startup_timer;
+    alarm_t *profile_stop_timer;
+    alarm_t *enable_timer;
+    alarm_t *disable_timer;
+
     /**
 
      * @brief ProcessEvent
@@ -230,6 +256,10 @@ class Gap {
      * @return bool
      */
      bool IsDiscovering();
+
+     bt_bdaddr_t *GetBtAddress(void);
+
+     bt_bdname_t *GetBtName(void);
 
 };
 

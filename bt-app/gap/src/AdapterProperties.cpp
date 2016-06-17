@@ -45,6 +45,7 @@ AdapterProperties :: AdapterProperties(const bt_interface_t *bt_interface,
                                 RemoteDevices  *remote_devices_obj) {
     remote_devices_obj_ = remote_devices_obj;
     bluetooth_interface_ = bt_interface;
+    state_ = BT_ADAPTER_STATE_OFF;
     pthread_mutex_init(&lock_, NULL);
 }
 
@@ -62,6 +63,14 @@ void AdapterProperties::FlushBondedDeviceList() {
 
 int AdapterProperties:: GetState() {
     return state_;
+}
+
+bt_bdaddr_t *AdapterProperties:: GetBtAddress() {
+    return &bt_device_info.bd_addr;
+}
+
+bt_bdname_t *AdapterProperties:: GetBtName() {
+    return &bt_device_info.bd_name;
 }
 
 bool AdapterProperties:: IsDiscovering() {
@@ -93,6 +102,20 @@ void AdapterProperties::GetBondedDevicesFromPropertyList(int num_properties,
     *num_bonded_devices = 0;
 }
 
+void AdapterProperties::GetCorePropertyList(int num_properties,
+        bt_property_t *properties) {
+
+    int index;
+    for (index = 0; index < num_properties; index++) {
+        if (properties[index].type == BT_PROPERTY_BDADDR) {
+            memcpy((bt_bdaddr_t *)&bt_device_info.bd_addr, properties[index].val,
+                                properties[index].len);
+        } else if ( properties[index].type == BT_PROPERTY_BDNAME) {
+            memcpy((bt_bdname_t *)&bt_device_info.bd_name, properties[index].val,
+                                properties[index].len);
+        }
+    }
+}
 
 void AdapterProperties :: OnbondStateChanged( bt_bdaddr_t bd_addr,
         bt_bond_state_t new_state, bool notify) {
@@ -132,6 +155,10 @@ void AdapterProperties :: OnbondStateChanged( bt_bdaddr_t bd_addr,
         memcpy(&bt_event->bond_state_event.bd_name, &remote_device_prop->name,
                                        sizeof(bt_bdname_t));
         PostMessage(THREAD_ID_MAIN, bt_event);
+    } else {
+        // set the broadcast flag to notify once
+        // the remote name is available
+        remote_device_prop->broadcast = true;
     }
 }
 
@@ -160,10 +187,12 @@ void AdapterProperties :: AdapterPropertiesUpdate(AdapterPropertiesEvent *event)
     GetBondedDevicesFromPropertyList(event->num_properties, event->properties,
             BT_PROPERTY_ADAPTER_BONDED_DEVICES, rmt_devices, &num_bonded_devices);
 
-    if (num_bonded_devices)
+    if (num_bonded_devices) {
         ALOGI (LOGTAG "Found %d bonded devices", num_bonded_devices);
+        /* Fetch the properties of bonded devices */
+        for (index = 0; index < num_bonded_devices; index++)
+            OnbondStateChanged(rmt_devices[index], BT_BOND_STATE_BONDED, false);
+    }
 
-    /* Fetch the properties of bonded devices */
-    for (index = 0; index < num_bonded_devices; index++)
-        OnbondStateChanged(rmt_devices[index], BT_BOND_STATE_BONDED, false);
+    GetCorePropertyList(event->num_properties, event->properties);
 }

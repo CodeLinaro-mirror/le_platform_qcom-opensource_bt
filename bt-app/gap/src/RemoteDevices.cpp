@@ -46,7 +46,6 @@ DeviceProperties *RemoteDevices :: AddDeviceProperties(bt_bdaddr_t bd_addr) {
     } else {
         rem_dev_prop = new DeviceProperties;
         memset(rem_dev_prop, '\0', sizeof(DeviceProperties));
-        rem_dev_prop->broadcast = true;
         memcpy(&rem_dev_prop->address, &bd_addr, sizeof(bt_bdaddr_t));
         remote_device_prop[deviceAddress] = rem_dev_prop;
         pthread_mutex_unlock(&lock_);

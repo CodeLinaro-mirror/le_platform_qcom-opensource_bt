@@ -21,6 +21,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <syslog.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,25 +29,15 @@ extern "C" {
 
 #define TAG "bt_app"
 
-#define PRI_INFO " I"
-#define PRI_WARN " W"
-#define PRI_ERROR " E"
-#define PRI_DEBUG " D"
-#define PRI_VERB " V"
 
-//#define ALOG(pri, tag, fmt, arg...) fprintf(stderr, tag " : %s " fmt  " : %s : %d "  pri ": \n", __TIME__ , __func__, __LINE__, ##arg)
-#define ALOG(pri, tag, fmt, arg...) fprintf(stderr, tag ": %s " ": %s "  ": %d " pri": " fmt"\n", __TIME__ , __func__, __LINE__, ##arg)
-#define ALOGV(fmt, arg...) ALOG(PRI_VERB, TAG, fmt, ##arg)
-#define ALOGD(fmt, arg...) ALOG(PRI_DEBUG, TAG, fmt, ##arg)
-#define ALOGI(fmt, arg...) ALOG(PRI_INFO, TAG, fmt, ##arg)
-#define ALOGW(fmt, arg...) ALOG(PRI_WARN, TAG, fmt, ##arg)
-#define ALOGE(fmt, arg...) ALOG(PRI_ERROR, TAG, fmt, ##arg)
+#define ALOGV(fmt, arg...) syslog (LOG_WARNING, fmt, ##arg)
+#define ALOGD(fmt, arg...) syslog (LOG_NOTICE, fmt, ##arg)
+#define ALOGI(fmt, arg...) syslog (LOG_INFO, fmt, ##arg)
+#define ALOGW(fmt, arg...) syslog (LOG_WARNING, fmt, ##arg)
+#define ALOGE(fmt, arg...) syslog (LOG_ERR, fmt, ##arg)
 
-#define LOG_VERBOSE(fmt, arg...) ALOG(PRI_VERB, TAG, fmt, ##arg)
-#define LOG_DEBUG(fmt, arg...) ALOG(PRI_DEBUG, TAG, fmt, ##arg)
-#define LOG_INFO(fmt, arg...) ALOG(PRI_INFO, TAG, fmt, ##arg)
-#define LOG_WARN(fmt, arg...) ALOG(PRI_WARN, TAG, fmt, ##arg)
-#define LOG_ERROR(fmt, arg...) ALOG(PRI_ERROR, TAG, fmt, ##arg)
+#define LOG_DEBUG(fmt, arg...) syslog (LOG_NOTICE, fmt, ##arg)
+#define LOG_ERROR(fmt, arg...) syslog (LOG_ERR, fmt, ##arg)
 
 #ifdef __cplusplus
 }
