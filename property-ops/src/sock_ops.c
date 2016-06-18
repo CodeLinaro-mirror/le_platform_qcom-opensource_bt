@@ -44,6 +44,7 @@
 #include <sys/select.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <syslog.h>
 
 #include "../include/property_ops.h"
 
@@ -450,6 +451,7 @@ int main()
 
     /* Database Initializer */
     result = create_node_from_persist(path);
+    openlog ("bt_property", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
     if (result ==true)
     {
         LOG_DEBUG("List Should be created by now head = %0x\n",
@@ -474,6 +476,7 @@ int main()
         pthread_join(io_listener, retval);
         LOG_DEBUG("%s io_listener closed\n ", __func__);
     }
+    closelog ();
 }
 
 
