@@ -35,7 +35,7 @@
 #include <iostream>
 #include <iomanip>
 #include "Main.hpp"
-
+#include <syslog.h>
 #include "utils.h"
 
 #define LOGTAG  "MAIN"
@@ -43,7 +43,7 @@
 
 extern Gap *g_gap;
 static BluetoothApp *g_bt_app = NULL;
-
+extern ThreadInfo threadInfo[THREAD_ID_MAX];
 #ifdef __cplusplus
 extern "C"
 {
@@ -64,17 +64,21 @@ int main (int argc, char *argv[]) {
     // initialize signal handler
     signal(SIGINT, SignalHandler);
 
-    g_main_thread = thread_new ("Main_Thread");
-    if (g_main_thread) {
+    ThreadInfo *main_thread = &threadInfo[THREAD_ID_MAIN];
+    openlog ("bt-app", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+
+    main_thread->thread_id = thread_new (main_thread->thread_name);
+    if (main_thread->thread_id) {
         BtEvent *event = new BtEvent;
         event->event_id = MAIN_API_INIT;
         ALOGV (LOGTAG " Posting init to Main thread\n");
         PostMessage (THREAD_ID_MAIN, event);
 
         // wait for Main thread to exit
-        thread_join (g_main_thread);
-        thread_free (g_main_thread);
+        thread_join (main_thread->thread_id);
+        thread_free (main_thread->thread_id);
     }
+    closelog ();
     return 0;
 }
 
@@ -139,14 +143,14 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             // consider command as other param
             if(param_count == max_param + 1) {
                 if(temp_arg != NULL) {
-                    ALOGV (LOGTAG " Maximum params reached");
-                    ALOGV (LOGTAG " Refer help: %s", menu[found_index].cmd_help);
+                    fprintf( stdout, " Maximum params reached\n");
+                    fprintf( stdout, " Refer help: %s\n", menu[found_index].cmd_help);
                 } else {
                     status = true;
                 }
             } else if(param_count < max_param + 1) {
-                ALOGV (LOGTAG " Missing required parameters ");
-                ALOGV (LOGTAG " Refer help: %s", menu[found_index].cmd_help);
+                fprintf( stdout, " Missing required parameters\n");
+                fprintf( stdout, " Refer help: %s\n", menu[found_index].cmd_help);
             }
         } else {
             // to handle the paring inputs
@@ -210,7 +214,7 @@ static void ExitHandler(void) {
     }
 
     // stop the reactor for self exit of main thread
-    reactor_stop (thread_get_reactor (g_main_thread));
+    reactor_stop (thread_get_reactor (threadInfo[THREAD_ID_MAIN].thread_id));
 }
 
 static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
@@ -248,7 +252,7 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 errno = 0;
                 num = strtol(user_cmd[ONE_PARAM], &end, 0);
                 if (*end != '\0' || errno != 0 || num < INT_MIN || num > INT_MAX){
-                    ALOGV (LOGTAG " Enter numeric Value");
+                    fprintf( stdout, " Enter numeric Value\n");
                     break;
                 }
                 for( index = 0; index < (int)num; index++){
@@ -262,7 +266,7 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     sleep(2);
                 }
            }
-           ALOGV (LOGTAG " Currently not Handled %ld ", num);
+           fprintf( stdout, "Currently not Handled %ld \n", num);
             break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
@@ -294,9 +298,9 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 ALOGV (LOGTAG " Posting BT enable to GAP thread");
                 PostMessage (THREAD_ID_GAP, event);
             } else if ( g_bt_app->status.enable_cmd == COMMAND_INPROGRESS ) {
-                ALOGI (LOGTAG "BT enable is already in process");
+                fprintf( stdout, "BT enable is already in process\n");
             } else {
-                 ALOGI (LOGTAG "Currently BT is already in ON state");
+                fprintf( stdout, "Currently BT is already ON\n");
             }
             break;
 
@@ -311,9 +315,9 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 ALOGV (LOGTAG " Posting disable to GAP thread");
                 PostMessage (THREAD_ID_GAP, event);
             } else if (g_bt_app->status.disable_cmd == COMMAND_INPROGRESS) {
-                ALOGI (LOGTAG " disable command is already in process");
+                fprintf( stdout, " disable command is already in process\n");
             } else {
-                ALOGI (LOGTAG "Currently BT is already in OFF state");
+                fprintf( stdout, "Currently BT is already OFF\n");
             }
             break;
 
@@ -329,10 +333,10 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 PostMessage (THREAD_ID_GAP, event);
 
             } else if (g_bt_app->status.enquiry_cmd == COMMAND_INPROGRESS) {
-                ALOGI (LOGTAG " The inquiry is already in process");
+                fprintf( stdout, " The inquiry is already in process\n");
 
             } else {
-                ALOGI (LOGTAG "currently BT is in OFF state");
+                fprintf( stdout, "currently BT is OFF\n");
             }
             break;
 
@@ -348,13 +352,13 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 PostMessage (THREAD_ID_GAP, event);
 
             } else if (g_bt_app->status.stop_enquiry_cmd == COMMAND_INPROGRESS) {
-                ALOGI (LOGTAG " The stop inquiry is already in process");
+                fprintf( stdout, " The stop inquiry is already in process\n");
 
             } else if (g_bt_app->bt_state == BT_STATE_OFF) {
-                ALOGI (LOGTAG "currently BT is in OFF state");
+                fprintf( stdout, "currently BT is OFF\n");
 
             } else if (g_bt_app->bt_discovery_state != BT_DISCOVERY_STARTED) {
-                ALOGI (LOGTAG "Inquiry is not started, ignoring the stop inquiry");
+                fprintf( stdout,"Inquiry is not started, ignoring the stop inquiry\n");
             }
             break;
 
@@ -368,12 +372,12 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     string_to_bdaddr(user_cmd[ONE_PARAM], &event->bond_device.bd_addr);
                     PostMessage (THREAD_ID_GAP, event);
                 } else {
-                 ALOGV (LOGTAG " BD address is NULL/Invalid ");
+                 fprintf( stdout, " BD address is NULL/Invalid \n");
                 }
             } else if (g_bt_app->status.pairing_cmd == COMMAND_INPROGRESS) {
-                ALOGI (LOGTAG " The Pairing is already in process");
+                fprintf( stdout, " Pairing is already in process\n");
             } else {
-                ALOGI (LOGTAG " Currently BT is in OFF state");
+                fprintf( stdout, " Currently BT is OFF\n");
             }
             break;
 
@@ -384,10 +388,10 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
                     g_bt_app->HandleUnPair(bd_addr);
                 } else {
-                    ALOGV (LOGTAG " BD address is NULL/Invalid ");
+                    fprintf( stdout, " BD address is NULL/Invalid \n");
                 }
             } else {
-                ALOGI (LOGTAG " Currently BT is in OFF state");
+                fprintf( stdout, " Currently BT is OFF\n");
             }
             break;
 
@@ -395,7 +399,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             if (!g_bt_app->inquiry_list.empty()) {
                 g_bt_app->PrintInquiryList();
             } else {
-                ALOGI (LOGTAG " Inquiry list is empty");
+                fprintf( stdout, " Empty Inquiry list\n");
             }
             break;
 
@@ -403,15 +407,35 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             if (!g_bt_app->bonded_devices.empty()) {
                 g_bt_app->PrintBondedDeviceList();
             } else {
-                ALOGI (LOGTAG " No bonded devices");
+                fprintf( stdout, " Empty bonded list\n");
             }
             break;
 
         case GET_BT_STATE:
            if ( g_bt_app->GetState() == BT_STATE_ON )
-               std::cout << " Currently BT is ON" << std::endl;
+               fprintf( stdout, "ON\n" );
             else if ( g_bt_app->GetState() == BT_STATE_OFF)
-                std::cout <<" Currently BT is OFF "<< std::endl;
+                fprintf( stdout, "OFF\n");
+            break;
+
+        case GET_BT_NAME:
+            if ( g_bt_app->GetState() == BT_STATE_ON ) {
+                fprintf(stdout, "BT Name : %s\n", g_gap->GetBtName());
+            } else {
+                fprintf( stdout, "No Name due to BT is OFF\n");
+            }
+            break;
+
+        case GET_BT_ADDR:
+            if ( g_bt_app->GetState() == BT_STATE_ON ) {
+                bdstr_t bd_str;
+                bt_bdaddr_t *bd_addr = g_gap->GetBtAddress();
+                bdaddr_to_string(bd_addr, &bd_str[0], sizeof(bd_str));
+                std::string deviceAddress(bd_str);
+                std::cout << "BT Address :" << deviceAddress << std::endl;
+            } else {
+                fprintf( stdout, "No Addr due to BT is OFF\n");
+            }
             break;
 
         default:
@@ -437,7 +461,7 @@ void BtSocketListenHandler (void *context) {
                         __func__, strerror(errno));
         } else {
             g_bt_app->accept_reactor_ = reactor_register
-                (thread_get_reactor (g_main_thread),
+                (thread_get_reactor (threadInfo[THREAD_ID_MAIN].thread_id),
                 g_bt_app->client_socket_, NULL, BtSocketDataHandler, NULL);
         }
     } else {
@@ -477,7 +501,7 @@ static void BtCmdHandler (void *context) {
         // validate the user input for PIN
         g_bt_app->pin_notification = false;
     } else {
-        ALOGI (LOGTAG " Wrong option selected");
+        fprintf( stdout, " Wrong option selected\n");
         DisplayMenu(menu_type);
         // TODO print the given input string
         return;
@@ -548,13 +572,14 @@ bool BluetoothApp :: HandleSspInput(char user_cmd[][COMMAND_ARG_SIZE]) {
     else if (!strcasecmp (user_cmd[ZERO_PARAM], "no")) {
         ssp_data.accept = false;
     } else {
-        ALOGV (LOGTAG " Wrong option selected");
+        fprintf( stdout, " Wrong option selected\n");
         return false;
     }
 
     memcpy(&bt_event->ssp_reply_event.bd_addr, &ssp_data.bd_addr,
                                             sizeof(bt_bdaddr_t));
-    memcpy(&bt_event->ssp_reply_event.bd_name, &ssp_data.bd_name, sizeof(bt_bdname_t));
+    memcpy(&bt_event->ssp_reply_event.bd_name, &ssp_data.bd_name,
+                                        sizeof(bt_bdname_t));
     bt_event->ssp_reply_event.cod = ssp_data.cod;
     bt_event->ssp_reply_event.pairing_variant = ssp_data.pairing_variant;
     bt_event->ssp_reply_event.pass_key = ssp_data.pass_key;
@@ -581,9 +606,9 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
         case MAIN_EVENT_ENABLED:
             bt_state = event->state_event.status;
             if (event->state_event.status == BT_STATE_OFF) {
-                ALOGE (LOGTAG " Error in Enabling BT");
+                fprintf(stdout," Error in Enabling BT\n");
             } else {
-               ALOGD (LOGTAG " BT State is ON");
+               fprintf(stdout," BT State is ON\n");
             }
             status.enable_cmd = COMMAND_COMPLETE;
             break;
@@ -591,55 +616,55 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
         case MAIN_EVENT_DISABLED:
             bt_state = event->state_event.status;
             if (event->state_event.status == BT_STATE_ON) {
-                ALOGE (LOGTAG " Error in disabling BT");
+                fprintf(stdout, " Error in disabling BT\n");
             } else {
                 // clear the inquiry related cmds
                 status.enquiry_cmd = COMMAND_COMPLETE;
                 status.stop_enquiry_cmd = COMMAND_COMPLETE;
                 bt_discovery_state = BT_DISCOVERY_STOPPED;
-                ALOGD (LOGTAG " BT State is OFF");
+               fprintf(stdout, " BT State is OFF\n");
             }
             status.disable_cmd = COMMAND_COMPLETE;
             break;
 
         case MAIN_EVENT_ACL_CONNECTED:
-            ALOGD (LOGTAG " MAIN_EVENT_ACL_CONNECTED");
+            ALOGD (LOGTAG " MAIN_EVENT_ACL_CONNECTED\n");
             break;
 
         case MAIN_EVENT_ACL_DISCONNECTED:
-            ALOGD (LOGTAG " MAIN_EVENT_ACL_DISCONNECTED");
+            ALOGD (LOGTAG " MAIN_EVENT_ACL_DISCONNECTED\n");
             break;
 
         case MAIN_EVENT_INQUIRY_STATUS:
             if (event->discovery_state_event.state == BT_DISCOVERY_STARTED) {
-                ALOGI (LOGTAG " Inquiry Started");
+                fprintf(stdout, " Inquiry Started\n");
             } else if (event->discovery_state_event.state == BT_DISCOVERY_STOPPED) {
                 if ( status.enquiry_cmd == COMMAND_INPROGRESS) {
                     if ((bt_discovery_state == BT_DISCOVERY_STARTED) &&
                        (status.stop_enquiry_cmd != COMMAND_INPROGRESS))
-                        ALOGI (LOGTAG " Inquiry Stopped automatically");
+                        fprintf(stdout, " Inquiry Stopped automatically\n");
                     else if (bt_discovery_state == BT_DISCOVERY_STOPPED)
-                        ALOGI (LOGTAG " Unable to start Inquiry");
+                        fprintf(stdout, " Unable to start Inquiry\n");
                     status.enquiry_cmd = COMMAND_COMPLETE;
                 }
                 if (status.stop_enquiry_cmd == COMMAND_INPROGRESS) {
                     status.stop_enquiry_cmd = COMMAND_COMPLETE;
-                    ALOGI (LOGTAG " Inquiry Stopped due to user input");
+                    fprintf(stdout," Inquiry Stopped due to user input\n");
                 }
             }
             bt_discovery_state = event->discovery_state_event.state;
             break;
 
         case MAIN_EVENT_DEVICE_FOUND:
-            ALOGI (LOGTAG "Device Found details : \n:");
+            fprintf(stdout, "Device Found details: \n");
             AddFoundedDevice(event->device_found_event.remoteDevice.name,
                                     event->device_found_event.remoteDevice.address);
             ptr = (event->device_found_event.remoteDevice.address.address);
-            ALOGI (LOGTAG "Found device Addr: %02x:%02x:%02x:%02x:%02x:%02x\n ",
+            fprintf(stdout,"Found device Addr: %02x:%02x:%02x:%02x:%02x:%02x\n",
                                 ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
-            ALOGI (LOGTAG "Found device Name : %s\n", event->device_found_event.
+            fprintf(stdout, "Found device Name: %s\n", event->device_found_event.
                                                     remoteDevice.name);
-            ALOGI (LOGTAG "Device calss is : %d\n", event->device_found_event.
+            fprintf(stdout, "Device calss is: %d\n", event->device_found_event.
                                         remoteDevice.bluetooth_class);
             break;
 
@@ -649,37 +674,48 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                                     event->bond_state_event.bd_addr, bd_name);
             }
             break;
+
         case MAIN_EVENT_SSP_REQUEST:
-            memcpy(&ssp_data.bd_addr, &event->ssp_request_event.bd_addr, sizeof(bt_bdaddr_t));
-            memcpy(&ssp_data.bd_name, &event->ssp_request_event.bd_name, sizeof(bt_bdname_t));
+            memcpy(&ssp_data.bd_addr, &event->ssp_request_event.bd_addr,
+                                            sizeof(bt_bdaddr_t));
+            memcpy(&ssp_data.bd_name, &event->ssp_request_event.bd_name,
+                                                    sizeof(bt_bdname_t));
             ssp_data.cod = event->ssp_request_event.cod;
             ssp_data.pairing_variant = event->ssp_request_event.pairing_variant;
             ssp_data.pass_key = event->ssp_request_event.pass_key;
             // instruct the cmd handler to treat the next inputs for SSP
-            fprintf(stdout, "\n************************************************************");
-            fprintf(stdout, "\n Bluetooth pairing requset :: Device %s :: Pairing Code :: %d",
-            ssp_data.bd_name.name, ssp_data.pass_key);
-            fprintf(stdout, "\n************************************************************\n");
-
-            fprintf(stdout, " ******* Please enter yes / no for incomming paring ******\n");
+            fprintf(stdout, "\n*************************************************");
+            fprintf(stdout, "\n BT pairing request::Device %s::Pairing Code:: %d",
+                                    ssp_data.bd_name.name, ssp_data.pass_key);
+            fprintf(stdout, "\n*************************************************\n");
+            fprintf(stdout, " ** Please enter yes / no **\n");
             ssp_notification = true;
             break;
+
         case MAIN_EVENT_PIN_REQUEST:
 
-            memcpy(&pin_reply.bd_addr, &event->pin_request_event.bd_addr, sizeof(bt_bdaddr_t));
-            memcpy(&pin_reply.bd_name, &event->pin_request_event.bd_name, sizeof(bt_bdname_t));
+            memcpy(&pin_reply.bd_addr, &event->pin_request_event.bd_addr,
+                                            sizeof(bt_bdaddr_t));
+            memcpy(&pin_reply.bd_name, &event->pin_request_event.bd_name,
+                                            sizeof(bt_bdname_t));
+            fprintf(stdout, "\n*************************************************");
+            fprintf(stdout, "\n BT Legacy pairing request::Device %s::",
+                                    pin_reply.bd_name.name);
+            fprintf(stdout, "\n*************************************************\n");
+            fprintf(stdout, " ** Please enter valid PIN key **\n");
             pin_reply.secure = event->pin_request_event.secure;
             // instruct the cmd handler to treat the next inputs for PIN
             pin_notification = true;
             break;
+
         default:
             ALOGD (LOGTAG " Default Case");
             break;
     }
 }
 
-void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t bd_addr,
-                                                    std::string bd_name ) {
+void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t
+                                        bd_addr, std::string bd_name ) {
     std::map<std::string, std::string>::iterator it;
     bdstr_t bd_str;
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
@@ -689,10 +725,16 @@ void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t
     if(new_state == BT_BOND_STATE_BONDED) {
         if (it == bonded_devices.end()) {
             bonded_devices[deviceAddress] = bd_name;
+            fprintf(stdout, "\n*************************************************");
+            fprintf(stdout, "\n Pairing state for %s is BONDED", bd_name.c_str());
+            fprintf(stdout, "\n*************************************************\n");
         }
         g_bt_app->status.pairing_cmd = COMMAND_COMPLETE;
     } else if (new_state == BT_BOND_STATE_NONE) {
         if (it != bonded_devices.end()) {
+            fprintf(stdout, "\n*************************************************");
+            fprintf(stdout, "\n Pairing state for %s is BOND NONE", bd_name.c_str());
+            fprintf(stdout, "\n*************************************************\n");
             bonded_devices.erase(it);
         }
         g_bt_app->status.pairing_cmd = COMMAND_COMPLETE;
@@ -708,6 +750,8 @@ void BluetoothApp:: HandleUnPair(bt_bdaddr_t bd_addr ) {
     it = bonded_devices.find(deviceAddress);
     if (it != bonded_devices.end())
         bt_interface->remove_bond(&bd_addr);
+    else
+        fprintf( stdout, " Device is not in bonded list\n");
 }
 
 bt_bdaddr_t BluetoothApp:: AddFoundedDevice(std::string bd_name, bt_bdaddr_t bd_addr ) {
@@ -762,6 +806,7 @@ bool BluetoothApp :: LoadBtStack (void) {
     hw_module_t *module;
 
     if (hw_get_module (BT_STACK_MODULE_ID, (hw_module_t const **) &module)) {
+        ALOGE(LOGTAG " hw_get_module failed");
         return false;
     }
 
@@ -800,16 +845,20 @@ void BluetoothApp :: InitHandler (void) {
         return;
 
     // Starting GAP Thread
-    g_gap_thread = thread_new ("Gap_Thread");
-    if (g_gap_thread) {
+    threadInfo[THREAD_ID_GAP].thread_id = thread_new (
+            threadInfo[THREAD_ID_GAP].thread_name);
+
+    if (threadInfo[THREAD_ID_GAP].thread_id) {
         g_gap = new Gap (bt_interface, config);
     }
+
     //TODO error handler
 
     // registers reactors for socket
     if (is_socket_input_enabled_) {
         if(LocalSocketCreate() != -1) {
-            listen_reactor_ = reactor_register (thread_get_reactor (g_main_thread),
+            listen_reactor_ = reactor_register (
+                thread_get_reactor (threadInfo[THREAD_ID_MAIN].thread_id),
                 listen_socket_local_, NULL, BtSocketListenHandler, NULL);
         }
     }
@@ -825,7 +874,8 @@ void BluetoothApp :: InitHandler (void) {
 
     // Enable Command line input
     if (is_user_input_enabled_) {
-        cmd_reactor_ = reactor_register (thread_get_reactor (g_main_thread),
+        cmd_reactor_ = reactor_register (thread_get_reactor
+                        (threadInfo[THREAD_ID_MAIN].thread_id),
                         STDIN_FILENO, NULL, BtCmdHandler, NULL);
     }
 }
@@ -843,8 +893,8 @@ void BluetoothApp :: DeInitHandler (void) {
     }
 
     // Stop GAP Thread
-    if (g_gap_thread != NULL) {
-        thread_free (g_gap_thread);
+    if (threadInfo[THREAD_ID_GAP].thread_id != NULL) {
+        thread_free (threadInfo[THREAD_ID_GAP].thread_id);
         if ( g_gap != NULL)
             delete g_gap;
     }

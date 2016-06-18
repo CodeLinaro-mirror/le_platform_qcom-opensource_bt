@@ -20,17 +20,24 @@
 
 #include "ipc.h"
 #include "osi/include/thread.h"
+#include "osi/include/log.h"
 
-thread_t *g_gap_thread = NULL;
-thread_t *g_main_thread = NULL;
-thread_t *g_socket_thread = NULL;
+ThreadInfo threadInfo[THREAD_ID_MAX] = {
+    //thread_id thread type            Thread Message Handler  Thread Name
+    { NULL ,    THREAD_ID_MAIN,        &BtMainMsgHandler,      "Main_Thread" } ,
+    { NULL ,    THREAD_ID_GAP,         &BtGapMsgHandler,       "Gap_Thread" } ,
+    { NULL ,    THREAD_ID_A2DP_SINK,   NULL,                   "A2dp_Sink_Thread" } ,
+};
 
-void PostMessage(ThreadIdType thread_id, void *msg) {
-    if(thread_id == THREAD_ID_GAP) {
-        if(g_gap_thread)
-            thread_post(g_gap_thread, BtGapMsgHandler, msg);
-    } else if(thread_id == THREAD_ID_MAIN) {
-        if(g_main_thread)
-            thread_post(g_main_thread, BtMainMsgHandler, msg);
+void PostMessage(ThreadIdType thread_type, void *msg) {
+    if (thread_type >= THREAD_ID_MAX) {
+        ALOGE(TAG " Invalid thread type %d", thread_type);
+    } else if (!threadInfo[thread_type].thread_id) {
+        ALOGE(TAG " Invalid thread id %d", threadInfo[thread_type].thread_id);
+    }  else if (!threadInfo[thread_type].thread_handler) {
+        ALOGE(TAG " Missing thread message handler");
+    } else {
+        thread_post(threadInfo[thread_type].thread_id, threadInfo[thread_type].
+                                                    thread_handler, msg);
     }
 }

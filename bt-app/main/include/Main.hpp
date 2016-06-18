@@ -112,6 +112,8 @@ typedef enum {
     START_PAIR,
     INQUIRY_LIST,
     BONDED_LIST,
+    GET_BT_NAME,
+    GET_BT_ADDR,
     UNPAIR,
     GET_BT_STATE,
     TEST_MODE,
@@ -166,6 +168,8 @@ UserMenuList GapMenu[] = {
     {INQUIRY_LIST,          "inquiry_list",     ZERO_PARAM,    "inquiry_list"},
     {BONDED_LIST,           "bonded_list",      ZERO_PARAM,    "bonded_list"},
     {GET_BT_STATE,          "get_state",        ZERO_PARAM,    "get_state"},
+    {GET_BT_NAME,           "get_bt_name",      ZERO_PARAM,    "get_bt_name"},
+    {GET_BT_ADDR,           "get_bt_address",   ZERO_PARAM,    "get_bt_address"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
 };
 
@@ -297,6 +301,7 @@ void BtMainMsgHandler (void *context);
  * socket interface. Perform action based on inputs.
  *
  */
+
 class BluetoothApp {
   private:
     config_t *config;

@@ -42,6 +42,15 @@
 #define BD_ADDR_LEN      6
 
 /**
+ * Bluetooth device information i.e Address and name of BT
+*/
+
+typedef struct {
+    bt_bdaddr_t bd_addr;
+    bt_bdname_t bd_name;
+} BdDeviceInfo;
+
+/**
  * @class AdapterProperties
  *
  * @brief AdapterProperties Class
@@ -66,11 +75,16 @@ class AdapterProperties {
          *  structure object for standard Bluetooth DM interface
          */
         const bt_interface_t *bluetooth_interface_;
+
         void GetBondedDevicesFromPropertyList(int num_properties,
             bt_property_t *properties, bt_property_type_t type, bt_bdaddr_t *bd_addr,
             int *num_bonded_devices);
 
+        void GetCorePropertyList(int num_properties, bt_property_t *properties);
+
     public:
+        BdDeviceInfo bt_device_info;
+
         std::list <std::string> bonded_devices;
         /**
          * @brief @ref AdapterProperties constructor
@@ -160,6 +174,24 @@ class AdapterProperties {
          * @return bool
          */
         bool IsDiscovering();
+
+        /**
+         * @brief GetBtAddress
+         *
+         * It will return's the local bluetooth address
+         *
+         * @return @ref bt_bdaddr_t
+         */
+        bt_bdaddr_t *GetBtAddress();
+
+        /**
+         * @brief GetBtAddress
+         *
+         * It will return's the local bluetooth name
+         *
+         * @return bluetooth name
+         */
+        bt_bdname_t *GetBtName();
 };
 
 #endif

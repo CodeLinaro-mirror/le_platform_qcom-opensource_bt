@@ -23,10 +23,6 @@
 #include "osi/include/thread.h"
 #include <hardware/bluetooth.h>
 
-extern thread_t *g_gap_thread;
-extern thread_t *g_main_thread;
-extern thread_t *g_socket_thread;
-
 /**
  * @file ipc.h
  *
@@ -41,19 +37,29 @@ extern thread_t *g_socket_thread;
  *   Threads info
  */
 typedef enum {
-    THREAD_ID_MAIN,
+    THREAD_ID_MAIN = 0,
     THREAD_ID_GAP,
+    THREAD_ID_A2DP_SINK,
+    THREAD_ID_MAX,
 } ThreadIdType;
 
 /**
  *   Profiles info
  */
 typedef enum {
-    PROFILE_ID_A2DP_SINK,
+    PROFILE_ID_A2DP_SINK = 0,
     PROFILE_ID_PAN,
+    PROFILE_ID_MAX
 } ProfileIdType;
 
+typedef void (*ThreadHandler) (void *context);
 
+typedef struct {
+    thread_t *thread_id;
+    ThreadIdType thread_type;
+    ThreadHandler thread_handler;
+    char thread_name[50];
+} ThreadInfo;
 
 /**
  *  list of EVENTS used by GAP and MAIN thread
@@ -76,6 +82,7 @@ typedef enum {
     MAIN_MSG_CONNECT_DEVICE,
     MAIN_MSG_DISCONNECT_DEVICE,
 
+
     GAP_API_ENABLE = GAP_MSG_BASE,
     GAP_API_DISABLE,
     GAP_API_START_INQUIRY,
@@ -95,7 +102,10 @@ typedef enum {
     GAP_EVENT_ADAPTER_PROPERTIES,
     GAP_EVENT_BOND_STATE_INT,
     GAP_EVENT_BOND_STATE,
-
+    GAP_EVENT_PROFILE_START_TIMEOUT,
+    GAP_EVENT_PROFILE_STOP_TIMEOUT,
+    GAP_EVENT_ENABLE_TIMEOUT,
+    GAP_EVENT_DISABLE_TIMEOUT,
     SKT_API_START_LISTENER,
 
     PROFILE_API_START,
@@ -290,7 +300,6 @@ typedef struct {
  */
 typedef struct {
     BluetoothEventId event_id;
-    ProfileIdType    profile_id;
 } ProfileStartRequest;
 
 /**
@@ -308,7 +317,6 @@ typedef struct {
  */
 typedef struct {
     BluetoothEventId event_id;
-    ProfileIdType    profile_id;
 } ProfileStopRequest;
 
 /**
@@ -319,6 +327,7 @@ typedef struct {
     ProfileIdType    profile_id;
     bool             status;
 } ProfileStopEvent;
+
 
 typedef union {
     BluetoothEventId        event_id;
@@ -351,8 +360,6 @@ typedef char bdstr_t[MAX_BD_STR_LEN];
 void PostMessage(ThreadIdType thread_id, void *msg);
 void BtGapMsgHandler(void *context);
 void BtMainMsgHandler(void *context);
-void BtSocketMsgHandler (void *context);
-
 #ifdef __cplusplus
 }
 #endif
