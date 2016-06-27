@@ -31,7 +31,20 @@
 
 #define MAIN_MSG_BASE           (0)
 #define GAP_MSG_BASE            (1000)
+#define A2DP_SINK_MSG_BASE      (300)
 #define MAX_BD_STR_LEN          (18)
+
+
+#define CMD_ID_PLAY             0x44;
+#define CMD_ID_STOP             0x45;
+#define CMD_ID_PAUSE            0x46;
+#define CMD_ID_REWIND           0x48;
+#define CMD_ID_FF               0x49;
+#define CMD_ID_FORWARD          0x4B;
+#define CMD_ID_BACKWARD         0x4C;
+
+#define KEY_PRESSED             0;
+#define KEY_RELEASED            1;
 
 /**
  *   Threads info
@@ -82,6 +95,19 @@ typedef enum {
     MAIN_MSG_CONNECT_DEVICE,
     MAIN_MSG_DISCONNECT_DEVICE,
 
+    A2DP_SINK_API_CONNECT_REQ = A2DP_SINK_MSG_BASE,
+    A2DP_SINK_API_DISCONNECT_REQ,
+    A2DP_SINK_DISCONNECTED_CB,
+    A2DP_SINK_CONNECTING_CB,
+    A2DP_SINK_CONNECTED_CB,
+    A2DP_SINK_DISCONNECTING_CB,
+    A2DP_SINK_FOCUS_REQUEST_CB,
+    A2DP_SINK_AUDIO_SUSPENDED,
+    A2DP_SINK_AUDIO_STOPPED,
+    A2DP_SINK_AUDIO_STARTED,
+    AVRCP_CTRL_CONNECTED_CB,
+    AVRCP_CTRL_DISCONNECTED_CB,
+    AVRCP_CTRL_PASS_THRU_CMD_REQ,
 
     GAP_API_ENABLE = GAP_MSG_BASE,
     GAP_API_DISABLE,
@@ -328,6 +354,16 @@ typedef struct {
     bool             status;
 } ProfileStopEvent;
 
+typedef struct {
+    BluetoothEventId   event_id;
+    bt_bdaddr_t         bd_addr;
+} A2dpSinkEvent;
+
+typedef struct {
+    BluetoothEventId   event_id;
+    bt_bdaddr_t         bd_addr;
+    uint8_t             key_id;
+} AvrcpCtrlPassThruCmdReq;
 
 typedef union {
     BluetoothEventId        event_id;
@@ -350,6 +386,8 @@ typedef union {
     ProfileStopRequest      profile_stop_request;
     ProfileStartEvent       profile_start_event;
     ProfileStopEvent        profile_stop_event;
+    A2dpSinkEvent           a2dpSinkEvent;
+    AvrcpCtrlPassThruCmdReq avrcpCtrlEvent;
 } BtEvent;
 
 #ifdef __cplusplus
@@ -360,6 +398,8 @@ typedef char bdstr_t[MAX_BD_STR_LEN];
 void PostMessage(ThreadIdType thread_id, void *msg);
 void BtGapMsgHandler(void *context);
 void BtMainMsgHandler(void *context);
+void BtSocketMsgHandler (void *context);
+void BtA2dpSinkMsgHandler(void *msg);
 #ifdef __cplusplus
 }
 #endif

@@ -74,6 +74,7 @@
 const char *BT_SOCKET_ENABLED      = "BtSockInputEnabled";
 const char *BT_ENABLE_DEFAULT      = "BtEnableByDefault";
 const char *BT_USER_INPUT          = "UserInteractionNeeded";
+const char *BT_A2DP_SINK_ENABLED   = "BtA2dpSinkEnable";
 
 /**
  * The Configuration file path
@@ -119,6 +120,16 @@ typedef enum {
     TEST_MODE,
     GAP_OPTION,
     TEST_ON_OFF,
+    A2DP_SINK,
+    CONNECT,
+    DISCONNECT,
+    PLAY,
+    PAUSE,
+    STOP,
+    FASTFORWARD,
+    REWIND,
+    FORWARD,
+    BACKWARD,
     BACK_TO_MAIN,
     END,
 } CommandList;
@@ -136,6 +147,7 @@ typedef enum {
     MAIN_MENU,
     GAP_MENU,
     TEST_MENU,
+    A2DP_SINK_MENU,
 } MenuType;
 
 /**
@@ -179,6 +191,7 @@ UserMenuList GapMenu[] = {
 UserMenuList MainMenu[] = {
     {GAP_OPTION,            "gap_menu",        ZERO_PARAM,    "gap_menu"},
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
+    {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
 
@@ -190,6 +203,21 @@ UserMenuList TestMenu[] = {
     {BACK_TO_MAIN,          "main_menu", ZERO_PARAM,    "main_menu"},
 };
 
+/**
+ * list of supported commands for A2DP_SINK Menu
+ */
+UserMenuList A2dpSinkMenu[] = {
+    {CONNECT,               "connect",          ONE_PARAM,    "connect<space><bt_address>"},
+    {DISCONNECT,            "disconnect",       ONE_PARAM,    "disconnect<space><bt_address>"},
+    {PLAY,                  "play",             ZERO_PARAM,    "play"},
+    {PAUSE,                 "pause",            ZERO_PARAM,    "pause"},
+    {STOP,                  "stop",             ZERO_PARAM,    "stop<"},
+    {REWIND,                "rewind",           ZERO_PARAM,    "rewind"},
+    {FASTFORWARD,           "fastforward",      ZERO_PARAM,    "fastforward"},
+    {FORWARD,               "forward",          ZERO_PARAM,    "forward"},
+    {BACKWARD,              "backward",         ZERO_PARAM,    "backward"},
+    {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
+};
 #ifdef __cplusplus
 extern "C"
 {
@@ -308,6 +336,7 @@ class BluetoothApp {
     bool is_bt_enable_default_;
     bool is_user_input_enabled_;
     bool is_socket_input_enabled_;
+    bool is_a2dp_sink_enabled_;
     reactor_object_t *cmd_reactor_;
     struct hw_device_t *device_;
     bluetooth_device_t *bt_device_;
