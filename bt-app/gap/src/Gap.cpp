@@ -34,8 +34,9 @@ const char *BT_SCAN_MODE_TYPE = "BtScanMode";
 const char *BT_USR_INPUT     = "UserInteractionNeeded";
 const char *BT_A2DP_SINK_ENABLED_STRING  = "BtA2dpSinkEnable";
 const char *BT_PAN_ENABLED    = "BtPanEnable";
+const char *BT_GATT_ENABLED   = "BtGattEnable";
 
-#define LOGTAG "GAP"
+#define LOGTAG "GAP "
 
 using namespace std;
 using std::list;
@@ -516,6 +517,9 @@ void Gap::ProcessEvent(BtEvent* event) {
                 break;
             }
 
+            ALOGV (LOGTAG "Start QC BT Daemon");
+            system("qcbtdaemon &");
+
             // reset start status for all supported profiles
             for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
                                                                 profile_id++) {
@@ -609,6 +613,9 @@ void Gap::ProcessEvent(BtEvent* event) {
                 HandleDisable();
                 break;
             }
+
+            ALOGV (LOGTAG "Stop QC BT Daemon");
+            system("killall -s SIGTERM qcbtdaemon");
 
             // reset stop status for all supported profiles
             for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
@@ -725,8 +732,12 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         this->profile_config[profile_id].is_enabled = false;
         this->profile_config[profile_id].start_status = false;
         this->profile_config[profile_id].stop_status = false;
-        if(profile_id == PROFILE_ID_A2DP_SINK)
+        if (profile_id == PROFILE_ID_A2DP_SINK)
             this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK;
+        else if (profile_id == PROFILE_ID_PAN)
+            this->profile_config[profile_id].thread_id = THREAD_ID_PAN;
+        else if (profile_id == PROFILE_ID_GATT)
+            this->profile_config[profile_id].thread_id = THREAD_ID_GATT;
     }
 
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
@@ -734,6 +745,9 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
     this->profile_config[PROFILE_ID_PAN].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_PAN_ENABLED, false);
+
+    this->profile_config[PROFILE_ID_GATT].is_enabled = config_get_bool (config,
+                     CONFIG_DEFAULT_SECTION, BT_GATT_ENABLED, false);
 
     for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
                                                             profile_id++) {

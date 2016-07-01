@@ -27,6 +27,8 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     { NULL ,    THREAD_ID_MAIN,        &BtMainMsgHandler,      "Main_Thread" } ,
     { NULL ,    THREAD_ID_GAP,         &BtGapMsgHandler,       "Gap_Thread" } ,
     { NULL ,    THREAD_ID_A2DP_SINK,   &BtA2dpSinkMsgHandler,   "A2dp_Sink_Thread" } ,
+    { NULL ,    THREAD_ID_PAN,         &BtPanMsgHandler,       "Pan_Thread" } ,
+    { NULL ,    THREAD_ID_GATT,        &BtGattMsgHandler,      "Gatt_Thread" } ,
 };
 
 void PostMessage(ThreadIdType thread_type, void *msg) {
@@ -38,6 +40,7 @@ void PostMessage(ThreadIdType thread_type, void *msg) {
         ALOGE(TAG " Missing thread message handler");
     } else {
         thread_post(threadInfo[thread_type].thread_id, threadInfo[thread_type].
-                                                    thread_handler, msg);
+                thread_handler, msg);
     }
 }
+
