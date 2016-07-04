@@ -733,7 +733,10 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         this->profile_config[profile_id].is_enabled = false;
         this->profile_config[profile_id].start_status = false;
         this->profile_config[profile_id].stop_status = false;
-        if (profile_id == PROFILE_ID_A2DP_SINK)
+
+        if(profile_id == PROFILE_ID_BT_AM)
+            this->profile_config[profile_id].thread_id = THREAD_ID_BT_AM;
+        if(profile_id == PROFILE_ID_A2DP_SINK)
             this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK;
         else if(profile_id == PROFILE_ID_HFP_CLIENT)
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_CLIENT;
@@ -748,6 +751,11 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
     this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_HFP_CLIENT_ENABLED_STRING, false);
+
+    if ((this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled) ||
+        (this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled)) {
+        this->profile_config[PROFILE_ID_BT_AM].is_enabled = true;
+    }
 
     this->profile_config[PROFILE_ID_PAN].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_PAN_ENABLED, false);

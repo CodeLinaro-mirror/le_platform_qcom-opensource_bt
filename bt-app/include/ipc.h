@@ -41,18 +41,19 @@ extern thread_t *g_gatt_thread;
 #define PAN_MSG_BASE            (2000)
 #define GATT_MSG_BASE           (3000)
 #define RSP_MSG_BASE            (4000)
+#define AUDIO_MANAGER_MSG_BASE  (250)
 #define A2DP_SINK_MSG_BASE      (300)
 #define HFP_CLIENT_MSG_BASE     (400)
 #define MAX_BD_STR_LEN          (18)
 #define BT_IPC_MSG_LEN 2
 
-#define CMD_ID_PLAY             0x44;
-#define CMD_ID_STOP             0x45;
-#define CMD_ID_PAUSE            0x46;
-#define CMD_ID_REWIND           0x48;
-#define CMD_ID_FF               0x49;
-#define CMD_ID_FORWARD          0x4B;
-#define CMD_ID_BACKWARD         0x4C;
+#define CMD_ID_PLAY             0x44
+#define CMD_ID_STOP             0x45
+#define CMD_ID_PAUSE            0x46
+#define CMD_ID_REWIND           0x48
+#define CMD_ID_FF               0x49
+#define CMD_ID_FORWARD          0x4B
+#define CMD_ID_BACKWARD         0x4C
 
 #define KEY_PRESSED             0;
 #define KEY_RELEASED            1;
@@ -67,6 +68,7 @@ typedef enum {
     THREAD_ID_HFP_CLIENT,
     THREAD_ID_PAN,
     THREAD_ID_GATT,
+    THREAD_ID_BT_AM,
     THREAD_ID_MAX,
 } ThreadIdType;
 
@@ -76,10 +78,28 @@ typedef enum {
 typedef enum {
     PROFILE_ID_A2DP_SINK = 0,
     PROFILE_ID_HFP_CLIENT,
+    PROFILE_ID_BT_AM,
     PROFILE_ID_PAN,
     PROFILE_ID_GATT,
     PROFILE_ID_MAX
 } ProfileIdType;
+
+/**
+ *   enums for BTAudioManager
+ */
+typedef enum {
+    REQUEST_TYPE_PERMANENT = 0,
+    REQUEST_TYPE_TRANSIENT,       // Transient focus is always for a call
+    REQUEST_TYPE_DEFAULT
+} ControlRequestType;
+
+typedef enum {
+    STATUS_LOSS = 0,
+    STATUS_LOSS_TRANSIENT,
+    STATUS_GAIN_TRANSIENT,
+    STATUS_GAIN,
+    STATUS_REGAINED
+} ControlStatusType;
 
 typedef void (*ThreadHandler) (void *context);
 
@@ -110,6 +130,10 @@ typedef enum {
     MAIN_MSG_BOND_DEVICE,
     MAIN_MSG_CONNECT_DEVICE,
     MAIN_MSG_DISCONNECT_DEVICE,
+
+    BT_AM_REQUEST_CONTROL = AUDIO_MANAGER_MSG_BASE,
+    BT_AM_RELEASE_CONTROL,
+    BT_AM_CONTROL_STATUS,
 
     A2DP_SINK_API_CONNECT_REQ = A2DP_SINK_MSG_BASE,
     A2DP_SINK_API_DISCONNECT_REQ,
@@ -974,6 +998,22 @@ typedef struct {
     BtIpcMsg ipc_msg;
 } BtIpcMsgEvent;
 
+typedef struct {
+    BluetoothEventId   event_id;
+    ProfileIdType      profile_id;
+    ControlRequestType request_type;
+} BTAMControlRequest;
+
+typedef struct {
+    BluetoothEventId   event_id;
+    ControlStatusType  status_type;
+} BTAMControlStatus;
+
+typedef struct {
+    BluetoothEventId   event_id;
+    ProfileIdType      profile_id;
+} BTAMControlRelease;
+
 typedef union {
     BluetoothEventId                        event_id;
     GapAppEvent                             state_event;
@@ -998,6 +1038,9 @@ typedef union {
     A2dpSinkEvent                           a2dpSinkEvent;
     AvrcpCtrlPassThruCmdReq                 avrcpCtrlEvent;
     HfpClientEvent                          hfp_client_event;
+    BTAMControlRequest                      btamControlReq;
+    BTAMControlStatus                       btamControlStatus;
+    BTAMControlRelease                      btamControlRelease;
 
     PanControlStateEvent                    pan_control_state_event;
     PanConnectionStateEvent                 pan_connection_state_event;
@@ -1105,7 +1148,7 @@ void BtA2dpSinkMsgHandler(void *msg);
 void BtPanMsgHandler(void *context);
 void BtGattMsgHandler(void *context);
 void BtHfpClientMsgHandler (void *context);
-
+void BtAudioManagerHandler(void *msg);
 #ifdef __cplusplus
 }
 #endif

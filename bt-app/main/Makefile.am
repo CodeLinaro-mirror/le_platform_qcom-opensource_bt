@@ -11,7 +11,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/a2dp_sink\include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/audio_manager/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/a2dp_sink/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/osi/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gap/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/pan/include \
@@ -27,6 +28,7 @@ c_sources = ../utils/src/utils.c \
             ../gap/src/Gap.cpp \
             ../gap/src/AdapterProperties.cpp \
             ../gap/src/RemoteDevices.cpp \
+            ../audio_manager/src/Audio_Manager.cpp \
             ../a2dp_sink/src/A2dp_Sink.cpp \
             ../hfp_client/src/HfpClient.cpp \
             ../pan/src/Pan.cpp \
