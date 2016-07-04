@@ -387,6 +387,18 @@ static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             event->hfp_client_event.event_id = HFP_CLIENT_API_ADD_HELD_CALL_TO_CONF_REQ;
             PostMessage (THREAD_ID_HFP_CLIENT, event);
             break;
+        case RELEASE_SPECIFIED_ACTIVE_CALL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_RELEASE_SPECIFIED_ACTIVE_CALL_REQ;
+            event->hfp_client_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case PRIVATE_CONSULTATION_MODE:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_PRIVATE_CONSULTATION_MODE_REQ;
+            event->hfp_client_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
         case PUT_INCOMING_CALL_ON_HOLD:
             event = new BtEvent;
             event->hfp_client_event.event_id = HFP_CLIENT_API_PUT_INCOMING_CALL_ON_HOLD_REQ;
@@ -458,10 +470,27 @@ static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             event->hfp_client_event.arg2 = atoi(user_cmd[TWO_PARAM]);
             PostMessage (THREAD_ID_HFP_CLIENT, event);
             break;
+        case MIC_VOL_CTRL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_MIC_VOL_CTRL_REQ;
+            event->hfp_client_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case SPK_VOL_CTRL:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_SPK_VOL_CTRL_REQ;
+            event->hfp_client_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
         case SEND_DTMF:
             event = new BtEvent;
             event->hfp_client_event.event_id = HFP_CLIENT_API_SEND_DTMF_REQ;
-            event->hfp_client_event.arg1 = (char)atoi(user_cmd[ONE_PARAM]);
+            strncpy(event->hfp_client_event.str, user_cmd[ONE_PARAM], 20);
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            break;
+        case DISABLE_NREC_ON_AG:
+            event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_DISABLE_NREC_ON_AG_REQ;
             PostMessage (THREAD_ID_HFP_CLIENT, event);
             break;
         case BACK_TO_MAIN:

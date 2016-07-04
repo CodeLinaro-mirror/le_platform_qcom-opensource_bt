@@ -422,8 +422,8 @@ void Hfp_Client::state_connecting_handler(BtEvent* pEvent) {
             break;
         case HFP_CLIENT_DISCONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-            cout << "Unable to connect with device " << str << endl;
-            ALOGD(LOGTAG "Unable to connect with device %s", str);
+            cout << "Disconneced from or Unable to connect with device " << str << endl;
+            ALOGD(LOGTAG "Disconnected from or Unable to connect with device %s", str);
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
@@ -566,6 +566,18 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
                 sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_3, 0);
             }
             break;
+        case HFP_CLIENT_API_RELEASE_SPECIFIED_ACTIVE_CALL_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_1x,
+                                           pEvent->hfp_client_event.arg1);
+            }
+            break;
+        case HFP_CLIENT_API_PRIVATE_CONSULTATION_MODE_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_2x,
+                                           pEvent->hfp_client_event.arg1);
+            }
+            break;
         case HFP_CLIENT_API_PUT_INCOMING_CALL_ON_HOLD_REQ:
             if (sBtHfpClientInterface != NULL) {
                 sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_BTRH_0, 0);
@@ -633,9 +645,28 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
                                          pEvent->hfp_client_event.arg2);
             }
             break;
+        case HFP_CLIENT_API_SPK_VOL_CTRL_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                sBtHfpClientInterface->volume_control(BTHF_CLIENT_VOLUME_TYPE_SPK,
+                                          pEvent->hfp_client_event.arg1);
+            }
+            break;
+        case HFP_CLIENT_API_MIC_VOL_CTRL_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                sBtHfpClientInterface->volume_control(BTHF_CLIENT_VOLUME_TYPE_MIC,
+                                          pEvent->hfp_client_event.arg1);
+            }
+            break;
         case HFP_CLIENT_API_SEND_DTMF_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->send_dtmf(pEvent->hfp_client_event.arg1);
+                int dtmf_code = pEvent->hfp_client_event.str[0];
+                sBtHfpClientInterface->send_dtmf(dtmf_code);
+            }
+            break;
+        case HFP_CLIENT_API_DISABLE_NREC_ON_AG_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                // 15 is NREC command
+                sBtHfpClientInterface->send_at_cmd(15, 1, 0, NULL);
             }
             break;
         default:
@@ -729,6 +760,18 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
                 sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_3, 0);
             }
             break;
+        case HFP_CLIENT_API_RELEASE_SPECIFIED_ACTIVE_CALL_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_1x,
+                                           pEvent->hfp_client_event.arg1);
+            }
+            break;
+        case HFP_CLIENT_API_PRIVATE_CONSULTATION_MODE_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_2x,
+                                           pEvent->hfp_client_event.arg1);
+            }
+            break;
         case HFP_CLIENT_API_PUT_INCOMING_CALL_ON_HOLD_REQ:
             if (sBtHfpClientInterface != NULL) {
                 sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_BTRH_0, 0);
@@ -796,9 +839,28 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
                                          pEvent->hfp_client_event.arg2);
             }
             break;
+        case HFP_CLIENT_API_SPK_VOL_CTRL_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                sBtHfpClientInterface->volume_control(BTHF_CLIENT_VOLUME_TYPE_SPK,
+                                          pEvent->hfp_client_event.arg1);
+            }
+            break;
+        case HFP_CLIENT_API_MIC_VOL_CTRL_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                sBtHfpClientInterface->volume_control(BTHF_CLIENT_VOLUME_TYPE_MIC,
+                                          pEvent->hfp_client_event.arg1);
+            }
+            break;
         case HFP_CLIENT_API_SEND_DTMF_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->send_dtmf(pEvent->hfp_client_event.arg1);
+                int dtmf_code = pEvent->hfp_client_event.str[0];
+                sBtHfpClientInterface->send_dtmf(dtmf_code);
+            }
+            break;
+        case HFP_CLIENT_API_DISABLE_NREC_ON_AG_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                // 15 is NREC command
+                sBtHfpClientInterface->send_at_cmd(15, 1, 0, NULL);
             }
             break;
          
