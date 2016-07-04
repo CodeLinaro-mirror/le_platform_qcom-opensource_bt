@@ -55,7 +55,7 @@ extern const char *path;
 #define PRI_DEBUG " D"
 #define PRI_VERB " V"
 
-#define ALOG(pri, tag, fmt, arg...) syslog (LOG_WARNING, fmt, ##arg)
+#define ALOG(pri, tag, fmt, arg...) //syslog (LOG_WARNING, fmt, ##arg)
 #define LOG_DEBUG(fmt, arg...) ALOG(PRI_VERB, LOG_TAG, fmt, ##arg)
 
 typedef enum {
