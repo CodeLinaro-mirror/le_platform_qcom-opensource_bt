@@ -42,7 +42,7 @@ extern thread_t *g_gatt_thread;
 #define GATT_MSG_BASE           (3000)
 #define RSP_MSG_BASE            (4000)
 #define A2DP_SINK_MSG_BASE      (300)
-
+#define HFP_CLIENT_MSG_BASE     (400)
 #define MAX_BD_STR_LEN          (18)
 #define BT_IPC_MSG_LEN 2
 
@@ -64,6 +64,7 @@ typedef enum {
     THREAD_ID_MAIN = 0,
     THREAD_ID_GAP,
     THREAD_ID_A2DP_SINK,
+    THREAD_ID_HFP_CLIENT,
     THREAD_ID_PAN,
     THREAD_ID_GATT,
     THREAD_ID_MAX,
@@ -74,6 +75,7 @@ typedef enum {
  */
 typedef enum {
     PROFILE_ID_A2DP_SINK = 0,
+    PROFILE_ID_HFP_CLIENT,
     PROFILE_ID_PAN,
     PROFILE_ID_GATT,
     PROFILE_ID_MAX
@@ -122,6 +124,48 @@ typedef enum {
     AVRCP_CTRL_CONNECTED_CB,
     AVRCP_CTRL_DISCONNECTED_CB,
     AVRCP_CTRL_PASS_THRU_CMD_REQ,
+
+    HFP_CLIENT_API_ENABLE = HFP_CLIENT_MSG_BASE,
+    HFP_CLIENT_API_DISABLE,
+    HFP_CLIENT_API_ENABLE_DONE,
+    HFP_CLIENT_API_ENABLE_FAILED,
+    HFP_CLIENT_API_DISABLE_DONE,
+    HFP_CLIENT_API_CONNECT_REQ,
+    HFP_CLIENT_API_DISCONNECT_REQ,
+    HFP_CLIENT_API_CONNECT_AUDIO_REQ,
+    HFP_CLIENT_API_DISCONNECT_AUDIO_REQ,
+    HFP_CLIENT_API_ACCEPT_CALL_REQ,
+    HFP_CLIENT_API_REJECT_CALL_REQ,
+    HFP_CLIENT_API_END_CALL_REQ,
+    HFP_CLIENT_API_HOLD_CALL_REQ,
+    HFP_CLIENT_API_RELEASE_HELD_CALL_REQ,
+    HFP_CLIENT_API_RELEASE_ACTIVE_ACCEPT_WAITING_OR_HELD_CALL_REQ,
+    HFP_CLIENT_API_SWAP_CALLS_REQ,
+    HFP_CLIENT_API_ADD_HELD_CALL_TO_CONF_REQ,
+    HFP_CLIENT_API_PUT_INCOMING_CALL_ON_HOLD_REQ,
+    HFP_CLIENT_API_ACCEPT_HELD_INCOMING_CALL_REQ,
+    HFP_CLIENT_API_REJECT_HELD_INCOMING_CALL_REQ,
+    HFP_CLIENT_API_DIAL_REQ,
+    HFP_CLIENT_API_REDIAL_REQ,
+    HFP_CLIENT_API_DIAL_MEMORY_REQ,
+    HFP_CLIENT_API_START_VR_REQ,
+    HFP_CLIENT_API_STOP_VR_REQ,
+    HFP_CLIENT_API_CALL_ACTION_REQ,
+    HFP_CLIENT_API_QUERY_CURRENT_CALLS_REQ,
+    HFP_CLIENT_API_QUERY_OPERATOR_NAME_REQ,
+    HFP_CLIENT_API_QUERY_SUBSCRIBER_INFO_REQ,
+    HFP_CLIENT_API_SCO_VOL_CTRL_REQ,
+    HFP_CLIENT_API_SEND_DTMF_REQ,
+    HFP_CLIENT_API_SEND_AT_CMD_REQ,
+    HFP_CLIENT_DISCONNECTED_CB,
+    HFP_CLIENT_CONNECTING_CB,
+    HFP_CLIENT_CONNECTED_CB,
+    HFP_CLIENT_SLC_CONNECTED_CB,
+    HFP_CLIENT_DISCONNECTING_CB,
+    HFP_CLIENT_AUDIO_STATE_DISCONNECTED_CB,
+    HFP_CLIENT_AUDIO_STATE_CONNECTING_CB,
+    HFP_CLIENT_AUDIO_STATE_CONNECTED_CB,
+    HFP_CLIENT_AUDIO_STATE_CONNECTED_MSBC_CB,
 
     GAP_API_ENABLE = GAP_MSG_BASE,
     GAP_API_DISABLE,
@@ -442,6 +486,19 @@ typedef struct {
     bt_bdaddr_t         bd_addr;
     uint8_t             key_id;
 } AvrcpCtrlPassThruCmdReq;
+
+/**
+ * Event for notifying hfp client message
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bt_bdaddr_t         bd_addr;
+    unsigned int        peer_feat;
+    unsigned int        chld_feat;
+    char                str[20];
+    int                 arg1;
+    int                 arg2;
+} HfpClientEvent;
 
 /**
  * Event for notifying Pan control state
@@ -940,6 +997,7 @@ typedef union {
     ProfileStopEvent                        profile_stop_event;
     A2dpSinkEvent                           a2dpSinkEvent;
     AvrcpCtrlPassThruCmdReq                 avrcpCtrlEvent;
+    HfpClientEvent                          hfp_client_event;
 
     PanControlStateEvent                    pan_control_state_event;
     PanConnectionStateEvent                 pan_connection_state_event;
@@ -1046,6 +1104,7 @@ void BtSocketMsgHandler (void *context);
 void BtA2dpSinkMsgHandler(void *msg);
 void BtPanMsgHandler(void *context);
 void BtGattMsgHandler(void *context);
+void BtHfpClientMsgHandler (void *context);
 
 #ifdef __cplusplus
 }
