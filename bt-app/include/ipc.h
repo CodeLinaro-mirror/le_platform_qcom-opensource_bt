@@ -198,6 +198,7 @@ typedef enum {
     GAP_API_CREATE_BOND,
     GAP_API_SSP_REPLY,
     GAP_API_PIN_REPLY,
+    GAP_API_SET_BDNAME,
 
     GAP_EVENT_ADAPTER_STATE,
     GAP_EVENT_ACL_STATE_CHANGED,
@@ -395,8 +396,8 @@ typedef struct {
     BluetoothEventId event_id;
     bt_bdaddr_t         bd_addr;
     bt_bdname_t         bd_name;
-    uint32_t           cod;
-    bool               secure;
+    uint32_t            cod;
+    bool                secure;
 } PINRequestEvent;
 
 /**
@@ -406,8 +407,8 @@ typedef struct {
     BluetoothEventId event_id;
     bt_bdaddr_t         bd_addr;
     bt_bdname_t         bd_name;
-    uint8_t            pin_len;
-    bool               secure;
+    uint8_t             pin_len;
+    bool                secure;
     bt_pin_code_t       pincode;
 } PINReplyEvent;
 
@@ -418,9 +419,9 @@ typedef struct {
     BluetoothEventId event_id;
     bt_bdaddr_t         bd_addr;
     bt_bdname_t         bd_name;
-    uint32_t           cod;
+    uint32_t            cod;
     bt_ssp_variant_t    pairing_variant;
-    uint32_t           pass_key;
+    uint32_t            pass_key;
 } SSPRequestEvent;
 
 /**
@@ -430,10 +431,10 @@ typedef struct {
     BluetoothEventId event_id;
     bt_bdaddr_t         bd_addr;
     bt_bdname_t         bd_name;
-    uint32_t           cod;
+    uint32_t            cod;
     bt_ssp_variant_t    pairing_variant;
-    uint32_t           pass_key;
-    uint8_t            accept;
+    uint32_t            pass_key;
+    uint8_t             accept;
 } SSPReplyEvent;
 
 /**
@@ -447,7 +448,7 @@ typedef struct {
  * Event for notifying Device Bond
  */
 typedef struct {
-    BluetoothEventId event_id;
+    BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
 } DeviceBondRequest;
 
@@ -463,7 +464,7 @@ typedef struct {
  * Event for notifying Device disconnect
  */
 typedef struct {
-    BluetoothEventId event_id;
+    BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
 } DeviceDisconnectRequest;
 
@@ -491,6 +492,13 @@ typedef struct {
     BluetoothEventId event_id;
 } ProfileStopRequest;
 
+/**
+ * API to set BT Name
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bt_property_t prop;
+} SetDeviceName;
 /**
  * Event for notifying Profile stop status
  */
@@ -1027,6 +1035,7 @@ typedef union {
     DeviceBondStateEventInt                 bond_state_event_int;
     DeviceFoundEvent                        device_found_event;
     DeviceFoundEventInt                     device_found_event_int;
+    SetDeviceName                           set_device_name_event;
     RemotePropertiesEvent                   remote_properties_event;
     AdapterPropertiesEvent                  adapater_properties_event;
     DeviceDiscoverRequest                   discover_request;

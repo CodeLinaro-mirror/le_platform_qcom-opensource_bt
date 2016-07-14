@@ -225,6 +225,7 @@ static void DisplayMenu(MenuType menu_type) {
 }
 
 static void SignalHandler(int sig) {
+    signal(SIGINT, SIG_IGN);
     ExitHandler();
 }
 
@@ -715,9 +716,29 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 bt_bdaddr_t *bd_addr = g_gap->GetBtAddress();
                 bdaddr_to_string(bd_addr, &bd_str[0], sizeof(bd_str));
                 std::string deviceAddress(bd_str);
-                std::cout << "BT Address :" << deviceAddress << std::endl;
+                std::cout << " BT Address :" << deviceAddress << std::endl;
             } else {
                 fprintf( stdout, "No Addr due to BT is OFF\n");
+            }
+            break;
+
+        case SET_BT_NAME:
+            if ( g_bt_app->GetState() == BT_STATE_ON ) {
+                if (strlen(user_cmd[ONE_PARAM]) < BTM_MAX_LOC_BD_NAME_LEN &&
+                    (user_cmd[ONE_PARAM] != NULL) ) {
+                    bt_bdname_t bd_name;
+                    event = new BtEvent;
+                    event->event_id = GAP_API_SET_BDNAME;
+                    event->set_device_name_event.prop.type = BT_PROPERTY_BDNAME;
+                    strcpy((char*)&bd_name.name[0],user_cmd[ONE_PARAM]);
+                    event->set_device_name_event.prop.val = &bd_name;
+                    event->set_device_name_event.prop.len = strlen((char*)bd_name.name);
+                    PostMessage (THREAD_ID_GAP, event);
+                } else {
+                 fprintf( stdout, " BD Name is NULL/more than required legnth\n");
+                }
+            } else {
+                fprintf( stdout, " Currently BT is OFF\n");
             }
             break;
 
@@ -1026,6 +1047,9 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 status.enquiry_cmd = COMMAND_COMPLETE;
                 status.stop_enquiry_cmd = COMMAND_COMPLETE;
                 bt_discovery_state = BT_DISCOVERY_STOPPED;
+                // clearing bond_devices list and inquiry_list
+                bonded_devices.clear();
+                inquiry_list.clear();
                fprintf(stdout, " BT State is OFF\n");
             }
             status.disable_cmd = COMMAND_COMPLETE;
@@ -1068,7 +1092,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                                 ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
             fprintf(stdout, "Found device Name: %s\n", event->device_found_event.
                                                     remoteDevice.name);
-            fprintf(stdout, "Device calss is: %d\n", event->device_found_event.
+            fprintf(stdout, "Device class is: %d\n", event->device_found_event.
                                         remoteDevice.bluetooth_class);
             break;
 
@@ -1129,18 +1153,19 @@ void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t
     if(new_state == BT_BOND_STATE_BONDED) {
         if (it == bonded_devices.end()) {
             bonded_devices[deviceAddress] = bd_name;
-            fprintf(stdout, "\n*************************************************");
-            fprintf(stdout, "\n Pairing state for %s is BONDED", bd_name.c_str());
-            fprintf(stdout, "\n*************************************************\n");
         }
+        fprintf(stdout, "\n*************************************************");
+        fprintf(stdout, "\n Pairing state for %s is BONDED", bd_name.c_str());
+        fprintf(stdout, "\n*************************************************\n");
         g_bt_app->status.pairing_cmd = COMMAND_COMPLETE;
+
     } else if (new_state == BT_BOND_STATE_NONE) {
         if (it != bonded_devices.end()) {
-            fprintf(stdout, "\n*************************************************");
-            fprintf(stdout, "\n Pairing state for %s is BOND NONE", bd_name.c_str());
-            fprintf(stdout, "\n*************************************************\n");
             bonded_devices.erase(it);
         }
+        fprintf(stdout, "\n*************************************************");
+        fprintf(stdout, "\n Pairing state for %s is BOND NONE", bd_name.c_str());
+        fprintf(stdout, "\n*************************************************\n");
         g_bt_app->status.pairing_cmd = COMMAND_COMPLETE;
     }
 }
@@ -1423,6 +1448,9 @@ BluetoothApp :: BluetoothApp () {
 BluetoothApp :: ~BluetoothApp () {
     if (config)
         config_free(config);
+
+    bonded_devices.clear();
+    inquiry_list.clear();
 }
 
 int BluetoothApp:: LocalSocketCreate(void) {
