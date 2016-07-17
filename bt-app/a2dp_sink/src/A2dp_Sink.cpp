@@ -29,12 +29,14 @@
 
 #include <list>
 #include <map>
+#include <iostream>
 #include <string.h>
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
 #include <hardware/bt_av.h>
 
-#include "../include/A2dp_Sink.hpp"
+#include "A2dp_Sink.hpp"
+#include "Gap.hpp"
 
 #define LOGTAG "A2DP_SINK"
 #define LOGTAG_CTRL "AVRCP_CTRL"
@@ -57,14 +59,15 @@ void BtA2dpSinkMsgHandler(void *msg) {
     }
 
     pEvent = ( BtEvent *) msg;
-    ALOGD(LOGTAG " bt_a2dp_sink_msg_handler event = %d", pEvent->event_id);
     switch(pEvent->event_id) {
         case PROFILE_API_START:
+            ALOGD(LOGTAG "enable a2dp sink");
             if (pA2dpSink) {
                 pA2dpSink->HandleEnableSink();
             }
             break;
         case PROFILE_API_STOP:
+            ALOGD(LOGTAG "disable a2dp sink");
             if (pA2dpSink) {
                 pA2dpSink->HandleDisableSink();
             }
@@ -236,8 +239,14 @@ static btrc_ctrl_callbacks_t sBluetoothAvrcpCtrlCallbacks = {
    btavrcpctrl_registernotification_absvol_callback,
 };
 
+void A2dp_Sink::SendPassThruCommandNative(uint8_t key_id) {
+    if (sBtAvrcpCtrlInterface != NULL) {
+        sBtAvrcpCtrlInterface->send_pass_through_cmd(&mConnectedAvrcpDevice, key_id, 0);
+        sBtAvrcpCtrlInterface->send_pass_through_cmd(&mConnectedAvrcpDevice, key_id, 1);
+    }
+}
 void A2dp_Sink::HandleAvrcpEvents(BtEvent* pEvent) {
-    ALOGD(LOGTAG_CTRL " HandleAvrcpEvents event = %d", pEvent->avrcpCtrlEvent.event_id);
+    ALOGD(LOGTAG_CTRL " HandleAvrcpEvents event = %s", dump_message(pEvent->avrcpCtrlEvent.event_id));
     switch(pEvent->avrcpCtrlEvent.event_id) {
     case AVRCP_CTRL_CONNECTED_CB:
         mAvrcpConnected = true;
@@ -254,12 +263,7 @@ void A2dp_Sink::HandleAvrcpEvents(BtEvent* pEvent) {
             ALOGD(LOGTAG_CTRL " Avrcp Not connected/ Not to A2DP Sink ");
             break;
         }
-        if (sBtAvrcpCtrlInterface != NULL) {
-            sBtAvrcpCtrlInterface->send_pass_through_cmd(&mConnectedAvrcpDevice,
-                                                 pEvent->avrcpCtrlEvent.key_id, 0);
-            sBtAvrcpCtrlInterface->send_pass_through_cmd(&mConnectedAvrcpDevice,
-                                                 pEvent->avrcpCtrlEvent.key_id, 1);
-        }
+        SendPassThruCommandNative(pEvent->avrcpCtrlEvent.key_id);
         break;
     }
 }
@@ -311,7 +315,6 @@ void A2dp_Sink::HandleDisableSink(void) {
 }
 
 void A2dp_Sink::ProcessEvent(BtEvent* pEvent) {
-    ALOGD(LOGTAG " Processing event %d", pEvent->event_id);
     switch(mSinkState) {
         case STATE_DISCONNECTED:
             state_disconnected_handler(pEvent);
@@ -328,8 +331,43 @@ void A2dp_Sink::ProcessEvent(BtEvent* pEvent) {
     }
 }
 
+char* A2dp_Sink::dump_message(BluetoothEventId event_id) {
+    switch(event_id) {
+    case A2DP_SINK_API_CONNECT_REQ:
+        return"API_CONNECT_REQ";
+    case A2DP_SINK_API_DISCONNECT_REQ:
+        return "API_DISCONNECT_REQ";
+    case A2DP_SINK_DISCONNECTED_CB:
+        return "DISCONNECTED_CB";
+    case A2DP_SINK_CONNECTING_CB:
+        return "CONNECING_CB";
+    case A2DP_SINK_CONNECTED_CB:
+        return "CONNECTED_CB";
+    case A2DP_SINK_DISCONNECTING_CB:
+        return "DISCONNECTING_CB";
+    case A2DP_SINK_FOCUS_REQUEST_CB:
+        return "FOCUS_REQUEST_CB";
+    case A2DP_SINK_AUDIO_SUSPENDED:
+        return "AUDIO_SUSPENDED_CB";
+    case A2DP_SINK_AUDIO_STOPPED:
+        return "AUDIO_STOPPED_CB";
+    case A2DP_SINK_AUDIO_STARTED:
+        return "AUDIO_STARTED_CB";
+    case AVRCP_CTRL_CONNECTED_CB:
+        return "AVRCP_CTRL_CONNECTED_CB";
+    case AVRCP_CTRL_DISCONNECTED_CB:
+        return "AVRCP_CTRL_DISCONNECTED_CB";
+    case AVRCP_CTRL_PASS_THRU_CMD_REQ:
+        return "PASS_THRU_CMD_REQ";
+    case BT_AM_CONTROL_STATUS:
+        return "AM_CONTROL_STATUS";
+    }
+    return "UNKNOWN";
+}
+
 void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent) {
-    ALOGD(LOGTAG "state_disconnected_handler Processing event %d", pEvent->event_id);
+    char str[18];
+    ALOGD(LOGTAG "state_disconnected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SINK_API_CONNECT_REQ:
             memcpy(&mConnectingDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
@@ -340,11 +378,15 @@ void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent) {
             break;
         case A2DP_SINK_CONNECTING_CB:
             memcpy(&mConnectingDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
+            bdaddr_to_string(&mConnectingDevice, str, 18);
+            cout << "A2DP Sink Connecting to " << str << endl;
             change_state(STATE_PENDING);
             break;
         case A2DP_SINK_CONNECTED_CB:
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             memcpy(&mConnectedDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
+            bdaddr_to_string(&mConnectedDevice, str, 18);
+            cout << "A2DP Sink Connected to " << str << endl;
             change_state(STATE_CONNECTED);
             break;
         default:
@@ -353,19 +395,27 @@ void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent) {
     }
 }
 void A2dp_Sink::state_pending_handler(BtEvent* pEvent) {
-    ALOGD(LOGTAG "state_pending_handler Processing event %d", pEvent->event_id);
+    char str[18];
+    ALOGD(LOGTAG "state_pending_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SINK_CONNECTING_CB:
             break;
         case A2DP_SINK_CONNECTED_CB:
             memcpy(&mConnectedDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
+            bdaddr_to_string(&mConnectedDevice, str, 18);
+            cout << "A2DP Sink Connected to " << str << endl;
             change_state(STATE_CONNECTED);
             break;
         case A2DP_SINK_DISCONNECTED_CB:
+            cout << "A2DP Sink DisConnected "<< endl;
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(STATE_DISCONNECTED);
+            break;
+        case A2DP_SINK_API_CONNECT_REQ:
+            bdaddr_to_string(&mConnectingDevice, str, 18);
+            cout << "A2DP Sink Connecting to " << str << endl;
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
@@ -374,9 +424,23 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent) {
 }
 
 void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
-    ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
+    char str[18];
+    BtEvent *pControlRequest, *pReleaseControlReq;
+    ALOGD(LOGTAG "state_connected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
+        case A2DP_SINK_API_CONNECT_REQ:
+            bdaddr_to_string(&mConnectedDevice, str, 18);
+            cout << "A2DP Sink Connected to " << str << endl;
+            break;
         case A2DP_SINK_API_DISCONNECT_REQ:
+            // release control
+            pReleaseControlReq = new BtEvent;
+            pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+            pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+            PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+
+            bdaddr_to_string(&mConnectedDevice, str, 18);
+            cout << "A2DP Sink DisConnecting from " << str << endl;
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             if (sBtA2dpSinkInterface != NULL) {
@@ -385,16 +449,84 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             change_state(STATE_PENDING);
             break;
         case A2DP_SINK_DISCONNECTED_CB:
+            // release control
+            pReleaseControlReq = new BtEvent;
+            pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+            pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+            PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
+            cout << "A2DP Sink DisConnected " << endl;
             change_state(STATE_DISCONNECTED);
             break;
         case A2DP_SINK_DISCONNECTING_CB:
+            // release control
+            pReleaseControlReq = new BtEvent;
+            pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+            pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+            PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+
+            cout << "A2DP Sink DisConnecting " << endl;
             change_state(STATE_PENDING);
             break;
         case A2DP_SINK_FOCUS_REQUEST_CB:
-            if (sBtA2dpSinkInterface != NULL) {
-                sBtA2dpSinkInterface->audio_focus_state(3);
+            pControlRequest = new BtEvent;
+            pControlRequest->btamControlReq.event_id = BT_AM_REQUEST_CONTROL;
+            pControlRequest->btamControlReq.profile_id = PROFILE_ID_A2DP_SINK;
+            pControlRequest->btamControlReq.request_type = REQUEST_TYPE_PERMANENT;
+            PostMessage(THREAD_ID_BT_AM, pControlRequest);
+            break;
+        case BT_AM_CONTROL_STATUS:
+            ALOGD(LOGTAG "earlier status = %d  new status = %d", controlStatus,
+                                                      pEvent->btamControlStatus.status_type);
+            controlStatus = pEvent->btamControlStatus.status_type;
+            switch(controlStatus) {
+                case STATUS_LOSS:
+                    // inform bluedroid
+                    if (sBtA2dpSinkInterface != NULL) {
+                        sBtA2dpSinkInterface->audio_focus_state(0);
+                    }
+                    // send pause to remote
+                    SendPassThruCommandNative(CMD_ID_PAUSE);
+                    // release control
+                    pReleaseControlReq = new BtEvent;
+                    pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+                    pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+                    PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+                    break;
+                case STATUS_LOSS_TRANSIENT:
+                    // inform bluedroid
+                    if (sBtA2dpSinkInterface != NULL) {
+                        sBtA2dpSinkInterface->audio_focus_state(0);
+                    }
+                    // send pause to remote
+                    SendPassThruCommandNative(CMD_ID_PAUSE);
+                    break;
+                case STATUS_GAIN:
+                    // inform bluedroid
+                    if (sBtA2dpSinkInterface != NULL) {
+                        sBtA2dpSinkInterface->audio_focus_state(3);
+                    }
+                    break;
+                case STATUS_REGAINED:
+                    // inform bluedroid
+                    if (sBtA2dpSinkInterface != NULL) {
+                        sBtA2dpSinkInterface->audio_focus_state(3);
+                    }
+                    // send play to remote
+                    SendPassThruCommandNative(CMD_ID_PLAY);
+                    break;
+            }
+            break;
+        case A2DP_SINK_AUDIO_SUSPENDED:
+        case A2DP_SINK_AUDIO_STOPPED:
+            // release focus in this case.
+            if (controlStatus != STATUS_LOSS_TRANSIENT) {
+                pReleaseControlReq = new BtEvent;
+                pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+                pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+                PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
             }
             break;
         default:
@@ -417,6 +549,7 @@ A2dp_Sink :: A2dp_Sink(const bt_interface_t *bt_interface, config_t *config) {
     sBtA2dpSinkInterface = NULL;
     sBtAvrcpCtrlInterface = NULL;
     mSinkState = STATE_NOT_STARTED;
+    controlStatus = STATUS_LOSS;
     mAvrcpConnected = false;
     memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
@@ -427,4 +560,5 @@ A2dp_Sink :: A2dp_Sink(const bt_interface_t *bt_interface, config_t *config) {
 A2dp_Sink :: ~A2dp_Sink() {
     pthread_mutex_destroy(&lock);
     mAvrcpConnected = false;
+    controlStatus = STATUS_LOSS;
 }

@@ -36,10 +36,11 @@
 #include <iomanip>
 #include "Main.hpp"
 #include <syslog.h>
-#include "../../a2dp_sink/include/A2dp_Sink.hpp"
+#include "A2dp_Sink.hpp"
 #include "HfpClient.hpp"
 #include "pan/include/Pan.hpp"
 #include "gatt/include/Gatt.hpp"
+#include "Audio_Manager.hpp"
 
 #include "utils.h"
 
@@ -50,6 +51,7 @@ extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
 extern Pan *g_pan;
 extern Gatt *g_gatt;
+extern BT_Audio_Manager *pBTAM;
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 extern Hfp_Client *pHfpClient;
@@ -1254,6 +1256,15 @@ void BluetoothApp :: InitHandler (void) {
         g_gap = new Gap (bt_interface, config);
     }
 
+    if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
+        // we need to start BT-AM if either of A2DP_SINK or HFP-Client is enabled
+        threadInfo[THREAD_ID_BT_AM].thread_id = thread_new (
+                        threadInfo[THREAD_ID_BT_AM].thread_name);
+        if (threadInfo[THREAD_ID_BT_AM].thread_id) {
+             pBTAM = new BT_Audio_Manager (bt_interface, config);
+        }
+    }
+
     if(is_a2dp_sink_enabled_) {
         threadInfo[THREAD_ID_A2DP_SINK].thread_id = thread_new (
                 threadInfo[THREAD_ID_A2DP_SINK].thread_name);
@@ -1329,6 +1340,14 @@ void BluetoothApp :: DeInitHandler (void) {
             reactor_unregister ( accept_reactor_);
     }
 
+    if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
+        if (threadInfo[THREAD_ID_BT_AM].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_BT_AM].thread_id);
+            if ( pBTAM != NULL)
+                delete pBTAM;
+        }
+    }
+
     if(is_a2dp_sink_enabled_) {
         //STOP A2dp Sink thread
         if (threadInfo[THREAD_ID_A2DP_SINK].thread_id != NULL) {
@@ -1346,6 +1365,8 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete pHfpClient;
         }
     }
+
+
     // Stop GAP Thread
     if (threadInfo[THREAD_ID_GAP].thread_id != NULL) {
         thread_free (threadInfo[THREAD_ID_GAP].thread_id);

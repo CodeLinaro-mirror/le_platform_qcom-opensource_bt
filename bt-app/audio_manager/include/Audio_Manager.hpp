@@ -27,59 +27,44 @@
   * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   */
 
-#ifndef A2DP_SINK_APP_H
-#define A2DP_SINK_APP_H
+#ifndef BT_AUDIO_MANAGER_APP_H
+#define BT_AUDIO_MANAGER_APP_H
 
 #include <map>
 #include <string>
-#include <hardware/bluetooth.h>
-#include <hardware/bt_av.h>
-#include <hardware/bt_rc.h>
 #include <pthread.h>
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "ipc.h"
-#include "utils.h"
 
+#define MAX_PROFILE_ENTRIES 2
 
-typedef enum {
-    STATE_NOT_STARTED = 0,
-    STATE_DISCONNECTED,
-    STATE_PENDING,
-    STATE_CONNECTED,
-}A2dpSinkState;
+typedef struct {
+    ProfileIdType profile_id;
+    ControlRequestType control_status;
+} ControlStackEntry;
 
-
-class A2dp_Sink {
+class BT_Audio_Manager {
 
   private:
     config_t *config;
-    const bt_interface_t * bluetooth_interface;
-    const btav_interface_t *sBtA2dpSinkInterface;
-    const btrc_ctrl_interface_t *sBtAvrcpCtrlInterface;
-    A2dpSinkState mSinkState;
-    bool mAvrcpConnected;
+    ControlStackEntry audio_control_stack[MAX_PROFILE_ENTRIES];
 
   public:
-    A2dp_Sink(const bt_interface_t *bt_interface, config_t *config);
-    ~A2dp_Sink();
+    BT_Audio_Manager(const bt_interface_t *bt_interface, config_t *config);
+    ~BT_Audio_Manager();
     void ProcessEvent(BtEvent* pEvent);
-    void state_disconnected_handler(BtEvent* pEvent);
-    void state_pending_handler(BtEvent* pEvent);
-    void state_connected_handler(BtEvent* pEvent);
-    void change_state(A2dpSinkState mState);
+    void HandleEnableBTAM();
+    void HandleDisableBTAM();
+    int GetTopIndex();
+    ThreadIdType GetThreadId(ProfileIdType profile_id);
+    void AddNewNode(ProfileIdType profile, ControlRequestType ctrlStatus);
+    void RemoveNode(int index);
+    int GetIndex(ProfileIdType profile_id);
+    void SendControlStatusMessage(ControlStatusType ctrlStatus, ProfileIdType profile_id);
     char* dump_message(BluetoothEventId event_id);
-    pthread_mutex_t lock;
-    bt_bdaddr_t mConnectingDevice;
-    bt_bdaddr_t mConnectedDevice;
-    bt_bdaddr_t mConnectedAvrcpDevice;
-    void HandleAvrcpEvents(BtEvent* pEvent);
-    void HandleEnableSink();
-    void HandleDisableSink();
-    void SendPassThruCommandNative(uint8_t key_id);
-    ControlStatusType controlStatus;
 };
 
 #endif

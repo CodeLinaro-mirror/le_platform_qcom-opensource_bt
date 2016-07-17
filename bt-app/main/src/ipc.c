@@ -30,6 +30,7 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     { NULL ,    THREAD_ID_HFP_CLIENT,  &BtHfpClientMsgHandler,  "Hfp_Client_Thread" } ,
     { NULL ,    THREAD_ID_PAN,         &BtPanMsgHandler,       "Pan_Thread" } ,
     { NULL ,    THREAD_ID_GATT,        &BtGattMsgHandler,      "Gatt_Thread" } ,
+    { NULL ,    THREAD_ID_BT_AM,       &BtAudioManagerHandler,  "BT_AUDIO_MANAGER_Thread" } ,
 };
 
 void PostMessage(ThreadIdType thread_type, void *msg) {
