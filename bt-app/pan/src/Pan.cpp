@@ -421,6 +421,15 @@ void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)
             PAN_APP_UI_PRINT("%s IS DISCONNECTED\n", bd_str);
             RemoveDevice(pan_dev);
             num_of_pan_device_connected--;
+
+            if (pan_state == TETHERED && num_of_pan_device_connected == 0) {
+                BtEvent *event = new BtEvent;
+                event->event_id = SKT_API_IPC_MSG_WRITE;
+                event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_DISABLE_TETHERING;
+                event->bt_ipc_msg_event.ipc_msg.status = INITIATED;
+                ALOGV (LOGTAG "%s: Posting msg main thread: disable tethering", __FUNCTION__);
+                PostMessage (THREAD_ID_MAIN, event);
+            }
         } else if (pan_dev->state == BTPAN_STATE_CONNECTED) {
             bdaddr_to_string((&pan_dev->bd_addr), bd_str, MAX_BD_STR_LEN);
             PAN_APP_UI_PRINT("%s IS CONNECTED\n", bd_str);
@@ -432,22 +441,15 @@ void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)
                 Disconnect(&pan_dev->bd_addr);
                 return;
             }
-        }
 
-        if (pan_state == UNTETHERED && num_of_pan_device_connected > 0) {
-            BtEvent *event = new BtEvent;
-            event->event_id = SKT_API_IPC_MSG_WRITE;
-            event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_ENABLE_TETHERING;
-            event->bt_ipc_msg_event.ipc_msg.status = INITIATED;
-            ALOGV (LOGTAG "%s: Posting msg main thread: enable tethering", __FUNCTION__);
-            PostMessage (THREAD_ID_MAIN, event);
-        } else if (pan_state == TETHERED && num_of_pan_device_connected == 0) {
-            BtEvent *event = new BtEvent;
-            event->event_id = SKT_API_IPC_MSG_WRITE;
-            event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_DISABLE_TETHERING;
-            event->bt_ipc_msg_event.ipc_msg.status = INITIATED;
-            ALOGV (LOGTAG "%s: Posting msg main thread: disable tethering", __FUNCTION__);
-            PostMessage (THREAD_ID_MAIN, event);
+            if (pan_state == UNTETHERED && num_of_pan_device_connected > 0) {
+                BtEvent *event = new BtEvent;
+                event->event_id = SKT_API_IPC_MSG_WRITE;
+                event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_ENABLE_TETHERING;
+                event->bt_ipc_msg_event.ipc_msg.status = INITIATED;
+                ALOGV (LOGTAG "%s: Posting msg main thread: enable tethering", __FUNCTION__);
+                PostMessage (THREAD_ID_MAIN, event);
+            }
         }
     } else {
         ALOGW(LOGTAG "%s: LOCAL_PANU_ROLE:REMOTE_NAP_ROLE not supported", __FUNCTION__);
