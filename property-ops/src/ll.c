@@ -118,6 +118,7 @@ bool __list_add(property_db* list)
             ln->next = list;//assumed ln comes with NULL terminated next
         }
     }
+    return 0;
 }
 
 bool __remove_node_from_list(unsigned char* property_name)
