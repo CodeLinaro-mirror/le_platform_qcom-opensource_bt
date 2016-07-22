@@ -23,7 +23,8 @@
 #include <hardware/hardware.h>
 #include <hardware/bt_hf_client.h>
 
-#include "../include/HfpClient.hpp"
+#include "Audio_Manager.hpp"
+#include "HfpClient.hpp"
 
 #define LOGTAG "HFP_CLIENT"
 
@@ -32,6 +33,7 @@ using std::list;
 using std::string;
 
 Hfp_Client *pHfpClient = NULL;
+extern BT_Audio_Manager *pBTAM;
 
 #ifdef __cplusplus
 extern "C" {
@@ -386,6 +388,7 @@ void Hfp_Client::state_disconnected_handler(BtEvent* pEvent) {
             memcpy(&mConnectedDevice, &pEvent->hfp_client_event.bd_addr, sizeof(bt_bdaddr_t));
             peer_feat = pEvent->hfp_client_event.peer_feat;
             chld_feat = pEvent->hfp_client_event.chld_feat;
+            mAudioWbs = false;
 
             bdaddr_to_string(&mConnectedDevice, str, 18);
             cout << "SLC connected with device " << str << endl;
@@ -410,6 +413,7 @@ void Hfp_Client::state_connecting_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             peer_feat = pEvent->hfp_client_event.peer_feat;
             chld_feat = pEvent->hfp_client_event.chld_feat;
+            mAudioWbs = false;
 
             bdaddr_to_string(&mConnectedDevice, str, 18);
             cout << "SLC connected with device " << str << endl;
@@ -425,6 +429,7 @@ void Hfp_Client::state_connecting_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             peer_feat = 0;
             chld_feat = 0;
+            mAudioWbs = false;
             change_state(HFP_CLIENT_STATE_DISCONNECTED);
             break;
         default:
@@ -436,8 +441,15 @@ void Hfp_Client::state_connecting_handler(BtEvent* pEvent) {
 void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
     ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
     char str[18];
+    BtEvent *pControlRequest, *pReleaseControlReq;
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_DISCONNECT_REQ:
+            // release control
+            pReleaseControlReq = new BtEvent;
+            pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+            pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_HFP_CLIENT;
+            PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             if (sBtHfpClientInterface != NULL) {
@@ -450,6 +462,12 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             change_state(HFP_CLIENT_STATE_CONNECTING);
             break;
         case HFP_CLIENT_DISCONNECTED_CB:
+            // release control
+            pReleaseControlReq = new BtEvent;
+            pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+            pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_HFP_CLIENT;
+            PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
             cout << "Disconnected with device " << str << endl;
             ALOGD(LOGTAG "Disconnected with device %s", str);
@@ -458,9 +476,16 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             peer_feat = 0;
             chld_feat = 0;
+            mAudioWbs = false;
             change_state(HFP_CLIENT_STATE_DISCONNECTED);
             break;
         case HFP_CLIENT_DISCONNECTING_CB:
+            // release control
+            pReleaseControlReq = new BtEvent;
+            pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+            pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_HFP_CLIENT;
+            PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+
             break;
         case HFP_CLIENT_API_CONNECT_AUDIO_REQ:
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
@@ -472,13 +497,40 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             }
             break;
         case HFP_CLIENT_AUDIO_STATE_CONNECTED_MSBC_CB:
+            mAudioWbs = true;
         // intentional fall through. TODO: check if we need to save wbs enablement.
         case HFP_CLIENT_AUDIO_STATE_CONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
             cout << "SCO/eSCO connected with device " << str << endl;
             ALOGD(LOGTAG "SCO/eSCO connected with device %s", str);
 
+            pControlRequest = new BtEvent;
+            pControlRequest->btamControlReq.event_id = BT_AM_REQUEST_CONTROL;
+            pControlRequest->btamControlReq.profile_id = PROFILE_ID_HFP_CLIENT;
+            pControlRequest->btamControlReq.request_type = REQUEST_TYPE_TRANSIENT;
+            PostMessage(THREAD_ID_BT_AM, pControlRequest);
+
             change_state(HFP_CLIENT_STATE_AUDIO_ON);
+            break;
+        case BT_AM_CONTROL_STATUS:
+            ALOGD(LOGTAG "earlier status = %d  new status = %d", mcontrolStatus,
+                                   pEvent->btamControlStatus.status_type);
+            mcontrolStatus = pEvent->btamControlStatus.status_type;
+
+            switch(mcontrolStatus) {
+                 case STATUS_LOSS:
+                    // this should not occur.
+                    break;
+                 case STATUS_LOSS_TRANSIENT:
+                    // this should not occur.
+                    break;
+                 case STATUS_GAIN:
+                    // this should not occur.
+                    break;
+                 case STATUS_GAIN_TRANSIENT:
+                    ConfigureAudio(true);
+                    break;
+            }
             break;
         case HFP_CLIENT_API_ACCEPT_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
@@ -594,6 +646,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
 
 void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
     char str[18];
+    BtEvent *pControlRequest, *pReleaseControlReq;
     ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_DISCONNECT_AUDIO_REQ:
@@ -606,11 +659,41 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG "Disconnecting SCO/eSCO with device %s", str);
             break;
         case HFP_CLIENT_AUDIO_STATE_DISCONNECTED_CB:
+
+            mAudioWbs = false;
+            ConfigureAudio(false);
+
+            pControlRequest = new BtEvent;
+            pControlRequest->btamControlReq.event_id = BT_AM_RELEASE_CONTROL;
+            pControlRequest->btamControlReq.profile_id = PROFILE_ID_HFP_CLIENT;
+            pControlRequest->btamControlReq.request_type = REQUEST_TYPE_TRANSIENT;
+            PostMessage(THREAD_ID_BT_AM, pControlRequest);
+
             change_state(HFP_CLIENT_STATE_CONNECTED);
 
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-            cout << "Disconnected with device " << str << endl;
-            ALOGD(LOGTAG "Disconnected with device %s", str);
+            cout << "Disconnected SCO connection with device " << str << endl;
+            ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
+            break;
+        case BT_AM_CONTROL_STATUS:
+            ALOGD(LOGTAG "earlier status = %d  new status = %d", mcontrolStatus,
+                                   pEvent->btamControlStatus.status_type);
+            mcontrolStatus = pEvent->btamControlStatus.status_type;
+
+            switch(mcontrolStatus) {
+                 case STATUS_LOSS:
+                    // this should not occur.
+                    break;
+                 case STATUS_LOSS_TRANSIENT:
+                    // this should not occur.
+                    break;
+                 case STATUS_GAIN:
+                    // this should not occur.
+                    break;
+                 case STATUS_GAIN_TRANSIENT:
+                    ConfigureAudio(true);
+                    break;
+            }
             break;
         case HFP_CLIENT_API_ACCEPT_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
@@ -726,24 +809,88 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
 
 }
 
+void Hfp_Client::ConfigureAudio(bool enable) {
+
+#if defined(BT_AUDIO_HAL_INTEGRATION)
+   audio_hw_device_t* audio_device;
+   audio_config_t config;
+   audio_io_handle_t handle = 0x999;
+
+   ALOGD(LOGTAG "Configure Audio for enable/disable %d, wbs %d", enable, mAudioWbs);
+   cout << "Configure Audio for enable/disable " <<  enable << " wbs " <<  mAudioWbs << endl;
+
+   if (pBTAM == NULL) {
+      ALOGD(LOGTAG "Audio Manager not initialized");
+      cout << "Audio Manager not initialized" << endl;
+      return;
+   }
+
+   config.channel_mask = audio_channel_out_mask_from_count(2);
+   config.format = AUDIO_FORMAT_PCM_16_BIT;
+   config.sample_rate = 8000;
+
+   audio_device = pBTAM->GetAudioDevice();
+   if(audio_device != NULL) {
+      if (enable) {
+         // select speaker(2) as output device
+         audio_device->open_output_stream(audio_device, handle, 2, AUDIO_OUTPUT_FLAG_NONE,
+                                        &config, &out_stream, "bt_hfp_client");
+         ALOGD(LOGTAG " setting sample rate %s", (mAudioWbs ? "16000" : "8000"));
+         cout << "setting sample rate " << (mAudioWbs ? "16000" : "8000") << endl;
+         if (mAudioWbs)
+            audio_device->set_parameters(audio_device, "hfp_set_sampling_rate=16000");
+         else
+            audio_device->set_parameters(audio_device, "hfp_set_sampling_rate=8000");
+
+         cout << "setting hfp_enable to true" << endl;
+         ALOGD(LOGTAG " setting hfp_enable to true");
+         audio_device->set_parameters(audio_device, "hfp_volume=15");
+         audio_device->set_parameters(audio_device, "hfp_enable=true");
+      }
+      else
+      {
+         cout << "setting hfp_enable to false" << endl;
+         ALOGD(LOGTAG " setting hfp_enable to false");
+         audio_device->set_parameters(audio_device, "hfp_enable=false");
+      }
+   }
+   else {
+      cout << "ConfigureAudio: audio_device is NULL" << endl;
+      ALOGD(LOGTAG " ConfigureAudio: audio_device is NULL");
+   }
+#else
+   ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
+   cout << "BT_AUDIO_HAL_INTEGRATION needs to be defined" << endl;
+#endif
+}
+
 void Hfp_Client::change_state(HfpClientState mState) {
-   ALOGD(LOGTAG," current State = %d, new state = %d", mClientState, mState);
+   ALOGD(LOGTAG " current State = %d, new state = %d", mClientState, mState);
    pthread_mutex_lock(&lock);
    mClientState = mState;
-   ALOGD(LOGTAG," state changes to %d ", mState);
+   ALOGD(LOGTAG " state changes to %d ", mState);
    pthread_mutex_unlock(&lock);
 }
 
 Hfp_Client :: Hfp_Client(const bt_interface_t *bt_interface, config_t *config) {
     this->bluetooth_interface = bt_interface;
-    this->config = config;
     sBtHfpClientInterface = NULL;
     mClientState = HFP_CLIENT_STATE_NOT_STARTED;
+    mcontrolStatus = STATUS_LOSS;
+    mAudioWbs = false;
     peer_feat = 0;
     chld_feat = 0;
+#if defined(BT_AUDIO_HAL_INTEGRATION)
+    this->config = config;
+    out_stream =  NULL;
+#endif
     pthread_mutex_init(&this->lock, NULL);
 }
 
 Hfp_Client :: ~Hfp_Client() {
+    mcontrolStatus = STATUS_LOSS;
+#if defined(BT_AUDIO_HAL_INTEGRATION)
+    out_stream =  NULL;
+#endif
     pthread_mutex_destroy(&lock);
 }
