@@ -73,6 +73,23 @@ bt_bdname_t *AdapterProperties:: GetBtName() {
     return &bt_device_info.bd_name;
 }
 
+int AdapterProperties:: SetBtName(bt_property_t *prop) {
+    return bluetooth_interface_->set_adapter_property(prop);
+}
+
+bool AdapterProperties::IsDeviceBonded(bt_bdaddr_t bd_addr) {
+    bdstr_t bd_str;
+    bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
+    std::string deviceAddress(bd_str);
+    std::list<std::string>::iterator bdstring;
+
+    bdstring = std::find(bonded_devices.begin(), bonded_devices.end(), deviceAddress);
+
+    if (bdstring == bonded_devices.end())
+        return false;
+    else
+        return true;
+}
 bool AdapterProperties:: IsDiscovering() {
     bool discovering = false;
     pthread_mutex_lock(&lock_);
@@ -111,6 +128,7 @@ void AdapterProperties::GetCorePropertyList(int num_properties,
             memcpy((bt_bdaddr_t *)&bt_device_info.bd_addr, properties[index].val,
                                 properties[index].len);
         } else if ( properties[index].type == BT_PROPERTY_BDNAME) {
+            memset (&bt_device_info.bd_name, '\0', sizeof (bt_device_info.bd_name));
             memcpy((bt_bdname_t *)&bt_device_info.bd_name, properties[index].val,
                                 properties[index].len);
         }

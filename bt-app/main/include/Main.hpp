@@ -63,6 +63,9 @@
  */
 #define MAX_ARGUMENTS        20 //TODO
 
+
+#define BTM_MAX_LOC_BD_NAME_LEN     248
+
 /**
  * Macro used to find the total commands number
  */
@@ -116,6 +119,7 @@ typedef enum {
     BONDED_LIST,
     GET_BT_NAME,
     GET_BT_ADDR,
+    SET_BT_NAME,
     UNPAIR,
     GET_BT_STATE,
     TEST_MODE,
@@ -216,6 +220,8 @@ UserMenuList GapMenu[] = {
     {GET_BT_STATE,          "get_state",        ZERO_PARAM,    "get_state"},
     {GET_BT_NAME,           "get_bt_name",      ZERO_PARAM,    "get_bt_name"},
     {GET_BT_ADDR,           "get_bt_address",   ZERO_PARAM,    "get_bt_address"},
+    {SET_BT_NAME,           "set_bt_name",      ONE_PARAM,    "set_bt_name<space><bt name> \
+    eg. set_bt_name MDM_Fluoride"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
 };
 

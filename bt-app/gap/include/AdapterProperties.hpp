@@ -185,13 +185,31 @@ class AdapterProperties {
         bt_bdaddr_t *GetBtAddress();
 
         /**
-         * @brief GetBtAddress
+         * @brief GetBtName
          *
          * It will return's the local bluetooth name
          *
          * @return bluetooth name
          */
         bt_bdname_t *GetBtName();
+
+        /**
+         * @brief SetBtName
+         *
+         * It will set the local bluetooth name
+         *
+         * @return status
+         */
+        int SetBtName(bt_property_t *prop);
+
+        /**
+         * @brief IsDeviceBonded
+         *
+         * It will return's true if device is already bonded else returns false
+         *
+         * @return bool
+         */
+        bool IsDeviceBonded(bt_bdaddr_t device);
 };
 
 #endif

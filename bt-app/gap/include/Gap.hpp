@@ -246,7 +246,7 @@ class Gap {
      * else it will return false
      * @return bool
      */
-     bool IsEnabled();
+    bool IsEnabled();
 
     /**
      * @brief IsDiscovering
@@ -255,12 +255,43 @@ class Gap {
      * else returns false
      * @return bool
      */
-     bool IsDiscovering();
+    bool IsDiscovering();
 
-     bt_bdaddr_t *GetBtAddress(void);
+    /**
+     * @brief GetBtAddress
+     *
+     * It will return's the local bluetooth address
+     *
+     * @return @ref bt_bdaddr_t
+     */
+    bt_bdaddr_t *GetBtAddress(void);
 
-     bt_bdname_t *GetBtName(void);
+    /**
+     * @brief GetBtName
+     *
+     * It will return's the local bluetooth name
+     *
+     * @return bluetooth name @ref bt_bdname_t
+     */
+    bt_bdname_t *GetBtName(void);
 
+    /**
+     * @brief SetBtName
+     *
+     * It will set the local bluetooth name
+     *
+     * @return status
+     */
+    int SetBtName(bt_property_t *prop);
+
+    /**
+     * @brief IsDeviceBonded
+     *
+     * It will return's true if device is already bonded else returns false
+     *
+     * @return bool
+     */
+    bool IsDeviceBonded(bt_bdaddr_t device);
 };
 
 #endif
