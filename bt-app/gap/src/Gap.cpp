@@ -443,6 +443,14 @@ bt_bdname_t *Gap::GetBtName(void) {
     return adapter_properties_obj_->GetBtName();
 }
 
+int Gap::SetBtName(bt_property_t *prop) {
+    return adapter_properties_obj_->SetBtName(prop);
+}
+
+
+bool Gap::IsDeviceBonded(bt_bdaddr_t device) {
+    return adapter_properties_obj_->IsDeviceBonded(device);
+}
 void Gap::ProcessEvent(BtEvent* event) {
     bt_property_t prop;
     bt_scan_mode_t scan_mode;
@@ -639,7 +647,10 @@ void Gap::ProcessEvent(BtEvent* event) {
                     PostMessage(profile_config[profile_id].thread_id, bt_event);
                 }
             }
+            break;
 
+        case GAP_API_SET_BDNAME:
+            SetBtName(&event->set_device_name_event.prop);
             break;
 
         case GAP_EVENT_DEVICE_FOUND_INT:

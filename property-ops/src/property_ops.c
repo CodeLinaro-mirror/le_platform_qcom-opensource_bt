@@ -34,6 +34,7 @@
 #include <string.h>
 #include <malloc.h>
 #include "../include/property_ops.h"
+#include "../include/ll.h"
 
 #define LOG //LOG_DEBUG
 
