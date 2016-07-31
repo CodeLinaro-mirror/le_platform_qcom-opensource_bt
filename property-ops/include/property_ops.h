@@ -111,7 +111,7 @@ bool create_node_from_persist(const char *filename);
  * @param Char * for getting the property value from database/persist
  * @return True on success and false otherwise
  */
-bool get_property_value(const char*, unsigned char *);
+bool get_property_value_bt(const char*, unsigned char *);
 
 /**
  * Set the property value for a given property name
@@ -119,7 +119,7 @@ bool get_property_value(const char*, unsigned char *);
  * @param Char * this is not used for set, used only for get
  * @return True on success and false otherwise
  */
-bool set_property_value(const char*, unsigned char *);
+bool set_property_value_bt(const char*, unsigned char *);
 
 
 /**

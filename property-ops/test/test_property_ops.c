@@ -108,28 +108,28 @@ again:
             memset(prop_name, 0, MAX_ALLOWED_LINE_LEN);
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "wc_transport.soc_initialized", strlen("wc_transport.soc_initialized"));//test
-            result = get_property_value(prop_name,prop_val);
+            result = get_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Property searched =%s exists =%d prop_val=%s \n", prop_name, result, prop_val);
 
             //this should pass
             memset(prop_name, 0, MAX_ALLOWED_LINE_LEN);
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "bluetooth.status", strlen("bluetooth.status"));//test
-            result = get_property_value(prop_name,prop_val);
+            result = get_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Property searched =%s exists =%d prop_val=%s \n", prop_name, result, prop_val);
 
             //this should pass
             memset(prop_name, 0, MAX_ALLOWED_LINE_LEN);
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "wc_transport.start_root", strlen("wc_transport.start_root"));//test
-            result = get_property_value(prop_name,prop_val);
+            result = get_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Property searched =%s exists =%d prop_val=%s \n", prop_name, result, prop_val);
 
             //this should fail
             memset(prop_name, 0, MAX_ALLOWED_LINE_LEN);
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "ksadjlkajdsj.start_root", strlen("ksadjlkajdsj.start_root"));//test
-            result = get_property_value(prop_name,prop_val);
+            result = get_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Property searched =%s exists =%d prop_val=%s \n", prop_name, result, prop_val);
         break;
 
@@ -140,7 +140,7 @@ again:
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "wc_transport.soc_initialized", strlen("wc_transport.soc_initialized"));//test
             strncpy(prop_val , "true", strlen("true"));
-            result = set_property_value(prop_name,prop_val);
+            result = set_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Prop update status =%d ,Value @property = %s\n", result, prop_val);
 
 
@@ -149,7 +149,7 @@ again:
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "bluetooth.status", strlen("bluetooth.status"));//test
             strncpy(prop_val , "false", strlen("false"));
-            result = set_property_value(prop_name,prop_val);
+            result = set_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Prop update status =%d ,Value @property = %s\n", result, prop_val);
 
             //this should pass
@@ -157,7 +157,7 @@ again:
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "bluetooth.start_root", strlen("bluetooth.start_root"));//test
             strncpy(prop_val , "true", strlen("true"));
-            result = set_property_value(prop_name,prop_val);
+            result = set_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Prop update status =%d ,Value @property = %s\n", result, prop_val);
 
 
@@ -166,7 +166,7 @@ again:
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "bluetooth.hciattach", strlen("bluetooth.hciattach"));//test
             strncpy(prop_val , "false", strlen("false"));
-            result = set_property_value(prop_name,prop_val);
+            result = set_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Prop update status =%d ,Value @property = %s\n", result, prop_val);
 
 
@@ -175,7 +175,7 @@ again:
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "kajdsajdkjhciattach", strlen("adhsakjdhksdiattach"));//test
             strncpy(prop_val , "false", strlen("false"));
-            result = set_property_value(prop_name,prop_val);
+            result = set_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Prop update status =%d ,Value @property = %s\n", result, prop_val);
 
             //this should add a new property
@@ -183,7 +183,7 @@ again:
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "kajdsajdkjhciattach", strlen("adhsakjdhksdiattach"));//test
             strncpy(prop_val , "true", strlen("true"));
-            result = set_property_value(prop_name,prop_val);
+            result = set_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Prop update status =%d ,Value @property = %s\n", result, prop_val);
 
             //this should add a new property
@@ -191,7 +191,7 @@ again:
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "kjhciattach", strlen("kjhciattach"));//test
             strncpy(prop_val , "true", strlen("true"));
-            result = set_property_value(prop_name,prop_val);
+            result = set_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Prop update status =%d ,Value @property = %s\n", result, prop_val);
 
 
@@ -200,7 +200,7 @@ again:
             memset(prop_val, 0, MAX_ALLOWED_LINE_LEN);
             strncpy(prop_name , "askjdlsajdlsajdsaljdajhdaksjdhsakjhd" , strlen("askjdlsajdlsajdsaljdajhdaksjdhsakjhd"));
             strncpy(prop_val , "true", strlen("true"));
-            result = set_property_value(prop_name,prop_val);
+            result = set_property_value_bt(prop_name,prop_val);
             LOG_DEBUG("Prop update status =%d ,Value @property = %s\n", result, prop_val);
         break;
 

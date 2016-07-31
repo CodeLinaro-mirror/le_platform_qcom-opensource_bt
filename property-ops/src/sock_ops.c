@@ -246,7 +246,7 @@ bool parse_and_exec(int cmd, unsigned char* command, unsigned char* prop_val)
 
     if (cmd == GET_PROP_VALUE) {
         strncpy(prop_name,parsed_data[1], strlen(parsed_data[1]));
-        result = get_property_value(prop_name, prop_val);
+        result = get_property_value_bt(prop_name, prop_val);
     } else if (cmd == SET_PROP_VALUE) {
         strncpy(prop_name,parsed_data[1], strlen(parsed_data[1]));
         strncpy(prop_value,parsed_data[2], strlen(parsed_data[2]));
@@ -260,16 +260,7 @@ bool parse_and_exec(int cmd, unsigned char* command, unsigned char* prop_val)
                 system("killall -KILL wcnssfilter");
             }
         }
-        if (!strncmp(prop_name, "bluetooth.startbtsnoop", strlen(prop_name))) {
-            if (!strncmp(prop_value, "true", strlen(prop_value))) {
-                LOG_DEBUG("starting btsnoop\n");
-                system("btsnoop &");
-            } else {
-                LOG_DEBUG("stopping btsnoop\n");
-                system("killall -KILL btsnoop");
-            }
-        }
-        result = set_property_value(prop_name, prop_value);
+        result = set_property_value_bt(prop_name, prop_value);
     }
 
     dump_current_ds();

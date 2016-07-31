@@ -43,12 +43,12 @@ const char *path = "../src/property_config.prop";
 char line[MAX_ALLOWED_LINE_LEN];
 char pulled[MAX_ALLOWED_LINE_LEN];
 
-bool set_property_value(const char* prop_name, unsigned char *prop_val)
+bool set_property_value_bt(const char* prop_name, unsigned char *prop_val)
 {
    return __update_prop_value(prop_name, prop_val);
 }
 
-bool get_property_value(const char* prop_name, unsigned char *prop_val)
+bool get_property_value_bt(const char* prop_name, unsigned char *prop_val)
 {
     property_db *retval = __list_matches_prop_name(prop_name);
     if(NULL != retval)
