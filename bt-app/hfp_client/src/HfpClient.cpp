@@ -25,6 +25,7 @@
 
 #include "Audio_Manager.hpp"
 #include "HfpClient.hpp"
+#include "hardware/bt_hf_client_vendor.h"
 
 #define LOGTAG "HFP_CLIENT"
 
@@ -493,12 +494,12 @@ void ring_indication_cb () {
    PostMessage(THREAD_ID_HFP_CLIENT, pEvent);
 }
 
-void cgmi_cb (const char *str) {
-   ALOGD(LOGTAG "cgmi_cb %s", str);
+void cgmi_vendor_cb (const char *str) {
+   ALOGD(LOGTAG " cgmi_vendor_cb %s", str);
 }
 
-void cgmm_cb (const char *str) {
-   ALOGD(LOGTAG "cgmm_cb %s", str);
+void cgmm_vendor_cb (const char *str) {
+   ALOGD(LOGTAG " cgmm_vendor_cb %s", str);
 }
 
 
@@ -525,8 +526,12 @@ static bthf_client_callbacks_t sBluetoothHfpClientCallbacks = {
     in_band_ring_cb,
     last_voice_tag_number_cb,
     ring_indication_cb,
-    cgmi_cb,
-    cgmm_cb,
+};
+
+static bthf_client_vendor_callbacks_t sBluetoothHfpClientVendorCallbacks = {
+    sizeof(sBluetoothHfpClientVendorCallbacks),
+    cgmi_vendor_cb,
+    cgmm_vendor_cb,
 };
 
 void Hfp_Client::HandleEnableClient(void) {
@@ -540,8 +545,17 @@ void Hfp_Client::HandleEnableClient(void) {
             ALOGE(LOGTAG "get profile interface failed, returning");
             return;
         }
+        sBtHfpClientVendorInterface = (bthf_client_vendor_interface_t *)bluetooth_interface->
+                get_profile_interface(BT_PROFILE_HANDSFREE_CLIENT_VENDOR_ID);
+        if (sBtHfpClientVendorInterface == NULL)
+        {
+            // TODO: sent message to indicate failure for profile init
+            ALOGE(LOGTAG "get profile vendor interface failed, returning");
+            return;
+        }
         change_state(HFP_CLIENT_STATE_DISCONNECTED);
         sBtHfpClientInterface->init(&sBluetoothHfpClientCallbacks);
+        sBtHfpClientVendorInterface->init_vendor(&sBluetoothHfpClientVendorCallbacks);
         BtEvent *pEvent = new BtEvent;
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_HFP_CLIENT;
@@ -555,6 +569,10 @@ void Hfp_Client::HandleDisableClient(void) {
    if(sBtHfpClientInterface != NULL) {
        sBtHfpClientInterface->cleanup();
        sBtHfpClientInterface = NULL;
+   }
+   if(sBtHfpClientVendorInterface != NULL) {
+       sBtHfpClientVendorInterface->cleanup_vendor();
+       sBtHfpClientVendorInterface = NULL;
    }
    BtEvent *pEvent = new BtEvent;
    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
@@ -993,7 +1011,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
 void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
     char str[18];
     BtEvent *pControlRequest, *pReleaseControlReq;
-    ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
+    ALOGD(LOGTAG "state_audio_on_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_DISCONNECT_AUDIO_REQ:
             if (sBtHfpClientInterface != NULL) {

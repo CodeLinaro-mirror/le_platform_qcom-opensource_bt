@@ -48,6 +48,7 @@
 #include "osi/include/allocator.h"
 #include "ipc.h"
 #include "utils.h"
+#include "hardware/bt_hf_client_vendor.h"
 
 
 typedef enum {
@@ -80,6 +81,8 @@ class Hfp_Client {
     HfpClientState mClientState;
     HfpClientMode mAudioMode;
     ControlStatusType mcontrolStatus;
+    const bthf_client_vendor_interface_t *sBtHfpClientVendorInterface;
+
   public:
     Hfp_Client(const bt_interface_t *bt_interface, config_t *config);
     ~Hfp_Client();

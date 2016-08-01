@@ -48,6 +48,8 @@
 #include "osi/include/alarm.h"
 #include "ipc.h"
 #include "utils.h"
+#include "hardware/bt_av_vendor.h"
+#include "hardware/bt_rc_vendor.h"
 
 
 typedef enum {
@@ -68,6 +70,8 @@ class A2dp_Sink {
     const btrc_ctrl_interface_t *sBtAvrcpCtrlInterface;
     A2dpSinkState mSinkState;
     bool mAvrcpConnected;
+    const btav_vendor_interface_t *sBtA2dpSinkVendorInterface;
+    const btrc_ctrl_vendor_interface_t *sBtAvrcpCtrlVendorInterface;
 
   public:
     A2dp_Sink(const bt_interface_t *bt_interface, config_t *config);

@@ -41,6 +41,7 @@
 #include "osi/include/config.h"
 #include "ipc.h"
 #include "utils.h"
+#include "hardware/bt_hf_vendor.h"
 
 // for MDM, define, this, TODO: move it to bitbake
 //#define BT_ALSA_AUDIO_INTEGRATION 0
@@ -173,6 +174,7 @@ class Hfp_Ag {
     ControlStatusType mcontrolStatus;
     bthf_wbs_config_t mWbsState;
     bthf_nrec_t mNrec;
+    const bthf_vendor_interface_t *sBtHfpAgVendorInterface;
   public:
     Hfp_Ag(const bt_interface_t *bt_interface, config_t *config);
     ~Hfp_Ag();
