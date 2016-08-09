@@ -616,7 +616,11 @@ void Gap::ProcessEvent(BtEvent* event) {
             kill(getpid(), SIGKILL);
             break;
         case GAP_API_DISABLE:
-
+            bt_event = new BtEvent;
+            bt_event->event_id = A2DP_SINK_CLEANUP_REQ;
+            PostMessage(THREAD_ID_A2DP_SINK, bt_event);
+            break;
+        case A2DP_SINK_CLEANUP_DONE:
             // check if there are profiles enabled
             if(!supported_profiles_count) {
                 HandleDisable();

@@ -34,6 +34,7 @@
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
 #include <hardware/bt_av.h>
+#include "Audio_Manager.hpp"
 
 #include "A2dp_Sink.hpp"
 #include "Gap.hpp"
@@ -46,6 +47,16 @@ using std::list;
 using std::string;
 
 A2dp_Sink *pA2dpSink = NULL;
+extern BT_Audio_Manager *pBTAM;
+
+#if (!defined(BT_AUDIO_HAL_INTEGRATION))
+#define DUMP_PCM_DATA TRUE
+#endif
+
+#if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
+FILE *outputPcmSampleFile;
+char outputFilename [50] = "/etc/bluetooth/output_sample.pcm";
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,6 +64,7 @@ extern "C" {
 
 void BtA2dpSinkMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
+    BtEvent* pCleanupEvent = NULL;
     if(!msg) {
         printf("Msg is NULL, return.\n");
         return;
@@ -61,16 +73,26 @@ void BtA2dpSinkMsgHandler(void *msg) {
     pEvent = ( BtEvent *) msg;
     switch(pEvent->event_id) {
         case PROFILE_API_START:
-            ALOGD(LOGTAG "enable a2dp sink");
+            ALOGD(LOGTAG " enable a2dp sink");
             if (pA2dpSink) {
                 pA2dpSink->HandleEnableSink();
             }
             break;
         case PROFILE_API_STOP:
-            ALOGD(LOGTAG "disable a2dp sink");
+            ALOGD(LOGTAG " disable a2dp sink");
             if (pA2dpSink) {
                 pA2dpSink->HandleDisableSink();
             }
+            break;
+        case A2DP_SINK_CLEANUP_REQ:
+            ALOGD(LOGTAG " cleanup a2dp sink");
+            if (pA2dpSink) {
+                pA2dpSink->CloseAudioStream();
+                pA2dpSink->StopPcmTimer();
+            }
+            pCleanupEvent = new BtEvent;
+            pCleanupEvent->event_id = A2DP_SINK_CLEANUP_DONE;
+            PostMessage(THREAD_ID_GAP, pCleanupEvent);
             break;
         case AVRCP_CTRL_CONNECTED_CB:
         case AVRCP_CTRL_DISCONNECTED_CB:
@@ -93,8 +115,29 @@ void BtA2dpSinkMsgHandler(void *msg) {
 #endif
 
 
+void pcm_fetch_timer_handler(void *context) {
+    ALOGV(LOGTAG, " pcm_fetch_timer_handler ");
 
+    BtEvent *pEvent = new BtEvent;
+    pEvent->a2dpSinkEvent.event_id = A2DP_SINK_FETCH_PCM_DATA;
+    PostMessage(THREAD_ID_A2DP_SINK, pEvent);
+}
 
+void A2dp_Sink::StartPcmTimer() {
+    if(pcm_timer) {
+        ALOGD(LOGTAG " PCM Timer still running + ");
+        return;
+    }
+    alarm_set(pcm_data_fetch_timer, A2DP_SINK_PCM_FETCH_TIMER_DURATION,
+           pcm_fetch_timer_handler, NULL);
+    pcm_timer = true;
+}
+void A2dp_Sink::StopPcmTimer() {
+    if((pcm_data_fetch_timer != NULL) && (pcm_timer)) {
+        alarm_cancel(pcm_data_fetch_timer);
+        pcm_timer = false;
+    }
+}
 static void bta2dp_connection_state_callback(btav_connection_state_t state, bt_bdaddr_t* bd_addr) {
     ALOGD(LOGTAG " Connection State CB");
     BtEvent *pEvent = new BtEvent;
@@ -136,7 +179,12 @@ static void bta2dp_audio_state_callback(btav_audio_state_t state, bt_bdaddr_t* b
 
 static void bta2dp_audio_config_callback(bt_bdaddr_t *bd_addr, uint32_t sample_rate,
         uint8_t channel_count) {
-    ALOGD(LOGTAG " Audio Config CB");
+    ALOGD(LOGTAG " Audio Config CB sample_rate %d, channel_count %d", sample_rate, channel_count);
+    if(pA2dpSink)
+    {
+        pA2dpSink->sample_rate = sample_rate;
+        pA2dpSink->channel_count = channel_count;
+    }
 }
 static void bta2dp_audio_focus_request_callback(bt_bdaddr_t *bd_addr) {
     ALOGD(LOGTAG " bta2dp_audio_focus_request_callback ");
@@ -299,6 +347,8 @@ void A2dp_Sink::HandleEnableSink(void) {
 
 void A2dp_Sink::HandleDisableSink(void) {
    change_state(STATE_NOT_STARTED);
+   CloseAudioStream();
+   StopPcmTimer();
    if(sBtA2dpSinkInterface != NULL) {
        sBtA2dpSinkInterface->cleanup();
        sBtA2dpSinkInterface = NULL;
@@ -361,6 +411,8 @@ char* A2dp_Sink::dump_message(BluetoothEventId event_id) {
         return "PASS_THRU_CMD_REQ";
     case BT_AM_CONTROL_STATUS:
         return "AM_CONTROL_STATUS";
+    case A2DP_SINK_FETCH_PCM_DATA:
+        return "A2DP_SINK_FETCH_PCM_DATA";
     }
     return "UNKNOWN";
 }
@@ -411,6 +463,7 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent) {
             cout << "A2DP Sink DisConnected "<< endl;
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
+
             change_state(STATE_DISCONNECTED);
             break;
         case A2DP_SINK_API_CONNECT_REQ:
@@ -425,14 +478,16 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent) {
 
 void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
     char str[18];
+    uint32_t pcm_data_read = 0;
     BtEvent *pControlRequest, *pReleaseControlReq;
-    ALOGD(LOGTAG "state_connected_handler Processing event %s", dump_message(pEvent->event_id));
+    ALOGD(LOGTAG " state_connected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SINK_API_CONNECT_REQ:
             bdaddr_to_string(&mConnectedDevice, str, 18);
             cout << "A2DP Sink Connected to " << str << endl;
             break;
         case A2DP_SINK_API_DISCONNECT_REQ:
+            CloseAudioStream();
             // release control
             pReleaseControlReq = new BtEvent;
             pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
@@ -449,6 +504,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             change_state(STATE_PENDING);
             break;
         case A2DP_SINK_DISCONNECTED_CB:
+            CloseAudioStream();
             // release control
             pReleaseControlReq = new BtEvent;
             pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
@@ -461,6 +517,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             change_state(STATE_DISCONNECTED);
             break;
         case A2DP_SINK_DISCONNECTING_CB:
+            CloseAudioStream();
             // release control
             pReleaseControlReq = new BtEvent;
             pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
@@ -470,12 +527,35 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             cout << "A2DP Sink DisConnecting " << endl;
             change_state(STATE_PENDING);
             break;
+        case A2DP_SINK_AUDIO_STARTED:
         case A2DP_SINK_FOCUS_REQUEST_CB:
             pControlRequest = new BtEvent;
             pControlRequest->btamControlReq.event_id = BT_AM_REQUEST_CONTROL;
             pControlRequest->btamControlReq.profile_id = PROFILE_ID_A2DP_SINK;
             pControlRequest->btamControlReq.request_type = REQUEST_TYPE_PERMANENT;
             PostMessage(THREAD_ID_BT_AM, pControlRequest);
+            break;
+        case A2DP_SINK_FETCH_PCM_DATA:
+           pcm_timer = false;
+           // first start next timer
+           StartPcmTimer();
+
+            // fetch PCM data from fluoride
+            if ((sBtA2dpSinkInterface != NULL) && ( pcm_buf != NULL)) {
+                pcm_data_read =  sBtA2dpSinkInterface->get_pcm_data(pcm_buf, pcm_buf_size);
+                ALOGD(LOGTAG " pcm_data_read = %d", pcm_data_read);
+            }
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+            if ((pBTAM->GetAudioDevice() != NULL) && (out_stream != NULL)) {
+                out_stream->write(out_stream, pcm_buf, pcm_data_read);
+            }
+#endif
+#if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
+           if ((outputPcmSampleFile) && (pcm_buf != NULL))
+           {
+              fwrite ((void*)pcm_buf, 1, (size_t)(pcm_data_read), outputPcmSampleFile);
+           }
+#endif
             break;
         case BT_AM_CONTROL_STATUS:
             ALOGD(LOGTAG "earlier status = %d  new status = %d", controlStatus,
@@ -494,6 +574,8 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
                     pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
                     pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
                     PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+                    CloseAudioStream();
+                    StopPcmTimer();
                     break;
                 case STATUS_LOSS_TRANSIENT:
                     // inform bluedroid
@@ -502,18 +584,24 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
                     }
                     // send pause to remote
                     SendPassThruCommandNative(CMD_ID_PAUSE);
+                    CloseAudioStream();
+                    StopPcmTimer();
                     break;
                 case STATUS_GAIN:
                     // inform bluedroid
                     if (sBtA2dpSinkInterface != NULL) {
                         sBtA2dpSinkInterface->audio_focus_state(3);
                     }
+                    ConfigureAudioHal();
+                    StartPcmTimer();
                     break;
                 case STATUS_REGAINED:
                     // inform bluedroid
                     if (sBtA2dpSinkInterface != NULL) {
                         sBtA2dpSinkInterface->audio_focus_state(3);
                     }
+                    ConfigureAudioHal();
+                    StartPcmTimer();
                     // send play to remote
                     SendPassThruCommandNative(CMD_ID_PLAY);
                     break;
@@ -522,6 +610,8 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
         case A2DP_SINK_AUDIO_SUSPENDED:
         case A2DP_SINK_AUDIO_STOPPED:
             // release focus in this case.
+            CloseAudioStream();
+            StopPcmTimer();
             if (controlStatus != STATUS_LOSS_TRANSIENT) {
                 pReleaseControlReq = new BtEvent;
                 pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
@@ -534,11 +624,102 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             break;
     }
 }
+void A2dp_Sink::ConfigureAudioHal() {
+#if (defined BT_AUDIO_HAL_INTEGRATION)
+    audio_hw_device_t* audio_device;
+    audio_config_t config;
+    audio_io_handle_t handle = 0x07;
 
+    ALOGD(LOGTAG " sample_rate = %d, channel_count = %d", sample_rate, channel_count);
+    if (!sample_rate || !channel_count) {
+        return;
+    }
+
+    if (out_stream != NULL) {
+        ALOGD(LOGTAG " HAL already configured ");
+        return;
+    }
+    // HAL is not yet configured, configure it now.
+   config.offload_info.size = sizeof(audio_offload_info_t);
+   config.offload_info.sample_rate = sample_rate;
+   config.offload_info.format = AUDIO_FORMAT_PCM_16_BIT;
+   config.offload_info.version = AUDIO_OFFLOAD_INFO_VERSION_CURRENT;
+   config.channel_mask = audio_channel_out_mask_from_count(channel_count);
+   config.offload_info.channel_mask = audio_channel_out_mask_from_count(channel_count);
+    if (pBTAM != NULL) {
+        audio_device = pBTAM->GetAudioDevice();
+        if(audio_device != NULL) {
+            // 2 refers to speaker
+            ALOGD(LOGTAG, " opening output stream ");
+            audio_device->open_output_stream(audio_device, handle, 2, AUDIO_OUTPUT_FLAG_DIRECT_PCM,
+                   &config, &out_stream, "bt_a2dp_sink");
+        }
+        if (out_stream != NULL) {
+            pcm_buf_size = out_stream->common.get_buffer_size(&out_stream->common);
+            ALOGD(LOGTAG " pcm buf size %d", pcm_buf_size);
+            pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
+        }
+    }
+#endif
+#if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
+    if (!sample_rate || !channel_count) {
+        return;
+    }
+    switch(sample_rate) {
+    case 44100:
+        pcm_buf_size = 7065;
+        break;
+    case 48000:
+        pcm_buf_size = 7680;
+        break;
+    }
+    pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
+    if (outputPcmSampleFile == NULL)
+        outputPcmSampleFile = fopen(outputFilename, "ab");
+#endif
+}
+void A2dp_Sink::CloseAudioStream() {
+#if (defined BT_AUDIO_HAL_INTEGRATION)
+    audio_hw_device_t* audio_device;
+    if (pBTAM != NULL) {
+        audio_device = pBTAM->GetAudioDevice();
+        if((audio_device != NULL) && (out_stream != NULL)) {
+            // 2 refers to speaker
+            ALOGD(LOGTAG, " closing output stream ");
+            audio_device->close_output_stream(audio_device, out_stream);
+            out_stream = NULL;
+        }
+        if (pcm_buf != NULL) {
+            osi_free(pcm_buf);
+            pcm_buf = NULL;
+        }
+    }
+#endif
+#if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
+    if (outputPcmSampleFile)
+    {
+        fclose(outputPcmSampleFile);
+    }
+    outputPcmSampleFile = NULL;
+    if (pcm_buf != NULL) {
+        osi_free(pcm_buf);
+        pcm_buf = NULL;
+    }
+#endif
+}
+void A2dp_Sink::OnDisconnected() {
+    ALOGD(LOGTAG " onDisconnected ");
+    StopPcmTimer();
+    CloseAudioStream();
+}
 void A2dp_Sink::change_state(A2dpSinkState mState) {
    ALOGD(LOGTAG " current State = %d, new state = %d", mSinkState, mState);
    pthread_mutex_lock(&lock);
    mSinkState = mState;
+   if (mSinkState == STATE_DISCONNECTED)
+   {
+        OnDisconnected();
+   }
    ALOGD(LOGTAG " state changes to %d ", mState);
    pthread_mutex_unlock(&lock);
 }
@@ -551,14 +732,34 @@ A2dp_Sink :: A2dp_Sink(const bt_interface_t *bt_interface, config_t *config) {
     mSinkState = STATE_NOT_STARTED;
     controlStatus = STATUS_LOSS;
     mAvrcpConnected = false;
+    channel_count = 0;
+    sample_rate = 0;
     memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mConnectedAvrcpDevice, 0, sizeof(bt_bdaddr_t));
     pthread_mutex_init(&this->lock, NULL);
+    pcm_data_fetch_timer = alarm_new();
+    pcm_buf = NULL;
+    pcm_timer = false;
+#if (defined BT_AUDIO_HAL_INTEGRATION)
+    out_stream =  NULL;
+#endif
+#if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
+    outputPcmSampleFile =  NULL;
+#endif
 }
 
 A2dp_Sink :: ~A2dp_Sink() {
     pthread_mutex_destroy(&lock);
     mAvrcpConnected = false;
     controlStatus = STATUS_LOSS;
+    alarm_free(pcm_data_fetch_timer);
+    pcm_data_fetch_timer = NULL;
+#if (defined BT_AUDIO_HAL_INTEGRATION)
+    out_stream = NULL;
+#endif
+    if (pcm_buf != NULL) {
+        osi_free(pcm_buf);
+        pcm_buf = NULL;
+    }
 }
