@@ -92,6 +92,7 @@ char* BT_Audio_Manager::dump_message(BluetoothEventId event_id) {
 }
 
 void BT_Audio_Manager::HandleEnableBTAM(void) {
+    UnloadAudioHal();
     BtEvent *pEvent = new BtEvent;
     pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
     pEvent->profile_start_event.profile_id = PROFILE_ID_BT_AM;
@@ -100,6 +101,11 @@ void BT_Audio_Manager::HandleEnableBTAM(void) {
 }
 
 void BT_Audio_Manager::HandleDisableBTAM(void) {
+    UnloadAudioHal();
+    for(int i= 0 ; i < MAX_PROFILE_ENTRIES; i++) {
+        audio_control_stack[i].profile_id =  PROFILE_ID_MAX;
+        audio_control_stack[i].control_status = REQUEST_TYPE_DEFAULT;
+    }
     BtEvent *pEvent = new BtEvent;
     pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
     pEvent->profile_stop_event.profile_id = PROFILE_ID_BT_AM;
@@ -123,6 +129,60 @@ int BT_Audio_Manager::GetTopIndex(void) {
     return top;
 }
 
+void BT_Audio_Manager::LoadAudioHal()
+{
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+     int ret = 0;
+    ALOGD(LOGTAG " Load Audio HAL +");
+    if (HwModule != NULL) {
+        ALOGD(" HW already loaded");
+    } else {
+    ret = hw_get_module_by_class(AUDIO_HARDWARE_MODULE_ID,
+                                    AUDIO_HARDWARE_MODULE_ID_PRIMARY, &HwModule);
+    }
+    ALOGD(" get_module_by_class +%d ", ret);
+    if (ret) {
+        ALOGD("  get_module_by_class failed +%d ", ret);
+        HwModule = NULL;
+        return;
+    }
+    if (audio_device != NULL) {
+        ALOGD(" Audio Device already Open ");
+    } else {
+        ret = audio_hw_device_open(HwModule, &audio_device);
+    }
+    ALOGD(" audio_hw_device_open +%d ", ret);
+    if (ret) {
+        ALOGD("  audio_hw_device_open failed +%d ", ret);
+        HwModule = NULL;
+        return;
+    }
+    ALOGD(LOGTAG "Load Audio HAL -");
+#endif
+}
+void BT_Audio_Manager::UnloadAudioHal()
+{
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    ALOGD(LOGTAG "UnLoad Audio HAL +");
+    if(audio_device != NULL)
+        audio_hw_device_close(audio_device);
+    audio_device = NULL;
+    HwModule = NULL;
+    ALOGD(LOGTAG "UnLoad Audio HAL -");
+#endif
+}
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+audio_hw_device_t* BT_Audio_Manager::GetAudioDevice()
+{
+    if (audio_device != NULL) {
+        return audio_device;
+    }
+    else {
+        ALOGD(" audio device is NULL ");
+        return NULL;
+    }
+}
+#endif
 ThreadIdType BT_Audio_Manager::GetThreadId(ProfileIdType profile_id) {
     ThreadIdType thread_id = THREAD_ID_MAX;
     switch(profile_id) {
@@ -193,6 +253,7 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
             top = GetTopIndex();
             if (top < 0) {
                 // fresh request, load Audio HAL TODO:BTAM Load Audio HAL
+                LoadAudioHal();
                 AddNewNode(pEvent->btamControlReq.profile_id, pEvent->btamControlReq.request_type);
                 if (pEvent->btamControlReq.request_type == REQUEST_TYPE_PERMANENT)
                     SendControlStatusMessage(STATUS_GAIN, pEvent->btamControlReq.profile_id);
@@ -251,6 +312,9 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
                                        audio_control_stack[top-1].profile_id);
             }
             RemoveNode(profile_index);
+            if (GetTopIndex() < 0) {
+                UnloadAudioHal();
+            }
             break;
     }
 }
@@ -260,8 +324,12 @@ BT_Audio_Manager :: BT_Audio_Manager(const bt_interface_t *bt_interface, config_
         audio_control_stack[i].profile_id =  PROFILE_ID_MAX;
         audio_control_stack[i].control_status = REQUEST_TYPE_DEFAULT;
     }
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    HwModule = NULL;
+    audio_device = NULL;
+#endif
 }
 
 BT_Audio_Manager :: ~BT_Audio_Manager() {
-
+    UnloadAudioHal();
 }

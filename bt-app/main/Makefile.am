@@ -20,6 +20,7 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_client/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
+               -I${WORKSPACE}/system/media/audio/include \
                -I${WORKSPACE}/hardware/libhardware/include
 
 c_sources = ../utils/src/utils.c \
