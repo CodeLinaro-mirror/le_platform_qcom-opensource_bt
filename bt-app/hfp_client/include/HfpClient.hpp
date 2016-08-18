@@ -36,6 +36,12 @@
 #include <hardware/bt_hf_client.h>
 #include <pthread.h>
 
+#if defined(BT_AUDIO_HAL_INTEGRATION)
+
+#include <hardware/audio.h>
+#include <hardware/hardware.h>
+#endif
+
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
@@ -55,13 +61,17 @@ typedef enum {
 class Hfp_Client {
 
   private:
+    bool mAudioWbs;
     unsigned int peer_feat;
     unsigned int chld_feat;
+#if defined(BT_AUDIO_HAL_INTEGRATION)
     config_t *config;
+    audio_stream_out_t* out_stream;
+#endif
     const bt_interface_t * bluetooth_interface;
     const bthf_client_interface_t *sBtHfpClientInterface;
     HfpClientState mClientState;
-
+    ControlStatusType mcontrolStatus;
   public:
     Hfp_Client(const bt_interface_t *bt_interface, config_t *config);
     ~Hfp_Client();
@@ -76,6 +86,7 @@ class Hfp_Client {
     bt_bdaddr_t mConnectedDevice;
     void HandleEnableClient();
     void HandleDisableClient();
+    void ConfigureAudio(bool enable);
 };
 
 #endif

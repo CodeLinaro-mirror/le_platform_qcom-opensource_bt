@@ -39,6 +39,11 @@
 #include "osi/include/config.h"
 #include "ipc.h"
 
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+#include <hardware/audio.h>
+#include <hardware/hardware.h>
+#endif
+
 #define MAX_PROFILE_ENTRIES 2
 
 typedef struct {
@@ -65,6 +70,13 @@ class BT_Audio_Manager {
     int GetIndex(ProfileIdType profile_id);
     void SendControlStatusMessage(ControlStatusType ctrlStatus, ProfileIdType profile_id);
     char* dump_message(BluetoothEventId event_id);
+    void LoadAudioHal();
+    void UnloadAudioHal();
+#if (defined BT_AUDIO_HAL_INTEGRATION)
+    audio_hw_device_t* GetAudioDevice();
+    const hw_module_t* HwModule;
+    audio_hw_device_t* audio_device;
+#endif
 };
 
 #endif
