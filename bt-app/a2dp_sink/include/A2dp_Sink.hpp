@@ -36,10 +36,16 @@
 #include <hardware/bt_av.h>
 #include <hardware/bt_rc.h>
 #include <pthread.h>
+#if (defined BT_AUDIO_HAL_INTEGRATION)
+#include <hardware/audio.h>
+#include <hardware/hardware.h>
+#endif
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
+#include "osi/include/allocator.h"
+#include "osi/include/alarm.h"
 #include "ipc.h"
 #include "utils.h"
 
@@ -51,6 +57,7 @@ typedef enum {
     STATE_CONNECTED,
 }A2dpSinkState;
 
+#define A2DP_SINK_PCM_FETCH_TIMER_DURATION     40
 
 class A2dp_Sink {
 
@@ -80,6 +87,20 @@ class A2dp_Sink {
     void HandleDisableSink();
     void SendPassThruCommandNative(uint8_t key_id);
     ControlStatusType controlStatus;
+    uint32_t sample_rate;
+    uint8_t channel_count;
+    alarm_t *pcm_data_fetch_timer;
+#if (defined BT_AUDIO_HAL_INTEGRATION)
+    audio_stream_out_t* out_stream;
+#endif
+    void ConfigureAudioHal();
+    void CloseAudioStream();
+    size_t pcm_buf_size;
+    uint8_t* pcm_buf;
+    bool pcm_timer;
+    void StartPcmTimer();
+    void StopPcmTimer();
+    void OnDisconnected();
 };
 
 #endif
