@@ -97,6 +97,7 @@ class Hfp_Client {
     void HandleDisableClient();
     void ConfigureAudio(bool enable);
     void ConfigureRingTonePlayback();
+    void ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bool mute_mic);
     void PlayRingTone();
     void StopRingTone();
 };

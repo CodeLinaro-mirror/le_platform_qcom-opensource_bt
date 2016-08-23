@@ -436,10 +436,19 @@ void current_calls_cb (int index, bthf_client_call_direction_t dir,
 }
 
 void volume_change_cb (bthf_client_volume_type_t type, int volume) {
+   BtEvent *pEvent = new BtEvent;
    ALOGD(LOGTAG "%s : %s volume is %d", __func__,
           (type == BTHF_CLIENT_VOLUME_TYPE_SPK) ? "speaker": "mic", volume);
    cout << LOGTAG << " " << __func__ << ": " << ((type == BTHF_CLIENT_VOLUME_TYPE_SPK) ? "speaker": "mic");
    cout << " volume is " << volume;
+
+   if (type == BTHF_CLIENT_VOLUME_TYPE_SPK)
+       pEvent->hfp_client_event.event_id = HFP_CLIENT_API_SPK_VOL_CTRL_REQ;
+   else if (type == BTHF_CLIENT_VOLUME_TYPE_MIC)
+       pEvent->hfp_client_event.event_id = HFP_CLIENT_API_MIC_VOL_CTRL_REQ;
+
+   pEvent->hfp_client_event.arg1 = volume;
+   PostMessage(THREAD_ID_HFP_CLIENT, pEvent);
 }
 
 void cmd_complete_cb (bthf_client_cmd_complete_t type, int cme) {
@@ -1118,12 +1127,18 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_CLIENT_API_SPK_VOL_CTRL_REQ:
             if (sBtHfpClientInterface != NULL) {
+                ConfigureVolume(BTHF_CLIENT_VOLUME_TYPE_SPK, pEvent->hfp_client_event.arg1, false);
                 sBtHfpClientInterface->volume_control(BTHF_CLIENT_VOLUME_TYPE_SPK,
                                           pEvent->hfp_client_event.arg1);
             }
             break;
         case HFP_CLIENT_API_MIC_VOL_CTRL_REQ:
             if (sBtHfpClientInterface != NULL) {
+                if (pEvent->hfp_client_event.arg1 == 0)
+                    ConfigureVolume(BTHF_CLIENT_VOLUME_TYPE_MIC, pEvent->hfp_client_event.arg1, true);
+                else
+                    ConfigureVolume(BTHF_CLIENT_VOLUME_TYPE_MIC, pEvent->hfp_client_event.arg1, false);
+
                 sBtHfpClientInterface->volume_control(BTHF_CLIENT_VOLUME_TYPE_MIC,
                                           pEvent->hfp_client_event.arg1);
             }
@@ -1297,6 +1312,49 @@ void Hfp_Client::ConfigureAudio(bool enable) {
 #else
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
    cout << "BT_AUDIO_HAL_INTEGRATION needs to be defined" << endl;
+#endif
+}
+
+
+void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bool mute_mic) {
+
+#if defined(BT_AUDIO_HAL_INTEGRATION)
+   audio_hw_device_t* audio_device;
+
+   ALOGD(LOGTAG "ConfigureVolume for %s vol level %d, mute_mic %d",
+           (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK)? "speaker" :"mic", vol, mute_mic);
+   cout << "ConfigureVolume for " << (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK)? "speaker" :"mic";
+   cout << "vol level " << vol << " mute_mic " << mute_mic << endl;
+
+   if (pBTAM == NULL) {
+      ALOGD(LOGTAG "Audio Manager not initialized");
+      cout << "Audio Manager not initialized" << endl;
+      return;
+   }
+
+   audio_device = pBTAM->GetAudioDevice();
+   if(audio_device == NULL || out_stream == NULL) {
+      ALOGD(LOGTAG "Audio is not configured for SCO");
+      cout << "Audio is not configured for SCO" << endl;
+      return;
+   }
+
+   if (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK) {
+      char buf[14];
+
+      if (vol <= 0)
+         audio_device->set_parameters(audio_device, "hfp_volume=0");
+      else if (vol >=  15)
+         audio_device->set_parameters(audio_device, "hfp_volume=15");
+      else {
+         sprintf(buf, "hfp_volume=%d", vol);
+         audio_device->set_parameters(audio_device, buf);
+      }
+   }
+   else if (vol_type == BTHF_CLIENT_VOLUME_TYPE_MIC) {
+      audio_device->set_mic_mute(audio_device, mute_mic);
+   }
+
 #endif
 }
 
