@@ -53,6 +53,7 @@ extern thread_t *g_pbapc_thread;
 #define AUDIO_MANAGER_MSG_BASE  (250)
 #define A2DP_SINK_MSG_BASE      (300)
 #define HFP_CLIENT_MSG_BASE     (400)
+#define A2DP_SOURCE_MSG_BASE    (500)
 #define HFP_AG_MSG_BASE         (600)
 #define MAX_BD_STR_LEN          (18)
 #define BT_IPC_MSG_LEN 2
@@ -65,8 +66,8 @@ extern thread_t *g_pbapc_thread;
 #define CMD_ID_FORWARD          0x4B
 #define CMD_ID_BACKWARD         0x4C
 
-#define KEY_PRESSED             0;
-#define KEY_RELEASED            1;
+#define KEY_PRESSED             0
+#define KEY_RELEASED            1
 
 /**
  *   Threads info
@@ -84,6 +85,7 @@ typedef enum {
     THREAD_ID_PBAP_CLIENT,
 #endif
     THREAD_ID_HFP_AG,
+    THREAD_ID_A2DP_SOURCE,
     THREAD_ID_MAX,
 } ThreadIdType;
 
@@ -101,6 +103,7 @@ typedef enum {
     PROFILE_ID_PBAP_CLIENT,
 #endif
     PROFILE_ID_HFP_AG,
+    PROFILE_ID_A2DP_SOURCE,
     PROFILE_ID_MAX
 } ProfileIdType;
 
@@ -276,6 +279,20 @@ typedef enum {
     HFP_AG_BIEV_CB,
     HFP_AG_RIL_IND_CB,
     HFP_AG_RIL_RESP_CB,
+
+    A2DP_SOURCE_API_CONNECT_REQ = A2DP_SOURCE_MSG_BASE,
+    A2DP_SOURCE_API_DISCONNECT_REQ,
+    A2DP_SOURCE_AUDIO_CMD_REQ,
+    A2DP_SOURCE_CONNECTION_PRIORITY_REQ,
+    A2DP_SOURCE_DISCONNECTED_CB,
+    A2DP_SOURCE_CONNECTING_CB,
+    A2DP_SOURCE_CONNECTED_CB,
+    A2DP_SOURCE_DISCONNECTING_CB,
+    A2DP_SOURCE_AUDIO_SUSPENDED,
+    A2DP_SOURCE_AUDIO_STOPPED,
+    A2DP_SOURCE_AUDIO_STARTED,
+    AVRCP_TARGET_CONNECTED_CB,
+    AVRCP_TARGET_DISCONNECTED_CB,
 
     GAP_API_ENABLE = GAP_MSG_BASE,
     GAP_API_DISABLE,
@@ -632,6 +649,17 @@ typedef struct {
     BluetoothEventId   event_id;
     bt_bdaddr_t         bd_addr;
 } A2dpSinkEvent;
+
+typedef struct {
+    BluetoothEventId   event_id;
+    bt_bdaddr_t         bd_addr;
+} A2dpSourceEvent;
+
+typedef struct {
+    BluetoothEventId   event_id;
+    uint8_t             key_id;
+    bt_bdaddr_t         bd_addr;
+} AvrcpTargetEvent;
 
 typedef struct {
     BluetoothEventId   event_id;
@@ -1208,6 +1236,8 @@ typedef union {
     ProfileStopEvent                        profile_stop_event;
     A2dpSinkEvent                           a2dpSinkEvent;
     AvrcpCtrlPassThruCmdReq                 avrcpCtrlEvent;
+    A2dpSourceEvent                         a2dpSourceEvent;
+    AvrcpTargetEvent                        avrcpTargetEvent;
     HfpClientEvent                          hfp_client_event;
     HfpAGEvent                              hfp_ag_event;
     BTAMControlRequest                      btamControlReq;
@@ -1328,7 +1358,7 @@ void BtSdpClientMsgHandler(void *context);
 #ifdef USE_BT_OBEX
 void BtPbapClientMsgHandler(void *context);
 #endif
-
+void BtA2dpSourceMsgHandler(void *msg);
 #ifdef __cplusplus
 }
 #endif

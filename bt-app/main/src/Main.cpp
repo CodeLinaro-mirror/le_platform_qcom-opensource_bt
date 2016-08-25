@@ -45,6 +45,7 @@
 #include "PbapClient.hpp"
 #endif
 #include "osi/include/compat.h"
+#include "A2dp_Src.hpp"
 
 #include "utils.h"
 
@@ -53,6 +54,7 @@
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
+extern A2dp_Source *pA2dpSource;
 extern Pan *g_pan;
 extern Gatt *g_gatt;
 extern BT_Audio_Manager *pBTAM;
@@ -148,6 +150,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &A2dpSinkMenu[0];
             num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
             break;
+        case A2DP_SOURCE_MENU:
+            menu = &A2dpSourceMenu[0];
+            num_cmds  = NO_OF_COMMANDS(A2dpSourceMenu);
+            break;
         case HFP_CLIENT_MENU:
             menu = &HfpClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
@@ -239,6 +245,10 @@ static void DisplayMenu(MenuType menu_type) {
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
             num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
+            break;
+        case A2DP_SOURCE_MENU:
+            menu = &A2dpSourceMenu[0];
+            num_cmds  = NO_OF_COMMANDS(A2dpSourceMenu);
             break;
         case HFP_CLIENT_MENU:
             menu = &HfpClientMenu[0];
@@ -348,6 +358,47 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_BACKWARD;
             PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+    }
+}
+
+static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+    ALOGD(LOGTAG, "HandleA2DPSourceCommand cmd_id = %d", cmd_id);
+    BtEvent *event = NULL;
+    switch (cmd_id) {
+        case CONNECT:
+            event = new BtEvent;
+            event->a2dpSourceEvent.event_id = A2DP_SOURCE_API_CONNECT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSourceEvent.bd_addr);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case DISCONNECT:
+            event = new BtEvent;
+            event->a2dpSourceEvent.event_id = A2DP_SOURCE_API_DISCONNECT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSourceEvent.bd_addr);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case PLAY:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
+            event->avrcpTargetEvent.key_id = CMD_ID_PLAY;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case PAUSE:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
+            event->avrcpTargetEvent.key_id = CMD_ID_PAUSE;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case STOP:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
+            event->avrcpTargetEvent.key_id = CMD_ID_STOP;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
@@ -655,12 +706,14 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);
             break;
-
+        case A2DP_SOURCE:
+            menu_type = A2DP_SOURCE_MENU;
+            DisplayMenu(menu_type);
+            break;
         case HFP_CLIENT:
             menu_type = HFP_CLIENT_MENU;
             DisplayMenu(menu_type);
             break;
-
 #ifdef USE_BT_OBEX
         case PBAP_CLIENT_OPTION:
             menu_type = PBAP_CLIENT_MENU;
@@ -671,7 +724,6 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = HFP_AG_MENU;
             DisplayMenu(menu_type);
             break;
-
         case MAIN_EXIT:
             ALOGV (LOGTAG " Self exit of Main thread");
             ExitHandler();
@@ -1275,6 +1327,9 @@ static void BtCmdHandler (void *context) {
             case A2DP_SINK_MENU:
                 HandleA2dpSinkCommand(cmd_id,user_cmd );
                 break;
+            case A2DP_SOURCE_MENU:
+                HandleA2dpSourceCommand(cmd_id, user_cmd );
+                break;
             case HFP_CLIENT_MENU:
                 HandleHfpClientCommand(cmd_id,user_cmd );
                 break;
@@ -1685,6 +1740,15 @@ void BluetoothApp :: InitHandler (void) {
         }
     }
 
+    if(is_a2dp_source_enabled_) {
+        threadInfo[THREAD_ID_A2DP_SOURCE].thread_id = thread_new (
+                threadInfo[THREAD_ID_A2DP_SOURCE].thread_name);
+
+        if (threadInfo[THREAD_ID_A2DP_SOURCE].thread_id) {
+            pA2dpSource = new A2dp_Source (bt_interface, config);
+        }
+    }
+
     if(is_hfp_client_enabled_) {
         threadInfo[THREAD_ID_HFP_CLIENT].thread_id = thread_new (
                 threadInfo[THREAD_ID_HFP_CLIENT].thread_name);
@@ -1790,6 +1854,15 @@ void BluetoothApp :: DeInitHandler (void) {
             thread_free (threadInfo[THREAD_ID_A2DP_SINK].thread_id);
             if ( pA2dpSink != NULL)
                 delete pA2dpSink;
+        }
+    }
+
+    if(is_a2dp_source_enabled_) {
+        //STOP A2dp Source thread
+        if (threadInfo[THREAD_ID_A2DP_SOURCE].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_A2DP_SOURCE].thread_id);
+            if ( pA2dpSource!= NULL)
+                delete pA2dpSource;
         }
     }
 
@@ -1939,6 +2012,11 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for a2dp sink
     is_a2dp_sink_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_A2DP_SINK_ENABLED, false);
+
+    //checking for a2dp source
+    is_a2dp_source_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_A2DP_SOURCE_ENABLED, false);
+
     //checking for hfp client
     is_hfp_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_HFP_CLIENT_ENABLED, false);

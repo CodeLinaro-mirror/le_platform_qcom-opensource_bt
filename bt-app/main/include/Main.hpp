@@ -83,6 +83,7 @@ const char *BT_SOCKET_ENABLED      = "BtSockInputEnabled";
 const char *BT_ENABLE_DEFAULT      = "BtEnableByDefault";
 const char *BT_USER_INPUT          = "UserInteractionNeeded";
 const char *BT_A2DP_SINK_ENABLED   = "BtA2dpSinkEnable";
+const char *BT_A2DP_SOURCE_ENABLED = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED  = "BtHfClientEnable";
 const char *BT_HFP_AG_ENABLED      = "BtHfpAGEnable";
 
@@ -132,6 +133,7 @@ typedef enum {
     GAP_OPTION,
     TEST_ON_OFF,
     A2DP_SINK,
+    A2DP_SOURCE,
     CONNECT,
     DISCONNECT,
     PLAY,
@@ -228,7 +230,8 @@ typedef enum {
 #ifdef USE_BT_OBEX
     PBAP_CLIENT_MENU,
 #endif
-    HFP_AG_MENU
+    HFP_AG_MENU,
+    A2DP_SOURCE_MENU
 } MenuType;
 
 /**
@@ -281,6 +284,7 @@ UserMenuList MainMenu[] = {
     {PBAP_CLIENT_OPTION,    "pbap_client_menu",  ZERO_PARAM,   "pbap_client_menu"},
 #endif
     {HFP_AG,                "hfp_ag_menu",      ZERO_PARAM,   "hfp_ag_menu"},
+    {A2DP_SOURCE,           "a2dp_source_menu", ZERO_PARAM,   "a2dp_source_menu"},
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
 
@@ -319,6 +323,18 @@ UserMenuList A2dpSinkMenu[] = {
     {FORWARD,               "forward",          ZERO_PARAM,    "forward"},
     {BACKWARD,              "backward",         ZERO_PARAM,    "backward"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
+};
+
+/**
+ * list of supported commands for A2DP_SOURCE Menu
+ */
+UserMenuList A2dpSourceMenu[] = {
+    {CONNECT,               "connect",          ONE_PARAM,    "connect<space><bt_address>"},
+    {DISCONNECT,            "disconnect",       ONE_PARAM,    "disconnect<space><bt_address>"},
+    {PLAY,                  "start",            ZERO_PARAM,   "start"},
+    {PAUSE,                 "suspend",          ZERO_PARAM,   "suspend"},
+    {STOP,                  "stop",             ZERO_PARAM,   "stop"},
+    {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
 /**
@@ -540,6 +556,7 @@ class BluetoothApp {
     bool is_user_input_enabled_;
     bool is_socket_input_enabled_;
     bool is_a2dp_sink_enabled_;
+    bool is_a2dp_source_enabled_;
     bool is_hfp_client_enabled_;
     bool is_hfp_ag_enabled_;
     bool is_pan_enable_default_;
