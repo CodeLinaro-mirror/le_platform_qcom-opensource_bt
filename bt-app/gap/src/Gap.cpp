@@ -379,7 +379,7 @@ void Gap::HandleBondStateEvent(DeviceBondStateEventInt *event) {
 void Gap::HandleEnable(void) {
     BtEvent  *bt_event  = NULL;
     if (adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_OFF) {
-       if(bluetooth_interface_->enable() == BT_STATUS_SUCCESS) {
+       if(bluetooth_interface_->enable(false) == BT_STATUS_SUCCESS) {
            alarm_set(enable_timer, ENABLE_TIMEOUT_DELAY, enable_timer_expired, NULL);
            adapter_properties_obj_->SetState(BT_ADAPTER_STATE_TURNING_ON);
            return;
