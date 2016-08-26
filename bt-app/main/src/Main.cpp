@@ -38,9 +38,14 @@
 #include <syslog.h>
 #include "A2dp_Sink.hpp"
 #include "HfpClient.hpp"
-#include "pan/include/Pan.hpp"
-#include "gatt/include/Gatt.hpp"
+#include "Pan.hpp"
+#include "Gatt.hpp"
 #include "Audio_Manager.hpp"
+#include "SdpClient.hpp"
+#ifdef USE_BT_OBEX
+#include "PbapClient.hpp"
+#endif
+#include "osi/include/compat.h"
 
 #include "utils.h"
 
@@ -52,6 +57,11 @@ extern A2dp_Sink *pA2dpSink;
 extern Pan *g_pan;
 extern Gatt *g_gatt;
 extern BT_Audio_Manager *pBTAM;
+extern SdpClient *g_sdpClient;
+#ifdef USE_BT_OBEX
+extern PbapClient *g_pbapClient;
+extern const char *BT_OBEX_ENABLED;
+#endif
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 extern Hfp_Client *pHfpClient;
@@ -138,6 +148,12 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &HfpClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
             break;
+#ifdef USE_BT_OBEX
+        case PBAP_CLIENT_MENU:
+            menu = &PbapClientMenu[0];
+            num_cmds  = NO_OF_COMMANDS(PbapClientMenu);
+            break;
+#endif
         case MAIN_MENU:
         // fallback to default main menu
         default:
@@ -220,6 +236,12 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &HfpClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
             break;
+#ifdef USE_BT_OBEX
+        case PBAP_CLIENT_MENU:
+            menu = &PbapClientMenu[0];
+            num_cmds  = NO_OF_COMMANDS(PbapClientMenu);
+            break;
+#endif
     }
     fprintf (stdout, " \n***************** Menu *******************\n");
     for (index = 0; index < num_cmds; index++)
@@ -527,6 +549,13 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = HFP_CLIENT_MENU;
             DisplayMenu(menu_type);
             break;
+
+#ifdef USE_BT_OBEX
+        case PBAP_CLIENT_OPTION:
+            menu_type = PBAP_CLIENT_MENU;
+            DisplayMenu(menu_type);
+            break;
+#endif
 
         case MAIN_EXIT:
             ALOGV (LOGTAG " Self exit of Main thread");
@@ -864,6 +893,189 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
+#ifdef USE_BT_OBEX
+static void HandlePbapClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+
+    long num;
+    char *end;
+    int index = 0;
+    BtEvent *event = NULL;
+
+    if (g_bt_app && g_bt_app->bt_state != BT_STATE_ON) {
+        ALOGE(LOGTAG "BT not switched on, can't handle PBAP Client commands");
+        return;
+    }
+
+    switch (cmd_id) {
+
+        case PBAP_REGISTER:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_REGISTER;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case CONNECT:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_CONNECT;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->pbap_client_event.bd_addr);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case DISCONNECT:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_DISCONNECT;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->pbap_client_event.bd_addr);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_ABORT:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_ABORT;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_PHONEBOOK_SIZE:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_PHONEBOOK_SIZE;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_PHONEBOOK:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_PHONEBOOK;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_VCARD:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_VCARD;
+            memset( (void *) event->pbap_client_event.value, '\0',
+                sizeof(event->pbap_client_event.value));
+            strlcpy(event->pbap_client_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_VCARD_LISTING:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_VCARD_LISTING;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_SET_PATH:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_PATH;
+            memset( (void *) event->pbap_client_event.value, '\0',
+                sizeof(event->pbap_client_event.value));
+            strlcpy(event->pbap_client_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_SET_FILTER:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_FILTER;
+            memset( (void *) event->pbap_client_event.value, '\0',
+                sizeof(event->pbap_client_event.value));
+            strlcpy(event->pbap_client_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_FILTER:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_FILTER;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_SET_ORDER:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_ORDER;
+            memset( (void *) event->pbap_client_event.value, '\0',
+                sizeof(event->pbap_client_event.value));
+            strlcpy(event->pbap_client_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_ORDER:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_ORDER;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_SET_SEARCH_VALUE:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_SEARCH_VALUE;
+            memset( (void *) event->pbap_client_event.value, '\0',
+                sizeof(event->pbap_client_event.value));
+            strlcpy(event->pbap_client_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_SET_PHONE_BOOK:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_PHONE_BOOK;
+            memset( (void *) event->pbap_client_event.value, '\0',
+                sizeof(event->pbap_client_event.value));
+            strlcpy(event->pbap_client_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_PHONE_BOOK:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_PHONE_BOOK;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_SET_REPOSITORY:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_REPOSITORY;
+            memset( (void *) event->pbap_client_event.value, '\0',
+                sizeof(event->pbap_client_event.value));
+            strlcpy(event->pbap_client_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_REPOSITORY:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_REPOSITORY;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_SET_VCARD_FORMAT:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_VCARD_FORMAT;
+            memset( (void *) event->pbap_client_event.value, '\0',
+                sizeof(event->pbap_client_event.value));
+            strlcpy(event->pbap_client_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_VCARD_FORMAT:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_VCARD_FORMAT;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_SET_LIST_COUNT:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_LIST_COUNT;
+            event->pbap_client_event.max_list_count = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_LIST_COUNT:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_LIST_COUNT;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_SET_START_OFFSET:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_START_OFFSET;
+            event->pbap_client_event.list_start_offset = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_START_OFFSET:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_START_OFFSET;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+
+        default:
+        ALOGV (LOGTAG " Command not handled: %d", cmd_id);
+        break;
+    }
+}
+#endif
+
 void BtSocketDataHandler (void *context) {
     char ipc_msg[BT_IPC_MSG_LEN]  = {0};
     int len;
@@ -951,6 +1163,11 @@ static void BtCmdHandler (void *context) {
             case HFP_CLIENT_MENU:
                 HandleHfpClientCommand(cmd_id,user_cmd );
                 break;
+#ifdef USE_BT_OBEX
+            case PBAP_CLIENT_MENU:
+                HandlePbapClientCommand(cmd_id,user_cmd );
+                break;
+#endif
         }
     } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
                         g_bt_app->HandleSspInput(user_cmd)) {
@@ -1378,6 +1595,12 @@ void BluetoothApp :: InitHandler (void) {
 
     }
 
+    threadInfo[THREAD_ID_SDP_CLIENT].thread_id = thread_new (
+        threadInfo[THREAD_ID_SDP_CLIENT].thread_name);
+
+    if (threadInfo[THREAD_ID_SDP_CLIENT].thread_id)
+        g_sdpClient = new SdpClient(bt_interface, config);
+
     if (is_pan_enable_default_) {
         // Starting PAN Thread
         threadInfo[THREAD_ID_PAN].thread_id = thread_new (
@@ -1395,6 +1618,16 @@ void BluetoothApp :: InitHandler (void) {
         if (threadInfo[THREAD_ID_GATT].thread_id)
             g_gatt = new Gatt(bt_interface, config);
     }
+
+#ifdef USE_BT_OBEX
+    if (is_obex_enabled_ && is_pbap_client_enabled_) {
+        threadInfo[THREAD_ID_PBAP_CLIENT].thread_id = thread_new (
+            threadInfo[THREAD_ID_PBAP_CLIENT].thread_name);
+
+        if (threadInfo[THREAD_ID_PBAP_CLIENT].thread_id)
+            g_pbapClient = new PbapClient(bt_interface, config);
+    }
+#endif
 
     // Enable Command line input
     if (is_user_input_enabled_) {
@@ -1442,12 +1675,18 @@ void BluetoothApp :: DeInitHandler (void) {
         }
     }
 
-
     // Stop GAP Thread
     if (threadInfo[THREAD_ID_GAP].thread_id != NULL) {
         thread_free (threadInfo[THREAD_ID_GAP].thread_id);
         if ( g_gap != NULL)
             delete g_gap;
+    }
+
+    // Stop SDP Client Thread
+    if (threadInfo[THREAD_ID_SDP_CLIENT].thread_id != NULL) {
+        thread_free (threadInfo[THREAD_ID_SDP_CLIENT].thread_id);
+        if ( g_sdpClient != NULL)
+            delete g_sdpClient;
     }
 
     if (is_pan_enable_default_) {
@@ -1458,6 +1697,7 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete g_pan;
         }
     }
+
     if (is_gatt_enable_default_) {
         if (threadInfo[THREAD_ID_GATT].thread_id != NULL){
             thread_free(threadInfo[THREAD_ID_GATT].thread_id);
@@ -1465,6 +1705,17 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete g_gatt;
         }
     }
+
+#ifdef USE_BT_OBEX
+    if (is_obex_enabled_ && is_pbap_client_enabled_) {
+        // Stop PBAP Client Thread
+        if (threadInfo[THREAD_ID_PBAP_CLIENT].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_PBAP_CLIENT].thread_id);
+            if (g_pbapClient!= NULL)
+                delete g_pbapClient;
+        }
+    }
+#endif
 
     // Stop Command Handler
     if (is_user_input_enabled_) {
@@ -1494,7 +1745,6 @@ BluetoothApp :: BluetoothApp () {
     if (!LoadConfigParameters (CONFIG_FILE_PATH))
         ALOGE (LOGTAG " Error in Loading config file");
 }
-
 
 BluetoothApp :: ~BluetoothApp () {
     if (config)
@@ -1563,5 +1813,15 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for Gatt handler
     is_gatt_enable_default_= config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_GATT_ENABLED, false);
+
+#ifdef USE_BT_OBEX
+    //checking for OBEX handler
+    is_obex_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_OBEX_ENABLED, false);
+
+    //checking for Pbap Client handler
+    is_pbap_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_PBAP_CLIENT_ENABLED, false);
+#endif
     return true;
 }

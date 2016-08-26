@@ -140,6 +140,33 @@ typedef enum {
     SET_TETHERING,
     RSP_INIT,
     RSP_START,
+#ifdef USE_BT_OBEX
+    PBAP_CLIENT_OPTION,
+    PBAP_REGISTER,
+    PBAP_GET_PHONEBOOK_SIZE,
+    PBAP_GET_PHONEBOOK,
+    PBAP_GET_VCARD,
+    PBAP_GET_VCARD_LISTING,
+    PBAP_SET_PATH,
+    PBAP_ABORT,
+    PBAP_SET_FILTER,
+    PBAP_SET_ORDER,
+    PBAP_SET_SEARCH_ATTRIBUTE,
+    PBAP_SET_SEARCH_VALUE,
+    PBAP_SET_PHONE_BOOK,
+    PBAP_SET_REPOSITORY,
+    PBAP_SET_VCARD_FORMAT,
+    PBAP_SET_LIST_COUNT,
+    PBAP_SET_START_OFFSET,
+    PBAP_GET_FILTER,
+    PBAP_GET_ORDER,
+    PBAP_GET_SEARCH_ATTRIBUTE,
+    PBAP_GET_PHONE_BOOK,
+    PBAP_GET_REPOSITORY,
+    PBAP_GET_VCARD_FORMAT,
+    PBAP_GET_LIST_COUNT,
+    PBAP_GET_START_OFFSET,
+#endif
     HFP_CLIENT,
     CREATE_SCO_CONN,
     DESTROY_SCO_CONN,
@@ -190,7 +217,10 @@ typedef enum {
     TEST_MENU,
     A2DP_SINK_MENU,
     HFP_CLIENT_MENU,
-    PAN_MENU
+    PAN_MENU,
+#ifdef USE_BT_OBEX
+    PBAP_CLIENT_MENU
+#endif
 } MenuType;
 
 /**
@@ -239,6 +269,9 @@ UserMenuList MainMenu[] = {
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
+#ifdef USE_BT_OBEX
+    {PBAP_CLIENT_OPTION,    "pbap_client_menu",  ZERO_PARAM,   "pbap_client_menu"},
+#endif
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
 
@@ -317,6 +350,41 @@ UserMenuList HfpClientMenu[] = {
     {DISABLE_NREC_ON_AG,    "disable_nrec_on_AG",       ZERO_PARAM,   "disable_nrec_on_AG"},
     {BACK_TO_MAIN,          "main_menu",     ZERO_PARAM,   "main_menu"},
 };
+
+#ifdef USE_BT_OBEX
+/**
+ * list of supported commands for PBAP_CLIENT Menu
+ */
+UserMenuList PbapClientMenu[] = {
+    {PBAP_REGISTER,             "register",             ZERO_PARAM, "register"},
+    {CONNECT,                   "connect",              ONE_PARAM,  "connect<space><bt_address>"},
+    {DISCONNECT,                "disconnect",           ONE_PARAM,  "disconnect<space><bt_address>"},
+    {PBAP_ABORT,                "abort",                ZERO_PARAM, "abort"},
+    {PBAP_GET_PHONEBOOK_SIZE,   "get_phonebook_size",   ZERO_PARAM, "get_phonebook_size"},
+    {PBAP_GET_PHONEBOOK,        "get_phonebook",        ZERO_PARAM, "get_phonebook"},
+    {PBAP_GET_VCARD,            "get_vcard",            ONE_PARAM,  "get_vcard<space><vcard handle>"},
+    {PBAP_GET_VCARD_LISTING,    "get_vcard_listing",    ZERO_PARAM, "get_vcard_listing"},
+    {PBAP_SET_PATH,             "set_path",             ONE_PARAM,  "set_path<space><path>"},
+    {PBAP_SET_PHONE_BOOK,       "set_phone_book",       ONE_PARAM,  "set_phone_book<space><phonebook>"},
+    {PBAP_GET_PHONE_BOOK,       "get_phone_book",       ZERO_PARAM, "get_phone_book"},
+    {PBAP_SET_REPOSITORY,       "set_repository",       ONE_PARAM,  "set_repository<space><repository>"},
+    {PBAP_GET_REPOSITORY,       "get_repository",       ZERO_PARAM, "get_repository"},
+    {PBAP_SET_ORDER,            "set_sort_order",       ONE_PARAM,  "set_sort_order<space><order>"},
+    {PBAP_GET_ORDER,            "get_sort_order",       ZERO_PARAM, "get_sort_order"},
+    {PBAP_SET_SEARCH_ATTRIBUTE, "set_search_attribute", ONE_PARAM,  "set_search_attribute<space><search_attribute>"},
+    {PBAP_GET_SEARCH_ATTRIBUTE, "get_search_attribute", ZERO_PARAM, "get_search_attribute"},
+    {PBAP_SET_SEARCH_VALUE,     "set_search_value",     ONE_PARAM,  "set_search_value<space><value>"},
+    {PBAP_SET_FILTER,           "set_filter",           ONE_PARAM,  "set_filter<space><filter1,filter2,...>"},
+    {PBAP_GET_FILTER,           "get_filter",           ZERO_PARAM, "get_filter"},
+    {PBAP_SET_VCARD_FORMAT,     "set_vcard_format",     ONE_PARAM,  "set_vcard_format<space><format>"},
+    {PBAP_GET_VCARD_FORMAT,     "get_vcard_format",     ZERO_PARAM, "get_vcard_format"},
+    {PBAP_SET_LIST_COUNT,       "set_list_count",       ONE_PARAM,  "set_list_count<space><listcount>"},
+    {PBAP_GET_LIST_COUNT,       "get_list_count",       ZERO_PARAM, "get_list_count"},
+    {PBAP_SET_START_OFFSET,     "set_start_offset",     ONE_PARAM,  "set_start_offset<space><startoffset>"},
+    {PBAP_GET_START_OFFSET,     "get_start_offset",     ZERO_PARAM, "get_start_offset"},
+    {BACK_TO_MAIN,              "main_menu",            ZERO_PARAM, "main_menu"},
+};
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -440,6 +508,10 @@ class BluetoothApp {
     bool is_hfp_client_enabled_;
     bool is_pan_enable_default_;
     bool is_gatt_enable_default_;
+#ifdef USE_BT_OBEX
+    bool is_obex_enabled_;
+    bool is_pbap_client_enabled_;
+#endif
     reactor_object_t *cmd_reactor_;
     struct hw_device_t *device_;
     bluetooth_device_t *bt_device_;

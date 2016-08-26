@@ -22,6 +22,7 @@
 #include <map>
 #include <string>
 #include <hardware/bluetooth.h>
+#include <hardware/bt_sock.h>
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
@@ -108,6 +109,12 @@ class Gap {
      *  structure object for standard Bluetooth DM interface
      */
     const bt_interface_t *bluetooth_interface_;
+
+    /**
+     *  structure object for standard Bluetooth Socket interface
+     */
+    btsock_interface_t *sock_interface_;
+
     /**
      *  class object for @ref AdapterProperties class
      */
@@ -122,6 +129,13 @@ class Gap {
     int supported_profiles_count;
 
     bool is_user_input_enabled_;
+
+#ifdef USE_BT_OBEX
+    bool is_obex_enabled_;
+
+    int obex_logging_level_;
+#endif
+
     /**
      * @brief HandlePinRequestEvent
      *
