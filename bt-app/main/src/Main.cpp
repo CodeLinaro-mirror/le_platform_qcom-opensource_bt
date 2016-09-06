@@ -56,10 +56,13 @@ static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 extern Hfp_Client *pHfpClient;
 
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+thread_t *test_thread_id = NULL;
 
 /**
  * @brief main function
@@ -535,6 +538,27 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
+
+void HandleOnOffTest (void *context) {
+    char *end;
+    int index = 0;
+    int  num = (int) context;
+    for( index = 0; index < (int)num; index++) {
+        BtEvent *event_on = new BtEvent;
+        event_on->event_id = GAP_API_ENABLE;
+        fprintf( stdout, "Iteration: %d : Posting enable\n", index + 1);
+        PostMessage (THREAD_ID_GAP, event_on);
+        sleep(3);
+        BtEvent *event_off = new BtEvent;
+        event_off->event_id = GAP_API_DISABLE;
+        fprintf( stdout, "Iteration: %d : Posting disable\n", index + 1);
+        PostMessage (THREAD_ID_GAP, event_off);
+        sleep(3);
+    }
+    reactor_stop(thread_get_reactor(test_thread_id));
+    test_thread_id = NULL;
+}
+
 static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num = 0;
@@ -542,25 +566,21 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     int index = 0;
     switch (cmd_id) {
         case TEST_ON_OFF:
-            if ( user_cmd[ONE_PARAM][0] != '\0') {
+            if ((user_cmd[ONE_PARAM][0] != '\0')  && (!test_thread_id)) {
                 errno = 0;
                 num = strtol(user_cmd[ONE_PARAM], &end, 0);
                 if (*end != '\0' || errno != 0 || num < INT_MIN || num > INT_MAX){
                     fprintf( stdout, " Enter numeric Value\n");
                     break;
                 }
-                for( index = 0; index < (int)num; index++){
-                    BtEvent *event_on = new BtEvent;
-                    event_on->event_id = GAP_API_ENABLE;
-                    PostMessage (THREAD_ID_GAP, event_on);
-                    sleep(2);
-                    BtEvent *event_off = new BtEvent;
-                    event_off->event_id = GAP_API_DISABLE;
-                    PostMessage (THREAD_ID_GAP, event_off);
-                    sleep(2);
-                }
+
+                test_thread_id = thread_new ("test_thread");
+                if (test_thread_id)
+                    thread_post(test_thread_id, HandleOnOffTest, (void *) num);
+
+            } else if (test_thread_id) {
+                fprintf( stdout, "Test is ongoing, please wait until it finishes\n");
             }
-            fprintf( stdout, "Currently not Handled %ld \n", num);
             break;
 
         case RSP_INIT:
@@ -853,6 +873,7 @@ void BtSocketDataHandler (void *context) {
         if (len <= 0) {
             ALOGE("Not able to receive msg to remote dev: %s", strerror(errno));
             reactor_unregister (g_bt_app->accept_reactor_);
+            close(g_bt_app->client_socket_);
             g_bt_app->client_socket_ = -1;
         } else if(len == BT_IPC_MSG_LEN) {
             BtEvent *event = new BtEvent;
@@ -964,6 +985,7 @@ void BtMainMsgHandler (void *context) {
                 if((len = send(g_bt_app->client_socket_, &(event->bt_ipc_msg_event.ipc_msg),
                     BT_IPC_MSG_LEN, 0)) < 0) {
                     reactor_unregister (g_bt_app->accept_reactor_);
+                    close(g_bt_app->client_socket_);
                     g_bt_app->client_socket_ = -1;
                     ALOGE (LOGTAG "Local socket send fail %s", strerror(errno));
                 }
