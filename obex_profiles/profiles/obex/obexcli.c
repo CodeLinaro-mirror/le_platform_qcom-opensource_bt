@@ -1416,6 +1416,9 @@ OI_STATUS OI_OBEXCLI_Get(OI_OBEXCLI_CONNECTION_HANDLE connectionId,
         hdr = &headers[headerCount++];
         hdr->id = OI_OBEX_HDR_SINGLE_RESPONSE_MODE;
         hdr->val.srmParam = OI_OBEX_SRM_ENABLED;
+        /* Reset SRMP Headers on new Get Request */
+        connection->common.srmpValid = false;
+        connection->common.srmpWaitReceived = false;
         connection->srmRequested = TRUE;
         OI_DBGTRACE(("OBEX client requesing SRM for this GET"));
     }
@@ -1709,6 +1712,7 @@ static void GetResponse(OBEXCLI_CONNECTION *connection,
                         OI_UINT8 rspCode)
 {
     OI_OBEX_HEADER *srmHdr;
+    OI_OBEX_HEADER *srmpHdr;
     OI_OBEX_HEADER_LIST headers;
     OI_STATUS status;
 
@@ -1750,6 +1754,58 @@ static void GetResponse(OBEXCLI_CONNECTION *connection,
          */
         OI_OBEXCOMMON_DeleteHeaderFromList(&headers, OI_OBEX_HDR_SINGLE_RESPONSE_MODE);
     }
+    srmpHdr = OI_OBEX_FindHeader(&headers, OI_OBEX_HDR_SINGLE_RESPONSE_PARAMETERS);
+    if (srmpHdr) {
+        if (srmHdr) {
+            /* SRMP Header should be sent with first Get Response, otherwise it is invalid */
+            OI_DBGTRACE(("SRMP parameter is %d, srm = %d",
+                srmpHdr->val.srmParam, connection->common.srm));
+            /* SRM Param received in first response, set SRMP as valid */
+            connection->common.srmpValid = true;
+            /* If client has set SRMP param to wait, we should disable SRM if enabled*/
+            if (srmpHdr->val.srmParam == OI_OBEX_SRM_PARAM_WAIT &&
+                connection->common.srm & OI_OBEX_SRM_ENABLED) {
+                connection->common.srmpWaitReceived = true;
+                connection->common.srm &= ~OI_OBEX_SRM_ENABLED;
+                OI_DBGTRACE(("srmpWaitReceived %d, srm = %d",
+                    connection->common.srmpWaitReceived, connection->common.srm));
+            }
+        } else {
+            /* Remote is sending SRMP header in subsequent OBEX response */
+            OI_DBGTRACE(("SRMP valid %d", connection->common.srmpValid));
+            if (connection->common.srmpValid) {
+                if (srmpHdr->val.srmParam == OI_OBEX_SRM_PARAM_WAIT) {
+                    if (!connection->common.srmpWaitReceived) {
+                        /* If client has set SRMP param to wait, we should disable SRM
+                         * if enabled */
+                        connection->common.srmpWaitReceived = true;
+                        connection->common.srm &= ~OI_OBEX_SRM_ENABLED;
+                    }
+                } else if (srmpHdr->val.srmParam == OI_OBEX_SRM_PARAM_RSVP) {
+                    /* If client has set SRMP param to remove wait, we should enable SRM
+                     * if disabled */
+                    if (connection->common.srmpWaitReceived) {
+                        connection->common.srm |= OI_OBEX_SRM_ENABLED;
+                        connection->common.srmpWaitReceived = false;
+                    }
+                }
+                OI_DBGTRACE(("srmpWaitReceived %d, srm = %d",
+                    connection->common.srmpWaitReceived, connection->common.srm));
+            }
+        }
+        /*
+         * We don't want to pass the SRMP header to the upper-layer.
+         */
+        OI_OBEXCOMMON_DeleteHeaderFromList(&headers, OI_OBEX_HDR_SINGLE_RESPONSE_PARAMETERS);
+    } else {
+        /* Re-enable SRM mode if disabled because of remote device has sent response without
+         * SRMP Header */
+        if (connection->common.srmpWaitReceived) {
+            connection->common.srm |= OI_OBEX_SRM_ENABLED;
+            connection->common.srmpWaitReceived = false;
+        }
+    }
+
     /*
      * Keep sending body segments if there are more to send.
      */

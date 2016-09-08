@@ -830,7 +830,8 @@ static OI_STATUS BuildAppParams(PBAP_CLIENT *client,
                                 const OI_UINT16 *listStartOffset,
                                 const OI_UINT16 *maxListCount,
                                 const OI_UINT64 *filter,
-                                const OI_PBAP_FORMAT_TAG_VALUES *format)
+                                const OI_PBAP_FORMAT_TAG_VALUES *format,
+                                const OI_UINT32 *supportedFeatures)
 {
     OI_BYTE_STREAM bs;
     OI_UINT16 paramLen = ((order           ? OI_PBAP_APP_PARAM_ORDER_SIZE                       : 0) +
@@ -839,7 +840,8 @@ static OI_STATUS BuildAppParams(PBAP_CLIENT *client,
                           (listStartOffset ? OI_PBAP_APP_PARAM_LISTSTARTOFFSET_SIZE             : 0) +
                           (maxListCount    ? OI_PBAP_APP_PARAM_MAXLISTCOUNT_SIZE                : 0) +
                           (filter          ? OI_PBAP_APP_PARAM_FILTER_SIZE                      : 0) +
-                          (format          ? OI_PBAP_APP_PARAM_FORMAT_SIZE                      : 0));
+                          (format          ? OI_PBAP_APP_PARAM_FORMAT_SIZE                      : 0) +
+                          (supportedFeatures ? OI_PBAP_APP_PARAM_SUPP_FEATURE_SIZE              : 0));
 
     if (paramLen == 0) {
         client->req.appParam = NULL;
@@ -889,6 +891,11 @@ static OI_STATUS BuildAppParams(PBAP_CLIENT *client,
     if (maxListCount) {
         SetAppParamTagInfo(bs, OI_PBAP_TAG_ID_MAX_LIST_COUNT, sizeof(OI_UINT16));
         ByteStream_PutUINT16(bs, *maxListCount, OI_BIG_ENDIAN_BYTE_ORDER);
+    }
+
+    if (supportedFeatures) {
+        SetAppParamTagInfo(bs, OI_PBAP_TAG_ID_SUPP_FEATURES, sizeof(OI_UINT32));
+        ByteStream_PutUINT32(bs, *supportedFeatures, OI_BIG_ENDIAN_BYTE_ORDER);
     }
 
     ByteStream_Close(bs);
@@ -1261,7 +1268,8 @@ OI_STATUS OI_PBAPClient_GetPhonebookSize(OI_PBAP_CONNECTION connectionId,
                             NULL,               /* list start offset (N/A) */
                             &maxListCount,      /* max list count */
                             NULL,               /* filter (N/A) */
-                            NULL);              /* format (N/A) */
+                            NULL,               /* format (N/A) */
+                            NULL);              /* supported features (N/A) */
     if (!OI_SUCCESS(status)) {
         return status;
     }
@@ -1333,7 +1341,8 @@ OI_STATUS OI_PBAPClient_PullPhonebook(OI_PBAP_CONNECTION connectionId,
                             &listStartOffset,   /* list start offset */
                             &maxListCount,      /* max list count */
                             filter,             /* filter */
-                            &format);           /* format */
+                            &format,            /* format */
+                            NULL);              /* supported features (N/A) */
     if (!OI_SUCCESS(status)) {
         return status;
     }
@@ -1395,7 +1404,8 @@ OI_STATUS OI_PBAPClient_PullvCardListing(OI_PBAP_CONNECTION connectionId,
                             &listStartOffset,   /* list start offset */
                             &maxListCount,      /* max list count */
                             NULL,               /* filter (N/A) */
-                            NULL);              /* format (N/A) */
+                            NULL,               /* format (N/A) */
+                            NULL);              /* supported features (N/A) */
     if (!OI_SUCCESS(status)) {
         return status;
     }
@@ -1454,7 +1464,8 @@ OI_STATUS OI_PBAPClient_PullvCardEntry(OI_PBAP_CONNECTION connectionId,
                             NULL,       /* list start offset (N/A) */
                             NULL,       /* max list count (N/A) */
                             filter,     /* filter */
-                            &format);   /* format */
+                            &format,    /* format */
+                            NULL);      /* supported features (N/A) */
     if (!OI_SUCCESS(status)) {
         return status;
     }
@@ -1552,12 +1563,11 @@ static void ClientConnectCfm(OI_OBEXCLI_CONNECTION_HANDLE connectionId,
     if (OI_SUCCESS(status)) {
         OI_ASSERT(connectionId == client->id);
         setState(client, CLIENT_STATE_CONNECTED);
-        /* Set our initialization flag TRUE - we're initialized. */
-        OI_INIT_FLAG_PUT_FLAG(TRUE, PBAP_CLI);
     } else {
         OI_SLOG_WARNING(status, ("PBAP client connect failed"));
         OI_Free(client);
         client = NULL;
+        OI_INIT_FLAG_PUT_FLAG(FALSE, PBAP_CLI);
     }
 
     OI_TRACE_USER(("Calling connectionCfm(connectionId = %d, status = %d)",
@@ -1639,6 +1649,7 @@ OI_STATUS OI_PBAPClient_Connect(OI_BD_ADDR *addr,
                                 OI_OBEX_LOWER_PROTOCOL *lowerProtocol,
                                 OI_OBEXCLI_AUTHENTICATION authentication,
                                 OI_PBAP_CONNECTION *connectionId,
+                                OI_UINT32 supportedFeatures,
                                 OI_PBAP_CONNECTION_CFM connectionCfm,
                                 OI_PBAP_DISCONNECTION_IND disconnectInd,
                                 OI_PBAP_CLIENT_AUTHENTICATION_CB authenticationCB,
@@ -1654,7 +1665,8 @@ OI_STATUS OI_PBAPClient_Connect(OI_BD_ADDR *addr,
     PBAP_CLIENT *client;
     static OI_BYTE target[OI_OBEX_UUID_SIZE] = OI_PBAP_OBEX_TARGET_UUID;
     static OI_OBEX_HEADER_LIST hdrList;
-    static OI_OBEX_HEADER hdr;
+    OI_INT hdrCnt = 0;
+    static OI_OBEX_HEADER hdr[2];
     OI_OBEX_CONNECTION_OPTIONS connOpts;
     OI_STATUS status;
 
@@ -1690,12 +1702,35 @@ OI_STATUS OI_PBAPClient_Connect(OI_BD_ADDR *addr,
     client->fops = fops;
 
     /* Target header specifies the OBEX PBAP service. */
-    hdr.id = OI_OBEX_HDR_TARGET;
-    hdr.val.body.data = target;
-    hdr.val.body.len = OI_OBEX_UUID_SIZE;
+    hdr[0].id = OI_OBEX_HDR_TARGET;
+    hdr[0].val.body.data = target;
+    hdr[0].val.body.len = OI_OBEX_UUID_SIZE;
+    hdrCnt ++;
+
+    if (lowerProtocol->protocol == OI_OBEX_LOWER_L2CAP) {
+        status = BuildAppParams(client,
+                                NULL,               /* order (N/A) */
+                                NULL,               /* search attribute (N/A) */
+                                NULL,               /* search value (N/A) */
+                                0,                  /* search value len (N/A) */
+                                NULL,               /* list start offset (N/A) */
+                                NULL,               /* max list count (N/A) */
+                                NULL,               /* filter (N/A) */
+                                NULL,               /* format (N/A) */
+                                &supportedFeatures);/* supported features */
+        if (!OI_SUCCESS(status)) {
+            return status;
+        }
+        if (client->req.appParam) {
+            hdr[1].id = OI_OBEX_HDR_APPLICATION_PARAMS;
+            hdr[1].val.applicationParams.data = client->req.appParam;
+            hdr[1].val.applicationParams.len = client->req.appParamLen;
+            hdrCnt ++;
+        }
+    }
 
     hdrList.list = &hdr;
-    hdrList.count = 1;
+    hdrList.count = hdrCnt;
     /*
      * We allow SRM for OPP
      */
@@ -1714,6 +1749,8 @@ OI_STATUS OI_PBAPClient_Connect(OI_BD_ADDR *addr,
 
     if (OI_SUCCESS(status)) {
         client->id = *connectionId;
+        /* Set our initialization flag TRUE - we're initialized. */
+        OI_INIT_FLAG_PUT_FLAG(TRUE, PBAP_CLI);
         /*
          * Associate the "client" pointer with the OBEX client handle
          */

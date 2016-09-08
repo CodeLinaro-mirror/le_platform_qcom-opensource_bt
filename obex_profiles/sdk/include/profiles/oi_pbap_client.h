@@ -120,6 +120,8 @@ typedef void (*OI_PBAP_CLIENT_AUTHENTICATION_CB)(OI_PBAP_CONNECTION connectionId
  *
  * @param connectionId      [OUT] returns a handle representing the connection to the PBAP server
  *
+ * @param supportedFeatures     specified supported features for PBAP Client.
+ *
  * @param connectionCfm     callback function for indicating the connection result status.
  *
  * @param disconnectInd     callback function to indicate a disconnection.
@@ -132,6 +134,7 @@ OI_STATUS OI_PBAPClient_Connect(OI_BD_ADDR *addr,
                                 OI_OBEX_LOWER_PROTOCOL *lowerProtocol,
                                 OI_OBEXCLI_AUTHENTICATION authentication,
                                 OI_PBAP_CONNECTION *connectionId,
+                                OI_UINT32 supportedFeatures,
                                 OI_PBAP_CONNECTION_CFM connectionCfm,
                                 OI_PBAP_DISCONNECTION_IND disconnectInd,
                                 OI_PBAP_CLIENT_AUTHENTICATION_CB authenticationCB,

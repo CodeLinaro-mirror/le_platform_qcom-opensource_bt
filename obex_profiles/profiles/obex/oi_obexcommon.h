@@ -157,6 +157,14 @@ typedef struct {
      */
     OI_UINT8 srmParam;
     /**
+     * flag indicating if srmp is valid or not
+     */
+    OI_BOOL srmpValid;
+    /**
+     * flag indicating if srmpWait is received from remote device
+     */
+    OI_BOOL srmpWaitReceived;
+    /**
      * maximum packet size we can receive (based on configuration parameter)
      */
     OI_UINT16 maxRecvPktLen;
