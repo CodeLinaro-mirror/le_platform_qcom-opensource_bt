@@ -232,7 +232,7 @@ static void SignalHandler(int sig) {
 static void ExitHandler(void) {
 
     // post the disable message to GAP incase BT is on
-    if (g_bt_app->bt_state == BT_STATE_ON) {
+    if ( g_bt_app && g_bt_app->bt_state == BT_STATE_ON) {
         BtEvent *event = new BtEvent;
         event->event_id = GAP_API_DISABLE;
         PostMessage (THREAD_ID_GAP, event);
@@ -537,7 +537,7 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
 static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
-    long num;
+    long num = 0;
     char *end;
     int index = 0;
     switch (cmd_id) {
@@ -996,8 +996,8 @@ bool BluetoothApp :: HandlePinInput(char user_cmd[][COMMAND_ARG_SIZE]) {
             fprintf(stdout, " Minimum 16 digit pin required\n");
             return false;
         }
-    } else if(strlen(user_cmd[ZERO_PARAM]) >16 ) {
-           return false;
+    } else if(strlen(user_cmd[ZERO_PARAM]) > 16 ) {
+        return false;
     }
 
     memset(&pin_reply.pincode, 0, sizeof(bt_pin_code_t));

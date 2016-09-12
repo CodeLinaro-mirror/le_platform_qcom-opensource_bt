@@ -379,7 +379,7 @@ void Gap::HandleBondStateEvent(DeviceBondStateEventInt *event) {
 void Gap::HandleEnable(void) {
     BtEvent  *bt_event  = NULL;
     if (adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_OFF) {
-       if(bluetooth_interface_->enable() == BT_STATUS_SUCCESS) {
+       if(bluetooth_interface_->enable(false) == BT_STATUS_SUCCESS) {
            alarm_set(enable_timer, ENABLE_TIMEOUT_DELAY, enable_timer_expired, NULL);
            adapter_properties_obj_->SetState(BT_ADAPTER_STATE_TURNING_ON);
            return;
@@ -616,7 +616,11 @@ void Gap::ProcessEvent(BtEvent* event) {
             kill(getpid(), SIGKILL);
             break;
         case GAP_API_DISABLE:
-
+            bt_event = new BtEvent;
+            bt_event->event_id = A2DP_SINK_CLEANUP_REQ;
+            PostMessage(THREAD_ID_A2DP_SINK, bt_event);
+            break;
+        case A2DP_SINK_CLEANUP_DONE:
             // check if there are profiles enabled
             if(!supported_profiles_count) {
                 HandleDisable();

@@ -45,6 +45,7 @@
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
+#include "osi/include/allocator.h"
 #include "ipc.h"
 #include "utils.h"
 
@@ -57,6 +58,11 @@ typedef enum {
     HFP_CLIENT_STATE_AUDIO_ON
 }HfpClientState;
 
+typedef enum {
+    HFP_CLIENT_MODE_NORMAL,
+    HFP_CLIENT_MODE_RINGTONE,
+    HFP_CLIENT_MODE_IN_CALL
+}HfpClientMode;
 
 class Hfp_Client {
 
@@ -67,10 +73,12 @@ class Hfp_Client {
 #if defined(BT_AUDIO_HAL_INTEGRATION)
     config_t *config;
     audio_stream_out_t* out_stream;
+    audio_stream_out_t* out_stream_ring_tone;
 #endif
     const bt_interface_t * bluetooth_interface;
     const bthf_client_interface_t *sBtHfpClientInterface;
     HfpClientState mClientState;
+    HfpClientMode mAudioMode;
     ControlStatusType mcontrolStatus;
   public:
     Hfp_Client(const bt_interface_t *bt_interface, config_t *config);
@@ -81,12 +89,17 @@ class Hfp_Client {
     void state_connected_handler(BtEvent* pEvent);
     void state_audio_on_handler(BtEvent* pEvent);
     void change_state(HfpClientState mState);
+    void change_mode(HfpClientMode mode);
     pthread_mutex_t lock;
     bt_bdaddr_t mConnectingDevice;
     bt_bdaddr_t mConnectedDevice;
     void HandleEnableClient();
     void HandleDisableClient();
     void ConfigureAudio(bool enable);
+    void ConfigureRingTonePlayback();
+    void ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bool mute_mic);
+    void PlayRingTone();
+    void StopRingTone();
 };
 
 #endif
