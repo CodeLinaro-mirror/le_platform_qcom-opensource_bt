@@ -32,6 +32,11 @@
 #include "AdapterProperties.hpp"
 #include "RemoteDevices.hpp"
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
+
 /**
  * @file Gap.hpp
  * @brief gap header file

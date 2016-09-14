@@ -113,6 +113,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
     int index = 0 , found_index = -1, num_cmds;
     char *temp_arg = NULL;
     char delim[] = " ";
+    char *ptr1;
     int param_count = 0;
     bool status = false;
     int max_param = 0;
@@ -162,13 +163,13 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             break;
     }
 
-    if ( (temp_arg = strtok(user_input, delim)) != NULL ) {
+    if ( (temp_arg = strtok_r(user_input, delim, &ptr1)) != NULL ) {
         // find out the command name
         for (index = 0; index < num_cmds; index++) {
             if(!strcasecmp (menu[index].cmd_name, temp_arg)) {
                 *cmd_id = menu[index].cmd_id;
                 found_index = index;
-                strncpy(input_args[param_count], temp_arg, COMMAND_ARG_SIZE - 1);
+                strlcpy(input_args[param_count], temp_arg, COMMAND_ARG_SIZE);
                 input_args[param_count++][COMMAND_ARG_SIZE - 1] = '\0';
                 break;
             }
@@ -177,9 +178,9 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         // validate the command parameters
         if (found_index != -1 ) {
             max_param = menu[found_index].max_param;
-            while ((temp_arg = strtok(NULL, delim)) &&
+            while ((temp_arg = strtok_r(NULL, delim, &ptr1)) &&
                     (param_count < max_param + 1)) {
-                strncpy(input_args[param_count], temp_arg, COMMAND_ARG_SIZE - 1);
+                strlcpy(input_args[param_count], temp_arg, COMMAND_ARG_SIZE);
                 input_args[param_count++][COMMAND_ARG_SIZE - 1] = '\0';
             }
 
@@ -198,7 +199,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         } else {
             // to handle the paring inputs
             if(temp_arg != NULL) {
-                strncpy(input_args[param_count], temp_arg, COMMAND_ARG_SIZE - 1);
+                strlcpy(input_args[param_count], temp_arg, COMMAND_ARG_SIZE);
                 input_args[param_count++][COMMAND_ARG_SIZE - 1] = '\0';
             }
         }
@@ -442,7 +443,7 @@ static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
         case DIAL:
             event = new BtEvent;
             event->hfp_client_event.event_id = HFP_CLIENT_API_DIAL_REQ;
-            strncpy(event->hfp_client_event.str, user_cmd[ONE_PARAM], 20);
+            strlcpy(event->hfp_client_event.str, user_cmd[ONE_PARAM], 20);
             PostMessage (THREAD_ID_HFP_CLIENT, event);
             break;
         case REDIAL:
@@ -510,7 +511,7 @@ static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
         case SEND_DTMF:
             event = new BtEvent;
             event->hfp_client_event.event_id = HFP_CLIENT_API_SEND_DTMF_REQ;
-            strncpy(event->hfp_client_event.str, user_cmd[ONE_PARAM], 20);
+            strlcpy(event->hfp_client_event.str, user_cmd[ONE_PARAM], 20);
             PostMessage (THREAD_ID_HFP_CLIENT, event);
             break;
         case DISABLE_NREC_ON_AG:
@@ -1766,7 +1767,7 @@ int BluetoothApp:: LocalSocketCreate(void) {
 
   memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_LOCAL;
-  strncpy(addr.sun_path, LOCAL_SOCKET_NAME, sizeof(addr.sun_path)-1);
+  strlcpy(addr.sun_path, LOCAL_SOCKET_NAME, sizeof(addr.sun_path));
   unlink(LOCAL_SOCKET_NAME);
   if (bind(listen_socket_local_, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
     ALOGE (LOGTAG "Failed to create Local Socket (%s)", strerror(errno));

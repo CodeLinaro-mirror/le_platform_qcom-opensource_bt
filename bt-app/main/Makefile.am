@@ -62,10 +62,18 @@ if USE_BT_OBEX
 requiredlibs += $(SYS_LIB)/libbtobex.la
 endif
 
+if USE_GLIB
+ btapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
+ btapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
+ btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
+else
+ btapp_CFLAGS = $(AM_CFLAGS)
+ btapp_LDFLAGS = $(requiredlibs)
+endif
+
 AM_LDFLAGS = $(LDFLAFGS)
 
 bin_PROGRAMS = btapp
 btapp_CC = @CC@
 btapp_SOURCES = $(c_sources)
-btapp_LDADD = $(requiredlibs)
 pkgconfigdir = $(libdir)/pkgconfig

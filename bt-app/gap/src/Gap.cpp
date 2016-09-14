@@ -489,8 +489,8 @@ void Gap::ProcessEvent(BtEvent* event) {
                 bluetooth_interface_->set_adapter_property(&prop);
 
                 prop.type = BT_PROPERTY_BDNAME;
-                strcpy((char*)&bd_name.name[0], config_get_string (config_,
-                   CONFIG_DEFAULT_SECTION, BT_LOCAL_DEV_NAME, "MDM_Fluoride"));
+                strlcpy((char*)&bd_name.name[0], config_get_string (config_,
+                   CONFIG_DEFAULT_SECTION, BT_LOCAL_DEV_NAME, "MDM_Fluoride"), sizeof(bd_name));
                 prop.val = &bd_name;
                 prop.len = strlen((char*)bd_name.name);
                 bluetooth_interface_->set_adapter_property(&prop);

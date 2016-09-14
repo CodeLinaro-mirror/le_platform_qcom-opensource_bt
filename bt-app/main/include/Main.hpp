@@ -43,6 +43,11 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
+
 /**
  * @file Main.hpp
  * @brief Main header file for the BT application
