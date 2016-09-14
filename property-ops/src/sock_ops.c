@@ -94,7 +94,7 @@ int init_local_socket(void)
     memset(&un_sock_name, 0, sizeof(struct sockaddr_un));
 
     un_sock_name.sun_family = AF_UNIX;
-    strncpy(un_sock_name.sun_path, SOCK_NAMED_ADDR, strlen(SOCK_NAMED_ADDR));
+    strlcpy(un_sock_name.sun_path, SOCK_NAMED_ADDR, sizeof(un_sock_name.sun_path));
     len = sizeof(un_sock_name.sun_family) + strlen(un_sock_name.sun_path);
 
     /*Bind the socket to the address.*/
@@ -225,6 +225,7 @@ int add_fd_to_set()
 bool parse_and_exec(int cmd, unsigned char* command, unsigned char* prop_val)
 {
     char delimiter[] = " ";
+    char *ptr1;
     char *token ;
     int iter = 0;
     bool result = false;
@@ -237,19 +238,19 @@ bool parse_and_exec(int cmd, unsigned char* command, unsigned char* prop_val)
     memset(prop_value, 0, sizeof(prop_value));
     memset(prop_name, 0, sizeof(prop_name));
 
-    token = strtok(command, delimiter);
+    token = strtok_r(command, delimiter, &ptr1);
     while (token) {
         LOG_DEBUG("(%s) \n", token);
-        strncpy(parsed_data[iter ++], token, strlen(token));
-        token = strtok(NULL, delimiter);
+        strlcpy(parsed_data[iter ++], token, (strlen(token) + 1));
+        token = strtok_r(NULL, delimiter, &ptr1);
     }
 
     if (cmd == GET_PROP_VALUE) {
-        strncpy(prop_name,parsed_data[1], strlen(parsed_data[1]));
+        strlcpy(prop_name,parsed_data[1], (strlen(parsed_data[1]) + 1));
         result = get_property_value_bt(prop_name, prop_val);
     } else if (cmd == SET_PROP_VALUE) {
-        strncpy(prop_name,parsed_data[1], strlen(parsed_data[1]));
-        strncpy(prop_value,parsed_data[2], strlen(parsed_data[2]));
+        strlcpy(prop_name,parsed_data[1], (strlen(parsed_data[1]) + 1));
+        strlcpy(prop_value,parsed_data[2], (strlen(parsed_data[2]) + 1));
         LOG_DEBUG("Set Prop name (%s) Prop Val (%s)\n", prop_name, prop_value);
         if (!strncmp(prop_name, "wc_transport.start_hci", strlen(prop_name))) {
             if (!strncmp(prop_value, "true", strlen(prop_value))) {
@@ -258,6 +259,15 @@ bool parse_and_exec(int cmd, unsigned char* command, unsigned char* prop_val)
             } else {
                 LOG_DEBUG("stopping wcnssfilter\n");
                 system("killall -KILL wcnssfilter");
+            }
+        }
+        if (!strncmp(prop_name, "bluetooth.startbtsnoop", strlen(prop_name))) {
+            if (!strncmp(prop_value, "true", strlen(prop_value))) {
+                LOG_DEBUG("starting btsnoop\n");
+                system("btsnoop &");
+            } else {
+                LOG_DEBUG("stopping btsnoop\n");
+                system("killall -KILL btsnoop");
             }
         }
         result = set_property_value_bt(prop_name, prop_value);
@@ -275,6 +285,7 @@ int separate_recvd_commands(unsigned char * command)
 
 {
     char delimiter[] = ",";
+    char *ptr1;
     /* read if buffer has more than one properties */
     int iter = 0;
     int i = 0;
@@ -283,12 +294,12 @@ int separate_recvd_commands(unsigned char * command)
     LOG_DEBUG("Command Received (%s)\n", command);
     memset(prop_string, 0, sizeof(prop_string));
 
-    token = strtok(command, delimiter);
+    token = strtok_r(command, delimiter, &ptr1);
     while (token)
     {
         LOG_DEBUG("(%s) \n", token);
-        strncpy(prop_string[iter ++], token, strlen(token));
-        token = strtok(NULL, delimiter);
+        strlcpy(prop_string[iter ++], token, (strlen(token) + 1));
+        token = strtok_r(NULL, delimiter, &ptr1);
     }
 
     LOG_DEBUG("Found multiple commands (%d) \n", iter);
