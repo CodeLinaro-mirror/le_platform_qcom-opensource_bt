@@ -701,6 +701,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             peer_feat = 0;
             chld_feat = 0;
             mAudioWbs = false;
+            change_mode(HFP_CLIENT_MODE_NORMAL);
             change_state(HFP_CLIENT_STATE_DISCONNECTED);
             break;
         case HFP_CLIENT_DISCONNECTING_CB:
@@ -743,7 +744,17 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             {
                 // we already have the focus, configure for SCO connection. TODO: cross check
                 cout << "Connected state: already have focus, configure audio for SCO" << endl;
-                ALOGD(LOGTAG " Connected state: already have focus, configure audio for SCO");
+                ALOGD(LOGTAG " Connected state: already have focus, configure audio for SCO, current mode %d", mAudioMode);
+
+                // for MT call, stop ring tone if it is playing before connecting sco
+                if (mAudioMode == HFP_CLIENT_MODE_RINGTONE)
+                {
+                    ALOGD("Audio Mode is ring tone, stop the ring tone");
+                    cout << "Audio Mode is ring tone, stop the ring tone" << endl;
+                    change_mode(HFP_CLIENT_MODE_NORMAL);
+                    StopRingTone();
+                }
+
                 ConfigureAudio(true);
             }
 
@@ -773,9 +784,17 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             {
                 ALOGD("Audio Mode is ring tone, stop the ring tone");
                 cout << "Audio Mode is ring tone, stop the ring tone" << endl;
-                // TODO: cleanup ringtone path. Clost audio devices etc.
-                change_mode(HFP_CLIENT_MODE_NORMAL);
+
                 StopRingTone();
+                // release control
+                pReleaseControlReq = new BtEvent;
+                pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+                pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_HFP_CLIENT;
+                PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+
+                mcontrolStatus = STATUS_LOSS_TRANSIENT;
+
+                change_mode(HFP_CLIENT_MODE_NORMAL);
             }
             break;
         case BT_AM_CONTROL_STATUS:
@@ -823,7 +842,23 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             }
             break;
         case HFP_CLIENT_API_REJECT_CALL_REQ:
-                // intentional fall through. TODO: cross check
+            if (mAudioMode == HFP_CLIENT_MODE_RINGTONE)
+            {
+                ALOGD("Audio Mode is ring tone, stop the ring tone");
+                cout << "Audio Mode is ring tone, stop the ring tone" << endl;
+
+                StopRingTone();
+                // release control
+                pReleaseControlReq = new BtEvent;
+                pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+                pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_HFP_CLIENT;
+                PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+
+                mcontrolStatus = STATUS_LOSS_TRANSIENT;
+
+                change_mode(HFP_CLIENT_MODE_NORMAL);
+            }
+            // intentional fall through. TODO: cross check
         case HFP_CLIENT_API_END_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
                 sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHUP, 0);
