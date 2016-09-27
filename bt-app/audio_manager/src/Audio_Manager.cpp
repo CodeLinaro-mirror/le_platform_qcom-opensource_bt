@@ -198,6 +198,8 @@ ThreadIdType BT_Audio_Manager::GetThreadId(ProfileIdType profile_id) {
 // adds a new controlEntry node on the top
 void BT_Audio_Manager::AddNewNode(ProfileIdType profile, ControlRequestType ctrlStatus) {
     int index = GetTopIndex();
+    if (index == (MAX_PROFILE_ENTRIES - 1))
+        return;
     if (index < 0)
         index = 0;
     else
@@ -280,6 +282,10 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
                     break;
                 case REQUEST_TYPE_PERMANENT:
                     if (pEvent->btamControlReq.request_type == REQUEST_TYPE_TRANSIENT) {
+                        if(top == (MAX_PROFILE_ENTRIES - 1)) {
+                           SendControlStatusMessage(STATUS_LOSS, pEvent->btamControlReq.profile_id);
+                           break;
+                        }
                         SendControlStatusMessage(STATUS_LOSS_TRANSIENT,
                                                       audio_control_stack[top].profile_id);
                         AddNewNode(pEvent->btamControlReq.profile_id,
