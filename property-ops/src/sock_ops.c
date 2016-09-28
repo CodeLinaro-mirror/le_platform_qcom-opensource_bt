@@ -381,9 +381,11 @@ void *io_thread_handler (void *param)
                     bytes_available = recv(sdata.conn_fd[selectloop], buf,
                             sizeof(buf), 0);
 
-                    if(bytes_available == 0){
+                    if(bytes_available == 0) {
                        /* LOG_DEBUG("I/O Done EOF counter=(%d)selectloop =(%d)\n",
                                 counter, selectloop);*/
+                        shutdown(sdata.conn_fd[selectloop], SHUT_RDWR);
+                        close(sdata.conn_fd[selectloop]);
                         sdata.conn_fd[selectloop] = 0;
                     } else {
                         //LOG_DEBUG("I/O data on fd, at index(%d)=%s\n",
