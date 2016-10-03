@@ -1552,11 +1552,12 @@ static void ClientConnectCfm(OI_OBEXCLI_CONNECTION_HANDLE connectionId,
     if (OI_SUCCESS(status)) {
         OI_ASSERT(connectionId == client->id);
         setState(client, CLIENT_STATE_CONNECTED);
+        /* Set our initialization flag TRUE - we're initialized. */
+        OI_INIT_FLAG_PUT_FLAG(TRUE, PBAP_CLI);
     } else {
         OI_SLOG_WARNING(status, ("PBAP client connect failed"));
         OI_Free(client);
         client = NULL;
-        OI_INIT_FLAG_PUT_FLAG(FALSE, PBAP_CLI);
     }
 
     OI_TRACE_USER(("Calling connectionCfm(connectionId = %d, status = %d)",
@@ -1713,8 +1714,6 @@ OI_STATUS OI_PBAPClient_Connect(OI_BD_ADDR *addr,
 
     if (OI_SUCCESS(status)) {
         client->id = *connectionId;
-        /* Set our initialization flag TRUE - we're initialized. */
-        OI_INIT_FLAG_PUT_FLAG(TRUE, PBAP_CLI);
         /*
          * Associate the "client" pointer with the OBEX client handle
          */
