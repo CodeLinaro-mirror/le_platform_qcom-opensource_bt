@@ -23,14 +23,18 @@
 #include "osi/include/log.h"
 
 ThreadInfo threadInfo[THREAD_ID_MAX] = {
-    //thread_id thread type            Thread Message Handler  Thread Name
-    { NULL ,    THREAD_ID_MAIN,        &BtMainMsgHandler,      "Main_Thread" } ,
-    { NULL ,    THREAD_ID_GAP,         &BtGapMsgHandler,       "Gap_Thread" } ,
-    { NULL ,    THREAD_ID_A2DP_SINK,   &BtA2dpSinkMsgHandler,   "A2dp_Sink_Thread" } ,
-    { NULL ,    THREAD_ID_HFP_CLIENT,  &BtHfpClientMsgHandler,  "Hfp_Client_Thread" } ,
-    { NULL ,    THREAD_ID_PAN,         &BtPanMsgHandler,       "Pan_Thread" } ,
-    { NULL ,    THREAD_ID_GATT,        &BtGattMsgHandler,      "Gatt_Thread" } ,
-    { NULL ,    THREAD_ID_BT_AM,       &BtAudioManagerHandler,  "BT_AUDIO_MANAGER_Thread" } ,
+    //thread_id thread type            Thread Message Handler    Thread Name
+    { NULL ,    THREAD_ID_MAIN,        &BtMainMsgHandler,        "Main_Thread" } ,
+    { NULL ,    THREAD_ID_GAP,         &BtGapMsgHandler,         "Gap_Thread" } ,
+    { NULL ,    THREAD_ID_A2DP_SINK,   &BtA2dpSinkMsgHandler,    "A2dp_Sink_Thread" } ,
+    { NULL ,    THREAD_ID_HFP_CLIENT,  &BtHfpClientMsgHandler,   "Hfp_Client_Thread" } ,
+    { NULL ,    THREAD_ID_PAN,         &BtPanMsgHandler,         "Pan_Thread" } ,
+    { NULL ,    THREAD_ID_GATT,        &BtGattMsgHandler,        "Gatt_Thread" } ,
+    { NULL ,    THREAD_ID_BT_AM,       &BtAudioManagerHandler,   "BT_AUDIO_MANAGER_Thread" } ,
+    { NULL ,    THREAD_ID_SDP_CLIENT,  &BtSdpClientMsgHandler,   "Sdp_Client_Thread" } ,
+#ifdef USE_BT_OBEX
+    { NULL ,    THREAD_ID_PBAP_CLIENT, &BtPbapClientMsgHandler,  "Pbap_Client_Thread" } ,
+#endif
 };
 
 void PostMessage(ThreadIdType thread_type, void *msg) {

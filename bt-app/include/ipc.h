@@ -24,12 +24,14 @@
 #include <hardware/bluetooth.h>
 #include <hardware/bt_gatt.h>
 #include <hardware/bt_gatt_types.h>
+#include <hardware/bt_sdp.h>
 
 extern thread_t *g_gap_thread;
 extern thread_t *g_main_thread;
 extern thread_t *g_socket_thread;
 extern thread_t *g_pan_thread;
 extern thread_t *g_gatt_thread;
+extern thread_t *g_pbapc_thread;
 /**
  * @file ipc.h
  *
@@ -41,6 +43,9 @@ extern thread_t *g_gatt_thread;
 #define PAN_MSG_BASE            (2000)
 #define GATT_MSG_BASE           (3000)
 #define RSP_MSG_BASE            (4000)
+#define SDP_CLIENT_MSG_BASE     (5000)
+#define PBAP_CLIENT_MSG_BASE    (6000)
+
 #define AUDIO_MANAGER_MSG_BASE  (250)
 #define A2DP_SINK_MSG_BASE      (300)
 #define HFP_CLIENT_MSG_BASE     (400)
@@ -69,6 +74,10 @@ typedef enum {
     THREAD_ID_PAN,
     THREAD_ID_GATT,
     THREAD_ID_BT_AM,
+    THREAD_ID_SDP_CLIENT,
+#ifdef USE_BT_OBEX
+    THREAD_ID_PBAP_CLIENT,
+#endif
     THREAD_ID_MAX,
 } ThreadIdType;
 
@@ -81,6 +90,10 @@ typedef enum {
     PROFILE_ID_BT_AM,
     PROFILE_ID_PAN,
     PROFILE_ID_GATT,
+    PROFILE_ID_SDP_CLIENT,
+#ifdef USE_BT_OBEX
+    PROFILE_ID_PBAP_CLIENT,
+#endif
     PROFILE_ID_MAX
 } ProfileIdType;
 
@@ -241,7 +254,7 @@ typedef enum {
     PAN_EVENT_DEVICE_DISCONNECT_REQ,
     PAN_EVENT_DEVICE_CONNECTED_LIST_REQ,
 
-  //GATTS EVENTS
+    //GATTS EVENTS
     BTGATTS_REGISTER_APP_EVENT = GATT_MSG_BASE,
     BTGATTS_CONNECTION_EVENT,
     BTGATTS_SERVICE_ADDED_EVENT,
@@ -295,7 +308,41 @@ typedef enum {
     BTGATTC_SCAN_PARAMETER_SETUP_COMPLETED_EVENT,
 
     RSP_ENABLE_EVENT = RSP_MSG_BASE,
-    RSP_DISABLE_EVENT
+    RSP_DISABLE_EVENT,
+
+    SDP_CLIENT_SEARCH = SDP_CLIENT_MSG_BASE,
+    SDP_CLIENT_ADD_RECORD,
+    SDP_CLIENT_REMOVE_RECORD,
+    SDP_CLIENT_SEARCH_TIMEOUT,
+
+    PBAP_CLIENT_REGISTER = PBAP_CLIENT_MSG_BASE,
+    PBAP_CLIENT_CONNECT,
+    PBAP_CLIENT_INTERNAL_CONNECT,
+    PBAP_CLIENT_CONNECT_TIMEOUT,
+    PBAP_CLIENT_DISCONNECT,
+    PBAP_CLIENT_ABORT,
+    PBAP_CLIENT_GET_PHONEBOOK_SIZE,
+    PBAP_CLIENT_GET_PHONEBOOK,
+    PBAP_CLIENT_GET_VCARD,
+    PBAP_CLIENT_GET_VCARD_LISTING,
+    PBAP_CLIENT_SET_PATH,
+    PBAP_CLIENT_SET_FILTER,
+    PBAP_CLIENT_SET_ORDER,
+    PBAP_CLIENT_SET_SEARCH_ATTRIBUTE,
+    PBAP_CLIENT_SET_SEARCH_VALUE,
+    PBAP_CLIENT_SET_PHONE_BOOK,
+    PBAP_CLIENT_SET_REPOSITORY,
+    PBAP_CLIENT_SET_VCARD_FORMAT,
+    PBAP_CLIENT_SET_LIST_COUNT,
+    PBAP_CLIENT_SET_START_OFFSET,
+    PBAP_CLIENT_GET_FILTER,
+    PBAP_CLIENT_GET_ORDER,
+    PBAP_CLIENT_GET_SEARCH_ATTRIBUTE,
+    PBAP_CLIENT_GET_PHONE_BOOK,
+    PBAP_CLIENT_GET_REPOSITORY,
+    PBAP_CLIENT_GET_VCARD_FORMAT,
+    PBAP_CLIENT_GET_LIST_COUNT,
+    PBAP_CLIENT_GET_START_OFFSET,
 } BluetoothEventId;
 
 typedef struct {
@@ -997,6 +1044,33 @@ typedef struct {
     int server_if;
 } RspAddServiceEvent;
 
+/** Callback for SDP search */
+typedef void (*SdpSearchCb)(bt_status_t status, bt_bdaddr_t *bd_addr, uint8_t* uuid,
+    bluetooth_sdp_record *record, bool more_result);
+
+typedef void (*SdpAddRecordCb)(bt_status_t status, int handle);
+
+typedef void (*SdpRemoveRecordCb)(bt_status_t status);
+
+typedef struct {
+    BluetoothEventId        event_id;
+    bt_bdaddr_t             bd_addr;
+    uint8_t                 *uuid;
+    SdpSearchCb             searchCb;
+    SdpAddRecordCb          addRecordCb;
+    SdpRemoveRecordCb       removeRecordCb;
+    bluetooth_sdp_record    record;
+    int                     rec_handle;
+} SdpClientEvent;
+
+typedef struct {
+    BluetoothEventId    event_id;
+    bt_bdaddr_t         bd_addr;
+    char                value[256];
+    uint32_t            max_list_count;
+    uint32_t            list_start_offset;
+} PbapClientEvent;
+
 /**
   * @brief BT IPC message between qcbtdaemon & btapp
   */
@@ -1121,6 +1195,8 @@ typedef union {
 
     RspEnableEvent                          rsp_enable_event;
     RspDisableEvent                         rsp_disable_event;
+    SdpClientEvent                          sdp_client_event;
+    PbapClientEvent                         pbap_client_event;
     BtIpcMsgEvent                           bt_ipc_msg_event;
 } BtEvent;
 
@@ -1168,6 +1244,11 @@ void BtPanMsgHandler(void *context);
 void BtGattMsgHandler(void *context);
 void BtHfpClientMsgHandler (void *context);
 void BtAudioManagerHandler(void *msg);
+void BtSdpClientMsgHandler(void *context);
+#ifdef USE_BT_OBEX
+void BtPbapClientMsgHandler(void *context);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

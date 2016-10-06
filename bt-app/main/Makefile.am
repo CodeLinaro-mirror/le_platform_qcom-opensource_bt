@@ -1,12 +1,15 @@
 AM_CPPFLAGS = -O2 \
-              -D_GNU_SOURCE
+            -D_GNU_SOURCE
 
 AM_CFLAGS = -Wall \
-        -Wundef \
-        -Wstrict-prototypes \
-        -Wno-trigraphs \
-        -std=c99
+            -Wundef \
+            -Wstrict-prototypes \
+            -Wno-trigraphs \
+            -std=c99
 
+if USE_BT_OBEX
+AM_CFLAGS += -DOI_CPU_TYPE=19
+endif
 ACLOCAL_AMFLAGS = -I m4
 
 AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
@@ -20,8 +23,20 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_client/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
                -I${WORKSPACE}/hardware/libhardware/include
+
+if USE_BT_OBEX
+AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/pbap_client/include \
+               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include \
+               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include/profiles \
+               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/profiles/obex \
+               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/include \
+               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/include/profiles \
+               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/oem
+endif
 
 c_sources = ../utils/src/utils.c \
             src/Main.cpp \
@@ -34,11 +49,20 @@ c_sources = ../utils/src/utils.c \
             ../hfp_client/src/HfpClient.cpp \
             ../pan/src/Pan.cpp \
             ../gatt/src/Gatt.cpp \
-            ../gatt/src/Rsp.cpp
+            ../gatt/src/Rsp.cpp \
+            ../sdp_client/src/SdpClient.cpp
+
+if USE_BT_OBEX
+c_sources +=  ../pbap_client/src/PbapClient.cpp
+endif
 
 requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware
 
-AM_LDFLAGS := $(LDFLAFGS)
+if USE_BT_OBEX
+requiredlibs += $(SYS_LIB)/libbtobex.la
+endif
+
+AM_LDFLAGS = $(LDFLAFGS)
 
 bin_PROGRAMS = btapp
 btapp_CC = @CC@

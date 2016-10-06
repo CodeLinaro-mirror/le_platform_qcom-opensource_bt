@@ -28,6 +28,12 @@
 #include "osi/include/log.h"
 #include "Gap.hpp"
 #include "utils.h"
+#ifdef USE_BT_OBEX
+#include "oi_obex.h"
+#include "oi_obex_lower.h"
+#include "oi_wrapper.h"
+#include "oi_osinterface.h"
+#endif
 
 const char *BT_LOCAL_DEV_NAME = "BtLocalDeviceName";
 const char *BT_SCAN_MODE_TYPE = "BtScanMode";
@@ -36,6 +42,11 @@ const char *BT_A2DP_SINK_ENABLED_STRING  = "BtA2dpSinkEnable";
 const char *BT_HFP_CLIENT_ENABLED_STRING  = "BtHfClientEnable";
 const char *BT_PAN_ENABLED    = "BtPanEnable";
 const char *BT_GATT_ENABLED   = "BtGattEnable";
+#ifdef USE_BT_OBEX
+const char *BT_OBEX_ENABLED    = "BtObexEnable";
+const char *BT_OBEX_LOG_LEVEL    = "BtObexLogLevel";
+const char *BT_PBAP_CLIENT_ENABLED   = "BtPbapClientEnable";
+#endif
 
 #define LOGTAG "GAP "
 
@@ -529,6 +540,20 @@ void Gap::ProcessEvent(BtEvent* event) {
             ALOGV (LOGTAG "Start QC BT Daemon");
             system("qcbtdaemon &");
 
+#ifdef USE_BT_OBEX
+            /* Initialize OBEX if enabled in config */
+            if (is_obex_enabled_) {
+                if ((sock_interface_ = (btsock_interface_t *)
+                    bluetooth_interface_->get_profile_interface(BT_PROFILE_SOCKETS_ID)) == NULL) {
+                    ALOGE(LOGTAG "%s: Failed to get Bluetooth socket interface", __FUNCTION__);
+                } else {
+                    OI_OBEX_Init(50);
+                    OI_OBEX_LOWER_SetSocketInterface(sock_interface_);
+                    OI_SetLogLevel(obex_logging_level_);
+                }
+            }
+#endif
+
             // reset start status for all supported profiles
             for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
                                                                 profile_id++) {
@@ -559,6 +584,8 @@ void Gap::ProcessEvent(BtEvent* event) {
                 if((profile_config[profile_id].is_enabled)  &&
                    ((profile_config[profile_id].profile_id ==
                             event->profile_start_event.profile_id))) {
+                    ALOGD(LOGTAG " Profile %d started with status %d",
+                        profile_id, event->profile_stop_event.status);
                     profile_config[profile_id].start_status =
                     event->profile_start_event.status;
                 }
@@ -587,6 +614,8 @@ void Gap::ProcessEvent(BtEvent* event) {
                 if((profile_config[profile_id].is_enabled)  &&
                    ((profile_config[profile_id].profile_id ==
                         event->profile_stop_event.profile_id))) {
+                    ALOGD(LOGTAG " Profile %d stopped with status %d",
+                        profile_id, event->profile_stop_event.status);
                     profile_config[profile_id].stop_status =
                     event->profile_stop_event.status;
                 }
@@ -626,6 +655,14 @@ void Gap::ProcessEvent(BtEvent* event) {
                 HandleDisable();
                 break;
             }
+
+#ifdef USE_BT_OBEX
+            if (is_obex_enabled_) {
+                OI_OBEX_LOWER_SetSocketInterface(NULL);
+                OI_OBEX_Deinit();
+                sock_interface_ = NULL;
+            }
+#endif
 
             ALOGV (LOGTAG "Stop QC BT Daemon");
             system("killall -s SIGTERM qcbtdaemon");
@@ -734,6 +771,14 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
     is_user_input_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_USR_INPUT, false);
 
+#ifdef USE_BT_OBEX
+    is_obex_enabled_ = config_get_bool (config,
+                     CONFIG_DEFAULT_SECTION, BT_OBEX_ENABLED, false);
+
+    obex_logging_level_ = config_get_int (config,
+                     CONFIG_DEFAULT_SECTION, BT_OBEX_LOG_LEVEL, OI_MSG_CODE_TRACE);
+#endif
+
     if ((bluetooth_interface_->init(&sBluetoothCallbacks) == BT_STATUS_SUCCESS))
         bt_interface->set_os_callouts(&callouts);
 
@@ -759,6 +804,12 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
             this->profile_config[profile_id].thread_id = THREAD_ID_PAN;
         else if (profile_id == PROFILE_ID_GATT)
             this->profile_config[profile_id].thread_id = THREAD_ID_GATT;
+        else if (profile_id == PROFILE_ID_SDP_CLIENT)
+            this->profile_config[profile_id].thread_id = THREAD_ID_SDP_CLIENT;
+#ifdef USE_BT_OBEX
+        else if (profile_id == PROFILE_ID_PBAP_CLIENT)
+            this->profile_config[profile_id].thread_id = THREAD_ID_PBAP_CLIENT;
+#endif
     }
 
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
@@ -777,6 +828,14 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
     this->profile_config[PROFILE_ID_GATT].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_GATT_ENABLED, false);
+
+    // SDP Client should be enabled and is not configurable to be disabled
+    this->profile_config[PROFILE_ID_SDP_CLIENT].is_enabled = true;
+
+#ifdef USE_BT_OBEX
+    this->profile_config[PROFILE_ID_PBAP_CLIENT].is_enabled = config_get_bool (config,
+                     CONFIG_DEFAULT_SECTION, BT_PBAP_CLIENT_ENABLED, false);
+#endif
 
     for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
                                                             profile_id++) {
