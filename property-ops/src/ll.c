@@ -69,8 +69,11 @@ bool __create_list_and_add( const char* search_name, const char* property_value)
     property_db *ln = (property_db*) calloc(1, sizeof(property_db)*
         sizeof(unsigned char));
 
-    strncpy(ln->unit.property_name, search_name, strlen(search_name));
-    strncpy(ln->unit.property_value, property_value, strlen(property_value));
+    if (ln == NULL )
+        return false;
+
+    strlcpy(ln->unit.property_name, search_name, (strlen(search_name) + 1));
+    strlcpy(ln->unit.property_value, property_value, (strlen(property_value) +1));
 
     ln->next = NULL;
 
@@ -87,8 +90,8 @@ bool __update_prop_value(const char* search_name, const char* property_value)
     {
         LOG_DEBUG("List Matches property Updating Value\n");
         memset(ln->unit.property_value, 0, sizeof(ln->unit.property_value));
-        strncpy(ln->unit.property_value,  property_value,
-            strlen(property_value));
+        strlcpy(ln->unit.property_value,  property_value,
+            (strlen(property_value) + 1));
         LOG_DEBUG("Value copied to the db prop name %s", search_name);
         retval =0;
     } else {
