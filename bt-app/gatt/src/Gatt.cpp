@@ -290,7 +290,7 @@ void btgatts_connection_cb(int conn_id, int server_if, int connected, bt_bdaddr_
 {
 
     char c_address[32];
-    sprintf(c_address, "%02X:%02X:%02X:%02X:%02X:%02X",
+    snprintf(c_address, sizeof(c_address), "%02X:%02X:%02X:%02X:%02X:%02X",
             bda->address[0], bda->address[1], bda->address[2],
             bda->address[3], bda->address[4], bda->address[5]);
 
@@ -639,8 +639,10 @@ void Gatt::HandleGattIpcMsg(BtIpcMsg *ipc_msg)
 {
 
     CHECK_PARAM_VOID(ipc_msg)
-    fprintf(stdout, "(%s) ipcMsg->type: %d, ipcMsg->status = %d wlan state (%d)\n",__FUNCTION__,
-            ipc_msg->type, ipc_msg->status, rsp->GetDeviceState());
+
+    if (rsp)
+        fprintf(stdout, "(%s) ipcMsg->type: %d, ipcMsg->status = %d wlan state (%d)\n",__FUNCTION__,
+                    ipc_msg->type, ipc_msg->status, rsp->GetDeviceState());
 
     if ((le_supported_profiles & REMOTE_START_PROFILE) && rsp)
     {

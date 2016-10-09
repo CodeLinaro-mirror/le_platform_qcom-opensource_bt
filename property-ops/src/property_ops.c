@@ -181,15 +181,15 @@ property_db* __pull_one_line_data(const char* line)
             switch (iterator)
             {
                 case EXT_NAME:
-                    strncpy(extracted_val->unit.property_name,
-                            curr_line_ptr, curr_length);
+                    strlcpy(extracted_val->unit.property_name,
+                            curr_line_ptr, (curr_length + 1) );
                     LOG_DEBUG("[%s] => Extracted Name =%s\n", __func__,
                             extracted_val->unit.property_name);
                     break;
 
                 case EXT_VAL:
-                    strncpy(extracted_val->unit.property_value,
-                            curr_line_ptr, curr_length);
+                    strlcpy(extracted_val->unit.property_value,
+                            curr_line_ptr, (curr_length + 1));
                     LOG_DEBUG("[%s] => Extracted Value =%s\n", __func__
                             ,extracted_val->unit.property_value);
                     break;

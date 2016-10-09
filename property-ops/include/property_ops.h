@@ -58,6 +58,12 @@ extern const char *path;
 #define ALOG(pri, tag, fmt, arg...) //syslog (LOG_WARNING, fmt, ##arg)
 #define LOG_DEBUG(fmt, arg...) ALOG(PRI_VERB, LOG_TAG, fmt, ##arg)
 
+
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
+
 typedef enum {
         LOAD_FROM_PERSIST = 1,
         CHECK_IF_PROP_EXIST,
