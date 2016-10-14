@@ -21,7 +21,6 @@
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <syslog.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,7 +28,13 @@ extern "C" {
 
 #define TAG "bt_app"
 
-
+#ifdef USE_ANDROID_LOGGING
+#include <utils/Log.h>
+#define LOG_TAG "bt_app"
+#define LOG_DEBUG ALOGD
+#define LOG_ERROR ALOGE
+#else
+#include <syslog.h>
 #define ALOGV(fmt, arg...) syslog (LOG_WARNING, fmt, ##arg)
 #define ALOGD(fmt, arg...) syslog (LOG_NOTICE, fmt, ##arg)
 #define ALOGI(fmt, arg...) syslog (LOG_INFO, fmt, ##arg)
@@ -38,6 +43,7 @@ extern "C" {
 
 #define LOG_DEBUG(fmt, arg...) syslog (LOG_NOTICE, fmt, ##arg)
 #define LOG_ERROR(fmt, arg...) syslog (LOG_ERR, fmt, ##arg)
+#endif
 
 #ifdef __cplusplus
 }

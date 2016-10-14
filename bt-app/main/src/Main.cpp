@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
-#include <sys/syslog.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -35,7 +34,6 @@
 #include <iostream>
 #include <iomanip>
 #include "Main.hpp"
-#include <syslog.h>
 #include "A2dp_Sink.hpp"
 #include "HfpClient.hpp"
 #include "Pan.hpp"
@@ -90,8 +88,9 @@ int main (int argc, char *argv[]) {
     signal(SIGINT, SignalHandler);
 
     ThreadInfo *main_thread = &threadInfo[THREAD_ID_MAIN];
+#ifndef USE_ANDROID_LOGGING
     openlog ("bt-app", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
-
+#endif
     main_thread->thread_id = thread_new (main_thread->thread_name);
     if (main_thread->thread_id) {
         BtEvent *event = new BtEvent;
@@ -103,7 +102,9 @@ int main (int argc, char *argv[]) {
         thread_join (main_thread->thread_id);
         thread_free (main_thread->thread_id);
     }
+#ifndef USE_ANDROID_LOGGING
     closelog ();
+#endif
     return 0;
 }
 
