@@ -204,6 +204,9 @@ static int handleLowerTransportEvents(int numSet, fd_set* readFds, fd_set* write
         }
 
         lowerPrivate = OI_LIST_ENTRY(elem, LOWER_CONNECTION_PRIVATE, links);
+        if (lowerPrivate == NULL) {
+            continue;
+        }
 
         OI_DBGPRINT(("Checking socket %d", lowerPrivate->socket));
 
@@ -267,6 +270,9 @@ static int handleLowerTransportEvents(int numSet, fd_set* readFds, fd_set* write
         }
 
         lowerPrivate = OI_LIST_ENTRY(elem, LOWER_SERVER_PRIVATE, links);
+        if (lowerPrivate == NULL) {
+            continue;
+        }
 
         OI_DBGPRINT(("Checking server socket %d", lowerPrivate->socket));
 
@@ -522,9 +528,18 @@ static OI_BOOL LowerTransportConnectCfm(OI_OBEX_LOWER_CONNECTION connectionHandl
 
     lowerPrivate = connectionHandle->lowerPrivate;
 
-    if (connectionHandle->lowerPrivate->clientSocket)
+    if (connectionHandle->lowerPrivate->clientSocket) {
+        unsigned char read_bytes[sizeof(int)];
+        int channel = readInt(connectionHandle->lowerPrivate->socket, read_bytes);
+        OI_DBGTRACE(("Channel = 0x%04x", channel));
+        if (channel <= 0) {
+            status = OI_STATUS_NOT_CONNECTED;
+            connectionOk = HandleLowerConnectCfmFailure(connectionHandle);
+            return connectionOk;
+        }
         waitForConnectSignal(connectionHandle->lowerPrivate->socket,
             &connectionHandle->lowerPrivate->conn_params, NULL);
+    }
     if (!connectionHandle->lowerPrivate->conn_params.status) {
         OI_DBGTRACE(("Lower Connect Successful"));
         lowerPrivate->connected = TRUE;
@@ -537,7 +552,7 @@ static OI_BOOL LowerTransportConnectCfm(OI_OBEX_LOWER_CONNECTION connectionHandl
                 OI_UINT16_MAX,
                 OI_UINT16_MAX,
                 OI_OK);
-        else if (OI_OBEX_LOWER_L2CAP == connectionHandle->lowerPrivate->protocol) {
+        else {
             connectionHandle->callbacks->connectCfm(connectionHandle,
                 connectionHandle->lowerPrivate->conn_params.max_rx_packet_size,
                 connectionHandle->lowerPrivate->conn_params.max_tx_packet_size,
@@ -576,7 +591,7 @@ static void LowerTransportConnectInd(OI_OBEX_LOWER_SERVER serverHandle)
     if (!connectionHandle) {
         // Waking up the event loop to ensure that select is not blocking pre-close (BlueZ issue?).
         OI_EVENTLOOP_Wakeup();
-        close(remoteSocket);
+        close(serverHandle->lowerPrivate->socket);
         OI_SLOG_ERROR(OI_STATUS_OUT_OF_MEMORY, ("Failed to allocate connection handle"));
         return;
     }
@@ -730,7 +745,7 @@ static OI_BOOL LowerTransportRecvDataInd(OI_OBEX_LOWER_CONNECTION connectionHand
              * read the expected number of bytes remaining.
              */
             readLen = OI_OBEX_SMALLEST_PKT;
-        } else if (OI_OBEX_LOWER_L2CAP == connectionHandle->lowerPrivate->protocol) {
+        } else {
             readLen = connectionHandle->lowerPrivate->conn_params.max_rx_packet_size;
         }
         recvBytes = recv(connectionHandle->lowerPrivate->socket,
@@ -843,7 +858,7 @@ static OI_STATUS LowerRegServer(OI_OBEX_LOWER_SERVER serverHandle,
 {
     OI_UINT16 channel;
     OI_STATUS status = OI_OK;
-    bt_status_t connectStatus;
+    bt_status_t connectStatus = BT_STATUS_FAIL;
     btsock_type_t sock_type;
 
     OI_DBGTRACE(("LowerRegServer(%d)", lowerProtocol->protocol));
@@ -855,16 +870,16 @@ static OI_STATUS LowerRegServer(OI_OBEX_LOWER_SERVER serverHandle,
         serverHandle->mtu = mtu;
         if (lowerProtocol->protocol == OI_OBEX_LOWER_RFCOMM) {
             OI_DBGTRACE(("Listening on RFCOMM"));
-            sock_type = BTSOCK_RFCOMM;
             channel = lowerProtocol->svcId.rfcommChannel;
-        } else if (OI_OBEX_LOWER_L2CAP == lowerProtocol->protocol) {
+            sock_type = BTSOCK_RFCOMM;
+        } else {
             OI_DBGTRACE(("Listening on L2CAP"));
             sock_type = BTSOCK_L2CAP;
             channel = lowerProtocol->svcId.l2capPSM;
         }
     }
     else {
-        status = OI_STATUS_OUT_OF_MEMORY;
+        return OI_STATUS_OUT_OF_MEMORY;
     }
 
     int securityFlags = 0;
@@ -963,7 +978,7 @@ static OI_STATUS LowerConnect(OI_OBEX_LOWER_CONNECTION connectionHandle,
                               const OI_CONNECT_POLICY *policy,
                               btsock_interface_t *socket_interface)
 {
-    bt_status_t connectStatus;
+    bt_status_t connectStatus = BT_STATUS_FAIL;
     OI_STATUS status = OI_OK;
 
     OI_DBGTRACE(("LowerConnect(%08x, %d)", connectionHandle, mtu));
@@ -992,7 +1007,7 @@ static OI_STATUS LowerConnect(OI_OBEX_LOWER_CONNECTION connectionHandle,
         OI_DBGTRACE(("Connecting RFCOMM"));
         sock_type = BTSOCK_RFCOMM;
         connectionHandle->lowerPrivate->channel = lowerProtocol->svcId.rfcommChannel;
-    } else if (lowerProtocol->protocol == OI_OBEX_LOWER_L2CAP) {
+    } else {
         OI_DBGTRACE(("Connecting L2CAP"));
         sock_type = BTSOCK_L2CAP;
         connectionHandle->lowerPrivate->channel = lowerProtocol->svcId.l2capPSM;
@@ -1022,23 +1037,11 @@ static OI_STATUS LowerConnect(OI_OBEX_LOWER_CONNECTION connectionHandle,
 
     // Link the connection to the list, and update the event loop.
     if (BT_STATUS_SUCCESS == connectStatus) {
-        unsigned char read_bytes[sizeof(int)];
-        int channel = readInt(connectionHandle->lowerPrivate->socket, read_bytes);
-        OI_DBGTRACE(("Channel = 0x%04x", channel));
-        if (channel <= 0) {
-            status = OI_STATUS_NOT_CONNECTED;
-            // Waking up the event loop to ensure that select is not blocking pre-close
-            OI_EVENTLOOP_Wakeup();
-            close(connectionHandle->lowerPrivate->socket);
-            // The caller will free the connection
-            deallocLowerConnectionPrivate(connectionHandle);
-        } else {
-            connectionHandle->lowerPrivate->clientSocket = TRUE;
-            OI_DBGTRACE(("Adding connection to list"));
-            updateEventLoopRegistration();
-            OI_List_Add(&connectionHandle->lowerPrivate->links, &connectionList);
-            OI_EVENTLOOP_Wakeup();
-        }
+        connectionHandle->lowerPrivate->clientSocket = TRUE;
+        OI_DBGTRACE(("Adding connection to list"));
+        updateEventLoopRegistration();
+        OI_List_Add(&connectionHandle->lowerPrivate->links, &connectionList);
+        OI_EVENTLOOP_Wakeup();
     } else {
         status = OI_STATUS_NOT_CONNECTED;
         // The caller will free the connection

@@ -689,6 +689,8 @@ OI_STATUS OI_OBEXCOMMON_SendSimple(OBEX_COMMON *common,
     cmdBuf[1] = 0;
     cmdBuf[2] = sizeof(cmdBuf);
     mbuf = OI_MBUF_Wrap(cmdBuf, sizeof(cmdBuf), MBUF_COPY);
+    if (mbuf == NULL)
+        return OI_STATUS_OUT_OF_MEMORY;
     status = common->lowerConnection->ifc->write(common->lowerConnection, mbuf, TRUE, &queueFull);
     if (!OI_SUCCESS(status)) {
         OI_MBUF_Free(mbuf);
@@ -706,15 +708,15 @@ static OI_STATUS ScanHeader(OI_BYTE_STREAM *bs)
     ByteStream_GetUINT8_Checked(*bs, id);
     kind = OI_OBEX_HDR_KIND(id);
 
-	OI_DBGPRINT(("Header Type = %d  Id =%d\n",kind,id));
+    OI_DBGPRINT(("Header Type = %d  Id =%d\n",kind,id));
     switch (kind)
-	{
+    {
     case OI_OBEX_HDR_ID_BYTESEQ:
     case OI_OBEX_HDR_ID_UNICODE:
         ByteStream_GetUINT16_Checked(*bs, len, OI_OBEX_BO);
         OI_DBGPRINT(("Len decoded = %d \n",len));
-		len -= OI_OBEX_HEADER_PREFIX_LEN;
-		OI_DBGPRINT(("Len decoded = %d \n",len));
+        len -= OI_OBEX_HEADER_PREFIX_LEN;
+        OI_DBGPRINT(("Len decoded = %d \n",len));
         if ((len & 1) && (kind == OI_OBEX_HDR_ID_UNICODE)) {
             OI_LOG_ERROR(("Bad OBEX Unicode len: %d (odd)\n", len));
             return OI_OBEX_ERROR;

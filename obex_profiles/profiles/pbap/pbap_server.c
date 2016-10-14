@@ -1365,6 +1365,10 @@ static OI_STATUS ServerSetPathInd(OI_OBEXSRV_CONNECTION_HANDLE connectionId,
                       (folder && folder->str && (folder->len > 0)) ? folder->str : root,
                       (folder && folder->str && (folder->len > 0)) ? folder->len : 6));
 #endif
+
+    if (!server)
+        return OI_OBEX_INTERNAL_SERVER_ERROR;
+
     /*
      * Create is illegal for phonebook access.
      */
@@ -1376,7 +1380,8 @@ static OI_STATUS ServerSetPathInd(OI_OBEXSRV_CONNECTION_HANDLE connectionId,
     /*
      * NULL or empty folder name means set to root or parent folder
      */
-    if ((folder == NULL) || (folder->str == NULL) || (folder->str[0] == 0)) {
+    if ((folder == NULL) || (folder && folder->str == NULL) ||
+        (folder && folder->str[0] == 0)) {
         if (upLevel) {
             /*
              * Check we are not aleady at the root folder
@@ -1384,7 +1389,7 @@ static OI_STATUS ServerSetPathInd(OI_OBEXSRV_CONNECTION_HANDLE connectionId,
             if (server->folderLevel == 0) {
                 OI_SLOG_WARNING(OI_OBEX_NOT_FOUND,
                                 ("Remote PBAP client requested invalid directory in setPath, \"%S\"",
-                             folder->str));
+                             folder ? folder->str : "NULL"));
                 status = OI_OBEX_NOT_FOUND;
                 goto out;
             }
@@ -1817,6 +1822,9 @@ OI_STATUS OI_PBAPServer_Deregister(OI_OBEX_SERVER_HANDLE serverHandle)
 
     if (!OI_INIT_FLAG_VALUE(PBAP_SRV)) {
         return OI_STATUS_NOT_REGISTERED;
+    }
+    if (!server) {
+            return OI_STATUS_INVALID_HANDLE;
     }
     if (server->serverHandle != serverHandle) {
         return OI_STATUS_INVALID_HANDLE;

@@ -56,7 +56,6 @@ c_sources = profiles/obex/obexauth.c \
             stack/support/bt_assigned_nos.c \
             stack/dataelem/dataelem.c \
             stack/dataelem/dataelem_text.c \
-            stack/dataelem/marshaller.c \
             platform/linux/src/oi_osinterface.c \
             platform/linux/src/oi_assert.c \
             platform/linux/src/oi_wrapper.c \

@@ -815,6 +815,9 @@ static OI_STATUS pb_open(const OI_OBEX_UNICODE *name, OI_PBAP_OPEN_CFM open_cfm,
         sprintf(filename,"%s%s",storageDir, phoneBookFile);
     } else if (pbap_client.getting_vcard) {
         sprintf(filename,"%s%s",storageDir, vcardFile);
+    } else {
+        ALOGE(LOGTAG "unknown operation calling open");
+        return OI_STATUS_INVALID_PARAMETERS;
     }
     pbap_client.fileName = new char[strlen(filename) + 1];
     if (pbap_client.fileName != NULL) {

@@ -1028,6 +1028,7 @@ OI_STATUS OI_FormatStr(OI_VARSTRING *VStr,
 
 OI_CHAR* OI_VStrGetString(OI_VARSTRING *VStr)
 {
+    OI_ASSERT(VStr != NULL);
     if (VStr->Buffer == NULL) {
         return NULL;
     } else {

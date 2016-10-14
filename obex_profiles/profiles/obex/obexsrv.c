@@ -2675,6 +2675,7 @@ ConnectError:
     }
     OI_FreeIf(&connection->common.authentication);
     OI_FreeIf(&headers.list);
+    connection->common.pRawHeaders = NULL;
     return status;
 }
 

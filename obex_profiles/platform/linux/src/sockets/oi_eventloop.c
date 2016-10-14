@@ -157,7 +157,7 @@ static void* eventThread(void* arg)
             int thisMaxFd;
 
             item = OI_LIST_ENTRY(head, EVENTLOOP_REGISTERED_ITEM, links);
-
+            OI_ASSERT(NULL != item);
             /*
              * Rotate list element to the end of the linked list,
              * where it can be safely removed if the getDescriptors()
@@ -246,6 +246,7 @@ static void* eventThread(void* arg)
         while (head != &marker.links) {
             EVENTLOOP_REGISTERED_ITEM* item;
             item = OI_LIST_ENTRY(head, EVENTLOOP_REGISTERED_ITEM, links);
+            OI_ASSERT(NULL != item);
 
             /*
              * Rotate list element to the end of the linked list,
