@@ -84,6 +84,7 @@ const char *BT_ENABLE_DEFAULT      = "BtEnableByDefault";
 const char *BT_USER_INPUT          = "UserInteractionNeeded";
 const char *BT_A2DP_SINK_ENABLED   = "BtA2dpSinkEnable";
 const char *BT_HFP_CLIENT_ENABLED  = "BtHfClientEnable";
+const char *BT_HFP_AG_ENABLED      = "BtHfpAGEnable";
 
 /**
  * The Configuration file path
@@ -203,6 +204,7 @@ typedef enum {
     SEND_DTMF,
     DISABLE_NREC_ON_AG,
     SEND_AT_CMD,
+    HFP_AG,
     BACK_TO_MAIN,
     END,
 } CommandList;
@@ -224,8 +226,9 @@ typedef enum {
     HFP_CLIENT_MENU,
     PAN_MENU,
 #ifdef USE_BT_OBEX
-    PBAP_CLIENT_MENU
+    PBAP_CLIENT_MENU,
 #endif
+    HFP_AG_MENU
 } MenuType;
 
 /**
@@ -277,6 +280,7 @@ UserMenuList MainMenu[] = {
 #ifdef USE_BT_OBEX
     {PBAP_CLIENT_OPTION,    "pbap_client_menu",  ZERO_PARAM,   "pbap_client_menu"},
 #endif
+    {HFP_AG,                "hfp_ag_menu",      ZERO_PARAM,   "hfp_ag_menu"},
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
 
@@ -390,6 +394,32 @@ UserMenuList PbapClientMenu[] = {
     {BACK_TO_MAIN,              "main_menu",            ZERO_PARAM, "main_menu"},
 };
 #endif
+/**
+ * list of supported commands for HFP_CLIENT Menu
+ */
+UserMenuList HfpAGMenu[] = {
+    {CONNECT,               "connect",       ONE_PARAM,    "connect<space><bt_address>"},
+    {DISCONNECT,            "disconnect",    ONE_PARAM,    "disconnect<space><bt_address>"},
+    {CREATE_SCO_CONN,       "create_sco",    ONE_PARAM,    "create_sco<space><bt_address>"},
+    {DESTROY_SCO_CONN,      "destroy_sco",   ONE_PARAM,    "destroy_sco<space><bt_address>"},
+#if defined(BT_MODEM_INTEGRATION)
+    {ACCEPT_CALL,           "accept_call",   ZERO_PARAM,   "accept_call"},
+    {REJECT_CALL,           "reject_call",   ZERO_PARAM,   "reject_call"},
+    {END_CALL,              "end_call",      ZERO_PARAM,   "end_call"},
+    {HOLD_CALL,             "hold_call",     ZERO_PARAM,   "hold_call"},
+    {RELEASE_HELD_CALL,     "release_held_call", ZERO_PARAM,   "release_held_call"},
+    {SWAP_CALLS,            "swap_calls", ZERO_PARAM,   "swap_calls"},
+    {ADD_HELD_CALL_TO_CONF, "add_held_call_to_conference", ZERO_PARAM,   "add_held_call_to_conference"},
+    {DIAL,                  "dial",          ONE_PARAM,    "dial<space><phone_number>"},
+    {QUERY_CURRENT_CALLS,   "query_current_calls", ZERO_PARAM,   "query_current_calls"},
+    {QUERY_OPERATOR_NAME,   "query_operator_name", ZERO_PARAM,   "query_operator_name"},
+    {QUERY_SUBSCRIBER_INFO, "query_subscriber_info", ZERO_PARAM, "query_subscriber_info"},
+    {MIC_VOL_CTRL,          "mic_volume_control",   ONE_PARAM,   "mic_volume_control<space><value>"},
+    {SPK_VOL_CTRL,          "speaker_volume_control",   ONE_PARAM,   "speaker_volume_control<space><value>"},
+    {SEND_DTMF,             "send_dtmf",   ONE_PARAM,    "send_dtmf<space><code>"},
+#endif
+    {BACK_TO_MAIN,          "main_menu",     ZERO_PARAM,   "main_menu"},
+};
 
 #ifdef __cplusplus
 extern "C"
@@ -511,6 +541,7 @@ class BluetoothApp {
     bool is_socket_input_enabled_;
     bool is_a2dp_sink_enabled_;
     bool is_hfp_client_enabled_;
+    bool is_hfp_ag_enabled_;
     bool is_pan_enable_default_;
     bool is_gatt_enable_default_;
 #ifdef USE_BT_OBEX

@@ -35,6 +35,7 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
 #ifdef USE_BT_OBEX
     { NULL ,    THREAD_ID_PBAP_CLIENT, &BtPbapClientMsgHandler,  "Pbap_Client_Thread" } ,
 #endif
+    { NULL ,    THREAD_ID_HFP_AG,      &BtHfpAgMsgHandler,       "Hfp_AG_Thread" } ,
 };
 
 void PostMessage(ThreadIdType thread_type, void *msg) {
