@@ -50,9 +50,23 @@ extern "C"
 using namespace std;
 
 PbapClient *g_pbapClient = NULL;;
+
+typedef enum {
+    DOWNLOAD                = 0x0001,
+    BROWSING                = 0x0002,
+    DATABASE_IDENTIFIER     = 0x0004,
+    FOLDER_VERSION_COUNTER  = 0x0008,
+    VCARD_SELECTING         = 0x0010,
+    ENHANCE_MISESD_CALLS    = 0x0020,
+    X_BT_UCI_VCARD_PROP     = 0x0040,
+    X_BT_UID_VCARD_PROP     = 0x0080,
+    CONTACT_REFRENCING      = 0x0100,
+    DEFAULT_VCARD_FORMAT    = 0x0200,
+} PBAP_SUPPORTED_FEATURES;
+
 static uint8_t  UUID_PBAP_PSE[] = {0x00, 0x00, 0x11, 0x2F, 0x00, 0x00, 0x10, 0x00,
                                    0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB};
-#define  PBAP_PROFILE_VERSION 0x0101;
+static  uint32_t profileVersion = 0x0102;
 static char profile_name[] = "PBAP Client";
 static char storageDir[] = "/sdcard/";
 static char vcardFile[] = "vcard.vcf";
@@ -61,9 +75,6 @@ static char vCardListingFile[] = "vcarListing.txt";
 
 #define UUID_MAX_LENGTH 16
 #define IS_UUID(u1,u2)  !memcmp(u1,u2,UUID_MAX_LENGTH)
-
-static OI_CHAR *userid = NULL;
-static OI_CHAR *password = NULL;
 
 /******************************************************************************
  * Forward struct typedef
@@ -224,11 +235,10 @@ struct pbap_client_data_struct {
     OI_OBEX_LOWER_PROTOCOL lowerProtocol;           /**< Lower protocol info of server */
     OI_BOOL connected;                              /**< Indicates if connected to a server */
     PBAP_STATE state;                               /**< Indicates current state of pbap client */
-
+    OI_UINT32 supportedFeatures;                    /**< Indicates supported features of pbap client */
     OI_UINT16 pb_size;                              /**< Indicates phonebook size */
     OI_BD_ADDR addr;                                /**< Remote PBAP server address */
     OI_CHAR *fileName;                             /**< File Name of currently active pbap data being transferred */
-
     OI_PBAP_REPOSITORY repository;                  /**< Run-time variable: current repository */
     OI_PBAP_PHONEBOOK phonebook;                    /**< Run-time varialbe: current phonebook */
     OI_PBAP_FORMAT_TAG_VALUES format;               /**< Run-time variable: vCard format */
@@ -1152,17 +1162,26 @@ static void sdp_search_callback(bt_status_t status, bt_bdaddr_t *bd_addr, uint8_
             record->pse.supported_features,
             record->pse.supported_repositories,
             more_result);
-        if (record->pse.hdr.rfcomm_channel_number) {
-            pbap_client.lowerProtocol.protocol = OI_OBEX_LOWER_RFCOMM;
-            pbap_client.lowerProtocol.svcId.rfcommChannel = record->pse.hdr.rfcomm_channel_number;
+        if (record->pse.hdr.rfcomm_channel_number > 0 ||
+            record->pse.hdr.l2cap_psm > 0) {
+            if (record->pse.hdr.l2cap_psm > 0 &&
+                record->pse.hdr.profile_version >= profileVersion) {
+                pbap_client.lowerProtocol.protocol = OI_OBEX_LOWER_L2CAP;
+                pbap_client.lowerProtocol.svcId.l2capPSM = record->pse.hdr.l2cap_psm;
+            } else {
+                pbap_client.lowerProtocol.protocol = OI_OBEX_LOWER_RFCOMM;
+                pbap_client.lowerProtocol.svcId.rfcommChannel =
+                    record->pse.hdr.rfcomm_channel_number;
+            }
+            pbap_client.supportedFeatures = DOWNLOAD | BROWSING;
             /* Send Internal Connect Message to PBAP Client Thread */
             BtEvent *event = new BtEvent;
             event->event_id = PBAP_CLIENT_INTERNAL_CONNECT;
             PostMessage(THREAD_ID_PBAP_CLIENT, event);
         } else {
-            ALOGE(LOGTAG "%s: Could not find remote rfcomm channel, can't connect",
+            ALOGE(LOGTAG "%s: Could not find remote rfcomm channel or l2cap psm, can't connect",
                  __FUNCTION__);
-            cout << "Could not find remote rfcomm channel, can't connect" << endl;
+            cout << "Could not find remote rfcomm channel or l2cap psm, can't connect" << endl;
         }
     } else {
         ALOGE(LOGTAG "%s: Unknown uuid sdp result received, ignoring!!", __FUNCTION__);
@@ -1309,7 +1328,7 @@ void PbapClient :: AddSdpRecord()
     sdp_search_event->sdp_client_event.event_id = SDP_CLIENT_ADD_RECORD;
     memset(&sdp_search_event->sdp_client_event.record, 0 , sizeof(bluetooth_sdp_record));
     sdp_search_event->sdp_client_event.record.pce.hdr.type = SDP_TYPE_PBAP_PCE;
-    sdp_search_event->sdp_client_event.record.pce.hdr.profile_version = PBAP_PROFILE_VERSION;
+    sdp_search_event->sdp_client_event.record.pce.hdr.profile_version = profileVersion;
     sdp_search_event->sdp_client_event.record.pce.hdr.service_name = profile_name;
     sdp_search_event->sdp_client_event.record.pce.hdr.service_name_length = strlen(profile_name);
     sdp_search_event->sdp_client_event.addRecordCb = &sdp_add_record_callback;
@@ -1378,8 +1397,8 @@ bool PbapClient :: Connect()
 {
     OI_STATUS ret = OI_PBAPClient_Connect((OI_BD_ADDR*)&pbap_client.addr,
         &pbap_client.lowerProtocol, OI_OBEXCLI_AUTH_NONE,
-        &pbap_client.connection, &connectionCfm, &disconnectInd,
-        &authenticationCB, &pbap_file_ops);
+        &pbap_client.connection, pbap_client.supportedFeatures,
+        &connectionCfm, &disconnectInd, &authenticationCB, &pbap_file_ops);
     ALOGV(LOGTAG "%s: OI_PBAPClient_Connect returned %d", __FUNCTION__, ret);
     if (ret) {
         char bd_str[MAX_BD_STR_LEN];
@@ -1699,6 +1718,7 @@ bool PbapClient :: Abort()
     } else {
         cout << "Abort in progress!!" << endl;
     }
+    return ret;
 }
 
 #ifdef __cplusplus
