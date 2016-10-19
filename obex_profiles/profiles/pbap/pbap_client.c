@@ -924,6 +924,9 @@ static void PullAbortCfm(OI_OBEXCLI_CONNECTION_HANDLE connection)
 {
     PBAP_CLIENT *client = PbapClient(connection);
 
+    if (client == NULL)
+        return;
+
     OI_TRACE_USER(("PullAbortCfm(connection = %d)", connection));
     OI_DBG_PRINT2(("Closing file 0x%x\n", client->fh));
     FileClose(client, OI_OBEX_FILEOP_ERROR);
@@ -940,6 +943,9 @@ static void PbapWriteCfm(OI_PBAP_HANDLE handle,
                          OI_PBAP_CONNECTION pbapConnection)
 {
     PBAP_CLIENT *client = PbapClient(pbapConnection);
+
+    if (client == NULL)
+        return;
 
     OI_TRACE_USER(("PbapWriteCfm(<*handle = %x>, status = %d, pbapConnection = %d)",
                        handle, status, pbapConnection));
@@ -990,6 +996,9 @@ static void PbapDataCB(OI_OBEXCLI_CONNECTION_HANDLE connectionId,
 
     OI_TRACE_USER(("PbapDataCB(connectionId = %d, <*rspHeaders = %x>, rcvStatus = %d)",
                           connectionId, rspHeaders, rcvStatus));
+
+    if (client == NULL)
+        return;
 
     if (!IS_CLIENT_CONNECTED) {
         OI_SLOG_ERROR(OI_STATUS_NONE, ("PbapDataCB while PBAP not connected"));
@@ -1837,7 +1846,6 @@ OI_STATUS OI_PBAPClient_SetPath(OI_PBAP_CONNECTION connectionId,
                                        OI_PBAP_CLIENT_SETPATH_CB setPathCB)
 {
     PBAP_CLIENT *client = PbapClient(connectionId);
-    OI_STATUS status;
 
     OI_TRACE_USER(("OI_PBAPClient_SetPath(connectionId = %d, repository = %d, phonebook = %d, <setPathCB = %x>)",
                       connectionId, repository, phonebook, setPathCB));
@@ -1855,6 +1863,6 @@ OI_STATUS OI_PBAPClient_SetPath(OI_PBAP_CONNECTION connectionId,
     client->req.cb.setPath = setPathCB;
 
     SetPhonebookDir(client, repository, phonebook, PbapSetExplicitPathDone);
-    return status;
+    return OI_OK;
 }
 

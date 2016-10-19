@@ -43,6 +43,9 @@
 /** Internal function for adding to a list between two elements. */
 static void Add(OI_LIST_ELEM *newElem, OI_LIST_ELEM *prev, OI_LIST_ELEM *next)
 {
+    if (newElem == NULL || prev == NULL || next == NULL)
+        return;
+
     prev->next = newElem;
     newElem->next = next;
     newElem->prev = prev;
@@ -51,6 +54,9 @@ static void Add(OI_LIST_ELEM *newElem, OI_LIST_ELEM *prev, OI_LIST_ELEM *next)
 
 void OI_List_DynamicInit(OI_LIST_ELEM *elem)
 {
+    if (elem == NULL)
+        return;
+
     elem->prev = elem;
     elem->next = elem;
 }
@@ -58,18 +64,27 @@ void OI_List_DynamicInit(OI_LIST_ELEM *elem)
 
 void OI_List_Add(OI_LIST_ELEM *newElem, OI_LIST_ELEM *list)
 {
+    if (list == NULL)
+        return;
+
     Add(newElem, list, list->next);
 }
 
 
 void OI_List_AddTail(OI_LIST_ELEM *newElem, OI_LIST_ELEM *list)
 {
+    if (list == NULL)
+        return;
+
     Add(newElem, list->prev, list);
 }
 
 
 OI_LIST_ELEM* OI_List_Del(OI_LIST_ELEM *elem)
 {
+    if (elem == NULL)
+        return NULL;
+
     OI_LIST_ELEM *prev = elem->prev;
     OI_LIST_ELEM *next = elem->next;
 
@@ -93,6 +108,9 @@ OI_LIST_ELEM* OI_List_Del(OI_LIST_ELEM *elem)
 OI_LIST_ELEM *OI_List_RemoveHead(OI_LIST_ELEM *list)
 {
     OI_LIST_ELEM *elem;
+
+    if (list == NULL)
+        return NULL;
 
     if (OI_List_IsEmpty(list)) {
         return NULL;
