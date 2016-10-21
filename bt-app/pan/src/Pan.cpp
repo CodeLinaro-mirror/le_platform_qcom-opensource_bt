@@ -234,6 +234,15 @@ bool Pan :: Connect(bt_bdaddr_t *addr, int src_role, int dest_role)
     bool ret = true;
     char bd_str[MAX_BD_STR_LEN];
 
+    if (src_role == LOCAL_PANU_ROLE && (is_panu_role_supported == false
+        || pan_state != UNTETHERED)) {
+        PAN_APP_UI_PRINT("\nPANU role is not supported OR PAN connection is already active\n");
+        ALOGE(LOGTAG "%s: PANU role is not supported OR PAN connection is already active:"
+                "is_panu_role_supported: %d, pan_State: %d",
+                __FUNCTION__, is_panu_role_supported, pan_state);
+        return false;
+    }
+
     bdaddr_to_string(addr, bd_str, MAX_BD_STR_LEN);
     ALOGV(LOGTAG "%s: %s, src_role: %d, dest_role:%d",
             __FUNCTION__, bd_str, src_role, dest_role);
@@ -283,7 +292,6 @@ bool Pan :: Disconnect(bt_bdaddr_t *addr)
 bool Pan :: HandleEnablePan() {
     ALOGV(LOGTAG "%s", __FUNCTION__);
 
-    is_tethering_on = is_nap_role_supported;
     pan_state = UNTETHERED;
     num_of_pan_device_connected = 0;
 
@@ -335,7 +343,7 @@ void Pan::HandlePanDeviceConnectedListEvent(PanDeviceConnectedListEvent *event)
             PAN_APP_UI_PRINT("%s \n", bd_str);
         }
     }
-    PAN_APP_UI_PRINT("\n*****End Connected Device List*****\n");
+    PAN_APP_UI_PRINT("*****End Connected Device List*****\n");
 }
 
 
@@ -435,7 +443,8 @@ void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)
             PAN_APP_UI_PRINT("%s IS CONNECTED\n", bd_str);
             num_of_pan_device_connected++;
 
-            if((!is_tethering_on)||(pan_dev->local_role == LOCAL_PANU_ROLE)){
+            if ((!is_tethering_on) || (pan_dev->local_role == LOCAL_PANU_ROLE
+                || pan_state == REVERSE_TETHERED)){
                 ALOGW(LOGTAG "%s: BT tethering is off/Local role is PANU drop the connection",
                         __FUNCTION__);
                 Disconnect(&pan_dev->bd_addr);
@@ -451,8 +460,37 @@ void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)
                 PostMessage (THREAD_ID_MAIN, event);
             }
         }
-    } else {
-        ALOGW(LOGTAG "%s: LOCAL_PANU_ROLE:REMOTE_NAP_ROLE not supported", __FUNCTION__);
+    } else if (pan_dev->remote_role == REMOTE_NAP_ROLE) {
+        ALOGW(LOGTAG "%s: LOCAL_PANU_ROLE:REMOTE_NAP_ROLE", __FUNCTION__);
+
+        if (pan_dev->state == BTPAN_STATE_DISCONNECTED) {
+            bdaddr_to_string((&pan_dev->bd_addr), bd_str, MAX_BD_STR_LEN);
+            PAN_APP_UI_PRINT("%s IS DISCONNECTED\n", bd_str);
+            RemoveDevice(pan_dev);
+
+            if (pan_state == REVERSE_TETHERED) {
+                BtEvent *event = new BtEvent;
+                event->event_id = SKT_API_IPC_MSG_WRITE;
+                event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_DISABLE_REVERSE_TETHERING;
+                event->bt_ipc_msg_event.ipc_msg.status = INITIATED;
+                ALOGV (LOGTAG "%s: Posting msg main thread: disable reverse tethering",
+                        __FUNCTION__);
+                PostMessage (THREAD_ID_MAIN, event);
+            }
+        } else if (pan_dev->state == BTPAN_STATE_CONNECTED) {
+            bdaddr_to_string((&pan_dev->bd_addr), bd_str, MAX_BD_STR_LEN);
+            PAN_APP_UI_PRINT("%s IS CONNECTED\n", bd_str);
+
+            if (pan_state == UNTETHERED) {
+                BtEvent *event = new BtEvent;
+                event->event_id = SKT_API_IPC_MSG_WRITE;
+                event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_ENABLE_REVERSE_TETHERING;
+                event->bt_ipc_msg_event.ipc_msg.status = INITIATED;
+                ALOGV (LOGTAG "%s: Posting msg main thread: enable reverse tethering",
+                        __FUNCTION__);
+                PostMessage (THREAD_ID_MAIN, event);
+            }
+        }
     }
 }
 
@@ -461,9 +499,6 @@ void Pan::HandlePanSetTetheringEvent(PanSetTetheringEvent *event)
     ALOGV(LOGTAG "%s", __FUNCTION__);
 
     if (is_nap_role_supported) {
-        ALOGV(LOGTAG "%s: prev_tether_val: %d, curr_tether_val = %d",
-                 __FUNCTION__, is_tethering_on, event->is_tethering_on);
-
          if (is_tethering_on == event->is_tethering_on) {
              ALOGW(LOGTAG "%s: prev_tether_val is equal to curr_tether_val", __FUNCTION__);
              return;
@@ -479,10 +514,40 @@ void Pan::HandlePanSetTetheringEvent(PanSetTetheringEvent *event)
                 }
             }
         }
+        PAN_APP_UI_PRINT("\n*****TETHER MODE UI OPTION SUCCESSFULLY CHANGED*****\n");
     } else {
         ALOGW(LOGTAG "%s: LOCAL_NAP_ROLE not supported", __FUNCTION__);
+        PAN_APP_UI_PRINT("\n*****LOCAL_NAP_ROLE not supported*****\n");
     }
 }
+
+void Pan::HandlePanGetModeEvent(PanGetModeEvent *event)
+{
+    ALOGV(LOGTAG "%s", __FUNCTION__);
+    PAN_APP_UI_PRINT("\n*****TETHER MODE UI OPTION: %s*****\n",
+        is_tethering_on ? "ENABLED": "DISABLED");
+
+    switch (pan_state) {
+        case UNTETHERED:
+            PAN_APP_UI_PRINT("\n*****PAN IS IN UNTETHERED MODE*****\n");
+            break;
+
+        case TETHERED:
+            PAN_APP_UI_PRINT("\n*****PAN IS IN TETHERED MODE*****\n");
+            break;
+
+        case REVERSE_TETHERED:
+            PAN_APP_UI_PRINT("\n*****PAN IS IN REVERSE TETHERED MODE*****\n");
+            break;
+
+        default:
+            //This should never happen
+            PAN_APP_UI_PRINT("\n*****PAN IS IN UNKNOWN MODE*****\n");
+            break;
+
+    }
+}
+
 
 void Pan::HandlePanIpcMsg(BtIpcMsg *ipcMsg)
 {
@@ -495,6 +560,7 @@ void Pan::HandlePanIpcMsg(BtIpcMsg *ipcMsg)
                 case SUCCESS:
                     ALOGV(LOGTAG "%s: BT_IPC_ENABLE_TETHERING: SUCCESS", __FUNCTION__);
                     pan_state  = TETHERED;
+                    PAN_APP_UI_PRINT("\n*****PAN IS IN TETHERED MODE*****\n");
                     break;
 
                 case FAILED:
@@ -507,6 +573,7 @@ void Pan::HandlePanIpcMsg(BtIpcMsg *ipcMsg)
                             Disconnect(&(pan_device[i].bd_addr));
                         }
                     }
+                    PAN_APP_UI_PRINT("\n*****PAN IS IN UNTETHERED MODE*****\n");
                     break;
 
                 default:
@@ -520,11 +587,13 @@ void Pan::HandlePanIpcMsg(BtIpcMsg *ipcMsg)
                 case SUCCESS:
                     ALOGV(LOGTAG "%s: BT_IPC_DISABLE_TETHERING: SUCCESS", __FUNCTION__);
                     pan_state  = UNTETHERED;
+                    PAN_APP_UI_PRINT("\n*****PAN IS IN UNTETHERED MODE*****\n");
                     break;
 
                 case FAILED:
                     ALOGV(LOGTAG "%s: BT_IPC_DISABLE_TETHERING: FAILED", __FUNCTION__);
                     pan_state  = UNTETHERED;
+                    PAN_APP_UI_PRINT("\n*****PAN IS IN UNTETHERED MODE*****\n");
                     break;
 
                 default:
@@ -540,6 +609,63 @@ void Pan::HandlePanIpcMsg(BtIpcMsg *ipcMsg)
                 }
             }
             break;
+
+        case BT_IPC_ENABLE_REVERSE_TETHERING:
+            switch(ipcMsg->status){
+                case SUCCESS:
+                    ALOGV(LOGTAG "%s: BT_IPC_ENABLE_REVERSE_TETHERING: SUCCESS", __FUNCTION__);
+                    pan_state  = REVERSE_TETHERED;
+                    PAN_APP_UI_PRINT("\n*****PAN IS IN REVERSE TETHERED MODE*****\n");
+                    break;
+
+                case FAILED:
+                    ALOGV(LOGTAG "%s: BT_IPC_ENABLE_REVERSE_TETHERING: FAILED: drop pan connection",
+                            __FUNCTION__);
+                    pan_state  = UNTETHERED;
+
+                    for (int i = 0; i < MAX_PAN_DEVICES; i++) {
+                        if (pan_device[i].state == BTPAN_STATE_CONNECTED) {
+                            Disconnect(&(pan_device[i].bd_addr));
+                        }
+                    }
+                    PAN_APP_UI_PRINT("\n*****PAN IS IN UNTETHERED MODE*****\n");
+                    break;
+
+                default:
+                    ALOGW(LOGTAG "%s: unhandled status: %d", __FUNCTION__, ipcMsg->status);
+                    break;
+            }
+            break;
+
+        case BT_IPC_DISABLE_REVERSE_TETHERING:
+            switch(ipcMsg->status){
+                case SUCCESS:
+                    ALOGV(LOGTAG "%s: BT_IPC_DISABLE_REVERSE_TETHERING: SUCCESS", __FUNCTION__);
+                    pan_state  = UNTETHERED;
+                    PAN_APP_UI_PRINT("\n*****PAN IS IN UNTETHERED MODE*****\n");
+                    break;
+
+                case FAILED:
+                    ALOGV(LOGTAG "%s: BT_IPC_DISABLE_REVERSE_TETHERING: FAILED", __FUNCTION__);
+                    pan_state  = UNTETHERED;
+                    PAN_APP_UI_PRINT("\n*****PAN IS IN UNTETHERED MODE*****\n");
+                    break;
+
+                default:
+                    ALOGW(LOGTAG "%s: unhandled status: %d", __FUNCTION__, ipcMsg->status);
+                    break;
+            }
+
+            ALOGV (LOGTAG "%s: BT_IPC_DISABLE_REVERSE_TETHERING: drop all pan connection",
+                    __FUNCTION__);
+
+            for (int i = 0; i < MAX_PAN_DEVICES; i++) {
+                if (pan_device[i].state == BTPAN_STATE_CONNECTED) {
+                    Disconnect(&(pan_device[i].bd_addr));
+                }
+            }
+            break;
+
 
         default:
             ALOGW(LOGTAG "%s: unhandled ipc msg: %d", __FUNCTION__, ipcMsg->type);
@@ -562,6 +688,10 @@ void Pan::ProcessEvent(BtEvent* event)
 
         case PAN_EVENT_SET_TETHERING_REQ:
             HandlePanSetTetheringEvent((PanSetTetheringEvent *)event);
+            break;
+
+        case PAN_EVENT_GET_MODE_REQ:
+            HandlePanGetModeEvent((PanGetModeEvent *)event);
             break;
 
         case PAN_EVENT_DEVICE_CONNECT_REQ:
