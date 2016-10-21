@@ -330,6 +330,7 @@ typedef enum {
     PAN_EVENT_CONTROL_STATE_CHANGED = PAN_MSG_BASE,
     PAN_EVENT_CONNECTION_STATE_CHANGED,
     PAN_EVENT_SET_TETHERING_REQ,
+    PAN_EVENT_GET_MODE_REQ,
     PAN_EVENT_DEVICE_CONNECT_REQ,
     PAN_EVENT_DEVICE_DISCONNECT_REQ,
     PAN_EVENT_DEVICE_CONNECTED_LIST_REQ,
@@ -725,6 +726,13 @@ typedef struct {
     BluetoothEventId event_id;
     bool is_tethering_on;
 } PanSetTetheringEvent;
+
+/**
+ * Event for displaying tethering user choice & pan mode on UI
+ */
+typedef struct {
+    BluetoothEventId event_id;
+} PanGetModeEvent;
 
 /**
  * Event for notifying Pan disconnect
@@ -1248,6 +1256,7 @@ typedef union {
     PanControlStateEvent                    pan_control_state_event;
     PanConnectionStateEvent                 pan_connection_state_event;
     PanSetTetheringEvent                    pan_set_tethering_event;
+    PanGetModeEvent                         pan_get_mode_event;
     PanDeviceDisconnectEvent                pan_device_disconnect_event;
     PanDeviceConnectEvent                   pan_device_connect_event;
     PanDeviceConnectedListEvent             pan_device_connected_list_event;
@@ -1322,6 +1331,14 @@ typedef enum{
      * ipc message to disable tethering
      */
     BT_IPC_DISABLE_TETHERING,
+    /**
+     * ipc message to enable reverse tethering
+     */
+    BT_IPC_ENABLE_REVERSE_TETHERING,
+    /**
+     * ipc message to disable reverse tethering
+     */
+    BT_IPC_DISABLE_REVERSE_TETHERING,
     /**
      * ipc message to start WLAN
      */

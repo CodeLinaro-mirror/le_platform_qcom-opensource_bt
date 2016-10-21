@@ -147,6 +147,7 @@ typedef enum {
     PAN_OPTION,
     CONNECTED_LIST,
     SET_TETHERING,
+    GET_PAN_MODE,
     RSP_OPTION,
     RSP_INIT,
     RSP_START,
@@ -298,6 +299,9 @@ UserMenuList MainMenu[] = {
 UserMenuList PanMenu[] = {
     {SET_TETHERING,  "enable_tethering",         ONE_PARAM, \
     "enable_tethering<space><true or false> eg. enable_tethering true"},
+    {GET_PAN_MODE,   "get_mode",                 ZERO_PARAM, "get_mode"},
+    {CONNECT,        "connect",                  ONE_PARAM, \
+    "connect<space><bt_address> eg. connect 00:11:22:33:44:55"},
     {DISCONNECT,     "disconnect",               ONE_PARAM, \
     "disconnect<space><bt_address> eg. disconnect 00:11:22:33:44:55"},
     {CONNECTED_LIST, "connected_device_list",    ZERO_PARAM, "connected_device_list"},

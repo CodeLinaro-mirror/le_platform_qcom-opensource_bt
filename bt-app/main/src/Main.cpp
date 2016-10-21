@@ -1048,6 +1048,22 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     int index = 0;
 
     switch (cmd_id) {
+        case CONNECT:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                    BtEvent *event = new BtEvent;
+                    event->event_id = PAN_EVENT_DEVICE_CONNECT_REQ;
+                    string_to_bdaddr(user_cmd[ONE_PARAM],
+                            &event->pan_device_connect_event.bd_addr);
+                    PostMessage (THREAD_ID_PAN, event);
+                } else {
+                    fprintf(stdout, " BD address is NULL/Invalid ");
+                }
+            } else {
+                fprintf(stdout, " Currently BT is in OFF state");
+            }
+            break;
+
         case DISCONNECT:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
@@ -1097,14 +1113,24 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             }
             break;
 
+        case GET_PAN_MODE:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                BtEvent *event = new BtEvent;
+                event->event_id = PAN_EVENT_GET_MODE_REQ;
+                PostMessage (THREAD_ID_PAN, event);
+            } else {
+                fprintf(stdout, " Currently BT is in OFF state");
+            }
+            break;
+
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
             break;
 
         default:
-        ALOGV (LOGTAG " Command not handled: %d", cmd_id);
-        break;
+            ALOGV (LOGTAG " Command not handled: %d", cmd_id);
+            break;
     }
 }
 
@@ -1312,6 +1338,8 @@ void BtSocketDataHandler (void *context) {
                 /*fall through for PAN IPC message*/
                 case BT_IPC_ENABLE_TETHERING:
                 case BT_IPC_DISABLE_TETHERING:
+                case BT_IPC_ENABLE_REVERSE_TETHERING:
+                case BT_IPC_DISABLE_REVERSE_TETHERING:
                     ALOGV (LOGTAG "  Posting IPC_MSG to PAN thread");
                     PostMessage (THREAD_ID_PAN, event);
                     break;
