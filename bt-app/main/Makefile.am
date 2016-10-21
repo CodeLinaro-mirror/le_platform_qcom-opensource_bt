@@ -22,10 +22,12 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_client/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_ag/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
-               -I${WORKSPACE}/hardware/libhardware/include
+               -I${WORKSPACE}/hardware/libhardware/include \
+               -I${WORKSPACE}/mcm-api/api
 
 if USE_BT_OBEX
 AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
@@ -47,6 +49,7 @@ c_sources = ../utils/src/utils.c \
             ../audio_manager/src/Audio_Manager.cpp \
             ../a2dp_sink/src/A2dp_Sink.cpp \
             ../hfp_client/src/HfpClient.cpp \
+            ../hfp_ag/src/HfpAG.cpp \
             ../pan/src/Pan.cpp \
             ../gatt/src/Gatt.cpp \
             ../gatt/src/Rsp.cpp \

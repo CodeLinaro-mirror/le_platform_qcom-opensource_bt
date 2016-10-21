@@ -47,6 +47,7 @@ const char *BT_OBEX_ENABLED    = "BtObexEnable";
 const char *BT_OBEX_LOG_LEVEL    = "BtObexLogLevel";
 const char *BT_PBAP_CLIENT_ENABLED   = "BtPbapClientEnable";
 #endif
+const char *BT_HFP_AG_ENABLED_STRING  = "BtHfpAGEnable";
 
 #define LOGTAG "GAP "
 
@@ -810,6 +811,8 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         else if (profile_id == PROFILE_ID_PBAP_CLIENT)
             this->profile_config[profile_id].thread_id = THREAD_ID_PBAP_CLIENT;
 #endif
+        else if(profile_id == PROFILE_ID_HFP_AG)
+            this->profile_config[profile_id].thread_id = THREAD_ID_HFP_AG;
     }
 
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
@@ -818,8 +821,12 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
     this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_HFP_CLIENT_ENABLED_STRING, false);
 
+    this->profile_config[PROFILE_ID_HFP_AG].is_enabled = config_get_bool (config,
+                     CONFIG_DEFAULT_SECTION, BT_HFP_AG_ENABLED_STRING, false);
+
     if ((this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled) ||
-        (this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled)) {
+        (this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled)||
+        (this->profile_config[PROFILE_ID_HFP_AG].is_enabled)) {
         this->profile_config[PROFILE_ID_BT_AM].is_enabled = true;
     }
 

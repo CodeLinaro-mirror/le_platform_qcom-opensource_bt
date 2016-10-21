@@ -38,6 +38,7 @@
 #include "HfpClient.hpp"
 #include "Pan.hpp"
 #include "Gatt.hpp"
+#include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
 #include "SdpClient.hpp"
 #ifdef USE_BT_OBEX
@@ -63,6 +64,7 @@ extern const char *BT_OBEX_ENABLED;
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 extern Hfp_Client *pHfpClient;
+extern Hfp_Ag *pHfpAG;
 
 
 #ifdef __cplusplus
@@ -156,6 +158,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             num_cmds  = NO_OF_COMMANDS(PbapClientMenu);
             break;
 #endif
+        case HFP_AG_MENU:
+            menu = &HfpAGMenu[0];
+            num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
+            break;
         case MAIN_MENU:
         // fallback to default main menu
         default:
@@ -244,6 +250,10 @@ static void DisplayMenu(MenuType menu_type) {
             num_cmds  = NO_OF_COMMANDS(PbapClientMenu);
             break;
 #endif
+        case HFP_AG_MENU:
+            menu = &HfpAGMenu[0];
+            num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
+            break;
     }
     fprintf (stdout, " \n***************** Menu *******************\n");
     for (index = 0; index < num_cmds; index++)
@@ -527,6 +537,105 @@ static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     }
 }
 
+static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+    ALOGD(LOGTAG, "HandleHfpAGCommand cmd_id = %d", cmd_id);
+    std::cout << LOGTAG "HandleHfpAGCommand cmd_id = " <<  cmd_id << std::endl;
+    BtEvent *event = NULL;
+    switch (cmd_id) {
+        case CONNECT:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_CONNECT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case DISCONNECT:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_DISCONNECT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case CREATE_SCO_CONN:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_CONNECT_AUDIO_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case DESTROY_SCO_CONN:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_DISCONNECT_AUDIO_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case ACCEPT_CALL:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_ACCEPT_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case REJECT_CALL:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_REJECT_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case END_CALL:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_END_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case HOLD_CALL:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_HOLD_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case SWAP_CALLS:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_SWAP_CALLS_REQ;
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case ADD_HELD_CALL_TO_CONF:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_ADD_HELD_CALL_TO_CONF_REQ;
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case DIAL:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_DIAL_REQ;
+            strncpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case START_VR:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_START_VR_REQ;
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case STOP_VR:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_STOP_VR_REQ;
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case QUERY_CURRENT_CALLS:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_QUERY_CURRENT_CALLS_REQ;
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case MIC_VOL_CTRL:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_MIC_VOL_CTRL_REQ;
+            event->hfp_ag_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case SPK_VOL_CTRL:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_API_SPK_VOL_CTRL_REQ;
+            event->hfp_ag_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+    }
+}
+
 static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     switch (cmd_id) {
@@ -558,6 +667,10 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             DisplayMenu(menu_type);
             break;
 #endif
+        case HFP_AG:
+            menu_type = HFP_AG_MENU;
+            DisplayMenu(menu_type);
+            break;
 
         case MAIN_EXIT:
             ALOGV (LOGTAG " Self exit of Main thread");
@@ -1170,6 +1283,9 @@ static void BtCmdHandler (void *context) {
                 HandlePbapClientCommand(cmd_id,user_cmd );
                 break;
 #endif
+            case HFP_AG_MENU:
+                HandleHfpAGCommand(cmd_id, user_cmd );
+                break;
         }
     } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
                         g_bt_app->HandleSspInput(user_cmd)) {
@@ -1578,6 +1694,15 @@ void BluetoothApp :: InitHandler (void) {
         }
     }
 
+    if(is_hfp_ag_enabled_) {
+        threadInfo[THREAD_ID_HFP_AG].thread_id = thread_new (
+                threadInfo[THREAD_ID_HFP_AG].thread_name);
+
+        if (threadInfo[THREAD_ID_HFP_AG].thread_id) {
+            pHfpAG = new Hfp_Ag(bt_interface, config);
+        }
+    }
+
     // registers reactors for socket
     if (is_socket_input_enabled_) {
         if(LocalSocketCreate() != -1) {
@@ -1674,6 +1799,15 @@ void BluetoothApp :: DeInitHandler (void) {
             thread_free (threadInfo[THREAD_ID_HFP_CLIENT].thread_id);
             if ( pHfpClient != NULL)
                 delete pHfpClient;
+        }
+    }
+
+    if(is_hfp_ag_enabled_) {
+        //STOP HFP AG thread
+        if (threadInfo[THREAD_ID_HFP_AG].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_HFP_AG].thread_id);
+            if ( pHfpAG != NULL)
+                delete pHfpAG;
         }
     }
 
@@ -1808,6 +1942,19 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for hfp client
     is_hfp_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_HFP_CLIENT_ENABLED, false);
+    //checking for hfp ag
+    is_hfp_ag_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_HFP_AG_ENABLED, false);
+
+    if (is_hfp_client_enabled_ == true && is_hfp_ag_enabled_ == true) {
+        ALOGE (LOGTAG " Both HFP AG and Client are enabled, disabling AG. Set \
+           BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
+           enable only AG");
+        std::cout << " Both HFP AG and Client are enabled, disabling AG. Set \
+           BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
+           enable only AG" << std::endl;
+        is_hfp_ag_enabled_ = false;
+    }
     //checking for Pan handler
     is_pan_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_PAN_ENABLED, false);
