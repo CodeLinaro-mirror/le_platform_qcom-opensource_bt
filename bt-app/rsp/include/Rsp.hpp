@@ -59,7 +59,7 @@ typedef enum
     WLAN_INACTIVE,
     WLAN_TRANSACTION_PENDING,
 } rsp_power_state_t;
-
+class Gatt;
 class Rsp {
     private:
         config_t *config;
@@ -73,10 +73,12 @@ class Rsp {
         GattsDescriptorAddedEvent desc_data;
         GattsConnectionEvent conn_data;
         btgatt_interface_t *gatt_interface;
+        Gatt *app_gatt;
 
     public:
-        Rsp(btgatt_interface_t *);
+        Rsp(btgatt_interface_t *, Gatt *);
         ~Rsp();
+
         bool EnableRSP();
         bool DisableRSP(int server_if);
         inline btgatt_interface_t* GetGattInterface()
@@ -90,8 +92,8 @@ class Rsp {
         }
         inline void SetDeviceState(int currentstate)
         {
-            fprintf(stdout, "(%s) WLAN Prev State (%d) New State(%d) \n",__FUNCTION__, wlan_state,
-                    currentstate);
+            fprintf(stdout, "(%s) WLAN Prev State (%d) New State(%d) \n"
+                   ,__FUNCTION__, wlan_state, currentstate);
             wlan_state = currentstate;
         }
         inline void SetRSPClientAppData(GattcRegisterAppEvent *event)
@@ -160,6 +162,7 @@ class Rsp {
         }
         bool SendResponse(GattsRequestWriteEvent *);
         bool CopyUUID(bt_uuid_t *);
+        bool CopyClientUUID(bt_uuid_t *);
         bool ClientSetAdvData(char *);
         bool CopyParams(bt_uuid_t *, bt_uuid_t *);
         bool MatchParams(bt_uuid_t *, bt_uuid_t *);

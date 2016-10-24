@@ -41,6 +41,7 @@
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
 #include "SdpClient.hpp"
+#include "Rsp.hpp"
 #ifdef USE_BT_OBEX
 #include "PbapClient.hpp"
 #endif
@@ -58,6 +59,7 @@ extern A2dp_Source *pA2dpSource;
 extern Pan *g_pan;
 extern Gatt *g_gatt;
 extern BT_Audio_Manager *pBTAM;
+extern Rsp *rsp;
 extern SdpClient *g_sdpClient;
 #ifdef USE_BT_OBEX
 extern PbapClient *g_pbapClient;
@@ -145,6 +147,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         case TEST_MENU:
             menu = &TestMenu[0];
             num_cmds  = NO_OF_COMMANDS(TestMenu);
+            break;
+        case RSP_MENU:
+            menu = &RspMenu[0];
+            num_cmds  = NO_OF_COMMANDS(RspMenu);
             break;
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
@@ -237,6 +243,10 @@ static void DisplayMenu(MenuType menu_type) {
         case TEST_MENU:
             menu = &TestMenu[0];
             num_cmds  = NO_OF_COMMANDS(TestMenu);
+            break;
+        case RSP_MENU:
+            menu = &RspMenu[0];
+            num_cmds  = NO_OF_COMMANDS(RspMenu);
             break;
         case MAIN_MENU:
             menu = &MainMenu[0];
@@ -702,6 +712,10 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = TEST_MENU;
             DisplayMenu(menu_type);
             break;
+        case RSP_OPTION:
+            menu_type = RSP_MENU;
+            DisplayMenu(menu_type);
+            break;
         case A2DP_SINK:
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);
@@ -779,19 +793,52 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             }
             break;
 
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+        default:
+            ALOGV (LOGTAG " Command not handled");
+            break;
+    }
+}
+
+static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+
+    long num;
+    char *end;
+    int index = 0;
+    switch (cmd_id) {
         case RSP_INIT:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 fprintf( stdout, "ENABLE RSP\n");
-                if (g_gatt) g_gatt->rsp->EnableRSP();
-            } else {
+                if (rsp) {
+                   fprintf(stdout,"rsp already initialized \n");
+                   return;
+                } else {
+                  if (g_gatt) {
+                     rsp = new Rsp(g_gatt->GetGattInterface(),g_gatt);
+                     if (rsp) {
+                        rsp->EnableRSP();
+                        fprintf(stdout, " EnableRSP done \n");
+                     }
+                     else {
+                        fprintf(stdout, " RSP Alloc failed return failure \n");
+                     }
+                  } else {
+                     fprintf(stdout," gatt interface us null \n");
+                  }
+                }
+             }
+             else {
                 fprintf( stdout, "BT is in OFF State now \n");
-            }
+             }
             break;
 
         case RSP_START:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 fprintf( stdout, "(Re)start Advertisement \n");
-                if (g_gatt) g_gatt->rsp->StartAdvertisement();
+                if (rsp) rsp->StartAdvertisement();
             } else {
                 fprintf( stdout, "BT is in OFF State now \n");
             }
@@ -801,8 +848,9 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
             break;
+
         default:
-            ALOGV (LOGTAG " Command not handled");
+            fprintf(stdout, " Command not handled");
             break;
     }
 }
@@ -1320,6 +1368,9 @@ static void BtCmdHandler (void *context) {
                 break;
             case TEST_MENU:
                 HandleTestCommand(cmd_id, user_cmd);
+                break;
+            case RSP_MENU:
+                HandleRspCommand(cmd_id, user_cmd);
                 break;
             case MAIN_MENU:
                 HandleMainCommand(cmd_id,user_cmd );

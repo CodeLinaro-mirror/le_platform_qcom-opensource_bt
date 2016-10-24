@@ -986,7 +986,7 @@ typedef struct
     BluetoothEventId event_id;
     int client_if;
     btgattc_error_t status;
-} GattcScanParameterSetupCompleted_Event;
+} GattcScanParameterSetupCompletedEvent;
 
 typedef struct{
     BluetoothEventId event_id;
@@ -1135,6 +1135,7 @@ typedef struct
 typedef struct {
     BluetoothEventId event_id;
     bt_uuid_t server_uuid;
+    bt_uuid_t client_uuid;
     bt_uuid_t service_uuid;
     bt_uuid_t characteristics_uuid;
     bt_uuid_t descriptor_uuid;
@@ -1300,7 +1301,7 @@ typedef union {
     GattcBatchscanReportsEvent              gattc_batchscan_reports_event;
     GattcBatchscanThresholdEvent            gattc_batchscan_threshold_event;
     GattcTrackAdvEventEvent                 gattc_track_adv_event_event;
-    GattcScanParameterSetupCompleted_Event  gattc_scan_parameter_setup_completed_event;
+    GattcScanParameterSetupCompletedEvent  gattc_scan_parameter_setup_completed_event;
 
     RspEnableEvent                          rsp_enable_event;
     RspDisableEvent                         rsp_disable_event;
