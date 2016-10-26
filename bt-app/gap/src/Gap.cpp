@@ -39,6 +39,7 @@ const char *BT_LOCAL_DEV_NAME = "BtLocalDeviceName";
 const char *BT_SCAN_MODE_TYPE = "BtScanMode";
 const char *BT_USR_INPUT     = "UserInteractionNeeded";
 const char *BT_A2DP_SINK_ENABLED_STRING  = "BtA2dpSinkEnable";
+const char *BT_A2DP_SOURCE_ENABLED_STRING  = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED_STRING  = "BtHfClientEnable";
 const char *BT_PAN_ENABLED    = "BtPanEnable";
 const char *BT_GATT_ENABLED   = "BtGattEnable";
@@ -646,10 +647,14 @@ void Gap::ProcessEvent(BtEvent* event) {
             kill(getpid(), SIGKILL);
             break;
         case GAP_API_DISABLE:
-            bt_event = new BtEvent;
-            bt_event->event_id = A2DP_SINK_CLEANUP_REQ;
-            PostMessage(THREAD_ID_A2DP_SINK, bt_event);
-            break;
+            if (profile_config[PROFILE_ID_A2DP_SINK].is_enabled)
+            {
+                bt_event = new BtEvent;
+                bt_event->event_id = A2DP_SINK_CLEANUP_REQ;
+                PostMessage(THREAD_ID_A2DP_SINK, bt_event);
+                break;
+            }
+            /*Fall through*/
         case A2DP_SINK_CLEANUP_DONE:
             // check if there are profiles enabled
             if(!supported_profiles_count) {
@@ -797,8 +802,10 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
         if(profile_id == PROFILE_ID_BT_AM)
             this->profile_config[profile_id].thread_id = THREAD_ID_BT_AM;
-        if(profile_id == PROFILE_ID_A2DP_SINK)
+        else if(profile_id == PROFILE_ID_A2DP_SINK)
             this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK;
+        else if(profile_id == PROFILE_ID_A2DP_SOURCE)
+            this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SOURCE;
         else if(profile_id == PROFILE_ID_HFP_CLIENT)
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_CLIENT;
         else if (profile_id == PROFILE_ID_PAN)
@@ -817,6 +824,9 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED_STRING, false);
+
+    this->profile_config[PROFILE_ID_A2DP_SOURCE].is_enabled = config_get_bool (config,
+                     CONFIG_DEFAULT_SECTION, BT_A2DP_SOURCE_ENABLED_STRING, false);
 
     this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_HFP_CLIENT_ENABLED_STRING, false);
