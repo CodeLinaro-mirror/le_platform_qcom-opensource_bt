@@ -92,12 +92,12 @@ char* BT_Audio_Manager::dump_message(BluetoothEventId event_id) {
 }
 
 void BT_Audio_Manager::HandleEnableBTAM(void) {
-    UnloadAudioHal();
     BtEvent *pEvent = new BtEvent;
     pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
     pEvent->profile_start_event.profile_id = PROFILE_ID_BT_AM;
     pEvent->profile_start_event.status = true;
     PostMessage(THREAD_ID_GAP, pEvent);
+    LoadAudioHal();
 }
 
 void BT_Audio_Manager::HandleDisableBTAM(void) {
@@ -255,7 +255,6 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
             top = GetTopIndex();
             if (top < 0) {
                 // fresh request, load Audio HAL TODO:BTAM Load Audio HAL
-                LoadAudioHal();
                 AddNewNode(pEvent->btamControlReq.profile_id, pEvent->btamControlReq.request_type);
                 if (pEvent->btamControlReq.request_type == REQUEST_TYPE_PERMANENT)
                     SendControlStatusMessage(STATUS_GAIN, pEvent->btamControlReq.profile_id);
@@ -318,9 +317,6 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
                                        audio_control_stack[top-1].profile_id);
             }
             RemoveNode(profile_index);
-            if (GetTopIndex() < 0) {
-                UnloadAudioHal();
-            }
             break;
     }
 }

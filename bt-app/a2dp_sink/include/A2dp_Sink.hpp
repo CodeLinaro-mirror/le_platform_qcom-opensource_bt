@@ -92,7 +92,20 @@ class A2dp_Sink {
     alarm_t *pcm_data_fetch_timer;
 #if (defined BT_AUDIO_HAL_INTEGRATION)
     audio_stream_out_t* out_stream;
+    // structures used for loading A2DP HAL
+    audio_hw_device_t *a2dp_input_device;
+    audio_stream_in *input_stream;
 #endif
+    //apis for in_stream bt a2dp HAL, to read data.
+    void LoadBtA2dpHAL();
+    void UnLoadBtA2dpHAL();
+    void OpenInputStream();
+    void SuspendInputStream();
+    void CloseInputStream();
+    uint32_t ReadInputStream(uint8_t* data, uint32_t size);
+    uint32_t GetInputStreamBufferSize();
+    bool use_bt_a2dp_hal;
+    // apis for out_stream Audio HAL, to write data.
     void ConfigureAudioHal();
     void CloseAudioStream();
     size_t pcm_buf_size;
