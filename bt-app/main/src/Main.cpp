@@ -738,8 +738,8 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 void HandleOnOffTest (void *context) {
     char *end;
     int index = 0;
-    int  num = (int) context;
-    for( index = 0; index < (int)num; index++) {
+    long  num = (long) context;
+    for( index = 0; index < (long)num; index++) {
         BtEvent *event_on = new BtEvent;
         event_on->event_id = GAP_API_ENABLE;
         fprintf( stdout, "Iteration: %d : Posting enable\n", index + 1);
