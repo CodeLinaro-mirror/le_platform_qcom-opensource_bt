@@ -1206,6 +1206,20 @@ static void HandlePbapClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
             event->pbap_client_event.event_id = PBAP_CLIENT_GET_ORDER;
             PostMessage (THREAD_ID_PBAP_CLIENT, event);
             break;
+        case PBAP_SET_SEARCH_ATTRIBUTE:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_SEARCH_ATTRIBUTE;
+            memset( (void *) event->pbap_client_event.value, '\0',
+                sizeof(event->pbap_client_event.value));
+            strlcpy(event->pbap_client_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_SEARCH_ATTRIBUTE:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_SEARCH_ATTRIBUTE;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
         case PBAP_SET_SEARCH_VALUE:
             event = new BtEvent;
             event->pbap_client_event.event_id = PBAP_CLIENT_SET_SEARCH_VALUE;
