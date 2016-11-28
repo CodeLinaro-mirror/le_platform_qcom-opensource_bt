@@ -161,7 +161,7 @@ void volume_control_callback(bthf_volume_type_t type, int volume, bt_bdaddr_t* b
     ALOGD(LOGTAG "%s : %s volume is %d", __func__,
           (type == BTHF_VOLUME_TYPE_SPK) ? "speaker": "mic", volume);
     cout << LOGTAG << " " << __func__ << ": " << ((type == BTHF_VOLUME_TYPE_SPK) ? "speaker": "mic");
-    cout << " volume is " << volume;
+    cout << " volume is " << volume << endl;
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.event_id = HFP_AG_VOL_CONTROL_CB;
@@ -334,10 +334,10 @@ void ril_ind_cb(mcm_client_handle_type hndl, uint32 msg_id,
                      void *ind_c_struct, uint32 ind_len) {
    BtEvent *pEvent = new BtEvent;
    cout << "ril_ind_cb: indications is %u" << msg_id << endl;
-   ALOGD(LOGTAG, "%s: indications is %u\n", __func__, msg_id);
+   ALOGD(LOGTAG "%s: indications is %u\n", __func__, msg_id);
 
    if (ind_c_struct == NULL) {
-       ALOGE(LOGTAG, "%s: indication data is NULL", __func__);
+       ALOGE(LOGTAG "%s: indication data is NULL", __func__);
        cout << "indication data is NULL" << endl;
        return;
    }
@@ -354,10 +354,10 @@ void ril_resp_cb(mcm_client_handle_type hndl, uint32 msg_id,
                       void *resp_c_struct, uint32 resp_len, void *token_id){
    BtEvent *pEvent = new BtEvent;
    cout << "ril_resp_cb: response msg %u" << msg_id << endl;
-   ALOGD(LOGTAG, "%s: response msg  is %u\n", __func__, msg_id);
+   ALOGD(LOGTAG "%s: response msg  is %u\n", __func__, msg_id);
 
    if (resp_c_struct == NULL) {
-       ALOGE(LOGTAG, "%s: response data is NULL", __func__);
+       ALOGE(LOGTAG "%s: response data is NULL", __func__);
        cout << "response data is NULL" << endl;
        return;
    }
@@ -439,7 +439,7 @@ void Hfp_Ag::ProcessEvent(BtEvent* pEvent) {
             state_audio_on_handler(pEvent);
             break;
         case HFP_AG_STATE_NOT_STARTED:
-            ALOGE(LOGTAG," STATE UNINITIALIZED, return");
+            ALOGE(LOGTAG " STATE UNINITIALIZED, return");
             break;
     }
 }
@@ -456,7 +456,7 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
             }
             bdaddr_to_string(&mConnectingDevice, str, 18);
             cout << "connecting with device " << str << endl;
-            ALOGD(LOGTAG "connecting with device %s", str);
+            ALOGD(LOGTAG " connecting with device %s", str);
             change_state(HFP_AG_STATE_PENDING);
             break;
         case HFP_AG_CONNECTING_CB:
@@ -474,7 +474,7 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
             change_state(HFP_AG_STATE_CONNECTED);
             break;
         default:
-            ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
+            ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 }
@@ -504,14 +504,14 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             change_state(HFP_AG_STATE_DISCONNECTED);
             break;
         default:
-            ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
+            ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 }
 
 void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
     ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
-    cout << LOGTAG "state_connected_handler Processing event %d" <<  pEvent->event_id;
+    cout << LOGTAG "state_connected_handler Processing event " <<  pEvent->event_id << endl;
     char str[18];
     BtEvent *pControlRequest, *pReleaseControlReq;
     switch(pEvent->event_id) {
@@ -710,8 +710,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_AUDIO_STATE_CONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "SCO/eSCO connected with device " << str << endl;
-            ALOGD(LOGTAG "SCO/eSCO connected with device %s", str);
+            cout << "SCO/eSCO connected with device " << str << " codec ";
+            cout << ((mWbsState == BTHF_WBS_YES)? "WBS": "NBS")  << endl;
+            ALOGD(LOGTAG "SCO/eSCO connected with device %s, codec %s", str,
+                ((mWbsState == BTHF_WBS_YES)? "WBS": "NBS"));
 
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
             setup_sco_path();

@@ -573,6 +573,8 @@ void Gap::ProcessEvent(BtEvent* event) {
                 if(profile_config[profile_id].is_enabled) {
                     bt_event = new BtEvent;
                     bt_event->event_id = PROFILE_API_START;
+                    ALOGD(LOGTAG " sending start to Profile %d",
+                        profile_id);
                     PostMessage(profile_config[profile_id].thread_id, bt_event);
                 }
             }
@@ -835,8 +837,7 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
                      CONFIG_DEFAULT_SECTION, BT_HFP_AG_ENABLED_STRING, false);
 
     if ((this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled) ||
-        (this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled)||
-        (this->profile_config[PROFILE_ID_HFP_AG].is_enabled)) {
+        (this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled)) {
         this->profile_config[PROFILE_ID_BT_AM].is_enabled = true;
     }
 
