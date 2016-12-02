@@ -41,6 +41,7 @@
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
 #include "SdpClient.hpp"
+#include "Rsp.hpp"
 #ifdef USE_BT_OBEX
 #include "PbapClient.hpp"
 #endif
@@ -58,6 +59,7 @@ extern A2dp_Source *pA2dpSource;
 extern Pan *g_pan;
 extern Gatt *g_gatt;
 extern BT_Audio_Manager *pBTAM;
+extern Rsp *rsp;
 extern SdpClient *g_sdpClient;
 #ifdef USE_BT_OBEX
 extern PbapClient *g_pbapClient;
@@ -145,6 +147,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         case TEST_MENU:
             menu = &TestMenu[0];
             num_cmds  = NO_OF_COMMANDS(TestMenu);
+            break;
+        case RSP_MENU:
+            menu = &RspMenu[0];
+            num_cmds  = NO_OF_COMMANDS(RspMenu);
             break;
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
@@ -237,6 +243,10 @@ static void DisplayMenu(MenuType menu_type) {
         case TEST_MENU:
             menu = &TestMenu[0];
             num_cmds  = NO_OF_COMMANDS(TestMenu);
+            break;
+        case RSP_MENU:
+            menu = &RspMenu[0];
+            num_cmds  = NO_OF_COMMANDS(RspMenu);
             break;
         case MAIN_MENU:
             menu = &MainMenu[0];
@@ -702,6 +712,10 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = TEST_MENU;
             DisplayMenu(menu_type);
             break;
+        case RSP_OPTION:
+            menu_type = RSP_MENU;
+            DisplayMenu(menu_type);
+            break;
         case A2DP_SINK:
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);
@@ -779,19 +793,52 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             }
             break;
 
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+        default:
+            ALOGV (LOGTAG " Command not handled");
+            break;
+    }
+}
+
+static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+
+    long num;
+    char *end;
+    int index = 0;
+    switch (cmd_id) {
         case RSP_INIT:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 fprintf( stdout, "ENABLE RSP\n");
-                if (g_gatt) g_gatt->rsp->EnableRSP();
-            } else {
+                if (rsp) {
+                   fprintf(stdout,"rsp already initialized \n");
+                   return;
+                } else {
+                  if (g_gatt) {
+                     rsp = new Rsp(g_gatt->GetGattInterface(),g_gatt);
+                     if (rsp) {
+                        rsp->EnableRSP();
+                        fprintf(stdout, " EnableRSP done \n");
+                     }
+                     else {
+                        fprintf(stdout, " RSP Alloc failed return failure \n");
+                     }
+                  } else {
+                     fprintf(stdout," gatt interface us null \n");
+                  }
+                }
+             }
+             else {
                 fprintf( stdout, "BT is in OFF State now \n");
-            }
+             }
             break;
 
         case RSP_START:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 fprintf( stdout, "(Re)start Advertisement \n");
-                if (g_gatt) g_gatt->rsp->StartAdvertisement();
+                if (rsp) rsp->StartAdvertisement();
             } else {
                 fprintf( stdout, "BT is in OFF State now \n");
             }
@@ -801,8 +848,9 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
             break;
+
         default:
-            ALOGV (LOGTAG " Command not handled");
+            fprintf(stdout, " Command not handled");
             break;
     }
 }
@@ -1000,6 +1048,22 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     int index = 0;
 
     switch (cmd_id) {
+        case CONNECT:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                    BtEvent *event = new BtEvent;
+                    event->event_id = PAN_EVENT_DEVICE_CONNECT_REQ;
+                    string_to_bdaddr(user_cmd[ONE_PARAM],
+                            &event->pan_device_connect_event.bd_addr);
+                    PostMessage (THREAD_ID_PAN, event);
+                } else {
+                    fprintf(stdout, " BD address is NULL/Invalid ");
+                }
+            } else {
+                fprintf(stdout, " Currently BT is in OFF state");
+            }
+            break;
+
         case DISCONNECT:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
@@ -1049,14 +1113,24 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             }
             break;
 
+        case GET_PAN_MODE:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                BtEvent *event = new BtEvent;
+                event->event_id = PAN_EVENT_GET_MODE_REQ;
+                PostMessage (THREAD_ID_PAN, event);
+            } else {
+                fprintf(stdout, " Currently BT is in OFF state");
+            }
+            break;
+
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
             break;
 
         default:
-        ALOGV (LOGTAG " Command not handled: %d", cmd_id);
-        break;
+            ALOGV (LOGTAG " Command not handled: %d", cmd_id);
+            break;
     }
 }
 
@@ -1156,6 +1230,20 @@ static void HandlePbapClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
         case PBAP_GET_ORDER:
             event = new BtEvent;
             event->pbap_client_event.event_id = PBAP_CLIENT_GET_ORDER;
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_SET_SEARCH_ATTRIBUTE:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_SET_SEARCH_ATTRIBUTE;
+            memset( (void *) event->pbap_client_event.value, '\0',
+                sizeof(event->pbap_client_event.value));
+            strlcpy(event->pbap_client_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_PBAP_CLIENT, event);
+            break;
+        case PBAP_GET_SEARCH_ATTRIBUTE:
+            event = new BtEvent;
+            event->pbap_client_event.event_id = PBAP_CLIENT_GET_SEARCH_ATTRIBUTE;
             PostMessage (THREAD_ID_PBAP_CLIENT, event);
             break;
         case PBAP_SET_SEARCH_VALUE:
@@ -1264,6 +1352,8 @@ void BtSocketDataHandler (void *context) {
                 /*fall through for PAN IPC message*/
                 case BT_IPC_ENABLE_TETHERING:
                 case BT_IPC_DISABLE_TETHERING:
+                case BT_IPC_ENABLE_REVERSE_TETHERING:
+                case BT_IPC_DISABLE_REVERSE_TETHERING:
                     ALOGV (LOGTAG "  Posting IPC_MSG to PAN thread");
                     PostMessage (THREAD_ID_PAN, event);
                     break;
@@ -1320,6 +1410,9 @@ static void BtCmdHandler (void *context) {
                 break;
             case TEST_MENU:
                 HandleTestCommand(cmd_id, user_cmd);
+                break;
+            case RSP_MENU:
+                HandleRspCommand(cmd_id, user_cmd);
                 break;
             case MAIN_MENU:
                 HandleMainCommand(cmd_id,user_cmd );

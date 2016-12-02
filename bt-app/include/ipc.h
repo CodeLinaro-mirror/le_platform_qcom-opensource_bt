@@ -330,6 +330,7 @@ typedef enum {
     PAN_EVENT_CONTROL_STATE_CHANGED = PAN_MSG_BASE,
     PAN_EVENT_CONNECTION_STATE_CHANGED,
     PAN_EVENT_SET_TETHERING_REQ,
+    PAN_EVENT_GET_MODE_REQ,
     PAN_EVENT_DEVICE_CONNECT_REQ,
     PAN_EVENT_DEVICE_DISCONNECT_REQ,
     PAN_EVENT_DEVICE_CONNECTED_LIST_REQ,
@@ -727,6 +728,13 @@ typedef struct {
 } PanSetTetheringEvent;
 
 /**
+ * Event for displaying tethering user choice & pan mode on UI
+ */
+typedef struct {
+    BluetoothEventId event_id;
+} PanGetModeEvent;
+
+/**
  * Event for notifying Pan disconnect
  */
 typedef struct {
@@ -986,7 +994,7 @@ typedef struct
     BluetoothEventId event_id;
     int client_if;
     btgattc_error_t status;
-} GattcScanParameterSetupCompleted_Event;
+} GattcScanParameterSetupCompletedEvent;
 
 typedef struct{
     BluetoothEventId event_id;
@@ -1135,6 +1143,7 @@ typedef struct
 typedef struct {
     BluetoothEventId event_id;
     bt_uuid_t server_uuid;
+    bt_uuid_t client_uuid;
     bt_uuid_t service_uuid;
     bt_uuid_t characteristics_uuid;
     bt_uuid_t descriptor_uuid;
@@ -1247,6 +1256,7 @@ typedef union {
     PanControlStateEvent                    pan_control_state_event;
     PanConnectionStateEvent                 pan_connection_state_event;
     PanSetTetheringEvent                    pan_set_tethering_event;
+    PanGetModeEvent                         pan_get_mode_event;
     PanDeviceDisconnectEvent                pan_device_disconnect_event;
     PanDeviceConnectEvent                   pan_device_connect_event;
     PanDeviceConnectedListEvent             pan_device_connected_list_event;
@@ -1300,7 +1310,7 @@ typedef union {
     GattcBatchscanReportsEvent              gattc_batchscan_reports_event;
     GattcBatchscanThresholdEvent            gattc_batchscan_threshold_event;
     GattcTrackAdvEventEvent                 gattc_track_adv_event_event;
-    GattcScanParameterSetupCompleted_Event  gattc_scan_parameter_setup_completed_event;
+    GattcScanParameterSetupCompletedEvent  gattc_scan_parameter_setup_completed_event;
 
     RspEnableEvent                          rsp_enable_event;
     RspDisableEvent                         rsp_disable_event;
@@ -1321,6 +1331,14 @@ typedef enum{
      * ipc message to disable tethering
      */
     BT_IPC_DISABLE_TETHERING,
+    /**
+     * ipc message to enable reverse tethering
+     */
+    BT_IPC_ENABLE_REVERSE_TETHERING,
+    /**
+     * ipc message to disable reverse tethering
+     */
+    BT_IPC_DISABLE_REVERSE_TETHERING,
     /**
      * ipc message to start WLAN
      */

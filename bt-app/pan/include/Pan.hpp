@@ -98,6 +98,7 @@ class Pan {
         void HandlePanControlStateEvent(PanControlStateEvent *event);
         void HandlePanConnectionStateEvent(PanConnectionStateEvent *event);
         void HandlePanSetTetheringEvent(PanSetTetheringEvent *event);
+        void HandlePanGetModeEvent(PanGetModeEvent *event);
         void HandlePanDeviceConnectEvent(PanDeviceConnectEvent *event);
         void HandlePanDeviceDisconnectEvent(PanDeviceDisconnectEvent *event);
         void HandlePanDeviceConnectedListEvent(PanDeviceConnectedListEvent *event);

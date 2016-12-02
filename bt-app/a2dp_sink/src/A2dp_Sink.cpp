@@ -87,6 +87,9 @@ void BtA2dpSinkMsgHandler(void *msg) {
         case A2DP_SINK_CLEANUP_REQ:
             ALOGD(LOGTAG " cleanup a2dp sink");
             if (pA2dpSink) {
+                if (pA2dpSink->use_bt_a2dp_hal) {
+                    pA2dpSink->CloseInputStream();
+                }
                 pA2dpSink->CloseAudioStream();
                 pA2dpSink->StopPcmTimer();
             }
@@ -160,7 +163,7 @@ static void bta2dp_connection_state_callback(btav_connection_state_t state, bt_b
 }
 
 static void bta2dp_audio_state_callback(btav_audio_state_t state, bt_bdaddr_t* bd_addr) {
-    ALOGD(LOGTAG " Audio State CB");
+    ALOGD(LOGTAG " Audio State CB state = %d", state);
     BtEvent *pEvent = new BtEvent;
     memcpy(&pEvent->a2dpSinkEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     switch( state ) {
@@ -288,7 +291,21 @@ static btrc_ctrl_callbacks_t sBluetoothAvrcpCtrlCallbacks = {
 };
 
 void A2dp_Sink::SendPassThruCommandNative(uint8_t key_id) {
-    if (sBtAvrcpCtrlInterface != NULL) {
+    if ((use_bt_a2dp_hal) && ((key_id == CMD_ID_PAUSE) || (key_id == CMD_ID_PLAY))) {
+        if (CMD_ID_PAUSE == key_id)
+        {
+            StopPcmTimer();
+            SuspendInputStream();
+        }
+        if (CMD_ID_PLAY == key_id)
+        {
+            ALOGD( LOGTAG_CTRL " sending started event ");
+            BtEvent *pEvent = new BtEvent;
+            pEvent->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_STARTED;
+            PostMessage(THREAD_ID_A2DP_SINK, pEvent);
+        }
+    }
+    else if (sBtAvrcpCtrlInterface != NULL) {
         sBtAvrcpCtrlInterface->send_pass_through_cmd(&mConnectedAvrcpDevice, key_id, 0);
         sBtAvrcpCtrlInterface->send_pass_through_cmd(&mConnectedAvrcpDevice, key_id, 1);
     }
@@ -343,12 +360,21 @@ void A2dp_Sink::HandleEnableSink(void) {
         }
         PostMessage(THREAD_ID_GAP, pEvent);
     }
+    use_bt_a2dp_hal = config_get_bool (config,
+            CONFIG_DEFAULT_SECTION, "BtUseA2dpHalForSink", false);
+    ALOGD(LOGTAG " Use BT A2DP HAL ENabled %d", use_bt_a2dp_hal);
+    if(use_bt_a2dp_hal) {
+        LoadBtA2dpHAL();
+    }
 }
 
 void A2dp_Sink::HandleDisableSink(void) {
    change_state(STATE_NOT_STARTED);
    CloseAudioStream();
    StopPcmTimer();
+   if(use_bt_a2dp_hal) {
+       UnLoadBtA2dpHAL();
+   }
    if(sBtA2dpSinkInterface != NULL) {
        sBtA2dpSinkInterface->cleanup();
        sBtA2dpSinkInterface = NULL;
@@ -440,6 +466,8 @@ void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent) {
             bdaddr_to_string(&mConnectedDevice, str, 18);
             cout << "A2DP Sink Connected to " << str << endl;
             change_state(STATE_CONNECTED);
+            if(use_bt_a2dp_hal)
+                OpenInputStream();
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
@@ -458,6 +486,8 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent) {
             bdaddr_to_string(&mConnectedDevice, str, 18);
             cout << "A2DP Sink Connected to " << str << endl;
             change_state(STATE_CONNECTED);
+            if(use_bt_a2dp_hal)
+                OpenInputStream();
             break;
         case A2DP_SINK_DISCONNECTED_CB:
             cout << "A2DP Sink DisConnected "<< endl;
@@ -537,16 +567,26 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             break;
         case A2DP_SINK_FETCH_PCM_DATA:
            pcm_timer = false;
+           if (pcm_buf == NULL) {
+              // pcm buffer is null, closeStream have been called earlier
+              break;
+           }
            // first start next timer
            StartPcmTimer();
 
-            // fetch PCM data from fluoride
             if ((sBtA2dpSinkInterface != NULL) && ( pcm_buf != NULL)) {
-                pcm_data_read =  sBtA2dpSinkInterface->get_pcm_data(pcm_buf, pcm_buf_size);
+                if(use_bt_a2dp_hal) {
+                    // read data from BT A2DP HAL
+                    pcm_data_read =  ReadInputStream(pcm_buf, pcm_buf_size);
+                }
+                else {
+                    // fetch PCM data from fluoride
+                    pcm_data_read =  sBtA2dpSinkInterface->get_pcm_data(pcm_buf, pcm_buf_size);
+                }
                 ALOGD(LOGTAG " pcm_data_read = %d", pcm_data_read);
             }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
-            if ((pBTAM->GetAudioDevice() != NULL) && (out_stream != NULL)) {
+            if ((pBTAM->GetAudioDevice() != NULL) && (out_stream != NULL) && (pcm_data_read)) {
                 out_stream->write(out_stream, pcm_buf, pcm_data_read);
             }
 #endif
@@ -612,6 +652,9 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             // release focus in this case.
             CloseAudioStream();
             StopPcmTimer();
+            if (use_bt_a2dp_hal) {
+                SuspendInputStream();
+            }
             if (controlStatus != STATUS_LOSS_TRANSIENT) {
                 pReleaseControlReq = new BtEvent;
                 pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
@@ -707,9 +750,127 @@ void A2dp_Sink::CloseAudioStream() {
     }
 #endif
 }
+void A2dp_Sink::LoadBtA2dpHAL() {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    const hw_module_t *module;
+    ALOGD(LOGTAG " Load A2dp HAL ");
+    if (hw_get_module_by_class(AUDIO_HARDWARE_MODULE_ID,
+                               AUDIO_HARDWARE_MODULE_ID_A2DP,
+                               &module)) {
+        ALOGE(LOGTAG " A2dp Hal module not found ");
+        return;
+    }
+    if (audio_hw_device_open(module, &a2dp_input_device)) {
+        a2dp_input_device = NULL;
+        ALOGE(LOGTAG " A2dp Hal device can not be opened ");
+        return;
+    }
+    ALOGD(LOGTAG " A2dp HAL successfully loaded ");
+#endif
+}
+
+void A2dp_Sink::UnLoadBtA2dpHAL() {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    ALOGD(LOGTAG " Unload A2dp HAL");
+    //BtA2dpCloseOutputStream();
+    if(!a2dp_input_device)
+    {
+        ALOGD(LOGTAG " A2dp_input_device not valid ");
+        return;
+    }
+    if (audio_hw_device_close(a2dp_input_device) < 0) {
+        ALOGE(LOGTAG " A2dp HAL could not be closed gracefully");
+        return;
+    }
+    a2dp_input_device = NULL;
+    ALOGD(LOGTAG " A2dp HAL successfully Unloaded ");
+#endif
+
+}
+
+void A2dp_Sink::OpenInputStream()
+{
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    int ret = -1;
+    ALOGD(LOGTAG " Open A2dp Input Stream ");
+    if (!a2dp_input_device) {
+        ALOGE(LOGTAG " Invalid A2dp HAL device. Bail out! ");
+        return;
+    }
+    ret = a2dp_input_device->open_input_stream(a2dp_input_device, 0, AUDIO_DEVICE_OUT_ALL_A2DP,
+            NULL, &input_stream, AUDIO_INPUT_FLAG_NONE, "bt_a2dp_input_stream" , AUDIO_SOURCE_DEFAULT);
+    if (ret < 0) {
+        input_stream = NULL;
+        ALOGE(LOGTAG " open input stream returned %d\n ", ret);
+    }
+    ALOGD(LOGTAG " A2dp Input Stream successfully opened ");
+#endif
+}
+
+void A2dp_Sink::CloseInputStream()
+{
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    ALOGD(LOGTAG " Close A2dp Input Stream ");
+    if ((a2dp_input_device == NULL) || (input_stream == NULL)) {
+        ALOGE(LOGTAG " Invalid A2dp HAL device. Bail out! ");
+        return;
+    }
+    a2dp_input_device->close_input_stream(a2dp_input_device,input_stream);
+    input_stream = NULL;
+    ALOGD(LOGTAG " A2dp Input Stream successfully closed ");
+#endif
+}
+
+void A2dp_Sink::SuspendInputStream()
+{
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    ALOGD(LOGTAG " Suspend Input Stream ");
+    if(!input_stream)
+    {
+        ALOGE(LOGTAG " Invalid Input Stream. Bail out! ");
+        return;
+    }
+    input_stream->common.standby(&input_stream->common);
+    ALOGD(LOGTAG " A2dp Stream suspended successfully");
+#endif
+}
+
+uint32_t A2dp_Sink::ReadInputStream(uint8_t* data, uint32_t size)
+{
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    uint32_t data_read;
+    ALOGD(LOGTAG " Read Input Stream");
+    if(!input_stream)
+    {
+        ALOGE(LOGTAG " Invalid Input Stream. Bail out! ");
+        return 0 ;
+    }
+    data_read = input_stream->read(input_stream, data, size);
+    ALOGD(LOGTAG " A2dp Input Stream bytes read = %d", data_read);
+    return data_read;
+#endif
+}
+
+uint32_t A2dp_Sink::GetInputStreamBufferSize()
+{
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    ALOGD(LOGTAG " GetInputStreamBufferSize + ");
+    if(!input_stream)
+    {
+        ALOGE(LOGTAG " Invalid Input Stream. Bail out! ");
+        return 0 ;
+    }
+    return input_stream->common.get_buffer_size(&input_stream->common);
+    ALOGD(LOGTAG " GetInputStreamBufferSize %d ");
+#endif
+}
+
 void A2dp_Sink::OnDisconnected() {
     ALOGD(LOGTAG " onDisconnected ");
     StopPcmTimer();
+    if (use_bt_a2dp_hal) {
+        CloseInputStream();
+    }
     CloseAudioStream();
 }
 void A2dp_Sink::change_state(A2dpSinkState mState) {
@@ -732,6 +893,7 @@ A2dp_Sink :: A2dp_Sink(const bt_interface_t *bt_interface, config_t *config) {
     mSinkState = STATE_NOT_STARTED;
     controlStatus = STATUS_LOSS;
     mAvrcpConnected = false;
+    use_bt_a2dp_hal = false;
     channel_count = 0;
     sample_rate = 0;
     memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
@@ -743,6 +905,8 @@ A2dp_Sink :: A2dp_Sink(const bt_interface_t *bt_interface, config_t *config) {
     pcm_timer = false;
 #if (defined BT_AUDIO_HAL_INTEGRATION)
     out_stream =  NULL;
+    input_stream = NULL;
+    a2dp_input_device = NULL;
 #endif
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
     outputPcmSampleFile =  NULL;
@@ -752,11 +916,14 @@ A2dp_Sink :: A2dp_Sink(const bt_interface_t *bt_interface, config_t *config) {
 A2dp_Sink :: ~A2dp_Sink() {
     pthread_mutex_destroy(&lock);
     mAvrcpConnected = false;
+    use_bt_a2dp_hal = false;
     controlStatus = STATUS_LOSS;
     alarm_free(pcm_data_fetch_timer);
     pcm_data_fetch_timer = NULL;
 #if (defined BT_AUDIO_HAL_INTEGRATION)
     out_stream = NULL;
+    input_stream = NULL;
+    a2dp_input_device = NULL;
 #endif
     if (pcm_buf != NULL) {
         osi_free(pcm_buf);

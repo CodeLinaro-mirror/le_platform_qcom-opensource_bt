@@ -20,11 +20,12 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/osi/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gap/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/pan/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/rsp/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_client/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_ag/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
+               -I${WORKSPACE}/qcom-opensource/bt/gatt/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
                -I${WORKSPACE}/hardware/libhardware/include \
@@ -53,15 +54,15 @@ c_sources = ../utils/src/utils.c \
             ../hfp_client/src/HfpClient.cpp \
             ../hfp_ag/src/HfpAG.cpp \
             ../pan/src/Pan.cpp \
-            ../gatt/src/Gatt.cpp \
-            ../gatt/src/Rsp.cpp \
-            ../sdp_client/src/SdpClient.cpp
+            ../sdp_client/src/SdpClient.cpp\
+            ../rsp/src/Rsp.cpp
 
 if USE_BT_OBEX
 c_sources +=  ../pbap_client/src/PbapClient.cpp
 endif
 
 requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware
+requiredlibs += $(SYS_LIB)/libgengatt.la
 
 if USE_BT_OBEX
 requiredlibs += $(SYS_LIB)/libbtobex.la

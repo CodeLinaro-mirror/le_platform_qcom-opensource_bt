@@ -30,6 +30,7 @@
 #include <hardware/bluetooth.h>
 #include "include/ipc.h"
 #include "utils.h"
+#include "Rsp.hpp"
 
 #include <cutils/sockets.h>
 #include <sys/un.h>
@@ -146,6 +147,8 @@ typedef enum {
     PAN_OPTION,
     CONNECTED_LIST,
     SET_TETHERING,
+    GET_PAN_MODE,
+    RSP_OPTION,
     RSP_INIT,
     RSP_START,
 #ifdef USE_BT_OBEX
@@ -227,6 +230,7 @@ typedef enum {
     A2DP_SINK_MENU,
     HFP_CLIENT_MENU,
     PAN_MENU,
+    RSP_MENU,
 #ifdef USE_BT_OBEX
     PBAP_CLIENT_MENU,
 #endif
@@ -277,6 +281,7 @@ UserMenuList GapMenu[] = {
 UserMenuList MainMenu[] = {
     {GAP_OPTION,            "gap_menu",         ZERO_PARAM,   "gap_menu"},
     {PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
+    {RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
@@ -294,6 +299,9 @@ UserMenuList MainMenu[] = {
 UserMenuList PanMenu[] = {
     {SET_TETHERING,  "enable_tethering",         ONE_PARAM, \
     "enable_tethering<space><true or false> eg. enable_tethering true"},
+    {GET_PAN_MODE,   "get_mode",                 ZERO_PARAM, "get_mode"},
+    {CONNECT,        "connect",                  ONE_PARAM, \
+    "connect<space><bt_address> eg. connect 00:11:22:33:44:55"},
     {DISCONNECT,     "disconnect",               ONE_PARAM, \
     "disconnect<space><bt_address> eg. disconnect 00:11:22:33:44:55"},
     {CONNECTED_LIST, "connected_device_list",    ZERO_PARAM, "connected_device_list"},
@@ -305,8 +313,15 @@ UserMenuList PanMenu[] = {
 UserMenuList TestMenu[] = {
     {TEST_ON_OFF,           "on_off",    ONE_PARAM,     "<on_off> <number>   eg: on_off 100"},
     {BACK_TO_MAIN,          "main_menu", ZERO_PARAM,    "main_menu"},
+};
+
+/**
+ * list of supported commands for RSP Menu
+ */
+UserMenuList RspMenu[] = {
     {RSP_INIT,              "rsp_init",  ZERO_PARAM,    "rsp_init (only for Init time)"},
     {RSP_START,             "rsp_start", ZERO_PARAM,    "rsp_start would (re)start adv"},
+    {BACK_TO_MAIN,          "main_menu",  ZERO_PARAM, "main_menu"},
 };
 
 /**
@@ -502,6 +517,18 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
  * @return none
  */
 static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+
+/**
+ * @brief HandleRspCommand
+ *
+ *  This function will handle all the commands in @ref RspMenu
+ *
+ * @param[in] cmd_id It has command id from @ref CommandList
+ * @param[in] user_cmd It has parsed commands with arguments passed by user
+ * @return none
+ */
+static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+
 
 /**
  * @brief HandleGapCommand
