@@ -96,6 +96,12 @@ OI_BOOL OI_Thread_Create(OI_THREAD *t,
     }
 }
 
+void OI_Thread_Join(OI_THREAD t)
+{
+    pthread_join(t, NULL);
+
+}
+
 void OI_Thread_Exit(void *retval)
 {
     pthread_exit(retval);

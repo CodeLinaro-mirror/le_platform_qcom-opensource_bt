@@ -241,6 +241,12 @@ static void* StackLoop(void *arg)
 
         pthread_cond_timedwait(&idler, &idlerMutex, &timeout);
 
+        if (!runStackLoop) {
+            OI_DBGTRACE(("Exiting StackLoop\n"));
+            pthread_mutex_unlock(&idlerMutex);
+            return NULL;
+        }
+
         /*
          * The Dispatcher will reset this value if there is more work
          * to be done.  Like all access to ServiceTime, this needs to
@@ -373,6 +379,8 @@ void OI_OBEX_Deinit(void)
      * Request stack (Dispatcher) service immediately.
      */
     ServiceRequestHandler(0);
+
+    pthread_join(StackThread, NULL);
 
     pthread_mutex_destroy(&stackAccessMutex);
     pthread_mutex_destroy(&idlerMutex);

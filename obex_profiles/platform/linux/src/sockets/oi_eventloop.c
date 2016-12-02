@@ -59,6 +59,7 @@ static int WakeupFD[2];
 static OI_BOOL loopExit;
 
 static OI_LIST_ELEM callbackList;
+static OI_THREAD thread;
 
 void OI_EVENTLOOP_Wakeup(void)
 {
@@ -195,6 +196,7 @@ static void* eventThread(void* arg)
                         NULL);
 
         if (loopExit) {
+            OI_DBGPRINTSTR(("Exiting Event loop"));
             // If another thread has shut this loop down, exit now.
             return NULL;
         }
@@ -292,7 +294,6 @@ static void* eventThread(void* arg)
 // Init
 OI_STATUS OI_EVENTLOOP_Init(void)
 {
-    OI_THREAD thread;
     int ret;
 
     // Set up wakeup pipe
@@ -326,6 +327,8 @@ OI_STATUS OI_EVENTLOOP_Shutdown(void)
 
     loopExit = TRUE;
     OI_EVENTLOOP_Wakeup();
+
+    OI_Thread_Join(thread);
 
     close(WakeupFD[WRITE_PIPE]);
     close(WakeupFD[READ_PIPE]);
