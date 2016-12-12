@@ -644,11 +644,6 @@ static OI_STATUS ObjPushInd(OI_OBEXSRV_CONNECTION_HANDLE connectionId,
     }
 
     if (obexStatus == OI_OBEX_CONTINUE) {
-        if(count++ > 10) {
-            OI_DBGPRINTSTR(("OPP server Sleep 10 sec"));
-            //Sleep(10000);
-            count = 0;
-        }
         connection->final = FALSE;
     } else {
         connection->final = TRUE;
@@ -757,6 +752,8 @@ static void PullOpenCfm(OI_OPP_HANDLE handle,
                         const OI_OBEX_UNICODE *name,
                         const OI_CHAR *type,
                         OI_UINT32 size,
+                        OI_BYTE * data,
+                        OI_UINT16 data_len,
                         OI_STATUS status,
                         OI_OPP_CONNECTION oppContext)
 {
@@ -1052,7 +1049,8 @@ static OI_STATUS ObjPullInd(OI_OBEXSRV_CONNECTION_HANDLE connectionId,
          */
         SetState(connection, OPP_PULL_PENDING);
         connection->ofsCfmPending = TRUE;
-        status = connection->server->objops->OpenRead(NULL, (OI_CHAR*) OI_OBEX_VCARD_TYPE, PullOpenCfm, (OI_OPP_CONNECTION) connection->obexHandle);
+        status = connection->server->objops->OpenRead(NULL, (OI_CHAR*) OI_OBEX_VCARD_TYPE,
+            connection->maxReadSize, PullOpenCfm, (OI_OPP_CONNECTION) connection->obexHandle);
         if (!OI_SUCCESS(status)) {
             connection->ofsCfmPending = FALSE;
             goto ObjPullComplete;
@@ -1478,13 +1476,6 @@ ErrorExit:
         if (server->serverHandle) {
             (void) OI_OBEXSRV_DeregisterServer(server->serverHandle);
         }
-#if 0
-        if (server->srecHandle) {
-            (void) OI_SDPDB_RemoveAttributeList(server->srecHandle, NULL, NULL);
-            OI_SDPDB_FreeAttributeListElements(server->sdpAttributes, server->numAttributes);
-            (void) OI_SDPDB_RemoveServiceRecord(server->srecHandle);
-        }
-#endif
         OI_Free(server);
     }
 
@@ -1497,7 +1488,7 @@ OI_STATUS OI_OPPServer_Deregister(OI_OPP_SERVER_HANDLE serverInstance)
     OPP_SERVER *server = LookupServer(serverInstance);
     OI_STATUS status;
 
-    OI_DBGTRACE(("OI_OPPServer_Deregisterd"));
+    OI_DBGTRACE(("OI_OPPServer_Deregister"));
 
     if (!OI_INIT_FLAG_VALUE(OPP_SRV)) {
         return OI_STATUS_NOT_REGISTERED;

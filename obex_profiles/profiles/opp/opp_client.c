@@ -107,6 +107,8 @@ static void DeferredPushOpenCfm(OI_OPP_HANDLE handle,
                                const OI_OBEX_UNICODE *name,
                                const OI_CHAR *type,
                                OI_UINT32 size,
+                               OI_BYTE * data,
+                               OI_UINT16 data_len,
                                OI_STATUS status,
                                OI_OPP_CONNECTION oppContext);
 
@@ -673,6 +675,8 @@ static void PushOpenCfm(OI_OPP_HANDLE handle,
                         const OI_OBEX_UNICODE *name,
                         const OI_CHAR *type,
                         OI_UINT32 size,
+                        OI_BYTE * data,
+                        OI_UINT16 data_len,
                         OI_STATUS status,
                         OI_OPP_CONNECTION oppContext)
 {
@@ -696,7 +700,7 @@ static void PushOpenCfm(OI_OPP_HANDLE handle,
         evt.data.pushStarted.totalBytes = size;
         client->eventCB(client->id, &evt, OI_OK);
     } else {
-        DeferredPushOpenCfm(handle, name, type, size, status, oppContext);
+        DeferredPushOpenCfm(handle, name, type, size, data, data_len, status, oppContext);
     }
 }
 
@@ -753,6 +757,8 @@ static void PushOpenCfmWithoutOverride(OI_OPP_HANDLE handle,
                                        const OI_OBEX_UNICODE *name,
                                        const OI_CHAR *type,
                                        OI_UINT32 size,
+                                       OI_BYTE * data,
+                                       OI_UINT16 data_len,
                                        OI_STATUS status,
                                        OI_OPP_CONNECTION oppContext)
 {
@@ -783,13 +789,16 @@ static void PushOpenCfmWithoutOverride(OI_OPP_HANDLE handle,
     /*
      * Do the actual OpenCfm work.
      */
-    DeferredPushOpenCfm(handle, &client->curObj.name, type, size, status, oppContext);
+    DeferredPushOpenCfm(handle, &client->curObj.name, type, size, data, data_len,
+        status, oppContext);
 }
 
 static void DeferredPushOpenCfm(OI_OPP_HANDLE handle,
                                 const OI_OBEX_UNICODE *name,
                                 const OI_CHAR *type,
                                 OI_UINT32 size,
+                                OI_BYTE * data,
+                                OI_UINT16 data_len,
                                 OI_STATUS status,
                                 OI_OPP_CONNECTION oppContext)
 {
@@ -849,6 +858,15 @@ static void DeferredPushOpenCfm(OI_OPP_HANDLE handle,
                 hdrs[hdrList.count].val.type.len = len + 1; /* include null termination */
                 ++hdrList.count;
             }
+        }
+        /*
+         * Body Header
+         */
+        if (data != NULL && data_len > 0) {
+            hdrs[hdrList.count].id = OI_OBEX_HDR_BODY;
+            hdrs[hdrList.count].val.body.data = (OI_BYTE*) data;
+            hdrs[hdrList.count].val.body.len = data_len;
+            ++hdrList.count;
         }
         status = OI_OBEXCLI_Put(client->id, &hdrList, ClientPutCfm, OI_OBEX_CONTINUE);
     }
@@ -917,9 +935,11 @@ OI_STATUS OI_OPPClient_Push(OI_OPP_CLIENT_CONNECTION_HANDLE connectionId,
      */
     if (client->nameOverrideEnabled) {
         client->nameOverridePending = TRUE;
-        status = client->objops->OpenRead(name, type, PushOpenCfm, (OI_OPP_CONNECTION) client->id);
+        status = client->objops->OpenRead(name, type, client->maxReadSize,
+            PushOpenCfm, (OI_OPP_CONNECTION) client->id);
     } else {
-        status = client->objops->OpenRead(name, type, PushOpenCfmWithoutOverride, (OI_OPP_CONNECTION) client->id);
+        status = client->objops->OpenRead(name, type, client->maxReadSize,
+            PushOpenCfmWithoutOverride, (OI_OPP_CONNECTION) client->id);
     }
 
     if (!OI_SUCCESS(status)) {
@@ -1185,6 +1205,8 @@ static OI_STATUS NameOverride(OPP_CLIENT            *client,
                             &client->curObj.name,
                             (OI_CHAR *) client->curObj.type.data,
                             client->curObj.objSize,
+                            NULL,
+                            0,
                             OI_OK,
                             client->id);
 

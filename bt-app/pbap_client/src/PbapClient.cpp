@@ -907,8 +907,10 @@ void pbap_connect_timer_expired(void *context) {
     PostMessage(THREAD_ID_PBAP_CLIENT, event);
 }
 
-PbapClient :: PbapClient()
+PbapClient :: ~PbapClient()
 {
+    alarm_free(g_pbapClient->pbap_connect_timer);
+    g_pbapClient->pbap_connect_timer = NULL;
 }
 
 void connectionCfm(OI_PBAP_CONNECTION connectionId,

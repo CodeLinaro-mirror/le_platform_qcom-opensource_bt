@@ -1222,9 +1222,14 @@ static OI_STATUS LowerWrite(OI_OBEX_LOWER_CONNECTION connectionHandle,
     return status;
 }
 
-static OI_OBEX_LOWER_PROTOCOL_ID LowerProtocolId(void)
+static OI_OBEX_LOWER_PROTOCOL_ID LowerProtocolId(OI_OBEX_LOWER_CONNECTION connectionHandle)
 {
-    return OI_OBEX_LOWER_L2CAP;
+    if (connectionHandle && connectionHandle->lowerPrivate) {
+        OI_DBGPRINT(("LowerProtocolId %d ", connectionHandle->lowerPrivate->protocol));
+        return connectionHandle->lowerPrivate->protocol;
+    }
+    /* Return rfcomm by default */
+    return OI_OBEX_LOWER_RFCOMM;
 }
 
 // Stub - RFCOMM flow control isn't supported.
