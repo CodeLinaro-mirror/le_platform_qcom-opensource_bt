@@ -260,6 +260,19 @@ static bt_callbacks_t sBluetoothCallbacks = {
     NULL,
 };
 
+static void SsrCleanupCb() {
+    ALOGV (LOGTAG " SsrCleanupCb: ");
+    BtEvent *event = new BtEvent;
+    event->event_id = GAP_EVENT_SSR_CLEANUP;
+    PostMessage(THREAD_ID_GAP, event);
+}
+
+static btvendor_callbacks_t sVendorCallbacks = {
+    sizeof(sVendorCallbacks),
+    NULL,
+    SsrCleanupCb,
+};
+
 void BtGapMsgHandler(void *msg) {
     BtEvent* event = NULL;
     if (!msg) {
@@ -663,6 +676,13 @@ void Gap::ProcessEvent(BtEvent* event) {
                 PostMessage(THREAD_ID_A2DP_SINK, bt_event);
                 break;
             }
+
+        case GAP_EVENT_SSR_CLEANUP:
+            /* Audio related cleanup can be done here.*/
+            ALOGD(LOGTAG " Killing the proces after SSR_CLEANUP %d", event->event_id);
+            kill(getpid(), SIGKILL);
+            break;
+
             /*Fall through*/
         case A2DP_SINK_CLEANUP_DONE:
             // check if there are profiles enabled
@@ -860,6 +880,13 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
             this->supported_profiles_count++;
         }
     }
+    // Vendor interface
+    sBtVendorInterface = (btvendor_interface_t *)bluetooth_interface_->
+                            get_profile_interface(BT_PROFILE_VENDOR_ID);
+
+    if (sBtVendorInterface != NULL) {
+        sBtVendorInterface->init(&sVendorCallbacks);
+    }
 
     if( !(profile_startup_timer = alarm_new())) {
         ALOGE(LOGTAG, " unable to create profile_startup_timer timer.");
@@ -897,6 +924,11 @@ Gap :: ~Gap() {
 
     alarm_free(disable_timer);
     disable_timer = NULL;
+
+    if (sBtVendorInterface != NULL) {
+        sBtVendorInterface->cleanup();
+        sBtVendorInterface = NULL;
+    }
 }
 
 int Gap:: GetState() {
