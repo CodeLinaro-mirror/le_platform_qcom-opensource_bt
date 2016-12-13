@@ -55,7 +55,7 @@ extern BT_Audio_Manager *pBTAM;
 
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
 FILE *outputPcmSampleFile;
-char outputFilename [50] = "/etc/bluetooth/output_sample.pcm";
+char outputFilename [50] = "/data/misc/bluetooth/output_sample.pcm";
 #endif
 
 #ifdef __cplusplus
