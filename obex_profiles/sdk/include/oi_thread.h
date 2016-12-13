@@ -93,6 +93,14 @@ OI_BOOL OI_Thread_Create(OI_THREAD *t,
                          void *arg);
 
 /**
+ * This function waits for the thread specified by thread
+ *     to terminate
+ *
+ * @param t            thread type
+ */
+void OI_Thread_Join(OI_THREAD t);
+
+/**
  * Exits the current thread
  *
  * @param retval  Return code for the thread
