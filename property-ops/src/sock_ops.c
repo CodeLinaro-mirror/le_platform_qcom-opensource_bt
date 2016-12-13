@@ -48,7 +48,7 @@
 
 #include "../include/property_ops.h"
 
-#define SOCK_NAMED_ADDR  "/etc/bluetooth/btprop"
+#define SOCK_NAMED_ADDR  "/data/misc/bluetooth/btprop"
 #define TRIGGER_CONNECTION_INDEX    (1)
 #define MAX_LISTENERS               (4)
 //500ms, unless MAX_LISTENERS are connected
