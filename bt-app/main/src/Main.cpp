@@ -903,6 +903,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             if ((g_bt_app->status.enquiry_cmd != COMMAND_INPROGRESS) &&
                                 (g_bt_app->bt_state == BT_STATE_ON)) {
 
+                g_bt_app->inquiry_list.clear();
                 g_bt_app->status.enquiry_cmd = COMMAND_INPROGRESS;
                 event = new BtEvent;
                 event->event_id = GAP_API_START_INQUIRY;
