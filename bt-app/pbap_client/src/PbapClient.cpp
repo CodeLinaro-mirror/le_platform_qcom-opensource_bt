@@ -223,7 +223,8 @@ typedef enum {
     STATE_INITIAL,      /**< Initial state. */
     STATE_IDLE,         /**< Idle state. */
     STATE_CONNECTING,   /**< Connecting state. */
-    STATE_CONNECTED     /**< Connected state. */
+    STATE_CONNECTED,     /**< Connected state. */
+    STATE_DEINITIALIZING, /**< De-initializing state. */
 } PBAP_STATE;
 
 /**
@@ -677,7 +678,7 @@ static void set_search_attribute(const OI_CHAR *str)
     if (*str == '\0') {
         OI_Printf("search attribute cannot be set to nothing\n");
         cout <<"search attribute cannot be set to nothing " << endl;
-        print_help(&variable_list[4]);
+        print_help(&variable_list[5]);
         return;
     }
 
@@ -696,7 +697,7 @@ static void set_search_attribute(const OI_CHAR *str)
         cout <<"search attribute set to: " << str << endl;
     } else {
         cout <<"Invalid search attribute: " << str << endl;
-        print_help(&variable_list[4]);
+        print_help(&variable_list[5]);
     }
 }
 
@@ -768,16 +769,23 @@ void BtPbapClientMsgHandler(void *msg)
 
         case PROFILE_API_STOP:
             if(g_pbapClient) {
-               g_pbapClient->RemoveSdpRecord();
-               /*
-                * Its possible that SDP Client thread terminated before receiving above request,
-                * so send stop profile with success.
-                */
-               BtEvent *stop_event = new BtEvent;
-               stop_event->profile_start_event.event_id = PROFILE_EVENT_STOP_DONE;
-               stop_event->profile_start_event.profile_id = PROFILE_ID_PBAP_CLIENT;
-               stop_event->profile_start_event.status = true;
-               PostMessage(THREAD_ID_GAP, stop_event);
+                if (pbap_client.connection) {
+                    pbap_client.state = STATE_DEINITIALIZING;
+                    /* disconnect connected device */
+                    OI_PBAPClient_Disconnect(pbap_client.connection);
+                } else {
+                    /* PBAP Client is not connected, proceed directly with record removal */
+                    g_pbapClient->RemoveSdpRecord();
+                    /*
+                    * Its possible that SDP Client thread terminated before receiving above request,
+                    * so send stop profile with success.
+                    */
+                    BtEvent *stop_event = new BtEvent;
+                    stop_event->profile_start_event.event_id = PROFILE_EVENT_STOP_DONE;
+                    stop_event->profile_start_event.profile_id = PROFILE_ID_PBAP_CLIENT;
+                    stop_event->profile_start_event.status = true;
+                    PostMessage(THREAD_ID_GAP, stop_event);
+                }
             }
             break;
 
@@ -895,7 +903,7 @@ void pbap_connect_timer_expired(void *context) {
 
     BtEvent *event = new BtEvent;
     event->event_id = PBAP_CLIENT_CONNECT_TIMEOUT;
-    memcpy(&event->sdp_client_event.bd_addr, (bt_bdaddr_t *)context, sizeof(bt_bdaddr_t));
+    memcpy(&event->pbap_client_event.bd_addr, (bt_bdaddr_t *)context, sizeof(bt_bdaddr_t));
     PostMessage(THREAD_ID_PBAP_CLIENT, event);
 }
 
@@ -965,6 +973,21 @@ void connectionCfm(OI_PBAP_CONNECTION connectionId,
 void disconnectInd(OI_PBAP_CONNECTION connectionId)
 {
     ALOGV(LOGTAG "%s: connectionID = %p", __FUNCTION__, connectionId);
+
+    if (pbap_client.state == STATE_DEINITIALIZING) {
+        /* PBAP Client is not connected, proceed directly with record removal */
+        g_pbapClient->RemoveSdpRecord();
+        /*
+        * Its possible that SDP Client thread terminated before receiving above request,
+        * so send stop profile with success.
+        */
+        BtEvent *stop_event = new BtEvent;
+        stop_event->profile_start_event.event_id = PROFILE_EVENT_STOP_DONE;
+        stop_event->profile_start_event.profile_id = PROFILE_ID_PBAP_CLIENT;
+        stop_event->profile_start_event.status = true;
+        PostMessage(THREAD_ID_GAP, stop_event);
+    }
+
     char bd_str[MAX_BD_STR_LEN];
     if (pbap_client.connection == connectionId) {
         bdaddr_to_string((const bt_bdaddr_t*)&pbap_client.addr, bd_str, MAX_BD_STR_LEN);
@@ -1631,7 +1654,7 @@ bool PbapClient :: SetPath(const OI_CHAR *str)
         cout <<"path set to: " << str << endl;
     } else {
         cout <<"Invalid format: " << str << endl;
-        print_help(&variable_list[5]);
+        print_help(&variable_list[6]);
     }
     switch (i) {
         case 0:

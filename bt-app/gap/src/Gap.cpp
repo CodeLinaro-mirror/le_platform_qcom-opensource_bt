@@ -524,6 +524,13 @@ void Gap::ProcessEvent(BtEvent* event) {
                 remote_devices_obj_->FlushDiscoveredDeviceList();
                 // cleanup the stack
                 bluetooth_interface_->cleanup();
+#ifdef USE_BT_OBEX
+                if (is_obex_enabled_) {
+                    OI_OBEX_LOWER_SetSocketInterface(NULL);
+                    OI_OBEX_Deinit();
+                    sock_interface_ = NULL;
+                }
+#endif
             }
             break;
 
@@ -663,14 +670,6 @@ void Gap::ProcessEvent(BtEvent* event) {
                 HandleDisable();
                 break;
             }
-
-#ifdef USE_BT_OBEX
-            if (is_obex_enabled_) {
-                OI_OBEX_LOWER_SetSocketInterface(NULL);
-                OI_OBEX_Deinit();
-                sock_interface_ = NULL;
-            }
-#endif
 
             ALOGV (LOGTAG "Stop QC BT Daemon");
             system("killall -s SIGTERM qcbtdaemon");
