@@ -68,7 +68,7 @@ static uint8_t  UUID_PBAP_PSE[] = {0x00, 0x00, 0x11, 0x2F, 0x00, 0x00, 0x10, 0x0
                                    0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB};
 static  uint32_t profileVersion = 0x0102;
 static char profile_name[] = "PBAP Client";
-static char storageDir[] = "/sdcard/";
+static char storageDir[] = "/data/misc/bluetooth/";
 static char vcardFile[] = "vcard.vcf";
 static char phoneBookFile[] = "pb.txt";
 static char vCardListingFile[] = "vcarListing.txt";

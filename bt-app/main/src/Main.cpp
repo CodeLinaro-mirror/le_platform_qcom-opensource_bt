@@ -51,7 +51,7 @@
 #include "utils.h"
 
 #define LOGTAG  "MAIN "
-#define LOCAL_SOCKET_NAME "/etc/bluetooth/btappsocket"
+#define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
