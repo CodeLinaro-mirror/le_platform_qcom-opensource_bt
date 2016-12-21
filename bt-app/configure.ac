@@ -60,6 +60,13 @@ AC_ARG_WITH([btobex],
 
 AM_CONDITIONAL(USE_BT_OBEX, test "x${with_btobex}" = "xyes")
 
+AC_ARG_ENABLE(target,
+  [AS_HELP_STRING([--enable-target=TARGET], [Specify the target product to build])],
+  [TARGET=$enableval],
+  [TARGET=none]
+)
+AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$TARGET" = "xapq8009" -o "x$TARGET" = "xapq8017" -o "x$TARGET" = "xapq8096" -o "x$TARGET" = "xapq8053"])
+
 AC_SUBST(SYS_LIB)
 AC_SUBST([CFLAGS])
 AC_SUBST([CC])

@@ -97,7 +97,7 @@ void BT_Audio_Manager::HandleEnableBTAM(void) {
     pEvent->profile_start_event.profile_id = PROFILE_ID_BT_AM;
     pEvent->profile_start_event.status = true;
     PostMessage(THREAD_ID_GAP, pEvent);
-    //LoadAudioHal();
+    LoadAudioHal();
 }
 
 void BT_Audio_Manager::HandleDisableBTAM(void) {

@@ -42,6 +42,10 @@ AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/oem
 endif
 
+if AUDIO_HAL_SUPPORTED
+AM_CPPFLAGS += -DBT_AUDIO_HAL_INTEGRATION
+endif
+
 c_sources = ../utils/src/utils.c \
             src/Main.cpp \
             src/ipc.c \
