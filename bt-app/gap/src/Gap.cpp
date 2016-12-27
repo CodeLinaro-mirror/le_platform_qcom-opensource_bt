@@ -260,6 +260,19 @@ static bt_callbacks_t sBluetoothCallbacks = {
     NULL,
 };
 
+static void SsrCleanupCb() {
+    ALOGV (LOGTAG " SsrCleanupCb: ");
+    BtEvent *event = new BtEvent;
+    event->event_id = GAP_EVENT_SSR_CLEANUP;
+    PostMessage(THREAD_ID_GAP, event);
+}
+
+static btvendor_callbacks_t sVendorCallbacks = {
+    sizeof(sVendorCallbacks),
+    NULL,
+    SsrCleanupCb,
+};
+
 void BtGapMsgHandler(void *msg) {
     BtEvent* event = NULL;
     if (!msg) {
@@ -524,6 +537,13 @@ void Gap::ProcessEvent(BtEvent* event) {
                 remote_devices_obj_->FlushDiscoveredDeviceList();
                 // cleanup the stack
                 bluetooth_interface_->cleanup();
+#ifdef USE_BT_OBEX
+                if (is_obex_enabled_) {
+                    OI_OBEX_LOWER_SetSocketInterface(NULL);
+                    OI_OBEX_Deinit();
+                    sock_interface_ = NULL;
+                }
+#endif
             }
             break;
 
@@ -656,6 +676,13 @@ void Gap::ProcessEvent(BtEvent* event) {
                 PostMessage(THREAD_ID_A2DP_SINK, bt_event);
                 break;
             }
+
+        case GAP_EVENT_SSR_CLEANUP:
+            /* Audio related cleanup can be done here.*/
+            ALOGD(LOGTAG " Killing the proces after SSR_CLEANUP %d", event->event_id);
+            kill(getpid(), SIGKILL);
+            break;
+
             /*Fall through*/
         case A2DP_SINK_CLEANUP_DONE:
             // check if there are profiles enabled
@@ -663,14 +690,6 @@ void Gap::ProcessEvent(BtEvent* event) {
                 HandleDisable();
                 break;
             }
-
-#ifdef USE_BT_OBEX
-            if (is_obex_enabled_) {
-                OI_OBEX_LOWER_SetSocketInterface(NULL);
-                OI_OBEX_Deinit();
-                sock_interface_ = NULL;
-            }
-#endif
 
             ALOGV (LOGTAG "Stop QC BT Daemon");
             system("killall -s SIGTERM qcbtdaemon");
@@ -861,6 +880,13 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
             this->supported_profiles_count++;
         }
     }
+    // Vendor interface
+    sBtVendorInterface = (btvendor_interface_t *)bluetooth_interface_->
+                            get_profile_interface(BT_PROFILE_VENDOR_ID);
+
+    if (sBtVendorInterface != NULL) {
+        sBtVendorInterface->init(&sVendorCallbacks);
+    }
 
     if( !(profile_startup_timer = alarm_new())) {
         ALOGE(LOGTAG, " unable to create profile_startup_timer timer.");
@@ -898,6 +924,11 @@ Gap :: ~Gap() {
 
     alarm_free(disable_timer);
     disable_timer = NULL;
+
+    if (sBtVendorInterface != NULL) {
+        sBtVendorInterface->cleanup();
+        sBtVendorInterface = NULL;
+    }
 }
 
 int Gap:: GetState() {

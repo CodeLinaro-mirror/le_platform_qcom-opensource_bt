@@ -66,7 +66,7 @@ API's for OBEX Client
 /*
  * How long we will wait for a disconnect to complete
  */
-#define OBEX_DISCONNECT_TIMEOUT   OI_SECONDS(25)
+#define OBEX_DISCONNECT_TIMEOUT   OI_SECONDS(5)
 
 
 

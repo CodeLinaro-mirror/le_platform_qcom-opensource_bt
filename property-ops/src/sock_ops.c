@@ -270,6 +270,16 @@ bool parse_and_exec(int cmd, unsigned char* command, unsigned char* prop_val)
                 system("killall -KILL btsnoop");
             }
         }
+
+        if (!strncmp(prop_name, "bluetooth.isEnabled", strlen(prop_name))) {
+            if (!strncmp(prop_value, "true", strlen(prop_value))) {
+                LOG_DEBUG("starting abtfilter\n");
+                system("abtfilt -d -z -n -m -a -w wlan0 &");
+            } else {
+                LOG_DEBUG("stopping abtfilter\n");
+                system("killall -KILL abtfilt");
+            }
+        }
         result = set_property_value_bt(prop_name, prop_value);
     }
 
