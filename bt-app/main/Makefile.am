@@ -29,6 +29,7 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
                -I${WORKSPACE}/hardware/libhardware/include \
+               -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
                -I${WORKSPACE}/mcm-api/api
 
 if USE_BT_OBEX
@@ -40,6 +41,10 @@ AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/include \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/include/profiles \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/oem
+endif
+
+if AUDIO_HAL_SUPPORTED
+AM_CPPFLAGS += -DBT_AUDIO_HAL_INTEGRATION
 endif
 
 c_sources = ../utils/src/utils.c \

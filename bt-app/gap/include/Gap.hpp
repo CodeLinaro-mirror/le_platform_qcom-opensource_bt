@@ -22,6 +22,7 @@
 #include <map>
 #include <string>
 #include <hardware/bluetooth.h>
+#include <hardware/vendor.h>
 #include <hardware/bt_sock.h>
 
 #include "osi/include/log.h"
@@ -114,6 +115,11 @@ class Gap {
      *  structure object for standard Bluetooth DM interface
      */
     const bt_interface_t *bluetooth_interface_;
+
+    /**
+     *  structure object for Vendor interface
+     */
+    const btvendor_interface_t *sBtVendorInterface;
 
     /**
      *  structure object for standard Bluetooth Socket interface

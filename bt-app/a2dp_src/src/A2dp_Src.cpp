@@ -299,7 +299,7 @@ static void BtA2dpStartStreaming()
     FILE *in_file = NULL;
 
     ALOGD(LOGTAG_A2DP "Start A2dp Stream");
-    in_file = fopen("/etc/bluetooth/pcmtest.wav", "r");
+    in_file = fopen("/data/misc/bluetooth/pcmtest.wav", "r");
     if (!in_file) {
         ALOGE(LOGTAG_A2DP "Cannot open input file. Bail out!!");
         return;
