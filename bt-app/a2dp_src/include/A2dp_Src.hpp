@@ -36,6 +36,8 @@
 #include <hardware/bt_av.h>
 #include <hardware/bt_rc.h>
 #include <pthread.h>
+#include "hardware/bt_av_vendor.h"
+#include "hardware/bt_rc_vendor.h"
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
@@ -61,6 +63,8 @@ class A2dp_Source {
     const btrc_interface_t *sBtAvrcpTargetInterface;
     A2dpSourceState mSourceState;
     bool mAvrcpConnected;
+    const btav_vendor_interface_t *sBtA2dpSourceVendorInterface;
+    const btrc_vendor_interface_t *sBtAvrcpTargetVendorInterface;
 
   public:
     A2dp_Source(const bt_interface_t *bt_interface, config_t *config);

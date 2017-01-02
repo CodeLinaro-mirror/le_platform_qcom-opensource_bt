@@ -42,6 +42,8 @@
 
 #include "A2dp_Src.hpp"
 #include "Gap.hpp"
+#include "hardware/bt_av_vendor.h"
+#include "hardware/bt_rc_vendor.h"
 
 #define LOGTAG_A2DP "A2DP_SRC "
 #define LOGTAG_AVRCP "AVRCP_TG "
@@ -353,14 +355,14 @@ static void bta2dp_audio_state_callback(btav_audio_state_t state, bt_bdaddr_t* b
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
 }
 
-static void bta2dp_connection_priority_callback(bt_bdaddr_t* bd_addr) {
+static void bta2dp_connection_priority_vendor_callback(bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     memcpy(&pEvent->a2dpSourceEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->a2dpSourceEvent.event_id = A2DP_SOURCE_CONNECTION_PRIORITY_REQ;
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
 }
 
-static void bta2dp_multicast_state_callback(int state) {
+static void bta2dp_multicast_state_vendor_callback(int state) {
     ALOGD(LOGTAG_A2DP " Multicast State CB");
 }
 
@@ -369,12 +371,16 @@ static btav_callbacks_t sBluetoothA2dpSourceCallbacks = {
     bta2dp_connection_state_callback,
     bta2dp_audio_state_callback,
     NULL,
-    bta2dp_connection_priority_callback,
-    bta2dp_multicast_state_callback,
+};
+
+static btav_vendor_callbacks_t sBluetoothA2dpSourceVendorCallbacks = {
+    sizeof(sBluetoothA2dpSourceVendorCallbacks),
+    bta2dp_connection_priority_vendor_callback,
+    bta2dp_multicast_state_vendor_callback,
     NULL,
 };
 
-static void btavrcp_target_passthrough_cmd_callback(int id, int key_state, bt_bdaddr_t* bd_addr) {
+static void btavrc_target_passthrough_cmd_vendor_callback(int id, int key_state, bt_bdaddr_t* bd_addr) {
     ALOGD(LOGTAG_AVRCP " btavrcp_target_passthrough_cmd_callback id = %d key_state = %d", id, key_state);
     if (key_state == KEY_PRESSED) {
         BtEvent *event = new BtEvent;
@@ -387,7 +393,7 @@ static void btavrcp_target_passthrough_cmd_callback(int id, int key_state, bt_bd
     }
 }
 
-static void btavrcp_target_connection_state_callback(bool state, bt_bdaddr_t* bd_addr) {
+static void btavrc_target_connection_state_vendor_callback(bool state, bt_bdaddr_t* bd_addr) {
     ALOGD(LOGTAG_AVRCP " btavrcp_target_connection_state_callback state = %d", state);
     BtEvent *pEvent = new BtEvent;
     memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
@@ -415,15 +421,30 @@ static btrc_callbacks_t sBluetoothAvrcpTargetCallbacks = {
    NULL,
    NULL,
    NULL,
-   btavrcp_target_passthrough_cmd_callback,
+   NULL,
+};
+
+static btrc_vendor_callbacks_t sBluetoothAvrcpTargetVendorCallbacks = {
+   sizeof(sBluetoothAvrcpTargetVendorCallbacks),
    NULL,
    NULL,
    NULL,
    NULL,
    NULL,
    NULL,
-   btavrcp_target_connection_state_callback,
-   NULL
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   btavrc_target_passthrough_cmd_vendor_callback,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   btavrc_target_connection_state_vendor_callback,
+   NULL,
 };
 
 void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
@@ -475,6 +496,8 @@ void A2dp_Source::HandleEnableSource(void) {
     {
         sBtA2dpSourceInterface = (btav_interface_t *)bluetooth_interface->
                 get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_ID);
+        sBtA2dpSourceVendorInterface = (btav_vendor_interface_t *)bluetooth_interface->
+                get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_VENDOR_ID);
         if (sBtA2dpSourceInterface == NULL)
         {
              pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
@@ -483,15 +506,30 @@ void A2dp_Source::HandleEnableSource(void) {
              PostMessage(THREAD_ID_GAP, pEvent);
              return;
         }
+#ifdef USE_LIBHW_AOSP
+        sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks);
+#else
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, 0);
+#endif
+        sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0);
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SOURCE;
         pEvent->profile_start_event.status = true;
-        // AVRCP Initialization
+        // AVRCP TG Initialization
         sBtAvrcpTargetInterface = (btrc_interface_t *)bluetooth_interface->
                 get_profile_interface(BT_PROFILE_AV_RC_ID);
         if (sBtAvrcpTargetInterface != NULL) {
+#ifdef USE_LIBHW_AOSP
+            sBtAvrcpTargetInterface->init(&sBluetoothAvrcpTargetCallbacks);
+#else
             sBtAvrcpTargetInterface->init(&sBluetoothAvrcpTargetCallbacks, 1);
+#endif
+        }
+        // AVRCP TG vendor Initialization
+        sBtAvrcpTargetVendorInterface = (btrc_vendor_interface_t *)bluetooth_interface->
+                get_profile_interface(BT_PROFILE_AV_RC_VENDOR_ID);
+        if (sBtAvrcpTargetVendorInterface != NULL) {
+            sBtAvrcpTargetVendorInterface->init_vendor(&sBluetoothAvrcpTargetVendorCallbacks, 1);
         }
         change_state(STATE_A2DP_SOURCE_DISCONNECTED);
         PostMessage(THREAD_ID_GAP, pEvent);
@@ -600,8 +638,8 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
             BtA2dpOpenOutputStream();
             break;
         case A2DP_SOURCE_CONNECTION_PRIORITY_REQ:
-            if (sBtA2dpSourceInterface != NULL) {
-                sBtA2dpSourceInterface->allow_connection(1, &pEvent->a2dpSourceEvent.bd_addr);
+            if (sBtA2dpSourceVendorInterface != NULL) {
+                sBtA2dpSourceVendorInterface->allow_connection_vendor(1, &pEvent->a2dpSourceEvent.bd_addr);
             }
             break;
         default:
@@ -638,8 +676,8 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             cout << "A2DP Source Disconnect can not be processed" << endl;
             break;
         case A2DP_SOURCE_CONNECTION_PRIORITY_REQ:
-            if (sBtA2dpSourceInterface != NULL) {
-                sBtA2dpSourceInterface->allow_connection(1, &pEvent->a2dpSourceEvent.bd_addr);
+            if (sBtA2dpSourceVendorInterface != NULL) {
+                sBtA2dpSourceVendorInterface->allow_connection_vendor(1, &pEvent->a2dpSourceEvent.bd_addr);
             }
             break;
         default:
@@ -674,8 +712,8 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             change_state(STATE_A2DP_SOURCE_PENDING);
             break;
         case A2DP_SOURCE_CONNECTION_PRIORITY_REQ:
-            if (sBtA2dpSourceInterface != NULL) {
-                sBtA2dpSourceInterface->allow_connection(1, &pEvent->a2dpSourceEvent.bd_addr);
+            if (sBtA2dpSourceVendorInterface != NULL) {
+                sBtA2dpSourceVendorInterface->allow_connection_vendor(1, &pEvent->a2dpSourceEvent.bd_addr);
             }
             break;
         case A2DP_SOURCE_DISCONNECTED_CB:

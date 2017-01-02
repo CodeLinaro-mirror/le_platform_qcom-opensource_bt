@@ -22,6 +22,7 @@
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
 #include <hardware/bt_hf.h>
+#include "hardware/bt_hf_vendor.h"
 
 #include "Audio_Manager.hpp"
 #include "HfpAG.hpp"
@@ -283,10 +284,10 @@ void key_pressed_callback(bt_bdaddr_t* bd_addr) {
     ALOGD(LOGTAG " key_pressed_callback");
 }
 
-void at_bind_callback(char* hf_ind, bthf_bind_type_t type, bt_bdaddr_t* bd_addr) {
+void bind_cmd_vendor_cb(char* hf_ind, bthf_vendor_bind_type_t type, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
-    ALOGD(LOGTAG " at_bind_callback");
-    cout << " at_bind_callback" << endl;
+    ALOGD(LOGTAG " bind_cmd_vendor_cb");
+    cout << " bind_cmd_vendor_cb" << endl;
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     strncpy(pEvent->hfp_ag_event.str, hf_ind, strlen(hf_ind));
@@ -295,10 +296,10 @@ void at_bind_callback(char* hf_ind, bthf_bind_type_t type, bt_bdaddr_t* bd_addr)
     PostMessage(THREAD_ID_HFP_AG, pEvent);
 }
 
-void at_biev_callback(char* hf_ind_val, bt_bdaddr_t* bd_addr) {
+void biev_cmd_vendor_cb(char* hf_ind_val, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
-    ALOGD(LOGTAG " at_biev_callback");
-    cout << " at_biev_callback" << endl;
+    ALOGD(LOGTAG " biev_cmd_vendor_cb");
+    cout << " biev_cmd_vendor_cb" << endl;
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     strncpy(pEvent->hfp_ag_event.str, hf_ind_val, strlen(hf_ind_val));
@@ -324,9 +325,13 @@ static bthf_callbacks_t sBluetoothHfpAgCallbacks = {
     at_cops_callback,
     at_clcc_callback,
     unknown_at_callback,
-    key_pressed_callback,
-    at_bind_callback,
-    at_biev_callback
+    key_pressed_callback
+};
+
+static bthf_vendor_callbacks_t sBluetoothHfpAgVendorCallbacks = {
+    sizeof(sBluetoothHfpAgVendorCallbacks),
+    bind_cmd_vendor_cb,
+    biev_cmd_vendor_cb,
 };
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -382,8 +387,16 @@ void Hfp_Ag::HandleEnableAg(void) {
             ALOGE(LOGTAG "get profile interface failed, returning");
             return;
         }
+        sBtHfpAgVendorInterface = (bthf_vendor_interface_t *)bluetooth_interface->
+            get_profile_interface(BT_PROFILE_HANDSFREE_VENDOR_ID);
+        if (sBtHfpAgVendorInterface == NULL)
+        {
+            ALOGE(LOGTAG "get profile vendor interface failed, returning");
+            return;
+        }
         change_state(HFP_AG_STATE_DISCONNECTED);
         sBtHfpAgInterface->init(&sBluetoothHfpAgCallbacks, 1);
+        sBtHfpAgVendorInterface->init_vendor(&sBluetoothHfpAgVendorCallbacks);
 
 #if defined(BT_MODEM_INTEGRATION)
         init_modem();
@@ -406,7 +419,10 @@ void Hfp_Ag::HandleDisableAg(void) {
        sBtHfpAgInterface->cleanup();
        sBtHfpAgInterface = NULL;
    }
-
+   if(sBtHfpAgVendorInterface != NULL) {
+       sBtHfpAgVendorInterface->cleanup_vendor();
+       sBtHfpAgVendorInterface = NULL;
+   }
 #if defined(BT_MODEM_INTEGRATION)
    release_modem();
 #endif
@@ -1735,12 +1751,15 @@ void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
       }
    }
    else if(type == 1) {
-      if (sBtHfpAgInterface != NULL) {
+      if (sBtHfpAgVendorInterface != NULL) {
           for (i = 0; i < MAX_HF_INDICATORS;i++) {
               // TODO: send all the indicators as disabled for now
-              sBtHfpAgInterface->bind_response(i+1, BTHF_HF_INDICATOR_STATE_DISABLED,
-                                  &pEvent->hfp_ag_event.bd_addr);
+              sBtHfpAgVendorInterface->
+                  bind_response_vendor(i+1, BTHF_VENDOR_HF_INDICATOR_STATE_DISABLED,
+                  &pEvent->hfp_ag_event.bd_addr);
           }
+      }
+      if (sBtHfpAgInterface != NULL) {
           sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                       &pEvent->hfp_ag_event.bd_addr);
       }
@@ -1754,8 +1773,10 @@ void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
        }
        str[strlen(str) - 1] = ')';
 
+       if (sBtHfpAgVendorInterface != NULL) {
+          sBtHfpAgVendorInterface->bind_string_response_vendor(str, &pEvent->hfp_ag_event.bd_addr);
+       }
        if (sBtHfpAgInterface != NULL) {
-          sBtHfpAgInterface->bind_string_response(str, &pEvent->hfp_ag_event.bd_addr);
           sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                       &pEvent->hfp_ag_event.bd_addr);
        }
