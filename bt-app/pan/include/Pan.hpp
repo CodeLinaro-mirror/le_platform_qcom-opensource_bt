@@ -79,7 +79,8 @@ typedef enum
 {
     TETHERED,
     REVERSE_TETHERED,
-    UNTETHERED
+    UNTETHERED,
+    PENDING
 } pan_profile_state_t;
 
 class Pan {
