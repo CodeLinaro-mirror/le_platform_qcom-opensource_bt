@@ -50,6 +50,7 @@
 #include "utils.h"
 #include "hardware/bt_hf_client_vendor.h"
 
+#include "Audio_Manager.hpp"
 
 typedef enum {
     HFP_CLIENT_STATE_NOT_STARTED = 0,
@@ -73,8 +74,8 @@ class Hfp_Client {
     unsigned int chld_feat;
 #if defined(BT_AUDIO_HAL_INTEGRATION)
     config_t *config;
-    audio_stream_out_t* out_stream;
-    audio_stream_out_t* out_stream_ring_tone;
+    qahw_stream_handle_t* out_stream;
+    qahw_stream_handle_t* out_stream_ring_tone;
 #endif
     const bt_interface_t * bluetooth_interface;
     const bthf_client_interface_t *sBtHfpClientInterface;

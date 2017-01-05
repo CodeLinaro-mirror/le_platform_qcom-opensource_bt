@@ -37,8 +37,8 @@
 #include <hardware/bt_rc.h>
 #include <pthread.h>
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-#include <hardware/audio.h>
-#include <hardware/hardware.h>
+#include "qahw_api.h"
+#include "qahw_defs.h"
 #endif
 
 #include "osi/include/log.h"
@@ -95,10 +95,11 @@ class A2dp_Sink {
     uint8_t channel_count;
     alarm_t *pcm_data_fetch_timer;
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-    audio_stream_out_t* out_stream;
+    // structure for output stream
+    qahw_stream_handle_t* out_stream;
     // structures used for loading A2DP HAL
-    audio_hw_device_t *a2dp_input_device;
-    audio_stream_in *input_stream;
+    qahw_module_handle_t *a2dp_input_device;
+    qahw_stream_handle_t *input_stream;
 #endif
     //apis for in_stream bt a2dp HAL, to read data.
     void LoadBtA2dpHAL();

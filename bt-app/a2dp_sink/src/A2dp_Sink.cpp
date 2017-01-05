@@ -544,6 +544,9 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
     char str[18];
     uint32_t pcm_data_read = 0;
     BtEvent *pControlRequest, *pReleaseControlReq;
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    qahw_out_buffer_t out_buf;
+#endif
     ALOGD(LOGTAG " state_connected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SINK_API_CONNECT_REQ:
@@ -622,7 +625,9 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
             if ((pBTAM->GetAudioDevice() != NULL) && (out_stream != NULL) && (pcm_data_read)) {
-                out_stream->write(out_stream, pcm_buf, pcm_data_read);
+                out_buf.buffer = pcm_buf;
+                out_buf.bytes = pcm_data_read;
+                qahw_out_write(out_stream, &out_buf);
             }
 #endif
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
@@ -704,7 +709,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
 }
 void A2dp_Sink::ConfigureAudioHal() {
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-    audio_hw_device_t* audio_device;
+    qahw_module_handle_t* audio_device;
     audio_config_t config;
     audio_io_handle_t handle = 0x07;
 
@@ -729,11 +734,11 @@ void A2dp_Sink::ConfigureAudioHal() {
         if(audio_device != NULL) {
             // 2 refers to speaker
             ALOGD(LOGTAG, " opening output stream ");
-            audio_device->open_output_stream(audio_device, handle, 2, AUDIO_OUTPUT_FLAG_DIRECT_PCM,
+            qahw_open_output_stream(audio_device, handle, 2, AUDIO_OUTPUT_FLAG_DIRECT_PCM,
                    &config, &out_stream, "bt_a2dp_sink");
         }
         if (out_stream != NULL) {
-            pcm_buf_size = out_stream->common.get_buffer_size(&out_stream->common);
+            pcm_buf_size = qahw_out_get_buffer_size(out_stream);
             ALOGD(LOGTAG " pcm buf size %d", pcm_buf_size);
             pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
         }
@@ -758,13 +763,13 @@ void A2dp_Sink::ConfigureAudioHal() {
 }
 void A2dp_Sink::CloseAudioStream() {
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-    audio_hw_device_t* audio_device;
+    qahw_module_handle_t* audio_device;
     if (pBTAM != NULL) {
         audio_device = pBTAM->GetAudioDevice();
         if((audio_device != NULL) && (out_stream != NULL)) {
             // 2 refers to speaker
             ALOGD(LOGTAG, " closing output stream ");
-            audio_device->close_output_stream(audio_device, out_stream);
+            qahw_close_output_stream(out_stream);
             out_stream = NULL;
         }
         if (pcm_buf != NULL) {
@@ -787,17 +792,10 @@ void A2dp_Sink::CloseAudioStream() {
 }
 void A2dp_Sink::LoadBtA2dpHAL() {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
-    const hw_module_t *module;
     ALOGD(LOGTAG " Load A2dp HAL ");
-    if (hw_get_module_by_class(AUDIO_HARDWARE_MODULE_ID,
-                               AUDIO_HARDWARE_MODULE_ID_A2DP,
-                               &module)) {
-        ALOGE(LOGTAG " A2dp Hal module not found ");
-        return;
-    }
-    if (audio_hw_device_open(module, &a2dp_input_device)) {
-        a2dp_input_device = NULL;
-        ALOGE(LOGTAG " A2dp Hal device can not be opened ");
+    a2dp_input_device = qahw_load_module(QAHW_MODULE_ID_A2DP);
+    if (a2dp_input_device == NULL) {
+        ALOGE(LOGTAG " A2dp Hal can not be opened ");
         return;
     }
     ALOGD(LOGTAG " A2dp HAL successfully loaded ");
@@ -806,21 +804,22 @@ void A2dp_Sink::LoadBtA2dpHAL() {
 
 void A2dp_Sink::UnLoadBtA2dpHAL() {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
+    int ret  =  0;
     ALOGD(LOGTAG " Unload A2dp HAL");
-    //BtA2dpCloseOutputStream();
     if(!a2dp_input_device)
     {
         ALOGD(LOGTAG " A2dp_input_device not valid ");
         return;
     }
-    if (audio_hw_device_close(a2dp_input_device) < 0) {
+    ret = qahw_unload_module(a2dp_input_device);
+    if (ret < 0) {
         ALOGE(LOGTAG " A2dp HAL could not be closed gracefully");
+        a2dp_input_device = NULL;
         return;
     }
     a2dp_input_device = NULL;
     ALOGD(LOGTAG " A2dp HAL successfully Unloaded ");
 #endif
-
 }
 
 void A2dp_Sink::OpenInputStream()
@@ -832,7 +831,7 @@ void A2dp_Sink::OpenInputStream()
         ALOGE(LOGTAG " Invalid A2dp HAL device. Bail out! ");
         return;
     }
-    ret = a2dp_input_device->open_input_stream(a2dp_input_device, 0, AUDIO_DEVICE_OUT_ALL_A2DP,
+    ret = qahw_open_input_stream(a2dp_input_device, 0, AUDIO_DEVICE_OUT_ALL_A2DP,
             NULL, &input_stream, AUDIO_INPUT_FLAG_NONE, "bt_a2dp_input_stream" , AUDIO_SOURCE_DEFAULT);
     if (ret < 0) {
         input_stream = NULL;
@@ -850,7 +849,7 @@ void A2dp_Sink::CloseInputStream()
         ALOGE(LOGTAG " Invalid A2dp HAL device. Bail out! ");
         return;
     }
-    a2dp_input_device->close_input_stream(a2dp_input_device,input_stream);
+    qahw_close_input_stream(input_stream);
     input_stream = NULL;
     ALOGD(LOGTAG " A2dp Input Stream successfully closed ");
 #endif
@@ -865,7 +864,7 @@ void A2dp_Sink::SuspendInputStream()
         ALOGE(LOGTAG " Invalid Input Stream. Bail out! ");
         return;
     }
-    input_stream->common.standby(&input_stream->common);
+    qahw_in_standby(input_stream);
     ALOGD(LOGTAG " A2dp Stream suspended successfully");
 #endif
 }
@@ -874,13 +873,16 @@ uint32_t A2dp_Sink::ReadInputStream(uint8_t* data, uint32_t size)
 {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     uint32_t data_read;
+    qahw_in_buffer_t in_buf;
     ALOGD(LOGTAG " Read Input Stream");
     if(!input_stream)
     {
         ALOGE(LOGTAG " Invalid Input Stream. Bail out! ");
         return 0 ;
     }
-    data_read = input_stream->read(input_stream, data, size);
+    in_buf.buffer = data;
+    in_buf.bytes = size;
+    data_read = qahw_in_read(input_stream, &in_buf);;
     ALOGD(LOGTAG " A2dp Input Stream bytes read = %d", data_read);
     return data_read;
 #endif
@@ -895,7 +897,7 @@ uint32_t A2dp_Sink::GetInputStreamBufferSize()
         ALOGE(LOGTAG " Invalid Input Stream. Bail out! ");
         return 0 ;
     }
-    return input_stream->common.get_buffer_size(&input_stream->common);
+    return qahw_in_get_buffer_size(input_stream);
     ALOGD(LOGTAG " GetInputStreamBufferSize %d ");
 #endif
 }
