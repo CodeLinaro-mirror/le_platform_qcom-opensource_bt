@@ -40,8 +40,8 @@
 #include "ipc.h"
 
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
-#include <hardware/audio.h>
-#include <hardware/hardware.h>
+#include "qahw_api.h"
+#include "qahw_defs.h"
 #endif
 
 #define MAX_PROFILE_ENTRIES 2
@@ -73,9 +73,8 @@ class BT_Audio_Manager {
     void LoadAudioHal();
     void UnloadAudioHal();
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-    audio_hw_device_t* GetAudioDevice();
-    const hw_module_t* HwModule;
-    audio_hw_device_t* audio_device;
+    qahw_module_handle_t* GetAudioDevice();
+    qahw_module_handle_t *qahw_mod_handle;
 #endif
 };
 
