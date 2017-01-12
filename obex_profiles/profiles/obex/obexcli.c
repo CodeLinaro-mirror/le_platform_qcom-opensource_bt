@@ -863,15 +863,15 @@ static OI_STATUS BulkPutWriteCfm(OBEXCLI_CONNECTION *connection,
         return OI_OK;
     }
     /*
-     * Confirm all completed bulk data blocks except the final block
-     */
-    ConfirmBulkPuts(connection, OI_OBEX_CONTINUE, CONFIRM_COMPLETED);
-    /*
      * If we are not doing SRM we are done for now.
      */
     if (!(connection->common.srm & OI_OBEX_SRM_ENABLED)) {
         return OI_OK;
     }
+    /*
+     * Confirm all completed bulk data blocks except the final block
+     */
+    ConfirmBulkPuts(connection, OI_OBEX_CONTINUE, CONFIRM_COMPLETED);
     /*
      * If the queue is not full we can write more data if we have any
      */

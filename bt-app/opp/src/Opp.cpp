@@ -361,6 +361,12 @@ static OI_STATUS OFS_OpenRead(const OI_OBEX_UNICODE *name,
         object.bytes_read = 0;
         /* Allocate memory for reading data */
         object.data = (OI_BYTE *)malloc(maxRead);
+        if (!object.data) {
+            ALOGD(LOGTAG "Unable to allocate %d bytes of memory for reading data", maxRead);
+            fclose(object.handle);
+            object.handle = NULL;
+            return OI_STATUS_OUT_OF_MEMORY;
+        }
         if (opp.lowerProtocol.protocol == OI_OBEX_LOWER_L2CAP) {
             maxRead -= (OBEX_CONN_ID_HEADER_LEN + OBEX_LEN_HEADER_LEN +
                 OBEX_SRM_HEADER_LEN + OBEX_NAME_HEADER_LEN + OBEX_TYPE_HEADER_LEN +
