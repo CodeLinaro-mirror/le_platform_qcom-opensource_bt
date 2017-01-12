@@ -677,12 +677,6 @@ void Gap::ProcessEvent(BtEvent* event) {
                 break;
             }
 
-        case GAP_EVENT_SSR_CLEANUP:
-            /* Audio related cleanup can be done here.*/
-            ALOGD(LOGTAG " Killing the proces after SSR_CLEANUP %d", event->event_id);
-            kill(getpid(), SIGKILL);
-            break;
-
             /*Fall through*/
         case A2DP_SINK_CLEANUP_DONE:
             // check if there are profiles enabled
@@ -774,6 +768,12 @@ void Gap::ProcessEvent(BtEvent* event) {
 
         case GAP_API_PIN_REPLY:
             HandlePinReply(&event->pin_reply_event);
+            break;
+
+        case GAP_EVENT_SSR_CLEANUP:
+            /* Audio related cleanup can be done here.*/
+            ALOGD(LOGTAG " Killing the proces after SSR_CLEANUP %d", event->event_id);
+            kill(getpid(), SIGKILL);
             break;
 
         default:
