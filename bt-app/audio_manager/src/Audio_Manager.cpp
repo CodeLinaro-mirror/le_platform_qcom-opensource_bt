@@ -97,7 +97,7 @@ void BT_Audio_Manager::HandleEnableBTAM(void) {
     pEvent->profile_start_event.profile_id = PROFILE_ID_BT_AM;
     pEvent->profile_start_event.status = true;
     PostMessage(THREAD_ID_GAP, pEvent);
-    //LoadAudioHal();
+    LoadAudioHal();
 }
 
 void BT_Audio_Manager::HandleDisableBTAM(void) {
@@ -132,29 +132,14 @@ int BT_Audio_Manager::GetTopIndex(void) {
 void BT_Audio_Manager::LoadAudioHal()
 {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
-     int ret = 0;
     ALOGD(LOGTAG " Load Audio HAL +");
-    if (HwModule != NULL) {
-        ALOGD(" HW already loaded");
+    if (qahw_mod_handle != NULL) {
+        ALOGD(" Audio HAL already loaded");
     } else {
-    ret = hw_get_module_by_class(AUDIO_HARDWARE_MODULE_ID,
-                                    AUDIO_HARDWARE_MODULE_ID_PRIMARY, &HwModule);
+        qahw_mod_handle = qahw_load_module(QAHW_MODULE_ID_PRIMARY);
     }
-    ALOGD(" get_module_by_class +%d ", ret);
-    if (ret) {
-        ALOGD("  get_module_by_class failed +%d ", ret);
-        HwModule = NULL;
-        return;
-    }
-    if (audio_device != NULL) {
-        ALOGD(" Audio Device already Open ");
-    } else {
-        ret = audio_hw_device_open(HwModule, &audio_device);
-    }
-    ALOGD(" audio_hw_device_open +%d ", ret);
-    if (ret) {
-        ALOGD("  audio_hw_device_open failed +%d ", ret);
-        HwModule = NULL;
+    if (qahw_mod_handle == NULL) {
+        ALOGD("  qahw_load_module failed");
         return;
     }
     ALOGD(LOGTAG "Load Audio HAL -");
@@ -163,22 +148,26 @@ void BT_Audio_Manager::LoadAudioHal()
 void BT_Audio_Manager::UnloadAudioHal()
 {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
+    int ret = 0;
     ALOGD(LOGTAG "UnLoad Audio HAL +");
-    if(audio_device != NULL)
-        audio_hw_device_close(audio_device);
-    audio_device = NULL;
-    HwModule = NULL;
+    if(qahw_mod_handle != NULL)
+        ret = qahw_unload_module(qahw_mod_handle);
+
+    if (ret)
+        ALOGE(LOGTAG "Unloading audio hal failed");
+
+    qahw_mod_handle = NULL;
     ALOGD(LOGTAG "UnLoad Audio HAL -");
 #endif
 }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
-audio_hw_device_t* BT_Audio_Manager::GetAudioDevice()
+qahw_module_handle_t* BT_Audio_Manager::GetAudioDevice()
 {
-    if (audio_device != NULL) {
-        return audio_device;
+    if (qahw_mod_handle != NULL) {
+        return qahw_mod_handle;
     }
     else {
-        ALOGD(" audio device is NULL ");
+        ALOGD(" audio hw module handle is NULL ");
         return NULL;
     }
 }
@@ -327,8 +316,7 @@ BT_Audio_Manager :: BT_Audio_Manager(const bt_interface_t *bt_interface, config_
         audio_control_stack[i].control_status = REQUEST_TYPE_DEFAULT;
     }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
-    HwModule = NULL;
-    audio_device = NULL;
+    qahw_mod_handle = NULL;
 #endif
 }
 

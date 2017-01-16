@@ -38,6 +38,8 @@
 
 #include "A2dp_Sink.hpp"
 #include "Gap.hpp"
+#include "hardware/bt_av_vendor.h"
+#include "hardware/bt_rc_vendor.h"
 
 #define LOGTAG "A2DP_SINK"
 #define LOGTAG_CTRL "AVRCP_CTRL"
@@ -55,7 +57,7 @@ extern BT_Audio_Manager *pBTAM;
 
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
 FILE *outputPcmSampleFile;
-char outputFilename [50] = "/etc/bluetooth/output_sample.pcm";
+char outputFilename [50] = "/data/misc/bluetooth/output_sample.pcm";
 #endif
 
 #ifdef __cplusplus
@@ -189,8 +191,8 @@ static void bta2dp_audio_config_callback(bt_bdaddr_t *bd_addr, uint32_t sample_r
         pA2dpSink->channel_count = channel_count;
     }
 }
-static void bta2dp_audio_focus_request_callback(bt_bdaddr_t *bd_addr) {
-    ALOGD(LOGTAG " bta2dp_audio_focus_request_callback ");
+static void bta2dp_audio_focus_request_vendor_callback(bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG " bta2dp_audio_focus_request_vendor_callback ");
     BtEvent *pEvent = new BtEvent;
     pEvent->a2dpSinkEvent.event_id = A2DP_SINK_FOCUS_REQUEST_CB;
     memcpy(&pEvent->a2dpSinkEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
@@ -202,9 +204,13 @@ static btav_callbacks_t sBluetoothA2dpSinkCallbacks = {
     bta2dp_connection_state_callback,
     bta2dp_audio_state_callback,
     bta2dp_audio_config_callback,
+};
+
+static btav_vendor_callbacks_t sBluetoothA2dpSinkVendorCallbacks = {
+    sizeof(sBluetoothA2dpSinkVendorCallbacks),
     NULL,
     NULL,
-    bta2dp_audio_focus_request_callback,
+    bta2dp_audio_focus_request_vendor_callback,
 };
 
 static void btavrcpctrl_passthru_rsp_callback(int id, int key_state) {
@@ -222,72 +228,76 @@ static void btavrcpctrl_connection_state_callback(bool state, bt_bdaddr_t* bd_ad
     PostMessage(THREAD_ID_A2DP_SINK, pEvent);
 }
 
-static void btavrcpctrl_rcfeatures_callback( bt_bdaddr_t* bd_addr, int features) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_rcfeatures_callback features = %d", features);
+static void btavrcpctrl_rcfeatures_vendor_callback( bt_bdaddr_t* bd_addr, int features) {
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_rcfeatures_vendor_callback features = %d", features);
 }
 
-static void btavrcpctrl_getcap_rsp_callback( bt_bdaddr_t *bd_addr, int cap_id,
+static void btavrcpctrl_getcap_rsp_vendor_callback( bt_bdaddr_t *bd_addr, int cap_id,
                 uint32_t* supported_values, int num_supported, uint8_t rsp_type) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_getcap_rsp_callback");
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_getcap_rsp_vendor_callback");
 }
 
-static void btavrcpctrl_listplayerappsettingattrib_rsp_callback( bt_bdaddr_t *bd_addr,
+static void btavrcpctrl_listplayerappsettingattrib_rsp_vendor_callback( bt_bdaddr_t *bd_addr,
                           uint8_t* supported_attribs, int num_attrib, uint8_t rsp_type) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_listplayerappsettingattrib_rsp_callback");
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_listplayerappsettingattrib_rsp_vendor_callback");
 }
 
-static void btavrcpctrl_listplayerappsettingvalue_rsp_callback( bt_bdaddr_t *bd_addr,
+static void btavrcpctrl_listplayerappsettingvalue_rsp_vendor_callback( bt_bdaddr_t *bd_addr,
                        uint8_t* supported_val, uint8_t num_supported, uint8_t rsp_type) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_listplayerappsettingvalue_rsp_callback");
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_listplayerappsettingvalue_rsp_vendor_callback");
 }
 
-static void btavrcpctrl_currentplayerappsetting_rsp_callback( bt_bdaddr_t *bd_addr,
+static void btavrcpctrl_currentplayerappsetting_rsp_vendor_callback( bt_bdaddr_t *bd_addr,
         uint8_t* supported_ids, uint8_t* supported_val, uint8_t num_attrib, uint8_t rsp_type) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_currentplayerappsetting_rsp_callback");
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_currentplayerappsetting_rsp_vendor_callback");
 }
 
-static void btavrcpctrl_setplayerappsetting_rsp_callback( bt_bdaddr_t *bd_addr,uint8_t rsp_type) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_setplayerappsetting_rsp_callback");
+static void btavrcpctrl_setplayerappsetting_rsp_vendor_callback( bt_bdaddr_t *bd_addr,uint8_t rsp_type) {
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_setplayerappsetting_rsp_vendor_callback");
 }
 
-static void btavrcpctrl_notification_rsp_callback( bt_bdaddr_t *bd_addr, uint8_t rsp_type,
+static void btavrcpctrl_notification_rsp_vendor_callback( bt_bdaddr_t *bd_addr, uint8_t rsp_type,
         int rsp_len, uint8_t* notification_rsp) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_notification_rsp_callback");
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_notification_rsp_vendor_callback");
 }
 
-static void btavrcpctrl_getelementattrib_rsp_callback(bt_bdaddr_t *bd_addr, uint8_t num_attributes,
+static void btavrcpctrl_getelementattrib_rsp_vendor_callback(bt_bdaddr_t *bd_addr, uint8_t num_attributes,
        int rsp_len, uint8_t* attrib_rsp, uint8_t rsp_type) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_getelementattrib_rsp_callback");
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_getelementattrib_rsp_vendor_callback");
 }
 
-static void btavrcpctrl_getplaystatus_rsp_callback(bt_bdaddr_t *bd_addr, int param_len,
+static void btavrcpctrl_getplaystatus_rsp_vendor_callback(bt_bdaddr_t *bd_addr, int param_len,
         uint8_t* play_status_rsp, uint8_t rsp_type) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_getplaystatus_rsp_callback");
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_getplaystatus_rsp_vendor_callback");
 }
 
-static void btavrcpctrl_setabsvol_cmd_callback(bt_bdaddr_t *bd_addr, uint8_t abs_vol) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_setabsvol_cmd_callback");
+static void btavrcpctrl_setabsvol_cmd_vendor_callback(bt_bdaddr_t *bd_addr, uint8_t abs_vol) {
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_setabsvol_cmd_vendor_callback");
 }
 
-static void btavrcpctrl_registernotification_absvol_callback(bt_bdaddr_t *bd_addr) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_registernotification_absvol_callback");
+static void btavrcpctrl_registernotification_absvol_vendor_callback(bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_registernotification_absvol_vendor_callback");
 }
 
 static btrc_ctrl_callbacks_t sBluetoothAvrcpCtrlCallbacks = {
    sizeof(sBluetoothAvrcpCtrlCallbacks),
    btavrcpctrl_passthru_rsp_callback,
    btavrcpctrl_connection_state_callback,
-   btavrcpctrl_rcfeatures_callback,
-   btavrcpctrl_getcap_rsp_callback,
-   btavrcpctrl_listplayerappsettingattrib_rsp_callback,
-   btavrcpctrl_listplayerappsettingvalue_rsp_callback,
-   btavrcpctrl_currentplayerappsetting_rsp_callback,
-   btavrcpctrl_setplayerappsetting_rsp_callback,
-   btavrcpctrl_notification_rsp_callback,
-   btavrcpctrl_getelementattrib_rsp_callback,
-   btavrcpctrl_getplaystatus_rsp_callback,
-   btavrcpctrl_setabsvol_cmd_callback,
-   btavrcpctrl_registernotification_absvol_callback,
+};
+
+static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
+   sizeof(sBluetoothAvrcpCtrlVendorCallbacks),
+   btavrcpctrl_rcfeatures_vendor_callback,
+   btavrcpctrl_getcap_rsp_vendor_callback,
+   btavrcpctrl_listplayerappsettingattrib_rsp_vendor_callback,
+   btavrcpctrl_listplayerappsettingvalue_rsp_vendor_callback,
+   btavrcpctrl_currentplayerappsetting_rsp_vendor_callback,
+   btavrcpctrl_setplayerappsetting_rsp_vendor_callback,
+   btavrcpctrl_notification_rsp_vendor_callback,
+   btavrcpctrl_getelementattrib_rsp_vendor_callback,
+   btavrcpctrl_getplaystatus_rsp_vendor_callback,
+   btavrcpctrl_setabsvol_cmd_vendor_callback,
+   btavrcpctrl_registernotification_absvol_vendor_callback,
 };
 
 void A2dp_Sink::SendPassThruCommandNative(uint8_t key_id) {
@@ -339,6 +349,9 @@ void A2dp_Sink::HandleEnableSink(void) {
     {
         sBtA2dpSinkInterface = (btav_interface_t *)bluetooth_interface->
                 get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_SINK_ID);
+        sBtA2dpSinkVendorInterface = (btav_vendor_interface_t *)bluetooth_interface->
+                get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_SINK_VENDOR_ID);
+
         if (sBtA2dpSinkInterface == NULL)
         {
              pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
@@ -348,16 +361,29 @@ void A2dp_Sink::HandleEnableSink(void) {
              return;
         }
         change_state(STATE_DISCONNECTED);
+#ifdef USE_LIBHW_AOSP
+        sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks);
+#else
         sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks, 1, 0);
+#endif
+        sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks, 1, 0);
+
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SINK;
         pEvent->profile_start_event.status = true;
-        // AVRCP Initialization
+        // AVRCP CT Initialization
         sBtAvrcpCtrlInterface = (btrc_ctrl_interface_t *)bluetooth_interface->
                 get_profile_interface(BT_PROFILE_AV_RC_CTRL_ID);
         if (sBtAvrcpCtrlInterface != NULL) {
             sBtAvrcpCtrlInterface->init(&sBluetoothAvrcpCtrlCallbacks);
         }
+        // AVRCP CT Vendor Initialization
+        sBtAvrcpCtrlVendorInterface = (btrc_ctrl_vendor_interface_t *)bluetooth_interface->
+                get_profile_interface(BT_PROFILE_AV_RC_CTRL_VENDOR_ID);
+        if (sBtAvrcpCtrlVendorInterface != NULL) {
+            sBtAvrcpCtrlVendorInterface->init_vendor(&sBluetoothAvrcpCtrlVendorCallbacks);
+        }
+
         PostMessage(THREAD_ID_GAP, pEvent);
     }
     use_bt_a2dp_hal = config_get_bool (config,
@@ -382,6 +408,14 @@ void A2dp_Sink::HandleDisableSink(void) {
    if (sBtAvrcpCtrlInterface != NULL) {
        sBtAvrcpCtrlInterface->cleanup();
        sBtAvrcpCtrlInterface = NULL;
+   }
+   if(sBtA2dpSinkVendorInterface != NULL) {
+       sBtA2dpSinkVendorInterface->cleanup_vendor();
+       sBtA2dpSinkVendorInterface = NULL;
+   }
+   if (sBtAvrcpCtrlVendorInterface != NULL) {
+       sBtAvrcpCtrlVendorInterface->cleanup_vendor();
+       sBtAvrcpCtrlVendorInterface = NULL;
    }
    BtEvent *pEvent = new BtEvent;
     pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
@@ -510,6 +544,9 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
     char str[18];
     uint32_t pcm_data_read = 0;
     BtEvent *pControlRequest, *pReleaseControlReq;
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    qahw_out_buffer_t out_buf;
+#endif
     ALOGD(LOGTAG " state_connected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SINK_API_CONNECT_REQ:
@@ -574,20 +611,23 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
            // first start next timer
            StartPcmTimer();
 
-            if ((sBtA2dpSinkInterface != NULL) && ( pcm_buf != NULL)) {
+            if ((sBtA2dpSinkVendorInterface != NULL) && ( pcm_buf != NULL)) {
                 if(use_bt_a2dp_hal) {
                     // read data from BT A2DP HAL
                     pcm_data_read =  ReadInputStream(pcm_buf, pcm_buf_size);
                 }
                 else {
                     // fetch PCM data from fluoride
-                    pcm_data_read =  sBtA2dpSinkInterface->get_pcm_data(pcm_buf, pcm_buf_size);
+                    pcm_data_read =  sBtA2dpSinkVendorInterface->
+                                     get_pcm_data_vendor(pcm_buf, pcm_buf_size);
                 }
                 ALOGD(LOGTAG " pcm_data_read = %d", pcm_data_read);
             }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
             if ((pBTAM->GetAudioDevice() != NULL) && (out_stream != NULL) && (pcm_data_read)) {
-                out_stream->write(out_stream, pcm_buf, pcm_data_read);
+                out_buf.buffer = pcm_buf;
+                out_buf.bytes = pcm_data_read;
+                qahw_out_write(out_stream, &out_buf);
             }
 #endif
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
@@ -604,8 +644,8 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             switch(controlStatus) {
                 case STATUS_LOSS:
                     // inform bluedroid
-                    if (sBtA2dpSinkInterface != NULL) {
-                        sBtA2dpSinkInterface->audio_focus_state(0);
+                    if (sBtA2dpSinkVendorInterface != NULL) {
+                        sBtA2dpSinkVendorInterface->audio_focus_state_vendor(0);
                     }
                     // send pause to remote
                     SendPassThruCommandNative(CMD_ID_PAUSE);
@@ -619,8 +659,8 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
                     break;
                 case STATUS_LOSS_TRANSIENT:
                     // inform bluedroid
-                    if (sBtA2dpSinkInterface != NULL) {
-                        sBtA2dpSinkInterface->audio_focus_state(0);
+                    if (sBtA2dpSinkVendorInterface != NULL) {
+                        sBtA2dpSinkVendorInterface->audio_focus_state_vendor(0);
                     }
                     // send pause to remote
                     SendPassThruCommandNative(CMD_ID_PAUSE);
@@ -629,16 +669,16 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
                     break;
                 case STATUS_GAIN:
                     // inform bluedroid
-                    if (sBtA2dpSinkInterface != NULL) {
-                        sBtA2dpSinkInterface->audio_focus_state(3);
+                    if (sBtA2dpSinkVendorInterface != NULL) {
+                        sBtA2dpSinkVendorInterface->audio_focus_state_vendor(3);
                     }
                     ConfigureAudioHal();
                     StartPcmTimer();
                     break;
                 case STATUS_REGAINED:
                     // inform bluedroid
-                    if (sBtA2dpSinkInterface != NULL) {
-                        sBtA2dpSinkInterface->audio_focus_state(3);
+                    if (sBtA2dpSinkVendorInterface != NULL) {
+                        sBtA2dpSinkVendorInterface->audio_focus_state_vendor(3);
                     }
                     ConfigureAudioHal();
                     StartPcmTimer();
@@ -669,7 +709,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
 }
 void A2dp_Sink::ConfigureAudioHal() {
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-    audio_hw_device_t* audio_device;
+    qahw_module_handle_t* audio_device;
     audio_config_t config;
     audio_io_handle_t handle = 0x07;
 
@@ -694,11 +734,11 @@ void A2dp_Sink::ConfigureAudioHal() {
         if(audio_device != NULL) {
             // 2 refers to speaker
             ALOGD(LOGTAG, " opening output stream ");
-            audio_device->open_output_stream(audio_device, handle, 2, AUDIO_OUTPUT_FLAG_DIRECT_PCM,
+            qahw_open_output_stream(audio_device, handle, 2, AUDIO_OUTPUT_FLAG_DIRECT_PCM,
                    &config, &out_stream, "bt_a2dp_sink");
         }
         if (out_stream != NULL) {
-            pcm_buf_size = out_stream->common.get_buffer_size(&out_stream->common);
+            pcm_buf_size = qahw_out_get_buffer_size(out_stream);
             ALOGD(LOGTAG " pcm buf size %d", pcm_buf_size);
             pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
         }
@@ -723,13 +763,13 @@ void A2dp_Sink::ConfigureAudioHal() {
 }
 void A2dp_Sink::CloseAudioStream() {
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-    audio_hw_device_t* audio_device;
+    qahw_module_handle_t* audio_device;
     if (pBTAM != NULL) {
         audio_device = pBTAM->GetAudioDevice();
         if((audio_device != NULL) && (out_stream != NULL)) {
             // 2 refers to speaker
             ALOGD(LOGTAG, " closing output stream ");
-            audio_device->close_output_stream(audio_device, out_stream);
+            qahw_close_output_stream(out_stream);
             out_stream = NULL;
         }
         if (pcm_buf != NULL) {
@@ -752,17 +792,10 @@ void A2dp_Sink::CloseAudioStream() {
 }
 void A2dp_Sink::LoadBtA2dpHAL() {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
-    const hw_module_t *module;
     ALOGD(LOGTAG " Load A2dp HAL ");
-    if (hw_get_module_by_class(AUDIO_HARDWARE_MODULE_ID,
-                               AUDIO_HARDWARE_MODULE_ID_A2DP,
-                               &module)) {
-        ALOGE(LOGTAG " A2dp Hal module not found ");
-        return;
-    }
-    if (audio_hw_device_open(module, &a2dp_input_device)) {
-        a2dp_input_device = NULL;
-        ALOGE(LOGTAG " A2dp Hal device can not be opened ");
+    a2dp_input_device = qahw_load_module(QAHW_MODULE_ID_A2DP);
+    if (a2dp_input_device == NULL) {
+        ALOGE(LOGTAG " A2dp Hal can not be opened ");
         return;
     }
     ALOGD(LOGTAG " A2dp HAL successfully loaded ");
@@ -771,21 +804,22 @@ void A2dp_Sink::LoadBtA2dpHAL() {
 
 void A2dp_Sink::UnLoadBtA2dpHAL() {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
+    int ret  =  0;
     ALOGD(LOGTAG " Unload A2dp HAL");
-    //BtA2dpCloseOutputStream();
     if(!a2dp_input_device)
     {
         ALOGD(LOGTAG " A2dp_input_device not valid ");
         return;
     }
-    if (audio_hw_device_close(a2dp_input_device) < 0) {
+    ret = qahw_unload_module(a2dp_input_device);
+    if (ret < 0) {
         ALOGE(LOGTAG " A2dp HAL could not be closed gracefully");
+        a2dp_input_device = NULL;
         return;
     }
     a2dp_input_device = NULL;
     ALOGD(LOGTAG " A2dp HAL successfully Unloaded ");
 #endif
-
 }
 
 void A2dp_Sink::OpenInputStream()
@@ -797,7 +831,7 @@ void A2dp_Sink::OpenInputStream()
         ALOGE(LOGTAG " Invalid A2dp HAL device. Bail out! ");
         return;
     }
-    ret = a2dp_input_device->open_input_stream(a2dp_input_device, 0, AUDIO_DEVICE_OUT_ALL_A2DP,
+    ret = qahw_open_input_stream(a2dp_input_device, 0, AUDIO_DEVICE_OUT_ALL_A2DP,
             NULL, &input_stream, AUDIO_INPUT_FLAG_NONE, "bt_a2dp_input_stream" , AUDIO_SOURCE_DEFAULT);
     if (ret < 0) {
         input_stream = NULL;
@@ -815,7 +849,7 @@ void A2dp_Sink::CloseInputStream()
         ALOGE(LOGTAG " Invalid A2dp HAL device. Bail out! ");
         return;
     }
-    a2dp_input_device->close_input_stream(a2dp_input_device,input_stream);
+    qahw_close_input_stream(input_stream);
     input_stream = NULL;
     ALOGD(LOGTAG " A2dp Input Stream successfully closed ");
 #endif
@@ -830,7 +864,7 @@ void A2dp_Sink::SuspendInputStream()
         ALOGE(LOGTAG " Invalid Input Stream. Bail out! ");
         return;
     }
-    input_stream->common.standby(&input_stream->common);
+    qahw_in_standby(input_stream);
     ALOGD(LOGTAG " A2dp Stream suspended successfully");
 #endif
 }
@@ -839,13 +873,16 @@ uint32_t A2dp_Sink::ReadInputStream(uint8_t* data, uint32_t size)
 {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     uint32_t data_read;
+    qahw_in_buffer_t in_buf;
     ALOGD(LOGTAG " Read Input Stream");
     if(!input_stream)
     {
         ALOGE(LOGTAG " Invalid Input Stream. Bail out! ");
         return 0 ;
     }
-    data_read = input_stream->read(input_stream, data, size);
+    in_buf.buffer = data;
+    in_buf.bytes = size;
+    data_read = qahw_in_read(input_stream, &in_buf);;
     ALOGD(LOGTAG " A2dp Input Stream bytes read = %d", data_read);
     return data_read;
 #endif
@@ -860,7 +897,7 @@ uint32_t A2dp_Sink::GetInputStreamBufferSize()
         ALOGE(LOGTAG " Invalid Input Stream. Bail out! ");
         return 0 ;
     }
-    return input_stream->common.get_buffer_size(&input_stream->common);
+    return qahw_in_get_buffer_size(input_stream);
     ALOGD(LOGTAG " GetInputStreamBufferSize %d ");
 #endif
 }

@@ -23,8 +23,9 @@
 #include <hardware/hardware.h>
 #include <hardware/bt_hf_client.h>
 
-#include "Audio_Manager.hpp"
+//#include "Audio_Manager.hpp"
 #include "HfpClient.hpp"
+#include "hardware/bt_hf_client_vendor.h"
 
 #define LOGTAG "HFP_CLIENT"
 
@@ -493,12 +494,12 @@ void ring_indication_cb () {
    PostMessage(THREAD_ID_HFP_CLIENT, pEvent);
 }
 
-void cgmi_cb (const char *str) {
-   ALOGD(LOGTAG "cgmi_cb %s", str);
+void cgmi_vendor_cb (const char *str) {
+   ALOGD(LOGTAG " cgmi_vendor_cb %s", str);
 }
 
-void cgmm_cb (const char *str) {
-   ALOGD(LOGTAG "cgmm_cb %s", str);
+void cgmm_vendor_cb (const char *str) {
+   ALOGD(LOGTAG " cgmm_vendor_cb %s", str);
 }
 
 
@@ -525,8 +526,12 @@ static bthf_client_callbacks_t sBluetoothHfpClientCallbacks = {
     in_band_ring_cb,
     last_voice_tag_number_cb,
     ring_indication_cb,
-    cgmi_cb,
-    cgmm_cb,
+};
+
+static bthf_client_vendor_callbacks_t sBluetoothHfpClientVendorCallbacks = {
+    sizeof(sBluetoothHfpClientVendorCallbacks),
+    cgmi_vendor_cb,
+    cgmm_vendor_cb,
 };
 
 void Hfp_Client::HandleEnableClient(void) {
@@ -540,8 +545,17 @@ void Hfp_Client::HandleEnableClient(void) {
             ALOGE(LOGTAG "get profile interface failed, returning");
             return;
         }
+        sBtHfpClientVendorInterface = (bthf_client_vendor_interface_t *)bluetooth_interface->
+                get_profile_interface(BT_PROFILE_HANDSFREE_CLIENT_VENDOR_ID);
+        if (sBtHfpClientVendorInterface == NULL)
+        {
+            // TODO: sent message to indicate failure for profile init
+            ALOGE(LOGTAG "get profile vendor interface failed, returning");
+            return;
+        }
         change_state(HFP_CLIENT_STATE_DISCONNECTED);
         sBtHfpClientInterface->init(&sBluetoothHfpClientCallbacks);
+        sBtHfpClientVendorInterface->init_vendor(&sBluetoothHfpClientVendorCallbacks);
         BtEvent *pEvent = new BtEvent;
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_HFP_CLIENT;
@@ -555,6 +569,10 @@ void Hfp_Client::HandleDisableClient(void) {
    if(sBtHfpClientInterface != NULL) {
        sBtHfpClientInterface->cleanup();
        sBtHfpClientInterface = NULL;
+   }
+   if(sBtHfpClientVendorInterface != NULL) {
+       sBtHfpClientVendorInterface->cleanup_vendor();
+       sBtHfpClientVendorInterface = NULL;
    }
    BtEvent *pEvent = new BtEvent;
    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
@@ -993,7 +1011,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
 void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
     char str[18];
     BtEvent *pControlRequest, *pReleaseControlReq;
-    ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
+    ALOGD(LOGTAG "state_audio_on_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_DISCONNECT_AUDIO_REQ:
             if (sBtHfpClientInterface != NULL) {
@@ -1202,9 +1220,10 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
 void Hfp_Client::ConfigureRingTonePlayback() {
 
 #if defined(BT_AUDIO_HAL_INTEGRATION)
-   audio_hw_device_t* audio_device;
+   qahw_module_handle_t* audio_module;
    audio_config_t config;
    audio_io_handle_t handle = 0x7;
+   int ret = 0;
 
    ALOGD(LOGTAG "ConfigureRingTonePlayback");
    cout << "ConfigureRingTonePlayback" << endl;
@@ -1223,15 +1242,15 @@ void Hfp_Client::ConfigureRingTonePlayback() {
    config.channel_mask = audio_channel_out_mask_from_count(1);
    config.offload_info.channel_mask = audio_channel_out_mask_from_count(1);
 
-   audio_device = pBTAM->GetAudioDevice();
-   if(audio_device != NULL) {
+   audio_module = pBTAM->GetAudioDevice();
+   if(audio_module != NULL) {
          // select speaker(2) as output device
-         audio_device->open_output_stream(audio_device, handle, 2, AUDIO_OUTPUT_FLAG_DIRECT_PCM,
+         ret = qahw_open_output_stream(audio_module, handle, 2, AUDIO_OUTPUT_FLAG_DIRECT_PCM,
                                         &config, &out_stream_ring_tone, "bt_hfp_client");
    }
    else {
-      cout << "ConfigureRingTonePlayback: audio_device is NULL" << endl;
-      ALOGD(LOGTAG " ConfigureRingTonePlayback: audio_device is NULL");
+      cout << "ConfigureRingTonePlayback: audio_module is NULL" << endl;
+      ALOGD(LOGTAG " ConfigureRingTonePlayback: audio_module is NULL");
    }
 #else
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
@@ -1243,7 +1262,8 @@ void Hfp_Client::ConfigureRingTonePlayback() {
 void Hfp_Client::PlayRingTone() {
    ALOGD("%s:", __func__);
 #if defined(BT_AUDIO_HAL_INTEGRATION)
-  int i, j;
+  int i, j, ret = 0;
+  qahw_out_buffer_t out_buf;
   // 40msec of 8kz 16-bit mono = 40*8*2 = 640 bytes
   uint8_t *buf = (uint8_t*)osi_malloc(640);
 
@@ -1254,13 +1274,21 @@ void Hfp_Client::PlayRingTone() {
      return;
   }
 
+  out_buf.buffer = buf;
+  out_buf.bytes = 640;
+
   for(i = 0; i < 5; i++)
   {
      for(j = 0; j < 5; j++)
      {
         memcpy(buf, (void*)(ring_tone + j * 640), 640);
+
         if ((pBTAM->GetAudioDevice() != NULL) && (out_stream_ring_tone != NULL)) {
-           out_stream_ring_tone->write(out_stream_ring_tone, buf, 640);
+           ret = qahw_out_write(out_stream_ring_tone, &out_buf);
+           if (ret < 0) {
+               ALOGE(LOGTAG " %s: writing data to audio hal failed", __func__);
+               //break;
+           }
         }
      }
   }
@@ -1276,12 +1304,13 @@ void Hfp_Client::PlayRingTone() {
 
 void Hfp_Client::StopRingTone() {
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-    audio_hw_device_t* audio_device;
+    int ret = 0;
+    qahw_module_handle_t* audio_module;
     if (pBTAM != NULL) {
-        audio_device = pBTAM->GetAudioDevice();
-        if((audio_device != NULL) && (out_stream_ring_tone != NULL)) {
+        audio_module = pBTAM->GetAudioDevice();
+        if((audio_module != NULL) && (out_stream_ring_tone != NULL)) {
             ALOGD(LOGTAG, " closing output stream for ring tone ");
-            audio_device->close_output_stream(audio_device, out_stream_ring_tone);
+            ret = qahw_close_output_stream(out_stream_ring_tone);
             out_stream_ring_tone = NULL;
         }
     }
@@ -1291,7 +1320,7 @@ void Hfp_Client::StopRingTone() {
 void Hfp_Client::ConfigureAudio(bool enable) {
 
 #if defined(BT_AUDIO_HAL_INTEGRATION)
-   audio_hw_device_t* audio_device;
+   qahw_module_handle_t* audio_module;
    audio_config_t config;
    audio_io_handle_t handle = 0x999;
 
@@ -1308,41 +1337,41 @@ void Hfp_Client::ConfigureAudio(bool enable) {
    config.format = AUDIO_FORMAT_PCM_16_BIT;
    config.sample_rate = 8000;
 
-   audio_device = pBTAM->GetAudioDevice();
-   if(audio_device != NULL) {
+   audio_module = pBTAM->GetAudioDevice();
+   if(audio_module != NULL) {
       if (enable) {
          // select speaker(2) as output device
-         audio_device->open_output_stream(audio_device, handle, 2, AUDIO_OUTPUT_FLAG_NONE,
+         qahw_open_output_stream(audio_module, handle, 2, AUDIO_OUTPUT_FLAG_NONE,
                                         &config, &out_stream, "bt_hfp_client");
          ALOGD(LOGTAG " setting sample rate %s", (mAudioWbs ? "16000" : "8000"));
          cout << "setting sample rate " << (mAudioWbs ? "16000" : "8000") << endl;
          if (mAudioWbs)
-            audio_device->set_parameters(audio_device, "hfp_set_sampling_rate=16000");
+            qahw_set_parameters(audio_module, "hfp_set_sampling_rate=16000");
          else
-            audio_device->set_parameters(audio_device, "hfp_set_sampling_rate=8000");
+            qahw_set_parameters(audio_module, "hfp_set_sampling_rate=8000");
 
          cout << "setting hfp_enable to true" << endl;
          ALOGD(LOGTAG " setting hfp_enable to true");
-         audio_device->set_parameters(audio_device, "hfp_volume=15");
-         audio_device->set_parameters(audio_device, "hfp_enable=true");
+         qahw_set_parameters(audio_module, "hfp_volume=15");
+         qahw_set_parameters(audio_module, "hfp_enable=true");
       }
       else
       {
          cout << "setting hfp_enable to false" << endl;
          ALOGD(LOGTAG " setting hfp_enable to false");
-         audio_device->set_parameters(audio_device, "hfp_enable=false");
+         qahw_set_parameters(audio_module, "hfp_enable=false");
 
          if (out_stream != NULL) {
             cout << "closing output stream for SCO/eSCO" << endl;
             ALOGD(LOGTAG " Closing output stream for SCO/eSCO");
-            audio_device->close_output_stream(audio_device, out_stream);
+            qahw_close_output_stream(out_stream);
             out_stream = NULL;
          }
       }
    }
    else {
-      cout << "ConfigureAudio: audio_device is NULL" << endl;
-      ALOGD(LOGTAG " ConfigureAudio: audio_device is NULL");
+      cout << "ConfigureAudio: audio_module is NULL" << endl;
+      ALOGD(LOGTAG " ConfigureAudio: audio_module is NULL");
    }
 #else
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
@@ -1354,7 +1383,7 @@ void Hfp_Client::ConfigureAudio(bool enable) {
 void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bool mute_mic) {
 
 #if defined(BT_AUDIO_HAL_INTEGRATION)
-   audio_hw_device_t* audio_device;
+   qahw_module_handle_t* audio_module;
 
    ALOGD(LOGTAG "ConfigureVolume for %s vol level %d, mute_mic %d",
            (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK)? "speaker" :"mic", vol, mute_mic);
@@ -1367,8 +1396,8 @@ void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bo
       return;
    }
 
-   audio_device = pBTAM->GetAudioDevice();
-   if(audio_device == NULL || out_stream == NULL) {
+   audio_module = pBTAM->GetAudioDevice();
+   if(audio_module == NULL || out_stream == NULL) {
       ALOGD(LOGTAG "Audio is not configured for SCO");
       cout << "Audio is not configured for SCO" << endl;
       return;
@@ -1378,16 +1407,16 @@ void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bo
       char buf[14];
 
       if (vol <= 0)
-         audio_device->set_parameters(audio_device, "hfp_volume=0");
+         qahw_set_parameters(audio_module, "hfp_volume=0");
       else if (vol >=  15)
-         audio_device->set_parameters(audio_device, "hfp_volume=15");
+         qahw_set_parameters(audio_module, "hfp_volume=15");
       else {
          sprintf(buf, "hfp_volume=%d", vol);
-         audio_device->set_parameters(audio_device, buf);
+         qahw_set_parameters(audio_module, buf);
       }
    }
    else if (vol_type == BTHF_CLIENT_VOLUME_TYPE_MIC) {
-      audio_device->set_mic_mute(audio_device, mute_mic);
+      //audio_module->set_mic_mute(audio_module, mute_mic);
    }
 
 #endif

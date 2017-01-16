@@ -22,6 +22,7 @@
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
 #include <hardware/bt_hf.h>
+#include "hardware/bt_hf_vendor.h"
 
 #include "Audio_Manager.hpp"
 #include "HfpAG.hpp"
@@ -161,7 +162,7 @@ void volume_control_callback(bthf_volume_type_t type, int volume, bt_bdaddr_t* b
     ALOGD(LOGTAG "%s : %s volume is %d", __func__,
           (type == BTHF_VOLUME_TYPE_SPK) ? "speaker": "mic", volume);
     cout << LOGTAG << " " << __func__ << ": " << ((type == BTHF_VOLUME_TYPE_SPK) ? "speaker": "mic");
-    cout << " volume is " << volume;
+    cout << " volume is " << volume << endl;
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.event_id = HFP_AG_VOL_CONTROL_CB;
@@ -283,10 +284,10 @@ void key_pressed_callback(bt_bdaddr_t* bd_addr) {
     ALOGD(LOGTAG " key_pressed_callback");
 }
 
-void at_bind_callback(char* hf_ind, bthf_bind_type_t type, bt_bdaddr_t* bd_addr) {
+void bind_cmd_vendor_cb(char* hf_ind, bthf_vendor_bind_type_t type, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
-    ALOGD(LOGTAG " at_bind_callback");
-    cout << " at_bind_callback" << endl;
+    ALOGD(LOGTAG " bind_cmd_vendor_cb");
+    cout << " bind_cmd_vendor_cb" << endl;
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     strncpy(pEvent->hfp_ag_event.str, hf_ind, strlen(hf_ind));
@@ -295,10 +296,10 @@ void at_bind_callback(char* hf_ind, bthf_bind_type_t type, bt_bdaddr_t* bd_addr)
     PostMessage(THREAD_ID_HFP_AG, pEvent);
 }
 
-void at_biev_callback(char* hf_ind_val, bt_bdaddr_t* bd_addr) {
+void biev_cmd_vendor_cb(char* hf_ind_val, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
-    ALOGD(LOGTAG " at_biev_callback");
-    cout << " at_biev_callback" << endl;
+    ALOGD(LOGTAG " biev_cmd_vendor_cb");
+    cout << " biev_cmd_vendor_cb" << endl;
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     strncpy(pEvent->hfp_ag_event.str, hf_ind_val, strlen(hf_ind_val));
@@ -324,9 +325,13 @@ static bthf_callbacks_t sBluetoothHfpAgCallbacks = {
     at_cops_callback,
     at_clcc_callback,
     unknown_at_callback,
-    key_pressed_callback,
-    at_bind_callback,
-    at_biev_callback
+    key_pressed_callback
+};
+
+static bthf_vendor_callbacks_t sBluetoothHfpAgVendorCallbacks = {
+    sizeof(sBluetoothHfpAgVendorCallbacks),
+    bind_cmd_vendor_cb,
+    biev_cmd_vendor_cb,
 };
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -334,10 +339,10 @@ void ril_ind_cb(mcm_client_handle_type hndl, uint32 msg_id,
                      void *ind_c_struct, uint32 ind_len) {
    BtEvent *pEvent = new BtEvent;
    cout << "ril_ind_cb: indications is %u" << msg_id << endl;
-   ALOGD(LOGTAG, "%s: indications is %u\n", __func__, msg_id);
+   ALOGD(LOGTAG "%s: indications is %u\n", __func__, msg_id);
 
    if (ind_c_struct == NULL) {
-       ALOGE(LOGTAG, "%s: indication data is NULL", __func__);
+       ALOGE(LOGTAG "%s: indication data is NULL", __func__);
        cout << "indication data is NULL" << endl;
        return;
    }
@@ -354,10 +359,10 @@ void ril_resp_cb(mcm_client_handle_type hndl, uint32 msg_id,
                       void *resp_c_struct, uint32 resp_len, void *token_id){
    BtEvent *pEvent = new BtEvent;
    cout << "ril_resp_cb: response msg %u" << msg_id << endl;
-   ALOGD(LOGTAG, "%s: response msg  is %u\n", __func__, msg_id);
+   ALOGD(LOGTAG "%s: response msg  is %u\n", __func__, msg_id);
 
    if (resp_c_struct == NULL) {
-       ALOGE(LOGTAG, "%s: response data is NULL", __func__);
+       ALOGE(LOGTAG "%s: response data is NULL", __func__);
        cout << "response data is NULL" << endl;
        return;
    }
@@ -382,8 +387,16 @@ void Hfp_Ag::HandleEnableAg(void) {
             ALOGE(LOGTAG "get profile interface failed, returning");
             return;
         }
+        sBtHfpAgVendorInterface = (bthf_vendor_interface_t *)bluetooth_interface->
+            get_profile_interface(BT_PROFILE_HANDSFREE_VENDOR_ID);
+        if (sBtHfpAgVendorInterface == NULL)
+        {
+            ALOGE(LOGTAG "get profile vendor interface failed, returning");
+            return;
+        }
         change_state(HFP_AG_STATE_DISCONNECTED);
         sBtHfpAgInterface->init(&sBluetoothHfpAgCallbacks, 1);
+        sBtHfpAgVendorInterface->init_vendor(&sBluetoothHfpAgVendorCallbacks);
 
 #if defined(BT_MODEM_INTEGRATION)
         init_modem();
@@ -406,7 +419,10 @@ void Hfp_Ag::HandleDisableAg(void) {
        sBtHfpAgInterface->cleanup();
        sBtHfpAgInterface = NULL;
    }
-
+   if(sBtHfpAgVendorInterface != NULL) {
+       sBtHfpAgVendorInterface->cleanup_vendor();
+       sBtHfpAgVendorInterface = NULL;
+   }
 #if defined(BT_MODEM_INTEGRATION)
    release_modem();
 #endif
@@ -439,7 +455,7 @@ void Hfp_Ag::ProcessEvent(BtEvent* pEvent) {
             state_audio_on_handler(pEvent);
             break;
         case HFP_AG_STATE_NOT_STARTED:
-            ALOGE(LOGTAG," STATE UNINITIALIZED, return");
+            ALOGE(LOGTAG " STATE UNINITIALIZED, return");
             break;
     }
 }
@@ -456,7 +472,7 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
             }
             bdaddr_to_string(&mConnectingDevice, str, 18);
             cout << "connecting with device " << str << endl;
-            ALOGD(LOGTAG "connecting with device %s", str);
+            ALOGD(LOGTAG " connecting with device %s", str);
             change_state(HFP_AG_STATE_PENDING);
             break;
         case HFP_AG_CONNECTING_CB:
@@ -474,7 +490,7 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
             change_state(HFP_AG_STATE_CONNECTED);
             break;
         default:
-            ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
+            ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 }
@@ -504,14 +520,14 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             change_state(HFP_AG_STATE_DISCONNECTED);
             break;
         default:
-            ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
+            ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 }
 
 void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
     ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
-    cout << LOGTAG "state_connected_handler Processing event %d" <<  pEvent->event_id;
+    cout << LOGTAG "state_connected_handler Processing event " <<  pEvent->event_id << endl;
     char str[18];
     BtEvent *pControlRequest, *pReleaseControlReq;
     switch(pEvent->event_id) {
@@ -710,8 +726,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_AUDIO_STATE_CONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "SCO/eSCO connected with device " << str << endl;
-            ALOGD(LOGTAG "SCO/eSCO connected with device %s", str);
+            cout << "SCO/eSCO connected with device " << str << " codec ";
+            cout << ((mWbsState == BTHF_WBS_YES)? "WBS": "NBS")  << endl;
+            ALOGD(LOGTAG "SCO/eSCO connected with device %s, codec %s", str,
+                ((mWbsState == BTHF_WBS_YES)? "WBS": "NBS"));
 
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
             setup_sco_path();
@@ -1733,12 +1751,15 @@ void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
       }
    }
    else if(type == 1) {
-      if (sBtHfpAgInterface != NULL) {
+      if (sBtHfpAgVendorInterface != NULL) {
           for (i = 0; i < MAX_HF_INDICATORS;i++) {
               // TODO: send all the indicators as disabled for now
-              sBtHfpAgInterface->bind_response(i+1, BTHF_HF_INDICATOR_STATE_DISABLED,
-                                  &pEvent->hfp_ag_event.bd_addr);
+              sBtHfpAgVendorInterface->
+                  bind_response_vendor(i+1, BTHF_VENDOR_HF_INDICATOR_STATE_DISABLED,
+                  &pEvent->hfp_ag_event.bd_addr);
           }
+      }
+      if (sBtHfpAgInterface != NULL) {
           sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                       &pEvent->hfp_ag_event.bd_addr);
       }
@@ -1752,8 +1773,10 @@ void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
        }
        str[strlen(str) - 1] = ')';
 
+       if (sBtHfpAgVendorInterface != NULL) {
+          sBtHfpAgVendorInterface->bind_string_response_vendor(str, &pEvent->hfp_ag_event.bd_addr);
+       }
        if (sBtHfpAgInterface != NULL) {
-          sBtHfpAgInterface->bind_string_response(str, &pEvent->hfp_ag_event.bd_addr);
           sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                       &pEvent->hfp_ag_event.bd_addr);
        }

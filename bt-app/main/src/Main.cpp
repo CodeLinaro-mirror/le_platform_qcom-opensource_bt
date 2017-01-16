@@ -51,7 +51,7 @@
 #include "utils.h"
 
 #define LOGTAG  "MAIN "
-#define LOCAL_SOCKET_NAME "/etc/bluetooth/btappsocket"
+#define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
@@ -903,6 +903,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             if ((g_bt_app->status.enquiry_cmd != COMMAND_INPROGRESS) &&
                                 (g_bt_app->bt_state == BT_STATE_ON)) {
 
+                g_bt_app->inquiry_list.clear();
                 g_bt_app->status.enquiry_cmd = COMMAND_INPROGRESS;
                 event = new BtEvent;
                 event->event_id = GAP_API_START_INQUIRY;

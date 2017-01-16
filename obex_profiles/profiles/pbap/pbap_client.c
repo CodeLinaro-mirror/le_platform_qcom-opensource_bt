@@ -1754,8 +1754,6 @@ OI_STATUS OI_PBAPClient_Connect(OI_BD_ADDR *addr,
                                 connectionId,
                                 &connectPolicy);
 
-    OI_DBGPRINT2(("PBAP client: after OI_OBEXCLI_ConnectAuthenticate"));
-
     if (OI_SUCCESS(status)) {
         client->id = *connectionId;
         /* Set our initialization flag TRUE - we're initialized. */
@@ -1766,7 +1764,7 @@ OI_STATUS OI_PBAPClient_Connect(OI_BD_ADDR *addr,
         OI_OBEXCLI_SetConnectionContext(*connectionId, (void*)client);
     } else {
         OI_Free(client);
-        OI_SLOG_ERROR(status, ("OI_OBEXCLI_ConnectAuthenticate failed"));
+        OI_SLOG_ERROR(status, ("OI_OBEXCLI_Connect failed"));
     }
     return status;
 

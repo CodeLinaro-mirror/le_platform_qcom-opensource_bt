@@ -37,8 +37,8 @@
 #include <hardware/bt_rc.h>
 #include <pthread.h>
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-#include <hardware/audio.h>
-#include <hardware/hardware.h>
+#include "qahw_api.h"
+#include "qahw_defs.h"
 #endif
 
 #include "osi/include/log.h"
@@ -48,6 +48,8 @@
 #include "osi/include/alarm.h"
 #include "ipc.h"
 #include "utils.h"
+#include "hardware/bt_av_vendor.h"
+#include "hardware/bt_rc_vendor.h"
 
 
 typedef enum {
@@ -68,6 +70,8 @@ class A2dp_Sink {
     const btrc_ctrl_interface_t *sBtAvrcpCtrlInterface;
     A2dpSinkState mSinkState;
     bool mAvrcpConnected;
+    const btav_vendor_interface_t *sBtA2dpSinkVendorInterface;
+    const btrc_ctrl_vendor_interface_t *sBtAvrcpCtrlVendorInterface;
 
   public:
     A2dp_Sink(const bt_interface_t *bt_interface, config_t *config);
@@ -91,10 +95,11 @@ class A2dp_Sink {
     uint8_t channel_count;
     alarm_t *pcm_data_fetch_timer;
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-    audio_stream_out_t* out_stream;
+    // structure for output stream
+    qahw_stream_handle_t* out_stream;
     // structures used for loading A2DP HAL
-    audio_hw_device_t *a2dp_input_device;
-    audio_stream_in *input_stream;
+    qahw_module_handle_t *a2dp_input_device;
+    qahw_stream_handle_t *input_stream;
 #endif
     //apis for in_stream bt a2dp HAL, to read data.
     void LoadBtA2dpHAL();

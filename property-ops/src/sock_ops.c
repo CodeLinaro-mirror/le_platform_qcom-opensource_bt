@@ -48,7 +48,7 @@
 
 #include "../include/property_ops.h"
 
-#define SOCK_NAMED_ADDR  "/etc/bluetooth/btprop"
+#define SOCK_NAMED_ADDR  "/data/misc/bluetooth/btprop"
 #define TRIGGER_CONNECTION_INDEX    (1)
 #define MAX_LISTENERS               (4)
 //500ms, unless MAX_LISTENERS are connected
@@ -268,6 +268,16 @@ bool parse_and_exec(int cmd, unsigned char* command, unsigned char* prop_val)
             } else {
                 LOG_DEBUG("stopping btsnoop\n");
                 system("killall -KILL btsnoop");
+            }
+        }
+
+        if (!strncmp(prop_name, "bluetooth.isEnabled", strlen(prop_name))) {
+            if (!strncmp(prop_value, "true", strlen(prop_value))) {
+                LOG_DEBUG("starting abtfilter\n");
+                system("abtfilt -d -z -n -m -a -w wlan0 &");
+            } else {
+                LOG_DEBUG("stopping abtfilter\n");
+                system("killall -KILL abtfilt");
             }
         }
         result = set_property_value_bt(prop_name, prop_value);

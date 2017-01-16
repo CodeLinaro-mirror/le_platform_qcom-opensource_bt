@@ -74,7 +74,7 @@ const OI_CONFIG_FTP_CLI oi_default_config_FTP_CLI = {
 /* OBEX protocol, Generic Object Exchange Profile */
 
 const OI_CONFIG_OBEX_CLI oi_default_config_OBEX_CLI = {
-    OI_SECONDS(60),  /*
+    OI_SECONDS(25),  /*
                       * OI_INTERVAL responseTimeout; This timeout should be a fairly large value. It
                       * is intended to detect the case where the Bluetooth link is still up but the
                       * OBEX server has gone unresponsive, probably because it has crashed.
