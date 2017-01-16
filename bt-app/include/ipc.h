@@ -49,6 +49,7 @@ extern thread_t *g_pbapc_thread;
 #define RSP_MSG_BASE            (4000)
 #define SDP_CLIENT_MSG_BASE     (5000)
 #define PBAP_CLIENT_MSG_BASE    (6000)
+#define OPP_MSG_BASE            (7000)
 
 #define AUDIO_MANAGER_MSG_BASE  (250)
 #define A2DP_SINK_MSG_BASE      (300)
@@ -83,6 +84,7 @@ typedef enum {
     THREAD_ID_SDP_CLIENT,
 #ifdef USE_BT_OBEX
     THREAD_ID_PBAP_CLIENT,
+    THREAD_ID_OPP,
 #endif
     THREAD_ID_HFP_AG,
     THREAD_ID_A2DP_SOURCE,
@@ -101,6 +103,7 @@ typedef enum {
     PROFILE_ID_SDP_CLIENT,
 #ifdef USE_BT_OBEX
     PROFILE_ID_PBAP_CLIENT,
+    PROFILE_ID_OPP,
 #endif
     PROFILE_ID_HFP_AG,
     PROFILE_ID_A2DP_SOURCE,
@@ -148,6 +151,9 @@ typedef enum {
     MAIN_EVENT_DISABLED,
     MAIN_EVENT_SSP_REQUEST,
     MAIN_EVENT_PIN_REQUEST,
+#ifdef USE_BT_OBEX
+    MAIN_EVENT_INCOMING_FILE_REQUEST,
+#endif
 
     MAIN_MSG_DISCOVER_DEVICES,
     MAIN_MSG_BOND_DEVICE,
@@ -425,6 +431,15 @@ typedef enum {
     PBAP_CLIENT_GET_VCARD_FORMAT,
     PBAP_CLIENT_GET_LIST_COUNT,
     PBAP_CLIENT_GET_START_OFFSET,
+
+    OPP_SRV_REGISTER = OPP_MSG_BASE,
+    OPP_SEND_DATA,
+    OPP_ABORT_TRANSFER,
+    OPP_INTERNAL_CONNECT,
+    OPP_INTERNAL_SEND,
+    OPP_INTERNAL_DISCONNECTION,
+    OPP_INCOMING_FILE_RESPONSE,
+    OPP_CONNECT_TIMEOUT,
 } BluetoothEventId;
 
 typedef struct {
@@ -1179,6 +1194,7 @@ typedef struct {
     int                     rec_handle;
 } SdpClientEvent;
 
+#ifdef USE_BT_OBEX
 typedef struct {
     BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
@@ -1186,6 +1202,14 @@ typedef struct {
     uint32_t            max_list_count;
     uint32_t            list_start_offset;
 } PbapClientEvent;
+
+typedef struct {
+    BluetoothEventId    event_id;
+    bt_bdaddr_t         bd_addr;
+    char                value[256];
+    bool                accept;
+} OppEvent;
+#endif
 
 /**
   * @brief BT IPC message between qcbtdaemon & btapp
@@ -1316,7 +1340,10 @@ typedef union {
     RspEnableEvent                          rsp_enable_event;
     RspDisableEvent                         rsp_disable_event;
     SdpClientEvent                          sdp_client_event;
+#ifdef USE_BT_OBEX
     PbapClientEvent                         pbap_client_event;
+    OppEvent                                opp_event;
+#endif
     BtIpcMsgEvent                           bt_ipc_msg_event;
 } BtEvent;
 
@@ -1376,6 +1403,7 @@ void BtAudioManagerHandler(void *msg);
 void BtSdpClientMsgHandler(void *context);
 #ifdef USE_BT_OBEX
 void BtPbapClientMsgHandler(void *context);
+void BtOppMsgHandler(void *context);
 #endif
 void BtA2dpSourceMsgHandler(void *msg);
 #ifdef __cplusplus

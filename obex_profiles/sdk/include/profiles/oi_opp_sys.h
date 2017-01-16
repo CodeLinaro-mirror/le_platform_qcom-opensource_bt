@@ -106,6 +106,10 @@ typedef OI_OBEX_CONNECTION_HANDLE OI_OPP_CONNECTION;
  *                    of bytes that can be read from the object. If the object
  *                    was opened for writing the value is undefined.
  *
+ * @param data           A pointer to a buffer containing the data read.
+ *
+ * @param len            The number of bytes read.
+ *
  * @param status      OI_OK if the object could be opened, an error if the object
  *                    could not be opened.
  *
@@ -116,6 +120,8 @@ typedef void (*OI_OPP_OPEN_READ_CFM)(OI_OPP_HANDLE objHandle,
                                      const OI_OBEX_UNICODE *name,
                                      const OI_CHAR *type,
                                      OI_UINT32 size,
+                                     OI_BYTE *data,
+                                     OI_UINT32 len,
                                      OI_STATUS status,
                                      OI_OPP_CONNECTION oppConnection);
 
@@ -128,6 +134,9 @@ typedef void (*OI_OPP_OPEN_READ_CFM)(OI_OPP_HANDLE objHandle,
  *
  * @param type           a null-terminated ascii string for the object type.
  *
+ * @param maxRead        the maximum number of bytes to read from the object on this
+ *                       call.
+ *
  * @param openCfm        the function that will be called when the open completes.
  *
  * @param oppConnection  identifies the OPP client or server connection that is
@@ -135,6 +144,7 @@ typedef void (*OI_OPP_OPEN_READ_CFM)(OI_OPP_HANDLE objHandle,
  */
 typedef OI_STATUS (*OI_OPP_OPEN_READ)(const OI_OBEX_UNICODE *name,
                                       const OI_CHAR *type,
+                                      OI_UINT32 maxRead,
                                       OI_OPP_OPEN_READ_CFM openCfm,
                                       OI_OPP_CONNECTION oppConnection);
 

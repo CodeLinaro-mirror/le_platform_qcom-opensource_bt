@@ -384,7 +384,9 @@ static OI_BOOL ConfirmBulkPuts(OBEXCLI_CONNECTION *connection,
     OI_DBGPRINT2(("ConfirmBulkPuts %d %s", status, (filter == CONFIRM_ALL) ? "ALL" : "COMPLETED"));
 
     while (bulkData) {
-        OI_DBGPRINT2(("bulkData %#08x sent:%d confirmed:%d final:%d", bulkData, bulkData->bytesSent, bulkData->bytesConfirmed, bulkData->final));
+        OI_DBGPRINT2(("bulkData %#08x sent:%d confirmed:%d final:%d",
+            bulkData, bulkData->bytesSent, bulkData->bytesConfirmed,
+            bulkData->final));
         /*
          * Stored error status overrides the one passed in.
          */
@@ -437,10 +439,9 @@ static OI_BOOL ConfirmBulkPuts(OBEXCLI_CONNECTION *connection,
             cfmCount = 0;
         }
     }
-    if (cfmCount > 0) {
-        OI_DBGPRINT2(("ConfirmBulkPuts confirmed %s%d", bulkData ? "" : "all ", cfmCount));
-        connection->bulkPutCfm(connection->common.connectionHandle, cfmCount, cfmBuffers, cfmLengths, cfmStatus);
-    }
+    OI_DBGPRINT2(("ConfirmBulkPuts confirmed %s%d", bulkData ? "" : "all ", cfmCount));
+    connection->bulkPutCfm(connection->common.connectionHandle,
+        cfmCount, cfmBuffers, cfmLengths, cfmStatus);
     return (bulkData == NULL);
 }
 
@@ -862,15 +863,15 @@ static OI_STATUS BulkPutWriteCfm(OBEXCLI_CONNECTION *connection,
         return OI_OK;
     }
     /*
-     * Confirm all completed bulk data blocks except the final block
-     */
-    ConfirmBulkPuts(connection, OI_OBEX_CONTINUE, CONFIRM_COMPLETED);
-    /*
      * If we are not doing SRM we are done for now.
      */
     if (!(connection->common.srm & OI_OBEX_SRM_ENABLED)) {
         return OI_OK;
     }
+    /*
+     * Confirm all completed bulk data blocks except the final block
+     */
+    ConfirmBulkPuts(connection, OI_OBEX_CONTINUE, CONFIRM_COMPLETED);
     /*
      * If the queue is not full we can write more data if we have any
      */
@@ -908,7 +909,7 @@ static void LowerWriteCfm(OI_OBEX_LOWER_CONNECTION lowerConnection,
     numBytes = OI_MBUF_Free(mbuf);
     connection->common.mbuf = NULL;
 
-    OI_DBGPRINT2(("Write completed %d bytes: freed mbuf %#x %d", numBytes, mbuf, result));
+    OI_DBGTRACE(("Write completed %d bytes: freed mbuf %#x %d", numBytes, mbuf, result));
 
     if (connection->state == OBEX_BULK_PUTTING) {
         #ifdef OI_TEST_HARNESS
@@ -920,11 +921,15 @@ static void LowerWriteCfm(OI_OBEX_LOWER_CONNECTION lowerConnection,
         result = BulkPutWriteCfm(connection, numBytes - BULK_PUT_HDR_SIZE, (OBEX_BULK_DATA_LIST)context, queueFull, result);
     }
     if (OI_SUCCESS(result)) {
-        /*
-         * Report progress if the upper layer has provided a progress callback
-         */
-        if (connection->progressCB && connection->common.progressBytes && ((connection->state == OBEX_PUTTING) || (connection->state == OBEX_BULK_PUTTING))) {
-            connection->progressCB(connection->common.connectionHandle, OI_OBEX_CMD_PUT, connection->common.progressBytes);
+        if (connection->common.srm & OI_OBEX_SRM_ENABLED) {
+            /*
+             * Report progress if the upper layer has provided a progress callback
+             */
+            if (connection->progressCB && connection->common.progressBytes &&
+                ((connection->state == OBEX_PUTTING) || (connection->state == OBEX_BULK_PUTTING))) {
+                connection->progressCB(connection->common.connectionHandle, OI_OBEX_CMD_PUT,
+                    connection->common.progressBytes);
+            }
         }
     } else {
         FatalClientError(connection, result);
@@ -1528,13 +1533,20 @@ static void BulkPutResponse(OBEXCLI_CONNECTION *connection,
                             OI_UINT8 rspCode)
 {
     OI_STATUS status;
+    OI_OBEX_HEADER *srmHdr;
+    OI_OBEX_HEADER *srmpHdr;
+    OI_OBEX_HEADER_LIST headers;
 
     OI_DBGTRACE(("OBEX client response to bulk PUT request %d", rspCode));
 
     /*
      * Map the OBEX response into a OI_STATUS code.
      */
-    status = MapResponse(rspCode, OI_OBEX_PUT_RESPONSE_ERROR);
+    status = OI_OBEXCOMMON_ParseHeaderList(&connection->common, &headers, rcvPacket);
+    if (OI_SUCCESS(status)) {
+        status = MapResponse(rspCode, OI_OBEX_PUT_RESPONSE_ERROR);
+    }
+
     /*
      * Check if we are aborting this PUT
      */
@@ -1559,7 +1571,73 @@ static void BulkPutResponse(OBEXCLI_CONNECTION *connection,
         }
         return;
     }
-    /*
+    srmHdr = OI_OBEX_FindHeader(&headers, OI_OBEX_HDR_SINGLE_RESPONSE_MODE);
+    if (srmHdr) {
+        if (srmHdr->val.srm == OI_OBEX_SRM_ENABLED) {
+            connection->common.srm |= OI_OBEX_SRM_ENABLED;
+            OI_DBGTRACE(("SRM enabled for this PUT"));
+            /*
+             * We don't want to pass the SRM header to the upper-layer.
+             */
+            OI_OBEXCOMMON_DeleteHeaderFromList(&headers, OI_OBEX_HDR_SINGLE_RESPONSE_MODE);
+        }
+    }
+    srmpHdr = OI_OBEX_FindHeader(&headers, OI_OBEX_HDR_SINGLE_RESPONSE_PARAMETERS);
+    if (srmpHdr) {
+        if (srmHdr) {
+            /* SRMP Header should be sent with first Get Response, otherwise it is invalid */
+            OI_DBGTRACE(("SRMP parameter is %d, srm = %d",
+                srmpHdr->val.srmParam, connection->common.srm));
+            /* SRM Param received in first response, set SRMP as valid */
+            connection->common.srmpValid = true;
+            /* If client has set SRMP param to wait, we should disable SRM if enabled*/
+            if (srmpHdr->val.srmParam == OI_OBEX_SRM_PARAM_WAIT &&
+                connection->common.srm & OI_OBEX_SRM_ENABLED) {
+                connection->common.srmpWaitReceived = true;
+                connection->common.srm &= ~OI_OBEX_SRM_ENABLED;
+                OI_DBGTRACE(("srmpWaitReceived %d, srm = %d",
+                    connection->common.srmpWaitReceived, connection->common.srm));
+            }
+        } else {
+            /* Remote is sending SRMP header in subsequent OBEX response */
+            OI_DBGTRACE(("SRMP valid %d", connection->common.srmpValid));
+            if (connection->common.srmpValid) {
+                if (srmpHdr->val.srmParam == OI_OBEX_SRM_PARAM_WAIT) {
+                    if (!connection->common.srmpWaitReceived) {
+                        /* If client has set SRMP param to wait, we should disable SRM
+                         * if enabled */
+                        connection->common.srmpWaitReceived = true;
+                        connection->common.srm &= ~OI_OBEX_SRM_ENABLED;
+                    }
+                } else if (srmpHdr->val.srmParam == OI_OBEX_SRM_PARAM_RSVP) {
+                    /* If client has set SRMP param to remove wait, we should enable SRM
+                     * if disabled */
+                    if (connection->common.srmpWaitReceived) {
+                        connection->common.srm |= OI_OBEX_SRM_ENABLED;
+                        connection->common.srmpWaitReceived = false;
+                    }
+                }
+                OI_DBGTRACE(("srmpWaitReceived %d, srm = %d",
+                    connection->common.srmpWaitReceived, connection->common.srm));
+            }
+        }
+        /*
+         * We don't want to pass the SRMP header to the upper-layer.
+         */
+        OI_OBEXCOMMON_DeleteHeaderFromList(&headers, OI_OBEX_HDR_SINGLE_RESPONSE_PARAMETERS);
+    } else {
+        /* Re-enable SRM mode if disabled because of remote device has sent response without
+         * SRMP Header */
+        if (connection->common.srmpWaitReceived) {
+            OI_DBGTRACE(("Re-enabling SRM as remote removed wait"));
+            connection->common.srm |= OI_OBEX_SRM_ENABLED;
+            connection->common.srmpWaitReceived = false;
+            ConfirmBulkPuts(connection, status, CONFIRM_COMPLETED);
+            connection->busy = FALSE;
+            SendBulk(connection);
+            return;
+        }
+    }    /*
      * Set busy flag to force any bulk puts during the confirm callback to be queued.
      */
     connection->busy = TRUE;
@@ -1591,6 +1669,17 @@ static void BulkPutResponse(OBEXCLI_CONNECTION *connection,
             FatalClientError(connection, status);
             return;
         }
+    } else {
+        if (!(connection->common.srm & OI_OBEX_SRM_SUPPORTED)) {
+            /*
+             * Report progress if the upper layer has provided a progress callback
+             */
+            if (connection->progressCB && connection->common.progressBytes &&
+                ((connection->state == OBEX_PUTTING) || (connection->state == OBEX_BULK_PUTTING))) {
+                connection->progressCB(connection->common.connectionHandle, OI_OBEX_CMD_PUT,
+                    connection->common.progressBytes);
+            }
+        }
     }
 
     if (ConfirmBulkPuts(connection, status, CONFIRM_COMPLETED)) {
@@ -1607,9 +1696,11 @@ static void BulkPutResponse(OBEXCLI_CONNECTION *connection,
          * We expect to continue if there are unconfirmed blocks
          */
         if (status != OI_OBEX_CONTINUE) {
+            SetState(connection, OBEX_CONNECTED);
             if (OI_SUCCESS(status)) {
                 status = OI_OBEX_ERROR;
             }
+            connection->busy = FALSE;
             connection->CB.bulkPut.status = OI_OBEX_ERROR;
             return;
         }
@@ -1630,6 +1721,7 @@ static void PutResponse(OBEXCLI_CONNECTION *connection,
                         OI_UINT8 rspCode)
 {
     OI_OBEX_HEADER *srmHdr;
+    OI_OBEX_HEADER *srmpHdr;
     OI_OBEX_HEADER_LIST headers;
     OI_STATUS status;
 
@@ -1687,10 +1779,63 @@ static void PutResponse(OBEXCLI_CONNECTION *connection,
             #endif
         }
     }
+    srmpHdr = OI_OBEX_FindHeader(&headers, OI_OBEX_HDR_SINGLE_RESPONSE_PARAMETERS);
+    if (srmpHdr) {
+        if (srmHdr) {
+            /* SRMP Header should be sent with first Get Response, otherwise it is invalid */
+            OI_DBGTRACE(("SRMP parameter is %d, srm = %d",
+                srmpHdr->val.srmParam, connection->common.srm));
+            /* SRM Param received in first response, set SRMP as valid */
+            connection->common.srmpValid = true;
+            /* If client has set SRMP param to wait, we should disable SRM if enabled*/
+            if (srmpHdr->val.srmParam == OI_OBEX_SRM_PARAM_WAIT &&
+                connection->common.srm & OI_OBEX_SRM_ENABLED) {
+                connection->common.srmpWaitReceived = true;
+                connection->common.srm &= ~OI_OBEX_SRM_ENABLED;
+                OI_DBGTRACE(("srmpWaitReceived %d, srm = %d",
+                    connection->common.srmpWaitReceived, connection->common.srm));
+            }
+        } else {
+            /* Remote is sending SRMP header in subsequent OBEX response */
+            OI_DBGTRACE(("SRMP valid %d", connection->common.srmpValid));
+            if (connection->common.srmpValid) {
+                if (srmpHdr->val.srmParam == OI_OBEX_SRM_PARAM_WAIT) {
+                    if (!connection->common.srmpWaitReceived) {
+                        /* If client has set SRMP param to wait, we should disable SRM
+                         * if enabled */
+                        connection->common.srmpWaitReceived = true;
+                        connection->common.srm &= ~OI_OBEX_SRM_ENABLED;
+                    }
+                } else if (srmpHdr->val.srmParam == OI_OBEX_SRM_PARAM_RSVP) {
+                    /* If client has set SRMP param to remove wait, we should enable SRM
+                     * if disabled */
+                    if (connection->common.srmpWaitReceived) {
+                        connection->common.srm |= OI_OBEX_SRM_ENABLED;
+                        connection->common.srmpWaitReceived = false;
+                    }
+                }
+                OI_DBGTRACE(("srmpWaitReceived %d, srm = %d",
+                    connection->common.srmpWaitReceived, connection->common.srm));
+            }
+        }
+        /*
+         * We don't want to pass the SRMP header to the upper-layer.
+         */
+        OI_OBEXCOMMON_DeleteHeaderFromList(&headers, OI_OBEX_HDR_SINGLE_RESPONSE_PARAMETERS);
+    } else {
+        /* Re-enable SRM mode if disabled because of remote device has sent response without
+         * SRMP Header */
+        if (connection->common.srmpWaitReceived) {
+            OI_DBGTRACE(("Re-enabling SRM as remote removed wait"));
+            connection->common.srm |= OI_OBEX_SRM_ENABLED;
+            connection->common.srmpWaitReceived = false;
+        }
+    }
     /*
      * Keep sending body segments if there are more to send.
      */
-    if ((connection->state == OBEX_PUTTING) && OI_OBEX_IS_A_BODY_HEADER(connection->common.bodySegment.id)) {
+    if ((connection->state == OBEX_PUTTING) &&
+        OI_OBEX_IS_A_BODY_HEADER(connection->common.bodySegment.id)) {
         status = ClientSendBodySegment(connection);
         if (OI_SUCCESS(status)) {
             OI_FreeIf(&headers.list);
@@ -1801,6 +1946,7 @@ static void GetResponse(OBEXCLI_CONNECTION *connection,
         /* Re-enable SRM mode if disabled because of remote device has sent response without
          * SRMP Header */
         if (connection->common.srmpWaitReceived) {
+            OI_DBGTRACE(("Re-enabling SRM as remote removed wait"));
             connection->common.srm |= OI_OBEX_SRM_ENABLED;
             connection->common.srmpWaitReceived = false;
         }
