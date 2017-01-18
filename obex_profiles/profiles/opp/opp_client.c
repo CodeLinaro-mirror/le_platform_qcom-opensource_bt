@@ -834,7 +834,7 @@ static void DeferredPushOpenCfm(OI_OPP_HANDLE handle,
     hdrList.list = hdrs;
     hdrList.count = 0;
 
-    if (OI_SUCCESS(status)) {
+    if (OI_SUCCESS(status) || status == OI_STATUS_END_OF_FILE) {
         SetState(client, CLIENT_STATE_PUSHING);
         client->handle = handle;
         /*
@@ -868,7 +868,8 @@ static void DeferredPushOpenCfm(OI_OPP_HANDLE handle,
             hdrs[hdrList.count].val.body.len = data_len;
             ++hdrList.count;
         }
-        status = OI_OBEXCLI_Put(client->id, &hdrList, ClientPutCfm, OI_OBEX_CONTINUE);
+        status = OI_OBEXCLI_Put(client->id, &hdrList, ClientPutCfm,
+            (status == OI_STATUS_END_OF_FILE) ? OI_OK : OI_OBEX_CONTINUE);
     }
 
     if (!OI_SUCCESS(status)) {
