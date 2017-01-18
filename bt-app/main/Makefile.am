@@ -29,7 +29,7 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
                -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
-               -I${WORKSPACE}/hardware/libhardware/include \
+               -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
                -I${WORKSPACE}/mcm-api/api
 
