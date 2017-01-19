@@ -43,6 +43,11 @@
 #include "osi/include/config.h"
 #include "ipc.h"
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
+
 #define MAX_LENGTH_INTERFACE_NAME 10
 #define MAX_PAN_DEVICES 3
 
