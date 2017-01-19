@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ *  Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *  Not a Contribution.
  *  Copyright (C) 2014 Google, Inc.
  *
@@ -48,6 +48,7 @@
 #endif
 #include "osi/include/compat.h"
 #include "A2dp_Src.hpp"
+#include "Avrcp.hpp"
 
 #include "utils.h"
 
@@ -71,6 +72,7 @@ static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 extern Hfp_Client *pHfpClient;
 extern Hfp_Ag *pHfpAG;
+extern Avrcp *pAvrcp;
 #ifdef USE_BT_OBEX
 static alarm_t *opp_incoming_file_accept_timer = NULL;
 #define USER_ACCEPTANCE_TIMEOUT 25000
@@ -325,7 +327,7 @@ static void ExitHandler(void) {
 }
 
 static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
-    ALOGD(LOGTAG, "HandleA2DPSinkCommand cmd_id = %d", cmd_id);
+    ALOGD(LOGTAG "HandleA2DPSinkCommand cmd_id = %d", cmd_id);
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
@@ -344,43 +346,50 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_PLAY;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case PAUSE:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_PAUSE;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case STOP:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_STOP;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case FASTFORWARD:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_FF;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case REWIND:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_REWIND;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case FORWARD:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_FORWARD;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case BACKWARD:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_BACKWARD;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
@@ -1970,6 +1979,16 @@ void BluetoothApp :: InitHandler (void) {
         }
     }
 
+    if(is_avrcp_enabled_) {
+        threadInfo[THREAD_ID_AVRCP].thread_id = thread_new (
+                threadInfo[THREAD_ID_AVRCP].thread_name);
+
+        if (threadInfo[THREAD_ID_AVRCP].thread_id) {
+            pAvrcp = new Avrcp (bt_interface, config);
+        }
+
+    }
+
     if(is_a2dp_source_enabled_) {
         threadInfo[THREAD_ID_A2DP_SOURCE].thread_id = thread_new (
                 threadInfo[THREAD_ID_A2DP_SOURCE].thread_name);
@@ -2096,6 +2115,15 @@ void BluetoothApp :: DeInitHandler (void) {
             thread_free (threadInfo[THREAD_ID_A2DP_SINK].thread_id);
             if ( pA2dpSink != NULL)
                 delete pA2dpSink;
+        }
+    }
+
+    if(is_avrcp_enabled_) {
+        //STOP Avrcp thread
+        if (threadInfo[THREAD_ID_AVRCP].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_AVRCP].thread_id);
+            if ( pAvrcp != NULL)
+                delete pAvrcp;
         }
     }
 
@@ -2266,6 +2294,9 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for a2dp sink
     is_a2dp_sink_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_A2DP_SINK_ENABLED, false);
+    //checking for avrcp
+    is_avrcp_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_AVRCP_ENABLED, false);
 
     //checking for a2dp source
     is_a2dp_source_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,

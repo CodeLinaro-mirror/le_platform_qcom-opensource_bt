@@ -1,5 +1,5 @@
  /*
-  * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+  * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without
   * modification, are permitted provided that the following conditions are
@@ -32,6 +32,7 @@
 #include <string.h>
 
 #include "Audio_Manager.hpp"
+#include "A2dp_Sink_Streaming.hpp"
 
 #define LOGTAG "BT_AM"
 
@@ -40,6 +41,7 @@ using std::list;
 using std::string;
 
 BT_Audio_Manager *pBTAM = NULL;
+extern A2dp_Sink_Streaming *pA2dpSinkStream;
 
 #ifdef __cplusplus
 extern "C" {
@@ -231,7 +233,15 @@ void BT_Audio_Manager::SendControlStatusMessage(ControlStatusType ctrlStatus,
     BtEvent *pControlResponse = new BtEvent;
     pControlResponse->btamControlStatus.event_id = BT_AM_CONTROL_STATUS;
     pControlResponse->btamControlStatus.status_type = ctrlStatus;
-    PostMessage(GetThreadId(profile_id), pControlResponse);
+    if (profile_id != PROFILE_ID_A2DP_SINK) {
+        PostMessage(GetThreadId(profile_id), pControlResponse);
+    }
+    else {
+        if (pA2dpSinkStream != NULL) {
+            thread_post(pA2dpSinkStream->threadInfo.thread_id,
+            pA2dpSinkStream->threadInfo.thread_handler, (void*)pControlResponse);
+        }
+    }
 }
 void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
     ALOGD(LOGTAG " Processing event %s", dump_message(pEvent->event_id));
