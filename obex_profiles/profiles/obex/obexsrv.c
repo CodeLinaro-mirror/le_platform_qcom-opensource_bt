@@ -2181,7 +2181,8 @@ static OI_STATUS acceptConnect(OI_OBEXSRV_CONNECTION_HANDLE connectionId,
             /*
              * If the upper layer server wants to use SRM include the SRM header in the response.
              */
-            if (connection->common.srm & OI_OBEX_SRM_SUPPORTED) {
+            if ((connection->common.srm & OI_OBEX_SRM_SUPPORTED) &&
+                (connection->common.srm & OI_OBEX_SRM_REQUESTED)) {
                 headers[headerCount].id = OI_OBEX_HDR_SINGLE_RESPONSE_MODE;
                 headers[headerCount].val.srm = OI_OBEX_SRM_SUPPORTED;
                 headerCount++;
@@ -2902,7 +2903,9 @@ static void LowerConnectCfm(OI_OBEX_LOWER_CONNECTION lowerConnection,
          * SRM is supported if it was enabled when the server was registered and the lower protocol
          * for the connection is OBEX/L2CAP
          */
-        if ((connection->obexServer->srm & OI_OBEX_SRM_SUPPORTED) && (connection->common.lowerConnection->ifc->getProtocol() == OI_OBEX_LOWER_L2CAP)) {
+        if ((connection->obexServer->srm & OI_OBEX_SRM_SUPPORTED) &&
+            (connection->common.lowerConnection->ifc->getProtocol(
+            connection->common.lowerConnection) == OI_OBEX_LOWER_L2CAP)) {
             connection->common.srm = OI_OBEX_SRM_SUPPORTED;
         } else {
             connection->common.srm &= ~OI_OBEX_SRM_SUPPORTED;
@@ -3416,7 +3419,7 @@ void* OI_OBEXSRV_GetServerContext(OI_OBEX_SERVER_HANDLE serverHandle)
         OI_DBGPRINT2(("OI_OBEXSRV_GetServerContext serverHandle:%d context:%x", serverHandle, server->context));
         return server->context;
     } else {
-        OI_DBGPRINT2(("OI_OBEXSRV_SetServerContext invalid server handle"));
+        OI_DBGPRINT2(("OI_OBEXSRV_GetServerContext invalid server handle"));
         return NULL;
     }
 }

@@ -47,6 +47,7 @@ const char *BT_GATT_ENABLED   = "BtGattEnable";
 const char *BT_OBEX_ENABLED    = "BtObexEnable";
 const char *BT_OBEX_LOG_LEVEL    = "BtObexLogLevel";
 const char *BT_PBAP_CLIENT_ENABLED   = "BtPbapClientEnable";
+const char *BT_OPP_ENABLED   = "BtOppEnable";
 #endif
 const char *BT_HFP_AG_ENABLED_STRING  = "BtHfpAGEnable";
 
@@ -838,6 +839,8 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 #ifdef USE_BT_OBEX
         else if (profile_id == PROFILE_ID_PBAP_CLIENT)
             this->profile_config[profile_id].thread_id = THREAD_ID_PBAP_CLIENT;
+        else if (profile_id == PROFILE_ID_OPP)
+            this->profile_config[profile_id].thread_id = THREAD_ID_OPP;
 #endif
         else if(profile_id == PROFILE_ID_HFP_AG)
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_AG;
@@ -872,6 +875,9 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 #ifdef USE_BT_OBEX
     this->profile_config[PROFILE_ID_PBAP_CLIENT].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_PBAP_CLIENT_ENABLED, false);
+
+    this->profile_config[PROFILE_ID_OPP].is_enabled = config_get_bool (config,
+                 CONFIG_DEFAULT_SECTION, BT_OPP_ENABLED, false);
 #endif
 
     for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
