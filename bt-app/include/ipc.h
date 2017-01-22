@@ -174,10 +174,12 @@ typedef enum {
     A2DP_SINK_AUDIO_SUSPENDED,
     A2DP_SINK_AUDIO_STOPPED,
     A2DP_SINK_AUDIO_STARTED,
+    A2DP_SINK_CODEC_CONFIG,
     AVRCP_CTRL_CONNECTED_CB,
     AVRCP_CTRL_DISCONNECTED_CB,
     AVRCP_CTRL_PASS_THRU_CMD_REQ,
     A2DP_SINK_FETCH_PCM_DATA,
+    A2DP_SINK_FILL_COMPRESS_BUFFER,
     A2DP_SINK_CLEANUP_REQ,
     A2DP_SINK_CLEANUP_DONE,
 
@@ -665,6 +667,10 @@ typedef struct {
 typedef struct {
     BluetoothEventId   event_id;
     bt_bdaddr_t         bd_addr;
+    uint8_t*           buf_ptr;
+    uint16_t           buf_size;
+    uint16_t           arg1;
+    uint16_t           arg2;
 } A2dpSinkEvent;
 
 typedef struct {
