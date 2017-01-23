@@ -30,6 +30,8 @@
 #include <hardware/bluetooth.h>
 #include "include/ipc.h"
 #include "utils.h"
+#include "GattcTest.hpp"
+#include "GattsTest.hpp"
 #include "Rsp.hpp"
 
 #include <cutils/sockets.h>
@@ -182,6 +184,16 @@ typedef enum {
     OPP_REGISTER,
     OPP_SEND,
     OPP_ABORT,
+    GATTCTEST_OPTION,
+    GATTCTEST_INIT,
+    GATTCTEST_START_SCAN,
+    GATTCTEST_STOP_SCAN,
+    GATTCTEST_CONNECT,
+    GATTCTEST_DISCONNECT,
+    GATTCTEST_ALERT,
+    GATTSTEST_OPTION,
+    GATTSTEST_INIT,
+    GATTSTEST_START,
 #endif
     HFP_CLIENT,
     CREATE_SCO_CONN,
@@ -236,6 +248,8 @@ typedef enum {
     HFP_CLIENT_MENU,
     PAN_MENU,
     RSP_MENU,
+    GATTCTEST_MENU,
+    GATTSTEST_MENU,
 #ifdef USE_BT_OBEX
     PBAP_CLIENT_MENU,
     OPP_MENU,
@@ -288,6 +302,8 @@ UserMenuList MainMenu[] = {
     {GAP_OPTION,            "gap_menu",         ZERO_PARAM,   "gap_menu"},
     {PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
     {RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
+    {GATTCTEST_OPTION,            "gattctest_menu",         ZERO_PARAM,   "gattctest_menu"},
+    {GATTSTEST_OPTION,            "gattstest_menu",         ZERO_PARAM,   "gattstest_menu"},
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
@@ -330,6 +346,34 @@ UserMenuList RspMenu[] = {
     {RSP_START,             "rsp_start", ZERO_PARAM,    "rsp_start would (re)start adv"},
     {BACK_TO_MAIN,          "main_menu",  ZERO_PARAM, "main_menu"},
 };
+
+/**
+ * list of supported commands for GATTCTEST Menu
+ */
+UserMenuList GattcTestMenu[] = {
+    {GATTCTEST_INIT,              "gattctest_init",       ZERO_PARAM,    "gattctest_init (only for Init time)"},
+    {GATTCTEST_START_SCAN,        "gattctest_start_scan", ZERO_PARAM,    "gattctest_start_scan"},
+    {GATTCTEST_STOP_SCAN,         "gattctest_stop_scan",  ZERO_PARAM,    "gattctest_stop_scan"},
+    {BACK_TO_MAIN,          "main_menu",      ZERO_PARAM,    "main_menu"},
+    {GATTCTEST_CONNECT,           "gattctest_connect",    ONE_PARAM,     "gattctest_connect<space><bt_address> \
+         eg. gattctest_connect 00:11:22:33:44:55"},
+    {GATTCTEST_DISCONNECT,           "gattctest_disconnect", ONE_PARAM,     "gattctest_disconnect<space><bt_address> \
+          eg.gattctest_connect 00:11:22:33:44:55"},
+    {GATTCTEST_ALERT,             "gattctest_alert",      ONE_PARAM,    "gattctest_alert<space><alert_level> \
+         rg. gattctest_alert 1"},
+
+};
+
+/**
+ * list of supported commands for GATTSTEST Menu
+ */
+UserMenuList GattsTestMenu[] = {
+    {GATTSTEST_INIT,              "gattstest_init",  ZERO_PARAM,    "gattstest_init (only for Init time)"},
+    {GATTSTEST_START,             "gattstest_start", ZERO_PARAM,    "gattstest_start would (re)start adv"},
+    {BACK_TO_MAIN,          "main_menu",  ZERO_PARAM, "main_menu"},
+};
+
+
 
 /**
  * list of supported commands for A2DP_SINK Menu
@@ -547,6 +591,28 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
  * @return none
  */
 static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+
+/**
+ * @brief HandleGattcTestCommand
+ *
+ *  This function will handle all the commands in @ref RspMenu
+ *
+ * @param[in] cmd_id It has command id from @ref CommandList
+ * @param[in] user_cmd It has parsed commands with arguments passed by user
+ * @return none
+ */
+static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+
+/**
+ * @brief HandleGattcTestCommand
+ *
+ *  This function will handle all the commands in @ref RspMenu
+ *
+ * @param[in] cmd_id It has command id from @ref CommandList
+ * @param[in] user_cmd It has parsed commands with arguments passed by user
+ * @return none
+ */
+static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
 
 
 /**
