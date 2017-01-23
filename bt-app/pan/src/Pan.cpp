@@ -382,7 +382,7 @@ void Pan::HandlePanControlStateEvent(PanControlStateEvent *event)
 {
     ALOGV(LOGTAG "%s", __FUNCTION__);
 
-    strcpy(pan_interface_name, event->ifname);
+    strlcpy(pan_interface_name, event->ifname, sizeof(pan_interface_name));
 }
 
 void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)

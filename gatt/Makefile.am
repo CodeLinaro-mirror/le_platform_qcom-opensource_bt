@@ -3,7 +3,8 @@ AM_CPPFLAGS = -O2 \
              -I${WORKSPACE}/qcom-opensource/bt/gatt/include \
              -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
              -I${WORKSPACE}/qcom-opensource/bt/bt-app/ \
-             -I${WORKSPACE}/hardware/libhardware/include \
+             -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include/ \
+             -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
              -I${WORKSPACE}/system/bt \
              -I${WORKSPACE}/system/core/include
 
@@ -16,7 +17,8 @@ AM_CFLAGS = -Wall \
         -I${WORKSPACE}/qcom-opensource/bt/gatt/include \
         -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
         -I${WORKSPACE}/qcom-opensource/bt/bt-app/ \
-        -I${WORKSPACE}/hardware/libhardware/include \
+        -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include/ \
+        -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
         -I${WORKSPACE}/system/core/include
 
 ACLOCAL_AMFLAGS = -I m4

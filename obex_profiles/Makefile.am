@@ -11,7 +11,8 @@ AM_CFLAGS = -Wall \
         -DOI_USE_NATIVE_MALLOC \
         -DOI_USE_NATIVE_MEMCPY \
         -DOI_OBEX_OVER_L2CAP \
-        -I${WORKSPACE}/hardware/libhardware/include/ \
+        -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include/ \
+        -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
         -I${WORKSPACE}/system/core/include/ \
         -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include \
         -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include/profiles \
