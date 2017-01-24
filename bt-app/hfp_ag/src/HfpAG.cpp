@@ -53,7 +53,7 @@ void BtHfpAgMsgHandler(void *msg) {
     pEvent = ( BtEvent *) msg;
 
     ALOGD(LOGTAG " BtHfpAgMsgHandler event = %d", pEvent->event_id);
-    cout << " BtHfpAgMsgHandler event " <<  pEvent->event_id << endl;
+    fprintf(stdout, " BtHfpAgMsgHandler event = %d\n", pEvent->event_id);
     switch(pEvent->event_id) {
         case PROFILE_API_START:
             if (pHfpAG) {
@@ -128,7 +128,7 @@ static void audio_state_callback(bthf_audio_state_t state, bt_bdaddr_t* bd_addr)
 void voice_recognition_callback(bthf_vr_state_t state, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG "VR state is %s",(state == BTHF_VR_STATE_STOPPED) ? "stopped": "started");
-    cout << LOGTAG "VR state is " << ((state == BTHF_VR_STATE_STOPPED) ? "stopped": "started") << endl;
+    fprintf(stdout, "VR state is %s\n",(state == BTHF_VR_STATE_STOPPED) ? "stopped": "started");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.arg1 = state;
@@ -139,7 +139,7 @@ void voice_recognition_callback(bthf_vr_state_t state, bt_bdaddr_t* bd_addr) {
 void answer_call_callback(bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " answer_call_callback");
-    cout << " answer_call_callback" << endl;
+    fprintf(stdout, " answer_call_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.event_id = HFP_AG_ANSWER_CALL_CB;
@@ -149,7 +149,7 @@ void answer_call_callback(bt_bdaddr_t* bd_addr) {
 void hangup_call_callback(bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " hangup_call_callback");
-    cout << " hangup_call_callback" << endl;
+    fprintf(stdout, " hangup_call_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.event_id = HFP_AG_HANGUP_CALL_CB;
@@ -160,9 +160,8 @@ void volume_control_callback(bthf_volume_type_t type, int volume, bt_bdaddr_t* b
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG "%s : %s volume is %d", __func__,
           (type == BTHF_VOLUME_TYPE_SPK) ? "speaker": "mic", volume);
-    cout << LOGTAG << " " << __func__ << ": " << ((type == BTHF_VOLUME_TYPE_SPK) ? "speaker": "mic");
-    cout << " volume is " << volume;
-
+    fprintf(stdout, "%s : %s volume is %d\n", __func__,
+          (type == BTHF_VOLUME_TYPE_SPK) ? "speaker": "mic", volume);
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.event_id = HFP_AG_VOL_CONTROL_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
@@ -171,7 +170,7 @@ void volume_control_callback(bthf_volume_type_t type, int volume, bt_bdaddr_t* b
 void dial_call_callback(char *number, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " dial_call_callback");
-    cout << " dial_call_callback" << endl;
+    fprintf(stdout, " dial_call_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
 
@@ -188,7 +187,7 @@ void dial_call_callback(char *number, bt_bdaddr_t* bd_addr) {
 void dtmf_cmd_callback(char dtmf, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " dtmf_cmd_callback");
-    cout << " dtmf_cmd_callback" << endl;
+    fprintf(stdout, " dtmf_cmd_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.arg1 = dtmf;
@@ -199,7 +198,7 @@ void dtmf_cmd_callback(char dtmf, bt_bdaddr_t* bd_addr) {
 void noice_reduction_callback(bthf_nrec_t nrec, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " noice_reduction_callback");
-    cout << " noice_reduction_callback" << endl;
+    fprintf(stdout, " noice_reduction_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.arg1 = nrec;
@@ -210,7 +209,7 @@ void noice_reduction_callback(bthf_nrec_t nrec, bt_bdaddr_t* bd_addr) {
 void wbs_callback(bthf_wbs_config_t wbs_config, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " wbs_callback");
-    cout << " wbs_callback" << endl;
+    fprintf(stdout, " wbs_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.arg1 = wbs_config;
@@ -221,7 +220,7 @@ void wbs_callback(bthf_wbs_config_t wbs_config, bt_bdaddr_t* bd_addr) {
 void at_chld_callback(bthf_chld_type_t chld, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " at_chld_callback");
-    cout << " at_chld_callback" << endl;
+    fprintf(stdout, " at_chld_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.arg1 = (int)chld;
@@ -232,7 +231,7 @@ void at_chld_callback(bthf_chld_type_t chld, bt_bdaddr_t* bd_addr) {
 void at_cnum_callback(bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " at_cnum_callback");
-    cout << " at_cnum_callback" << endl;
+    fprintf(stdout, " at_cnum_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.event_id = HFP_AG_SUBSCRIBER_INFO_CB;
@@ -242,7 +241,7 @@ void at_cnum_callback(bt_bdaddr_t* bd_addr) {
 void at_cind_callback(bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " at_cind_callback");
-    cout << "at_cind_callback" << endl;
+    fprintf(stdout, "at_cind_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.event_id = HFP_AG_CIND_CB;
@@ -252,7 +251,7 @@ void at_cind_callback(bt_bdaddr_t* bd_addr) {
 void at_cops_callback(bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " at_cops_callback");
-    cout << "at_cops_callback" << endl;
+    fprintf(stdout, "at_cops_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.event_id = HFP_AG_COPS_CB;
@@ -262,7 +261,7 @@ void at_cops_callback(bt_bdaddr_t* bd_addr) {
 void at_clcc_callback(bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " at_clcc_callback");
-    cout << "at_clcc_callback" << endl;
+    fprintf(stdout, "at_clcc_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.event_id = HFP_AG_CLCC_CB;
@@ -272,7 +271,7 @@ void at_clcc_callback(bt_bdaddr_t* bd_addr) {
 void unknown_at_callback(char *at_string, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " unknown_at_callback");
-    cout << "unknown_at_callback" << endl;
+    fprintf(stdout, "unknown_at_callback\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.event_id = HFP_AG_UNKNOWN_AT_CMD_CB;
@@ -285,9 +284,8 @@ void key_pressed_callback(bt_bdaddr_t* bd_addr) {
 
 void at_bind_callback(char* hf_ind, bthf_bind_type_t type, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
-    ALOGD(LOGTAG " at_bind_callback");
-    cout << " at_bind_callback" << endl;
-
+    ALOGD(LOGTAG " bind_cmd_vendor_cb");
+    fprintf(stdout, " bind_cmd_vendor_cb\n");
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     strncpy(pEvent->hfp_ag_event.str, hf_ind, strlen(hf_ind));
     pEvent->hfp_ag_event.arg1 = type;
@@ -297,8 +295,8 @@ void at_bind_callback(char* hf_ind, bthf_bind_type_t type, bt_bdaddr_t* bd_addr)
 
 void at_biev_callback(char* hf_ind_val, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
-    ALOGD(LOGTAG " at_biev_callback");
-    cout << " at_biev_callback" << endl;
+    ALOGD(LOGTAG " biev_cmd_vendor_cb");
+    fprintf(stdout, " biev_cmd_vendor_cb\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     strncpy(pEvent->hfp_ag_event.str, hf_ind_val, strlen(hf_ind_val));
@@ -333,12 +331,12 @@ static bthf_callbacks_t sBluetoothHfpAgCallbacks = {
 void ril_ind_cb(mcm_client_handle_type hndl, uint32 msg_id,
                      void *ind_c_struct, uint32 ind_len) {
    BtEvent *pEvent = new BtEvent;
-   cout << "ril_ind_cb: indications is %u" << msg_id << endl;
-   ALOGD(LOGTAG, "%s: indications is %u\n", __func__, msg_id);
+   fprintf(stdout, "%s: indications is %u\n",__func__, msg_id);
+   ALOGD(LOGTAG "%s: indications is %u\n", __func__, msg_id);
 
    if (ind_c_struct == NULL) {
-       ALOGE(LOGTAG, "%s: indication data is NULL", __func__);
-       cout << "indication data is NULL" << endl;
+       ALOGE(LOGTAG "%s: indication data is NULL", __func__);
+       fprintf(stdout, "indication data is NULL\n");
        return;
    }
 
@@ -353,12 +351,12 @@ void ril_ind_cb(mcm_client_handle_type hndl, uint32 msg_id,
 void ril_resp_cb(mcm_client_handle_type hndl, uint32 msg_id,
                       void *resp_c_struct, uint32 resp_len, void *token_id){
    BtEvent *pEvent = new BtEvent;
-   cout << "ril_resp_cb: response msg %u" << msg_id << endl;
-   ALOGD(LOGTAG, "%s: response msg  is %u\n", __func__, msg_id);
+   fprintf(stdout, "%s: response msg %u\n", __func__, msg_id);
+   ALOGD(LOGTAG "%s: response msg  is %u\n", __func__, msg_id);
 
    if (resp_c_struct == NULL) {
-       ALOGE(LOGTAG, "%s: response data is NULL", __func__);
-       cout << "response data is NULL" << endl;
+       ALOGE(LOGTAG "%s: response data is NULL", __func__);
+       fprintf(stdout, "response data is NULL\n");
        return;
    }
 
@@ -424,7 +422,7 @@ void Hfp_Ag::HandleDisableAg(void) {
 
 void Hfp_Ag::ProcessEvent(BtEvent* pEvent) {
     ALOGD(LOGTAG " Processing event %d", pEvent->event_id);
-    cout << " AG: Processing event %d" <<  pEvent->event_id << endl;
+    fprintf(stdout, " AG: Processing event = %d\n", pEvent->event_id);
     switch(mAgState) {
         case HFP_AG_STATE_DISCONNECTED:
             state_disconnected_handler(pEvent);
@@ -447,7 +445,7 @@ void Hfp_Ag::ProcessEvent(BtEvent* pEvent) {
 void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
     char str[18];
     ALOGD(LOGTAG "state_disconnected_handler Processing event %d", pEvent->event_id);
-    cout << LOGTAG "state_disconnected_handler Processing event " << pEvent->event_id << endl;
+    fprintf(stdout, "state_disconnected_handler Processing event %d\n", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_AG_API_CONNECT_REQ:
             memcpy(&mConnectingDevice, &pEvent->hfp_ag_event.bd_addr, sizeof(bt_bdaddr_t));
@@ -455,8 +453,9 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
                 sBtHfpAgInterface->connect(&pEvent->hfp_ag_event.bd_addr);
             }
             bdaddr_to_string(&mConnectingDevice, str, 18);
-            cout << "connecting with device " << str << endl;
-            ALOGD(LOGTAG "connecting with device %s", str);
+
+            fprintf(stdout, "connecting with device %s", str);
+            ALOGD(LOGTAG " connecting with device %s", str);
             change_state(HFP_AG_STATE_PENDING);
             break;
         case HFP_AG_CONNECTING_CB:
@@ -468,7 +467,7 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
             memcpy(&mConnectedDevice, &pEvent->hfp_ag_event.bd_addr, sizeof(bt_bdaddr_t));
 
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << " connected with device " << str << endl;
+            fprintf(stdout, " connected with device %s", str);
             ALOGD(LOGTAG " connected with device %s", str);
 
             change_state(HFP_AG_STATE_CONNECTED);
@@ -481,7 +480,7 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
 void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
     char str[18];
     ALOGD(LOGTAG "state_pending_handler Processing event %d", pEvent->event_id);
-    cout << LOGTAG "state_pending_handler Processing event " << pEvent->event_id << endl;
+    fprintf(stdout, "state_pending_handler Processing event %d\n", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_AG_CONNECTING_CB:
             break;
@@ -490,13 +489,13 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
 
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "connected with device " << str << endl;
+            fprintf(stdout, "connected with device %s", str);
             ALOGD(LOGTAG "connected with device %s", str);
             change_state(HFP_AG_STATE_CONNECTED);
             break;
         case HFP_AG_DISCONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Disconnected from or Unable to connect with device " << str << endl;
+            fprintf(stdout, "Disconnected from or Unable to connect with device %s", str);
             ALOGD(LOGTAG "Disconnected from or Unable to connect with device %s", str);
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
@@ -511,7 +510,7 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
 
 void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
     ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
-    cout << LOGTAG "state_connected_handler Processing event %d" <<  pEvent->event_id;
+    fprintf(stdout, "state_connected_handler Processing event = %d", pEvent->event_id);
     char str[18];
     BtEvent *pControlRequest, *pReleaseControlReq;
     switch(pEvent->event_id) {
@@ -523,13 +522,13 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                 bt_status_t ret_val;
                 ret_val = sBtHfpAgInterface->disconnect(&pEvent->hfp_ag_event.bd_addr);
                 if (ret_val != BT_STATUS_SUCCESS) {
-                    cout << "Failure disconnecting with device " << str << endl;
+                    fprintf(stdout, "Failure disconnecting with device %s", str);
                     ALOGD(LOGTAG "Failure disconnecting with device %s", str);
                     break;
                 }
             }
 
-            cout << "Disconnecting with device " << str << endl;
+            fprintf(stdout, "Disconnecting with device %s", str);
             ALOGD(LOGTAG "Disconnecting with device %s", str);
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
@@ -537,7 +536,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_SLC_CONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "SLC connected with device " << str << endl;
+            fprintf(stdout, "SLC connected with device %s", str);
             ALOGD(LOGTAG " SLC connected with device %s", str);
 #if defined(BT_MODEM_INTEGRATION)
             processSlcConnected();
@@ -545,7 +544,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_DISCONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Disconnected with device " << str << endl;
+            fprintf(stdout, "Disconnected with device %s", str);
             ALOGD(LOGTAG "Disconnected with device %s", str);
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
@@ -556,7 +555,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_VR_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "VR start/stop req from device " << str << endl;
+            fprintf(stdout, "VR start/stop req from device %s", str);
             ALOGD(LOGTAG "VR start/stop req from device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
@@ -597,7 +596,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_CIND_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Sending CIND resp to device " << str << endl;
+            fprintf(stdout, "Sending CIND resp to device %s", str);
             ALOGD(LOGTAG "Sending CIND resp to device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
@@ -618,7 +617,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                ret_val = process_chld(pEvent->hfp_ag_event.arg1);
                if (ret_val != MCM_SUCCESS_V01) {
                    ALOGE(LOGTAG, "error processing chld %d", pEvent->hfp_ag_event.arg1);
-                   cout << "error processing chld " << pEvent->hfp_ag_event.arg1 << endl;
+                   fprintf(stdout, "error processing chld %d", pEvent->hfp_ag_event.arg1);
                }
 
                if (sBtHfpAgInterface != NULL) {
@@ -635,7 +634,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_COPS_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Sending COPS resp to device " << str << endl;
+            fprintf(stdout, "Sending COPS resp to device %s", str);
             ALOGD(LOGTAG "Sending COPS resp to device %s", str);
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -649,7 +648,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_SUBSCRIBER_INFO_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Sending CNUM resp to device " << str << endl;
+            fprintf(stdout, "Sending CNUM resp to device %s", str);
             ALOGD(LOGTAG "Sending CNUM resp to device %s", str);
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -663,7 +662,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_CLCC_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Sending CLCC resp to device " << str << endl;
+            fprintf(stdout, "Sending CLCC resp to device %s", str);
             ALOGD(LOGTAG "Sending CLCC resp to device %s", str);
 
             // TODO: cross check if we need to call get_current_calls here.
@@ -701,7 +700,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #endif
         case HFP_AG_API_CONNECT_AUDIO_REQ:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Connecting SCO/eSCO with device " << str << endl;
+            fprintf(stdout, "Connecting SCO/eSCO with device %s", str);
             ALOGD(LOGTAG "Connecting SCO/eSCO with device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
@@ -710,8 +709,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_AUDIO_STATE_CONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "SCO/eSCO connected with device " << str << endl;
-            ALOGD(LOGTAG "SCO/eSCO connected with device %s", str);
+            fprintf(stdout, "SCO/eSCO connected with device %s, codec %s", str,
+                ((mWbsState == BTHF_WBS_YES)? "WBS": "NBS"));
+            ALOGD(LOGTAG "SCO/eSCO connected with device %s, codec %s", str,
+                ((mWbsState == BTHF_WBS_YES)? "WBS": "NBS"));
 
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
             setup_sco_path();
@@ -811,13 +812,13 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 
                 ret_val = sBtHfpAgInterface->disconnect(&pEvent->hfp_ag_event.bd_addr);
                 if (ret_val != BT_STATUS_SUCCESS) {
-                    cout << "Failure disconnecting with device " << str << endl;
+                    fprintf(stdout, "Failure disconnecting with device %s", str);
                     ALOGD(LOGTAG "Failure disconnecting with device %s", str);
                     break;
                 }
             }
 
-            cout << "Disconnecting with device " << str << endl;
+            fprintf(stdout, "Disconnecting with device %s", str);
             ALOGD(LOGTAG "Disconnecting with device %s", str);
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
@@ -829,13 +830,13 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             }
 
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Disconnecting SCO/eSCO with device " << str << endl;
+            fprintf(stdout, "Disconnecting SCO/eSCO with device %s", str);
             ALOGD(LOGTAG "Disconnecting SCO/eSCO with device %s", str);
             break;
         case HFP_AG_AUDIO_STATE_DISCONNECTED_CB:
 
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Disconnected SCO connection with device " << str << endl;
+            fprintf(stdout, "Disconnected SCO connection with device %s", str);
             ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
 
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
@@ -845,7 +846,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_VR_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "VR start/stop req from device " << str << endl;
+            fprintf(stdout, "VR start/stop req from device %s", str);
             ALOGD(LOGTAG "VR start/stop req from device %s", str);
 
             // send error for VR start/stop request
@@ -888,7 +889,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_CIND_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Sending CIND resp to device " << str << endl;
+            fprintf(stdout, "Sending CIND resp to device %s", str);
             ALOGD(LOGTAG "Sending CIND resp to device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
@@ -909,7 +910,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
                ret_val = process_chld(pEvent->hfp_ag_event.arg1);
                if (ret_val != MCM_SUCCESS_V01) {
                    ALOGE(LOGTAG, "error processing chld %d", pEvent->hfp_ag_event.arg1);
-                   cout << "error processing chld " << pEvent->hfp_ag_event.arg1 << endl;
+                   fprintf(stdout, "error processing chld %d", pEvent->hfp_ag_event.arg1);
                }
 
                if (sBtHfpAgInterface != NULL) {
@@ -926,7 +927,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_COPS_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Sending COPS resp to device " << str << endl;
+            fprintf(stdout, "Sending COPS resp to device %s", str);
             ALOGD(LOGTAG "Sending COPS resp to device %s", str);
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -940,7 +941,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_SUBSCRIBER_INFO_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Sending CNUM resp to device " << str << endl;
+            fprintf(stdout, "Sending CNUM resp to device %s", str);
             ALOGD(LOGTAG "Sending CNUM resp to device %s", str);
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -954,7 +955,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_CLCC_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            cout << "Sending CLCC resp to device " << str << endl;
+            fprintf(stdout, "Sending CLCC resp to device %s", str);
             ALOGD(LOGTAG "Sending CLCC resp to device %s", str);
 
             // TODO: cross check if we need to call get_current_calls here.
@@ -1240,7 +1241,7 @@ void Hfp_Ag::dial_call(char *number, bt_bdaddr_t *bd_addr) {
          number[0] == '>' ||
          strlen(number) > MCM_MAX_PHONE_NUMBER_V01) {
         ALOGE(LOGTAG, "MO call in progress, or number not available of redial or memory dialling not supported");
-        cout << "MO call in progress, or number not available of redial or memory dialling not supported" << endl;
+        fprintf(stdout, "MO call in progress, or number not available of redial or memory dialling not supported\n");
         // if MO call is already being initiated, send error
         // if it is redial request and we don't have last dialled number, send error
         // if memory dialling is requested, send error
@@ -1278,7 +1279,7 @@ void Hfp_Ag::dial_call(char *number, bt_bdaddr_t *bd_addr) {
 
     if (ret_val != MCM_SUCCESS_V01) {
         ALOGE(LOGTAG, "sending dial command failed");
-        cout << LOGTAG "sending dial command failed" << endl;
+        fprintf(stdout, LOGTAG "sending dial command failed\n");
         // send error if dial fails
         if (sBtHfpAgInterface != NULL)
             sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, bd_addr);
@@ -1317,7 +1318,7 @@ uint32 Hfp_Ag::send_voice_cmd(mcm_voice_call_operation_t_v01 op) {
    }
    else {
         ALOGE(LOGTAG, "sending %d command failed", op);
-        cout << LOGTAG "sending " << (int)op << " command failed" << endl;
+        fprintf(stdout, "sending %d command failed\n", op);
    }
 
    return ret_val;
@@ -1339,7 +1340,7 @@ uint32 Hfp_Ag::end_call(bthf_call_state_t state) {
     call_id = get_call_id(state);
     if (call_id == 0xFFFFFFFF) {
         ALOGE(LOGTAG, "%s: No calls in state %u to hangup, returning", __func__, state);
-        cout << "end_calls: No calls in state " << state << " hangup, returning" << endl;
+        fprintf(stdout, "%s: No calls in state %u to hangup, returning\n", __func__, state);
         return MCM_ERROR_GENERIC_V01;
     }
 
@@ -1358,7 +1359,7 @@ uint32 Hfp_Ag::end_call(bthf_call_state_t state) {
 
    if (ret_val != MCM_SUCCESS_V01) {
         ALOGE(LOGTAG, "sending hangup command failed");
-        cout << LOGTAG "sending hangup command failed" << endl;
+        fprintf(stdout, LOGTAG "sending hangup command failed\n");
    }
 
    return ret_val;
@@ -1404,7 +1405,7 @@ uint32 Hfp_Ag::process_chld(int chld) {
        break;
        default:
           ALOGE(LOGTAG, "unhandled chld command %d", chld);
-          cout << "unhandled chld command " << chld << endl;
+          fprintf(stdout, "unhandled chld command %d\n", chld);
        break;
    }
    return ret_val;
@@ -1412,7 +1413,7 @@ uint32 Hfp_Ag::process_chld(int chld) {
 
 void Hfp_Ag::process_ril_ind(BtEvent* pEvent){
    if (pEvent->hfp_ag_event.hdl != mcm_client_hdl) {
-       cout << "invalid mcm client handle, returning" << endl;
+       fprintf(stdout, "invalid mcm client handle, returning\n");
        ALOGE(LOGTAG, "%s: invalid mcm client handle, returning\n");
        return;
    }
@@ -1452,7 +1453,7 @@ void Hfp_Ag::process_ril_ind(BtEvent* pEvent){
       case MCM_VOICE_DTMF_IND_V01:
       // intentional fall through
       default:
-          cout << "unhandled indication " << pEvent->hfp_ag_event.msg_id << endl;
+          fprintf(stdout, "unhandled indication\n", pEvent->hfp_ag_event.msg_id);
           ALOGD(LOGTAG, "unhandled indication %u\n", pEvent->hfp_ag_event.msg_id);
           break;
    }
@@ -1460,7 +1461,7 @@ void Hfp_Ag::process_ril_ind(BtEvent* pEvent){
 
 void Hfp_Ag::process_ril_resp(BtEvent* pEvent){
    if (pEvent->hfp_ag_event.hdl != mcm_client_hdl) {
-       cout << "invalid mcm client handle, returning" << endl;
+       fprintf(stdout, "invalid mcm client handle, returning\n");
        ALOGE(LOGTAG, "%s: invalid mcm client handle, returning\n");
        return;
    }
@@ -1474,7 +1475,7 @@ void Hfp_Ag::process_ril_resp(BtEvent* pEvent){
           // if dial request failed, send error to remote
           if (resp->result != MCM_RESULT_SUCCESS_V01) {
               ALOGE(LOGTAG, "dialling call failed with error %d", resp->error);
-              cout << "dialling call failed with error " << resp->error << endl;
+              fprintf(stdout, "dialling call failed with error %d\n", resp->error);
               if (sBtHfpAgInterface != NULL)
                   sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
           }
@@ -1488,7 +1489,7 @@ void Hfp_Ag::process_ril_resp(BtEvent* pEvent){
           // if voice command request failed, send error to remote
           if (resp->result != MCM_RESULT_SUCCESS_V01) {
               ALOGE(LOGTAG, "voice command %d failed with error %d", call_op, resp->error);
-              cout << "voice command " << call_op << " failed with error " << resp->error << endl;
+              fprintf(stdout, "voice command %d failed with error %d\n", call_op, resp->error);
           }
       }
           break;
@@ -1500,13 +1501,13 @@ void Hfp_Ag::process_ril_resp(BtEvent* pEvent){
           // if hangup request failed, send error to remote
           if (resp->result != MCM_RESULT_SUCCESS_V01) {
               ALOGE(LOGTAG, "ending call failed with error %d", resp->error);
-              cout << "ending call failed with error " << resp->error << endl;
+              fprintf(stdout, "ending call failed with error %d\n", resp->error);
           }
       }
           break;
       default:
           ALOGE(LOGTAG, "unhandled response %d", pEvent->hfp_ag_event.msg_id);
-          cout << "unhandled response " << pEvent->hfp_ag_event.msg_id << endl;
+          fprintf(stdout, "unhandled response %d\n", pEvent->hfp_ag_event.msg_id);
           break;
    }
 }
@@ -1649,8 +1650,8 @@ void Hfp_Ag::set_audio_params() {
 
    ALOGD(LOGTAG, "%s: setting sample rate %s\n", __func__,
              (mWbsState == BTHF_WBS_YES ? "16000" : "8000"));
-   cout << __func__ << ": setting sample rate" <<
-           (mWbsState == BTHF_WBS_YES ? "16000" : "8000") << endl;
+   fprintf(stdout, "%s: setting sample rate %s\n", __func__,
+             (mWbsState == BTHF_WBS_YES ? "16000" : "8000"));
 
    // set sample rate using amix commands
    if (mWbsState == BTHF_WBS_YES)
@@ -1664,7 +1665,7 @@ void Hfp_Ag::setup_sco_path() {
    char cmd[50];
 
    ALOGD(LOGTAG, "%s: starting arec and aplay\n", __func__);
-   cout << __func__ << ": starting arec and aplay" << endl;
+   fprintf(stdout, "%s: starting arec and aplay\n", __func__);
 
    // set sample rate before starting sco
    set_audio_params();
@@ -1683,7 +1684,7 @@ void Hfp_Ag::teardown_sco_path() {
     char cmd[50];
 
     ALOGD(LOGTAG, "%s: killing arec and aplay\n", __func__);
-    cout << __func__ << ": killing arec and aplay" << endl;
+    fprintf(stdout, "%s: killing arec and aplay\n", __func__);
 
     strcpy(cmd, "killall -9 arec");
     system(cmd);
