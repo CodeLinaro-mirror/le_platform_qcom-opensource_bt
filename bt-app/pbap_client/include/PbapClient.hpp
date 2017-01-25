@@ -72,7 +72,7 @@ class PbapClient {
 
     public:
         PbapClient(const bt_interface_t *bt_interface, config_t *config);
-        PbapClient();
+        ~PbapClient();
         alarm_t *pbap_connect_timer;
         void ProcessEvent(BtEvent* pEvent);
         void RemoveSdpRecord();

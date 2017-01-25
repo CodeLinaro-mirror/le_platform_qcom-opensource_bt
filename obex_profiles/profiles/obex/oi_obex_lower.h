@@ -187,7 +187,8 @@ typedef void (*OI_OBEX_LOWER_FLOW_CONTROL)(OI_OBEX_LOWER_CONNECTION lowerConnect
 /**
  * Get the protocol id for the lower protocol
  */
-typedef OI_OBEX_LOWER_PROTOCOL_ID (*OI_OBEX_LOWER_GET_PROTOCOL)(void);
+typedef OI_OBEX_LOWER_PROTOCOL_ID (*OI_OBEX_LOWER_GET_PROTOCOL)(
+                                        OI_OBEX_LOWER_CONNECTION lowerConnection);
 
 
 /**

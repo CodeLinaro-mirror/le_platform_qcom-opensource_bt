@@ -109,7 +109,9 @@ void OI_Sleep(OI_UINT32 milliseconds)
  */
 void OI_Print(OI_CHAR const *str)
 {
-    fputs(str, stdout);
+    if (str != NULL) {
+        fputs(str, stdout);
+    }
     fflush(stdout);
 }
 

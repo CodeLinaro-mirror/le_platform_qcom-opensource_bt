@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -27,42 +27,53 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SDP_CLIENT_H
-#define SDP_CLIENT_H
+#ifndef OPP_APP_H
+#define OPP_APP_H
 
 #pragma once
 #include <map>
 #include <string>
 #include <hardware/bluetooth.h>
+#include <hardware/bt_sock.h>
 #include <hardware/bt_sdp.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "osi/include/alarm.h"
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
-#include "osi/include/alarm.h"
 #include "ipc.h"
 
-#define SDP_SEARCH_TIMEOUT_DELAY     (6000)
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
 
-class SdpClient {
+extern const char *BT_OPP_ENABLED;
+#define OPP_CONNECT_TIMEOUT_DELAY     (30000)
+
+class Opp {
     private:
         const bt_interface_t * bluetooth_interface;
-        const btsdp_interface_t *sdp_client_interface;
-        bt_bdaddr_t mDevice;
         config_t *config;
-        bool Search(bt_bdaddr_t *addr, uint8_t *uuid, SdpSearchCb cb);
-        void AddRecord(bluetooth_sdp_record *record, SdpAddRecordCb cb);
-        void RemoveRecord(int record_handle, SdpRemoveRecordCb cb);
+
+        void AddSdpRecord();
+        bool PerformSdp(bt_bdaddr_t *addr);
+        bool SendFile(bt_bdaddr_t *addr, char * fileName);
+        bool Connect();
+        bool SendData();
+        bool HandleConnectTimeout(bt_bdaddr_t *addr);
+        bool Disconnect();
+        bool Abort();
+        bool IncomingFileRsp(bool accept);
 
     public:
-        SdpClient(const bt_interface_t *bt_interface, config_t *config);
-        ~SdpClient();
-        alarm_t *sdp_search_timer;
-        bool HandleEnableSdpClient();
-        bool HandleDisableSdpClient();
+        Opp(const bt_interface_t *bt_interface, config_t *config);
+        ~Opp();
+        alarm_t *opp_connect_timer;
         void ProcessEvent(BtEvent* pEvent);
+        void RemoveSdpRecord();
 };
 
 #endif

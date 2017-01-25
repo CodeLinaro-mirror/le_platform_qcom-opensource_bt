@@ -34,6 +34,7 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     { NULL ,    THREAD_ID_SDP_CLIENT,  &BtSdpClientMsgHandler,   "Sdp_Client_Thread" } ,
 #ifdef USE_BT_OBEX
     { NULL ,    THREAD_ID_PBAP_CLIENT, &BtPbapClientMsgHandler,  "Pbap_Client_Thread" } ,
+    { NULL ,    THREAD_ID_OPP,         &BtOppMsgHandler,         "Opp_Thread" } ,
 #endif
     { NULL ,    THREAD_ID_HFP_AG,      &BtHfpAgMsgHandler,       "Hfp_AG_Thread" } ,
     { NULL ,    THREAD_ID_A2DP_SOURCE, &BtA2dpSourceMsgHandler,  "A2dp_Source_Thread" } ,

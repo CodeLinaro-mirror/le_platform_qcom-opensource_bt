@@ -1134,22 +1134,24 @@ static void PbapOpenCfm(OI_PBAP_HANDLE handle,
     OI_TRACE_USER(("PbapOpenCfm(handle = %x, openStatus = %d, pbapConnection = %d)",
                       handle, openStatus, pbapConnection));
 
-    VALIDATE_CFM_STATE("PbapOpenCfm", client,
-                       ((client->state == CLIENT_STATE_PULLING_VCARD) ||
-                        (client->state == CLIENT_STATE_PULLING_PHONEBOOK) ||
-                        (client->state == CLIENT_STATE_PULLING_VCARD_LISTING)));
+    if (client) {
+        VALIDATE_CFM_STATE("PbapOpenCfm", client,
+                           ((client->state == CLIENT_STATE_PULLING_VCARD) ||
+                            (client->state == CLIENT_STATE_PULLING_PHONEBOOK) ||
+                            (client->state == CLIENT_STATE_PULLING_VCARD_LISTING)));
 
-    if (!IS_CLIENT_CONNECTED) {
-        OI_SLOG_ERROR(OI_STATUS_NONE, ("PbapOpenCfm while PBAP not connected"));
-        return;
-    }
+        if (!IS_CLIENT_CONNECTED) {
+            OI_SLOG_ERROR(OI_STATUS_NONE, ("PbapOpenCfm while PBAP not connected"));
+            return;
+        }
 
-    if (OI_SUCCESS(openStatus)) {
-        client->fileOpen = TRUE;
-        client->fh = handle;
-        FinishReq(client, OI_OK);
-    } else {
-        FileClose(client, openStatus);
+        if (OI_SUCCESS(openStatus)) {
+            client->fileOpen = TRUE;
+            client->fh = handle;
+            FinishReq(client, OI_OK);
+        } else {
+            FileClose(client, openStatus);
+        }
     }
 }
 

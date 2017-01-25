@@ -145,8 +145,10 @@ SdpClient :: SdpClient(const bt_interface_t *bt_interface, config_t *config)
 
 }
 
-SdpClient :: SdpClient()
+SdpClient :: ~SdpClient()
 {
+    alarm_free(g_sdpClient->sdp_search_timer);
+    g_sdpClient->sdp_search_timer = NULL;
 }
 
 void sdp_search_timer_expired(void *context) {
