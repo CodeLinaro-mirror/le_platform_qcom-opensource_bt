@@ -28,13 +28,15 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/gatt/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
-               -I${WORKSPACE}/hardware/libhardware/include \
+               -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
+               -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
                -I${WORKSPACE}/mcm-api/api
 
 if USE_BT_OBEX
 AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/pbap_client/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/opp/include \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include/profiles \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/profiles/obex \
@@ -63,11 +65,15 @@ c_sources = ../utils/src/utils.c \
             ../rsp/src/Rsp.cpp
 
 if USE_BT_OBEX
-c_sources +=  ../pbap_client/src/PbapClient.cpp
+c_sources +=  ../pbap_client/src/PbapClient.cpp \
+              ../opp/src/Opp.cpp
 endif
 
 requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware
 requiredlibs += $(SYS_LIB)/libgengatt.la
+if AUDIO_HAL_SUPPORTED
+requiredlibs += $(SYS_LIB)/libqahw.la
+endif
 
 if USE_BT_OBEX
 requiredlibs += $(SYS_LIB)/libbtobex.la

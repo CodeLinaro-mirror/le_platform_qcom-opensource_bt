@@ -37,8 +37,8 @@
 #include <hardware/bt_rc.h>
 #include <pthread.h>
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-#include <hardware/audio.h>
-#include <hardware/hardware.h>
+#include "qahw_api.h"
+#include "qahw_defs.h"
 #endif
 
 #include "osi/include/log.h"
@@ -59,7 +59,8 @@ typedef enum {
     STATE_CONNECTED,
 }A2dpSinkState;
 
-#define A2DP_SINK_PCM_FETCH_TIMER_DURATION     40
+#define A2DP_SINK_PCM_FETCH_TIMER_DURATION         40
+#define A2DP_SINK_COMPRESS_FEED_TIMER_DURATION     40
 
 class A2dp_Sink {
 
@@ -70,7 +71,7 @@ class A2dp_Sink {
     const btrc_ctrl_interface_t *sBtAvrcpCtrlInterface;
     A2dpSinkState mSinkState;
     bool mAvrcpConnected;
-    const btav_vendor_interface_t *sBtA2dpSinkVendorInterface;
+    const btav_sink_vendor_interface_t *sBtA2dpSinkVendorInterface;
     const btrc_ctrl_vendor_interface_t *sBtAvrcpCtrlVendorInterface;
 
   public:
@@ -94,11 +95,13 @@ class A2dp_Sink {
     uint32_t sample_rate;
     uint8_t channel_count;
     alarm_t *pcm_data_fetch_timer;
+    alarm_t *compress_audio_feed_timer;
 #if (defined BT_AUDIO_HAL_INTEGRATION)
-    audio_stream_out_t* out_stream;
+    // structure for output stream
+    qahw_stream_handle_t* out_stream;
     // structures used for loading A2DP HAL
-    audio_hw_device_t *a2dp_input_device;
-    audio_stream_in *input_stream;
+    qahw_module_handle_t *a2dp_input_device;
+    qahw_stream_handle_t *input_stream;
 #endif
     //apis for in_stream bt a2dp HAL, to read data.
     void LoadBtA2dpHAL();
@@ -109,15 +112,32 @@ class A2dp_Sink {
     uint32_t ReadInputStream(uint8_t* data, uint32_t size);
     uint32_t GetInputStreamBufferSize();
     bool use_bt_a2dp_hal;
+    bool fetch_rtp_info;
     // apis for out_stream Audio HAL, to write data.
     void ConfigureAudioHal();
     void CloseAudioStream();
     size_t pcm_buf_size;
+    size_t cuml_data_written_to_audio;
+    size_t residual_compress_data;
     uint8_t* pcm_buf;
     bool pcm_timer;
+    bool compress_offload_timer;
     void StartPcmTimer();
-    void StopPcmTimer();
+    void StopDataFetchTimer();
     void OnDisconnected();
+    uint16_t codec_type;
+    btav_codec_config_t codec_config;
+    uint32_t get_a2dp_sbc_sampling_rate(uint8_t frequency);
+    uint8_t get_a2dp_sbc_channel_mode(uint8_t channel_count);
+    uint32_t get_a2dp_aac_sampling_rate(uint16_t frequency);
+    uint8_t get_a2dp_aac_channel_mode(uint8_t channel_count);
+    uint32_t get_a2dp_mp3_sampling_rate(uint16_t frequency);
+    uint8_t get_a2dp_mp3_channel_mode(uint8_t channel_count);
+    uint32_t get_a2dp_aptx_sampling_rate(uint8_t frequency);
+    uint8_t get_a2dp_aptx_channel_mode(uint8_t channel_count);
+    void FillCompressBuffertoAudioOutHal();
+    void StartCompressAudioFeedTimer();
+    void StopCompressAudioFeedTimer();
 };
 
 #endif

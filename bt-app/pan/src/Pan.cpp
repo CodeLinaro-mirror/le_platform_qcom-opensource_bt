@@ -294,6 +294,7 @@ bool Pan :: HandleEnablePan() {
 
     pan_state = UNTETHERED;
     num_of_pan_device_connected = 0;
+    is_tethering_on = false;
 
     for (int i = 0; i < MAX_PAN_DEVICES; i++) {
         memcpy(&(pan_device[i].bd_addr), &bd_addr_null, sizeof(bt_bdaddr_t));
@@ -381,7 +382,7 @@ void Pan::HandlePanControlStateEvent(PanControlStateEvent *event)
 {
     ALOGV(LOGTAG "%s", __FUNCTION__);
 
-    strcpy(pan_interface_name, event->ifname);
+    strlcpy(pan_interface_name, event->ifname, sizeof(pan_interface_name));
 }
 
 void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)
@@ -430,7 +431,8 @@ void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)
             RemoveDevice(pan_dev);
             num_of_pan_device_connected--;
 
-            if (pan_state == TETHERED && num_of_pan_device_connected == 0) {
+            if ((pan_state == TETHERED || pan_state == PENDING)
+                && num_of_pan_device_connected == 0) {
                 BtEvent *event = new BtEvent;
                 event->event_id = SKT_API_IPC_MSG_WRITE;
                 event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_DISABLE_TETHERING;
@@ -456,6 +458,8 @@ void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)
                 event->event_id = SKT_API_IPC_MSG_WRITE;
                 event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_ENABLE_TETHERING;
                 event->bt_ipc_msg_event.ipc_msg.status = INITIATED;
+
+                pan_state = PENDING;
                 ALOGV (LOGTAG "%s: Posting msg main thread: enable tethering", __FUNCTION__);
                 PostMessage (THREAD_ID_MAIN, event);
             }
@@ -468,7 +472,7 @@ void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)
             PAN_APP_UI_PRINT("%s IS DISCONNECTED\n", bd_str);
             RemoveDevice(pan_dev);
 
-            if (pan_state == REVERSE_TETHERED) {
+            if (pan_state == REVERSE_TETHERED || pan_state == PENDING) {
                 BtEvent *event = new BtEvent;
                 event->event_id = SKT_API_IPC_MSG_WRITE;
                 event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_DISABLE_REVERSE_TETHERING;
@@ -486,6 +490,8 @@ void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)
                 event->event_id = SKT_API_IPC_MSG_WRITE;
                 event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_ENABLE_REVERSE_TETHERING;
                 event->bt_ipc_msg_event.ipc_msg.status = INITIATED;
+
+                pan_state = PENDING;
                 ALOGV (LOGTAG "%s: Posting msg main thread: enable reverse tethering",
                         __FUNCTION__);
                 PostMessage (THREAD_ID_MAIN, event);

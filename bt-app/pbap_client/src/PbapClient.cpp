@@ -818,11 +818,11 @@ static OI_STATUS pb_open(const OI_OBEX_UNICODE *name, OI_PBAP_OPEN_CFM open_cfm,
     char filename[256];
 
     if (pbap_client.getting_listing) {
-        sprintf(filename,"%s%s",storageDir, vCardListingFile);
+        snprintf(filename, sizeof(filename), "%s%s", storageDir, vCardListingFile);
     } else if (pbap_client.getting_phonebook) {
-        sprintf(filename,"%s%s",storageDir, phoneBookFile);
+        snprintf(filename, sizeof(filename), "%s%s", storageDir, phoneBookFile);
     } else if (pbap_client.getting_vcard) {
-        sprintf(filename,"%s%s",storageDir, vcardFile);
+        snprintf(filename, sizeof(filename), "%s%s", storageDir, vcardFile);
     } else {
         ALOGE(LOGTAG "unknown operation calling open");
         return OI_STATUS_INVALID_PARAMETERS;
@@ -907,8 +907,10 @@ void pbap_connect_timer_expired(void *context) {
     PostMessage(THREAD_ID_PBAP_CLIENT, event);
 }
 
-PbapClient :: PbapClient()
+PbapClient :: ~PbapClient()
 {
+    alarm_free(g_pbapClient->pbap_connect_timer);
+    g_pbapClient->pbap_connect_timer = NULL;
 }
 
 void connectionCfm(OI_PBAP_CONNECTION connectionId,

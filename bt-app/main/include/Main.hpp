@@ -177,6 +177,10 @@ typedef enum {
     PBAP_GET_VCARD_FORMAT,
     PBAP_GET_LIST_COUNT,
     PBAP_GET_START_OFFSET,
+    OPP_OPTION,
+    OPP_REGISTER,
+    OPP_SEND,
+    OPP_ABORT,
 #endif
     HFP_CLIENT,
     CREATE_SCO_CONN,
@@ -233,6 +237,7 @@ typedef enum {
     RSP_MENU,
 #ifdef USE_BT_OBEX
     PBAP_CLIENT_MENU,
+    OPP_MENU,
 #endif
     HFP_AG_MENU,
     A2DP_SOURCE_MENU
@@ -286,7 +291,8 @@ UserMenuList MainMenu[] = {
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
 #ifdef USE_BT_OBEX
-    {PBAP_CLIENT_OPTION,    "pbap_client_menu",  ZERO_PARAM,   "pbap_client_menu"},
+    {PBAP_CLIENT_OPTION,    "pbap_client_menu", ZERO_PARAM,   "pbap_client_menu"},
+    {OPP_OPTION,            "opp_menu",         ZERO_PARAM,   "opp_menu"},
 #endif
     {HFP_AG,                "hfp_ag_menu",      ZERO_PARAM,   "hfp_ag_menu"},
     {A2DP_SOURCE,           "a2dp_source_menu", ZERO_PARAM,   "a2dp_source_menu"},
@@ -424,7 +430,19 @@ UserMenuList PbapClientMenu[] = {
     {PBAP_GET_START_OFFSET,     "get_start_offset",     ZERO_PARAM, "get_start_offset"},
     {BACK_TO_MAIN,              "main_menu",            ZERO_PARAM, "main_menu"},
 };
+
+/**
+ * list of supported commands for OPP Menu
+ */
+UserMenuList OppMenu[] = {
+    {OPP_REGISTER,              "register",             ZERO_PARAM, "register"},
+    {OPP_SEND,                  "send",                 TWO_PARAM,  "send<space><bt_address><space><file_name>"},
+    {OPP_ABORT,                 "abort",                ZERO_PARAM, "abort"},
+    {BACK_TO_MAIN,              "main_menu",            ZERO_PARAM, "main_menu"},
+};
 #endif
+
+
 /**
  * list of supported commands for HFP_CLIENT Menu
  */
@@ -591,6 +609,7 @@ class BluetoothApp {
 #ifdef USE_BT_OBEX
     bool is_obex_enabled_;
     bool is_pbap_client_enabled_;
+    bool is_opp_enabled_;
 #endif
     reactor_object_t *cmd_reactor_;
     struct hw_device_t *device_;
@@ -607,6 +626,9 @@ class BluetoothApp {
     int client_socket_;
     bool ssp_notification;
     bool pin_notification;
+#ifdef USE_BT_OBEX
+    bool incoming_file_notification;
+#endif
 
     /**
      * structure object for standard Bluetooth DM interface
@@ -714,6 +736,19 @@ class BluetoothApp {
      * @return bool
      */
     bool HandlePinInput(char user_cmd[][COMMAND_ARG_SIZE]);
+
+#ifdef USE_BT_OBEX
+    /**
+     * @brief HandleIncomingFile
+     *
+     * This function will handle the Incoming File acceptance or rejection from user,
+     * it shows a message on console for user input
+     *
+     * @param[in] user_cmd" Can be either "accept" or "reject"
+     * @return bool
+     */
+    bool HandleIncomingFile(char user_cmd[][COMMAND_ARG_SIZE]);
+#endif
 
     /**
      *@brief ProcessEvent

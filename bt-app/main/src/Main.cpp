@@ -44,6 +44,7 @@
 #include "Rsp.hpp"
 #ifdef USE_BT_OBEX
 #include "PbapClient.hpp"
+#include "Opp.hpp"
 #endif
 #include "osi/include/compat.h"
 #include "A2dp_Src.hpp"
@@ -63,13 +64,17 @@ extern Rsp *rsp;
 extern SdpClient *g_sdpClient;
 #ifdef USE_BT_OBEX
 extern PbapClient *g_pbapClient;
+extern Opp *g_opp;
 extern const char *BT_OBEX_ENABLED;
 #endif
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 extern Hfp_Client *pHfpClient;
 extern Hfp_Ag *pHfpAG;
-
+#ifdef USE_BT_OBEX
+static alarm_t *opp_incoming_file_accept_timer = NULL;
+#define USER_ACCEPTANCE_TIMEOUT 25000
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -168,6 +173,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         case PBAP_CLIENT_MENU:
             menu = &PbapClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(PbapClientMenu);
+            break;
+        case OPP_MENU:
+            menu = &OppMenu[0];
+            num_cmds  = NO_OF_COMMANDS(OppMenu);
             break;
 #endif
         case HFP_AG_MENU:
@@ -268,6 +277,10 @@ static void DisplayMenu(MenuType menu_type) {
         case PBAP_CLIENT_MENU:
             menu = &PbapClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(PbapClientMenu);
+            break;
+        case OPP_MENU:
+            menu = &OppMenu[0];
+            num_cmds  = NO_OF_COMMANDS(OppMenu);
             break;
 #endif
         case HFP_AG_MENU:
@@ -731,6 +744,10 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 #ifdef USE_BT_OBEX
         case PBAP_CLIENT_OPTION:
             menu_type = PBAP_CLIENT_MENU;
+            DisplayMenu(menu_type);
+            break;
+        case OPP_OPTION:
+            menu_type = OPP_MENU;
             DisplayMenu(menu_type);
             break;
 #endif
@@ -1330,6 +1347,56 @@ static void HandlePbapClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
         break;
     }
 }
+
+static void HandleOppCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+
+    long num;
+    char *end;
+    int index = 0;
+    BtEvent *event = NULL;
+
+    if (g_bt_app && g_bt_app->bt_state != BT_STATE_ON) {
+        ALOGE(LOGTAG "BT not switched on, can't handle OPP commands");
+        return;
+    }
+
+    switch (cmd_id) {
+
+        case OPP_REGISTER:
+            event = new BtEvent;
+            event->opp_event.event_id = OPP_SRV_REGISTER;
+            PostMessage (THREAD_ID_OPP, event);
+            break;
+        case OPP_SEND:
+            event = new BtEvent;
+            event->opp_event.event_id = OPP_SEND_DATA;
+            if(string_to_bdaddr(user_cmd[ONE_PARAM],
+                &event->opp_event.bd_addr)) {
+                memset( (void *) event->opp_event.value, 0,
+                    sizeof(event->opp_event.value));
+                strlcpy(event->opp_event.value, user_cmd[TWO_PARAM],
+                    COMMAND_SIZE);
+                PostMessage (THREAD_ID_OPP, event);
+            } else {
+                ALOGV (LOGTAG " Please enter valid BD Address %s",
+                    user_cmd[ONE_PARAM]);
+            }
+            break;
+        case OPP_ABORT:
+            event = new BtEvent;
+            event->opp_event.event_id = OPP_ABORT_TRANSFER;
+            PostMessage (THREAD_ID_OPP, event);
+            break;
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+
+        default:
+        ALOGV (LOGTAG " Command not handled: %d", cmd_id);
+        break;
+    }
+}
 #endif
 
 void BtSocketDataHandler (void *context) {
@@ -1431,20 +1498,39 @@ static void BtCmdHandler (void *context) {
             case PBAP_CLIENT_MENU:
                 HandlePbapClientCommand(cmd_id,user_cmd );
                 break;
+            case OPP_MENU:
+                HandleOppCommand(cmd_id,user_cmd );
+                break;
 #endif
             case HFP_AG_MENU:
                 HandleHfpAGCommand(cmd_id, user_cmd );
                 break;
         }
     } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
-                        g_bt_app->HandleSspInput(user_cmd)) {
+                        (!strcasecmp (user_cmd[ZERO_PARAM], "yes") ||
+                        !strcasecmp (user_cmd[ZERO_PARAM], "no"))
+                        && g_bt_app->HandleSspInput(user_cmd)) {
         // validate the user input for SSP
         g_bt_app->ssp_notification = false;
     } else if (g_bt_app->pin_notification && user_cmd[0][0] &&
-                        g_bt_app->HandlePinInput(user_cmd)) {
+                        (strcasecmp (user_cmd[ZERO_PARAM], "yes") &&
+                        strcasecmp (user_cmd[ZERO_PARAM], "no") &&
+                        strcasecmp (user_cmd[ZERO_PARAM], "accept") &&
+                        strcasecmp (user_cmd[ZERO_PARAM], "reject"))
+                        && g_bt_app->HandlePinInput(user_cmd)) {
         // validate the user input for PIN
         g_bt_app->pin_notification = false;
-    } else {
+    }
+#ifdef USE_BT_OBEX
+    else if (g_bt_app->incoming_file_notification && user_cmd[0][0] &&
+                        (!strcasecmp (user_cmd[ZERO_PARAM], "accept") ||
+                        !strcasecmp (user_cmd[ZERO_PARAM], "reject"))
+                        && g_bt_app->HandleIncomingFile(user_cmd)) {
+        // validate the user input for OPP Incoming File
+        g_bt_app->incoming_file_notification = false;
+    }
+#endif
+    else {
         fprintf( stdout, " Wrong option selected\n");
         DisplayMenu(menu_type);
         // TODO print the given input string
@@ -1548,6 +1634,37 @@ bool BluetoothApp :: HandleSspInput(char user_cmd[][COMMAND_ARG_SIZE]) {
     PostMessage (THREAD_ID_GAP, bt_event);
     return true;
 }
+
+#ifdef USE_BT_OBEX
+bool BluetoothApp :: HandleIncomingFile(char user_cmd[][COMMAND_ARG_SIZE]) {
+    BtEvent *bt_event = new BtEvent;
+    if (!strcasecmp (user_cmd[ZERO_PARAM], "accept")) {
+        bt_event->opp_event.accept = true;
+    } else if (!strcasecmp (user_cmd[ZERO_PARAM], "reject")) {
+        bt_event->opp_event.accept = false;
+    } else {
+        fprintf( stdout, "Wrong option entered\n");
+        return false;
+    }
+    /* Cancel the timer */
+    alarm_cancel(opp_incoming_file_accept_timer);
+    bt_event->event_id = OPP_INCOMING_FILE_RESPONSE;
+    PostMessage (THREAD_ID_OPP, bt_event);
+    return true;
+}
+
+void user_acceptance_timer_expired(void *context) {
+    BtEvent *bt_event = new BtEvent;
+    ALOGD(LOGTAG " user_acceptance_timer_expired, rejecting incoming file");
+    fprintf(stdout,"No user input for %d seconds, rejecting the file\n",
+        USER_ACCEPTANCE_TIMEOUT/1000);
+
+    bt_event->opp_event.accept = false;
+    g_bt_app->incoming_file_notification = false;
+    bt_event->event_id = OPP_INCOMING_FILE_RESPONSE;
+    PostMessage (THREAD_ID_OPP, bt_event);
+}
+#endif
 
 void BluetoothApp :: ProcessEvent (BtEvent * event) {
 
@@ -1670,6 +1787,25 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             // instruct the cmd handler to treat the next inputs for PIN
             pin_notification = true;
             break;
+
+#ifdef USE_BT_OBEX
+        case MAIN_EVENT_INCOMING_FILE_REQUEST:
+
+            fprintf(stdout, "\n*************************************************");
+            fprintf(stdout, "\n Incoming File Request");
+            fprintf(stdout, "\n*************************************************\n");
+            fprintf(stdout, " ** Please enter \"accept\" / \"reject\" **\n");
+            // instruct the cmd handler to treat the next inputs for OPP
+            incoming_file_notification = true;
+            if (opp_incoming_file_accept_timer) {
+                 // start the user acceptance/rejection rimer
+                alarm_set(opp_incoming_file_accept_timer, USER_ACCEPTANCE_TIMEOUT,
+                                    user_acceptance_timer_expired, NULL);
+            } else {
+                fprintf(stdout, "\n Already pending user acceptance request\n");
+            }
+            break;
+#endif
 
         default:
             ALOGD (LOGTAG " Default Case");
@@ -1912,6 +2048,18 @@ void BluetoothApp :: InitHandler (void) {
         if (threadInfo[THREAD_ID_PBAP_CLIENT].thread_id)
             g_pbapClient = new PbapClient(bt_interface, config);
     }
+    if (is_obex_enabled_ && is_opp_enabled_) {
+        threadInfo[THREAD_ID_OPP].thread_id = thread_new (
+            threadInfo[THREAD_ID_OPP].thread_name);
+
+        if (threadInfo[THREAD_ID_OPP].thread_id)
+            g_opp = new Opp(bt_interface, config);
+    }
+    opp_incoming_file_accept_timer = NULL;
+    if( !(opp_incoming_file_accept_timer = alarm_new())) {
+        ALOGE(LOGTAG " unable to create opp_connect_timer");
+        opp_incoming_file_accept_timer = NULL;
+    }
 #endif
 
     // Enable Command line input
@@ -2010,12 +2158,24 @@ void BluetoothApp :: DeInitHandler (void) {
     }
 
 #ifdef USE_BT_OBEX
+    if (opp_incoming_file_accept_timer) {
+        alarm_free(opp_incoming_file_accept_timer);
+        opp_incoming_file_accept_timer = NULL;
+    }
     if (is_obex_enabled_ && is_pbap_client_enabled_) {
         // Stop PBAP Client Thread
         if (threadInfo[THREAD_ID_PBAP_CLIENT].thread_id != NULL) {
             thread_free (threadInfo[THREAD_ID_PBAP_CLIENT].thread_id);
             if (g_pbapClient!= NULL)
                 delete g_pbapClient;
+        }
+    }
+    if (is_obex_enabled_ && is_opp_enabled_) {
+        // Stop Opp Thread
+        if (threadInfo[THREAD_ID_OPP].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_OPP].thread_id);
+            if (g_opp!= NULL)
+                delete g_opp;
         }
     }
 #endif
@@ -2143,6 +2303,10 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for Pbap Client handler
     is_pbap_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_PBAP_CLIENT_ENABLED, false);
+
+    //checking for OPP handler
+    is_opp_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_OPP_ENABLED, false);
 #endif
     return true;
 }
