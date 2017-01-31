@@ -70,10 +70,10 @@ endif
 if USE_GLIB
  btapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
  btapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
- btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
+ btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@ -Wl,--export-dynamic
 else
  btapp_CFLAGS = $(AM_CFLAGS)
- btapp_LDFLAGS = $(requiredlibs)
+ btapp_LDFLAGS = $(requiredlibs) -Wl,--export-dynamic
 endif
 
 AM_LDFLAGS = $(LDFLAFGS)
