@@ -318,37 +318,45 @@ void A2dp_Sink::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
 
     switch(pEvent->event_id) {
         case A2DP_SINK_API_CONNECT_REQ:
-        case A2DP_SINK_CONNECTING_CB:
             if (pA2dpDeviceList.size() == max_a2dp_conn) {
                 ALOGE(LOGTAG " already max devices connected");
+                cout << "Already " << max_a2dp_conn << " device connected "<<endl;
                 return;
             }
-            if (pA2dpDeviceList.size() == 0) {
-                ALOGD(LOGTAG " pA2dpDeviceList.size() == 0 ");
+            if (pA2dpDeviceList.size() < max_a2dp_conn) {
+                ALOGD(LOGTAG " pA2dpDeviceList.size() < max_a2dp_conn ");
+                pA2dpDeviceList.push_back(A2dp_Device(config, dev));
+                iter = pA2dpDeviceList.end();
+                --iter;
+            }
+            break;
+        case A2DP_SINK_CONNECTING_CB:
+        case A2DP_SINK_CONNECTED_CB:
+            iter = FindDeviceByAddr(pA2dpDeviceList, dev);
+            if (iter != pA2dpDeviceList.end())
+            {
+                ALOGD(LOGTAG " found a match, donot alloc new");
+            }
+            else if (pA2dpDeviceList.size() < max_a2dp_conn)
+            {
+                ALOGD(LOGTAG " reached end of list without a match, alloc new");
                 pA2dpDeviceList.push_back(A2dp_Device(config, dev));
                 iter = pA2dpDeviceList.end();
                 --iter;
             }
             else
             {
-                iter = FindDeviceByAddr(pA2dpDeviceList, dev);
-                if (iter == pA2dpDeviceList.end())
-                {
-                    ALOGE(LOGTAG " reached end of list without a match, alloc new");
-                    pA2dpDeviceList.push_back(A2dp_Device(config, dev));
-                    iter = pA2dpDeviceList.end();
-                    --iter;
-                }
-                else
-                {
-                    ALOGE(LOGTAG " found a match, donot alloc new");
-                }
+                ALOGE(LOGTAG " already max devices connected");
+                cout << "Already " << max_a2dp_conn << " device connected "<<endl;
+                return;
             }
             break;
         case A2DP_SINK_API_DISCONNECT_REQ:
         case A2DP_SINK_DISCONNECTING_CB:
+        case A2DP_SINK_DISCONNECTED_CB:
             if (pA2dpDeviceList.size() == 0) {
-                ALOGE(LOGTAG "no device to disconnect");
+                ALOGE(LOGTAG " no device to disconnect");
+                cout << "No device connected "<<endl;
                 return;
             }
             else
@@ -391,19 +399,16 @@ void A2dp_Sink::EventManager(BtEvent* pEvent, bt_bdaddr_t dev) {
         }
         else
         {
-            ALOGE(LOGTAG "no matching device ignore process event");
+            ALOGE(LOGTAG " no matching device ignore process event");
         }
     }
 }
 
 bool A2dp_Sink::isConnectionEvent(BluetoothEventId event_id) {
     bool ret = false;
-    ALOGD(LOGTAG " isConnectionEvent ");
-
-    if (event_id == A2DP_SINK_API_CONNECT_REQ || event_id == A2DP_SINK_API_DISCONNECT_REQ
-        || event_id == A2DP_SINK_CONNECTING_CB
-        || event_id == A2DP_SINK_DISCONNECTING_CB)
+    if (event_id >= A2DP_SINK_API_CONNECT_REQ && event_id <= A2DP_SINK_DISCONNECTING_CB)
         ret = true;
+    ALOGD(LOGTAG " isConnectionEvent: %d", ret);
     return ret;
 }
 char* A2dp_Sink::dump_message(BluetoothEventId event_id) {
@@ -600,12 +605,12 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
         case A2DP_SINK_AUDIO_STARTED:
         case A2DP_SINK_FOCUS_REQUEST_CB:
             bdaddr_to_string(&pA2dpSinkStream->mStreamingDevice, str, 18);
-            ALOGD(LOGTAG " A2DP_SINK_AUDIO_STARTED %s", str);
+            ALOGD(LOGTAG " current streaming device %s", str);
             
             if (memcmp(&pA2dpSinkStream->mStreamingDevice, &bd_addr_null, sizeof(bt_bdaddr_t)) &&
                     memcmp(&pA2dpSinkStream->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
             {
-                ALOGE(LOGTAG "streaming device already set, need to cleanup this device 1st");
+                ALOGD(LOGTAG " another dev started streaming, pause previous one");
                 if (pAvrcp != NULL)
                     pAvrcp->SendPassThruCommandNative(CMD_ID_PAUSE,
                             &pA2dpSinkStream->mStreamingDevice, 1);
