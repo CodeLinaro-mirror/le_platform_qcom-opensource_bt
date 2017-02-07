@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  * Copyright (C) 2012 The Android Open Source Project
  *
@@ -50,6 +50,7 @@ const char *BT_PBAP_CLIENT_ENABLED   = "BtPbapClientEnable";
 const char *BT_OPP_ENABLED   = "BtOppEnable";
 #endif
 const char *BT_HFP_AG_ENABLED_STRING  = "BtHfpAGEnable";
+const char *BT_AVRCP_ENABLED_STRING  = "BtAvrcpEnable";
 
 #define LOGTAG "GAP "
 
@@ -844,6 +845,9 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 #endif
         else if(profile_id == PROFILE_ID_HFP_AG)
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_AG;
+        else if(profile_id == PROFILE_ID_AVRCP)
+            this->profile_config[profile_id].thread_id = THREAD_ID_AVRCP;
+
     }
 
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
@@ -857,6 +861,9 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
     this->profile_config[PROFILE_ID_HFP_AG].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_HFP_AG_ENABLED_STRING, false);
+
+    this->profile_config[PROFILE_ID_AVRCP].is_enabled = config_get_bool (config,
+                     CONFIG_DEFAULT_SECTION, BT_AVRCP_ENABLED_STRING, false);
 
     if ((this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled) ||
         (this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled)) {
