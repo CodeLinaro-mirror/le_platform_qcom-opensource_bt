@@ -555,6 +555,13 @@ void Gap::ProcessEvent(BtEvent* event) {
             if (adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_OFF) {
                 bluetooth_interface_->init(&sBluetoothCallbacks);
             }
+            else {
+                ALOGV (LOGTAG "Ignoring GAP_API_ENABLE command state : %d",
+                                adapter_properties_obj_->GetState());
+                fprintf(stdout, "Ignoring GAP_API_ENABLE command state : %d\n",
+                                adapter_properties_obj_->GetState());
+                break;
+            }
 
             // check if there are profiles enabled
             if(!supported_profiles_count) {
@@ -672,6 +679,14 @@ void Gap::ProcessEvent(BtEvent* event) {
             kill(getpid(), SIGKILL);
             break;
         case GAP_API_DISABLE:
+            if (adapter_properties_obj_->GetState() != BT_ADAPTER_STATE_ON) {
+                ALOGV (LOGTAG "Ignoring GAP_API_DISABLE command state : %d",
+                                            adapter_properties_obj_->GetState());
+                fprintf(stdout, "Ignoring GAP_API_DISABLE command state : %d\n",
+                                            adapter_properties_obj_->GetState());
+                break;
+            }
+
             if (profile_config[PROFILE_ID_A2DP_SINK].is_enabled)
             {
                 bt_event = new BtEvent;
