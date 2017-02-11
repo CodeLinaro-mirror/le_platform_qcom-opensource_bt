@@ -51,6 +51,7 @@ using std::string;
 extern A2dp_Sink_Streaming *pA2dpSinkStream;
 extern BT_Audio_Manager *pBTAM;
 extern Avrcp *pAvrcp;
+extern Gap *g_gap;
 
 #if (!defined(BT_AUDIO_HAL_INTEGRATION))
 #define DUMP_PCM_DATA TRUE
@@ -307,6 +308,29 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
 #endif
 
 #if (defined BT_AUDIO_HAL_INTEGRATION)
+void parse_aptx_dec_bd_addr(char *value, struct qahw_aptx_dec_param *aptx_cfg)
+{
+    int ba[6];
+    char *str, *tok;
+    uint32_t addr[3];
+    int i = 0;
+
+    tok = strtok_r(value, ":", &str);
+    while (tok != NULL) {
+        ba[i] = strtol(tok, NULL, 16);
+        i++;
+        tok = strtok_r(NULL, ":", &str);
+    }
+    addr[0] = (ba[0] << 8) | ba[1];
+    addr[1] = ba[2];
+    addr[2] = (ba[3] << 16) | (ba[4] << 8) | ba[5];
+
+    aptx_cfg->bt_addr.nap = addr[0];
+    aptx_cfg->bt_addr.uap = addr[1];
+    aptx_cfg->bt_addr.lap = addr[2];
+}
+
+
 int compressed_callback(qahw_stream_callback_event_t event, void *param,
                   void *cookie) {
     BtEvent *pEvent = new BtEvent;
@@ -647,6 +671,10 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
     audio_io_handle_t handle = 0x07;
     //audio_output_flags_t flags = AUDIO_OUTPUT_FLAG_NONE;
     int flags = AUDIO_OUTPUT_FLAG_NONE;
+    struct qahw_aptx_dec_param aptx_params;
+    qahw_param_payload payload;
+    bdstr_t bd_str;
+    int rc = 0;
 
     memset(&config, 0, sizeof(audio_config_t));
     config.offload_info.size = sizeof(audio_offload_info_t);
@@ -675,7 +703,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
     case A2DP_SINK_AUDIO_CODEC_APTX:
         sample_rate = get_a2dp_aptx_sampling_rate(codec_config.aptx_config.sampling_freq);
         channel_count = get_a2dp_aptx_channel_mode(codec_config.aptx_config.channel_count);
-        //config.offload_info.format = AUDIO_FORMAT_APTX;// TODO:ADD for APTX_FR
+        config.offload_info.format = AUDIO_FORMAT_APTX;
         flags |= AUDIO_OUTPUT_FLAG_NON_BLOCKING;
         flags |= AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD;
         break;
@@ -694,7 +722,18 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
    config.offload_info.channel_mask = audio_channel_out_mask_from_count(channel_count);
     if (pBTAM != NULL) {
         audio_device = pBTAM->GetAudioDevice();
-        if(audio_device != NULL) {
+        if (audio_device != NULL) {
+            if (codec_type == A2DP_SINK_AUDIO_CODEC_APTX) {
+                // send local bd_addr to audio
+                bt_bdaddr_t *bd_addr = g_gap->GetBtAddress();
+                bdaddr_to_string(bd_addr, &bd_str[0], sizeof(bd_str));
+                ALOGD (LOGTAG " Local bdaddr %s", bd_str);
+                parse_aptx_dec_bd_addr(&bd_str[0], &aptx_params);
+                payload.aptx_params = aptx_params;
+                rc = qahw_set_param_data(audio_device, QAHW_PARAM_APTX_DEC, &payload);
+                if (rc != 0)
+                    ALOGE(LOGTAG "Error. Failed to set Local bluetooth address to audio hal");
+            }
             // 2 refers to speaker
             ALOGD(LOGTAG " opening output stream ");
             qahw_open_output_stream(audio_device, handle, 2, (audio_output_flags_t)flags,

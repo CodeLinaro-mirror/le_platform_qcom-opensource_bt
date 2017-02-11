@@ -194,13 +194,6 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
 };
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {
-    char str[18];
-    bdaddr_to_string(addr, str, 18);
-    ALOGD(LOGTAG_CTRL " SendPassThruCommandNative  %s", str);
-
-    char str1[18];
-    bdaddr_to_string(&pA2dpSinkStream->mStreamingDevice, str1, 18);
-    ALOGD(LOGTAG_CTRL " SendPassThruCommandNative -1 %s", str1);
 
     if (memcmp(&pA2dpSinkStream->mStreamingDevice, &bd_addr_null, sizeof(bt_bdaddr_t)) &&
             memcmp(&pA2dpSinkStream->mStreamingDevice, addr, sizeof(bt_bdaddr_t)) &&
@@ -258,37 +251,37 @@ void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
         if (iter != pA2dpSink->pA2dpDeviceList.end())
         {
-            ALOGD(LOGTAG_CTRL "Rc connection for AV connected dev, mark avrcp connected");
+            ALOGD(LOGTAG_CTRL " Rc connection for AV connected dev, mark avrcp connected");
             iter->mAvrcpConnected = true;
         }
         else
         {
-            ALOGE(LOGTAG_CTRL "Rc connection from device without AV connection");
+            ALOGE(LOGTAG_CTRL " Rc connection from device without AV connection");
         }
         break;
     case AVRCP_CTRL_DISCONNECTED_CB:
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
         if (iter != pA2dpSink->pA2dpDeviceList.end())
         {
-            ALOGD(LOGTAG_CTRL "Rc disconnection for AV connected dev, mark avrcp disconnected");
+            ALOGD(LOGTAG_CTRL " Rc disconnection for AV connected dev, mark avrcp disconnected");
             iter->mAvrcpConnected = false;
         }
         else
         {
-            ALOGE(LOGTAG_CTRL "Rc disconnection from device without AV connection");
+            ALOGE(LOGTAG_CTRL " Rc disconnection from device without AV connection");
         }
         break;
     case AVRCP_CTRL_PASS_THRU_CMD_REQ:
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
         if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
         {
-            ALOGD(LOGTAG_CTRL "passthrough cmd for AV & RC connected device, send to stack");
+            ALOGD(LOGTAG_CTRL " passthrough cmd for AV & RC connected device, send to stack");
             SendPassThruCommandNative(pEvent->avrcpCtrlEvent.key_id,
             &pEvent->avrcpCtrlEvent.bd_addr, 0);
         }
         else
         {
-            ALOGD(LOGTAG_CTRL "Avrcp not connected or AV not connected");
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
         }
         break;
     }
