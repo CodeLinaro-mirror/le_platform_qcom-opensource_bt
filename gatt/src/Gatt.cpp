@@ -158,7 +158,18 @@ void btgattc_get_characteristic_cb(int conn_id, int status,
                 btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
                 int char_prop)
 {
+
     ALOGD(LOGTAG "(%s) status (%d) conn_id (%d)",__FUNCTION__,status, conn_id);
+
+    ALOGD(LOGTAG,"srvc_id->id.uuid is \n");
+    for (int j = 0; j < sizeof(srvc_id->id.uuid); j++) {
+         ALOGD(LOGTAG, "%02x", srvc_id->id.uuid.uu[j]);
+     }
+
+    ALOGD(LOGTAG,"char_id->id.uuid is \n");
+    for (int j = 0; j < sizeof(char_id->uuid); j++) {
+         ALOGD(LOGTAG, "%02x", char_id->uuid.uu[j]);
+    }
 
     BtEvent *event = new BtEvent;
     CHECK_PARAM_VOID(event)
@@ -179,6 +190,19 @@ void btgattc_get_descriptor_cb(int conn_id, int status,
                 btgatt_gatt_id_t *descr_id)
 {
     ALOGD(LOGTAG "(%s) status (%d) conn_id (%d)",__FUNCTION__,status, conn_id);
+
+    ALOGD(LOGTAG,"srvc_id->id.uuid is \n");
+    for (int j = 0; j < sizeof(srvc_id->id.uuid); j++) {
+         ALOGD(LOGTAG, "%02x", srvc_id->id.uuid.uu[j]);
+    }
+    ALOGD(LOGTAG,"char_id->id.uuid is \n");
+    for (int j = 0; j < sizeof(char_id->uuid); j++) {
+         ALOGD(LOGTAG, "%02x", char_id->uuid.uu[j]);
+    }
+    ALOGD(LOGTAG,"descr_id->id.uuid is \n");
+    for (int j = 0; j < sizeof(descr_id->uuid); j++) {
+         ALOGD(LOGTAG, "%02x", descr_id->uuid.uu[j]);
+    }
 
     BtEvent *event = new BtEvent;
     CHECK_PARAM_VOID(event)
@@ -250,8 +274,6 @@ void btgattc_notify_cb(int conn_id, btgatt_notify_params_t *p_data)
 void btgattc_read_characteristic_cb(int conn_id, int status,
     btgatt_read_params_t *p_data)
 {
-    ALOGD(LOGTAG "(%s) status (%d) conn_id (%d)",__FUNCTION__,status, conn_id);
-
     BtEvent *event = new BtEvent;
     CHECK_PARAM_VOID(event)
 
@@ -1315,7 +1337,7 @@ void Gatt::HandleGattcRegisterAppEvent(GattcRegisterAppEvent *event)
                clientCbCifMap.insert(std::make_pair(event->clientIf, it->second));
                break;
             } else {
-               fprintf (stdout,"not found \n");
+               fprintf (stdout,"not found HandleGattcRegisterAppEvent \n");
             }
         }
     }
@@ -1553,7 +1575,7 @@ void Gatt::HandleGattcReadDescriptorEvent(GattcReadDescriptorEvent *event)  {
      }
 }
 
-void Gatt::HandleGattcWriteDescriptorEvent(GattcWriteCharacteristicEvent  *event)  {
+void Gatt::HandleGattcWriteDescriptorEvent(GattcWriteDescriptorEvent *event)  {
      ALOGD(LOGTAG "(%s) conn_id (%d) event_id (%d) status (%d)\n",__FUNCTION__, event->conn_id,
                      event->event_id, event->status);
 
@@ -1911,7 +1933,7 @@ void Gatt::ProcessEvent(BtEvent* event)
              HandleGattcReadDescriptorEvent((GattcReadDescriptorEvent*) event);
              break;
         case BTGATTC_WRITE_DESCRIPTOR_EVENT:
-             HandleGattcWriteDescriptorEvent((GattcWriteCharacteristicEvent *) event);
+             HandleGattcWriteDescriptorEvent((GattcWriteDescriptorEvent *) event);
              break;
         case BTGATTC_EXECUTE_WRITE_EVENT:
              HandleGattcExecuteWriteEvent((GattcExecuteWriteEvent*) event);
@@ -2095,6 +2117,7 @@ bool Gatt::HandleDisableGatt()
 
 bt_status_t Gatt::register_client( bt_uuid_t *client_uuid ) {
 
+            ALOGD(LOGTAG"gatt register_client \n");
             if (gatt_interface) {
                 return gatt_interface->client->register_client(client_uuid);
             }
@@ -2550,4 +2573,3 @@ bt_status_t Gatt:: send_response(int conn_id, int trans_id,
         }
 
 }
-
