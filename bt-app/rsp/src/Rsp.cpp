@@ -414,8 +414,8 @@ class serverCallback :public BluetoothGattServerCallback
       }
 };
 
-serverCallback serverCb;
-clientCallback clientCb;
+serverCallback *serverCb = NULL;
+clientCallback *clientCb = NULL;
 
 
 
@@ -506,9 +506,10 @@ bool Rsp::RegisterApp()
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
+    serverCb = new serverCallback;
     bt_uuid_t server_uuid = GetRSPAttrData()->server_uuid;
     fprintf(stdout,"reg app addr is %d \n", GetRSPAttrData()->server_uuid);
-    app_gatt->RegisterServerCallback(&serverCb,&GetRSPAttrData()->server_uuid);
+    app_gatt->RegisterServerCallback(serverCb,&GetRSPAttrData()->server_uuid);
     return app_gatt->register_server(&server_uuid) == BT_STATUS_SUCCESS;
 }
 
@@ -519,8 +520,9 @@ bool Rsp::RegisterClient()
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
+    clientCb = new clientCallback;
     bt_uuid_t client_uuid = GetRSPAttrData()->client_uuid;
-    app_gatt->RegisterClientCallback(&clientCb,&GetRSPAttrData()->client_uuid);
+    app_gatt->RegisterClientCallback(clientCb,&GetRSPAttrData()->client_uuid);
     return app_gatt->register_client(&client_uuid) == BT_STATUS_SUCCESS;
 }
 
@@ -530,6 +532,8 @@ bool Rsp::UnregisterClient(int client_if)
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
+    if(clientCb != NULL)
+        delete clientCb;
     app_gatt->UnRegisterClientCallback(client_if);
     return app_gatt->unregister_client(client_if) == BT_STATUS_SUCCESS;
 }
@@ -562,6 +566,8 @@ bool Rsp::UnregisterServer(int server_if)
         return false;
     }
     app_gatt->UnRegisterServerCallback(server_if);
+    if(serverCb != NULL)
+        delete serverCb;
     return app_gatt->unregister_server(server_if) == BT_STATUS_SUCCESS;
 }
 
