@@ -361,7 +361,7 @@ class Gatt {
         void HandleGattcReadCharacteristicEvent(GattcReadCharacteristicEvent*) ;
         void HandleGattcWriteCharacteristicEvent(GattcWriteCharacteristicEvent*) ;
         void HandleGattcReadDescriptorEvent(GattcReadDescriptorEvent*) ;
-        void HandleGattcWriteDescriptorEvent(GattcWriteCharacteristicEvent *) ;
+        void HandleGattcWriteDescriptorEvent(GattcWriteDescriptorEvent *) ;
         void HandleGattcExecuteWriteEvent(GattcExecuteWriteEvent*) ;
         void HandleGattcRemoteRssiEvent(GattcRemoteRssiEvent*) ;
         void HandleGattcAdvertiseEvent(GattcAdvertiseEvent*) ;
