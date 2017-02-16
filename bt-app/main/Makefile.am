@@ -16,11 +16,14 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/audio_manager/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/a2dp_sink/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/avrcp/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/a2dp_src/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/osi/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gap/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/pan/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/rsp/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattctest/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattstest/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_client/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_ag/include \
@@ -57,12 +60,16 @@ c_sources = ../utils/src/utils.c \
             ../gap/src/RemoteDevices.cpp \
             ../audio_manager/src/Audio_Manager.cpp \
             ../a2dp_sink/src/A2dp_Sink.cpp \
+            ../a2dp_sink/src/A2dp_Sink_Streaming.cpp \
+            ../avrcp/src/Avrcp.cpp \
             ../a2dp_src/src/A2dp_Src.cpp \
             ../hfp_client/src/HfpClient.cpp \
             ../hfp_ag/src/HfpAG.cpp \
             ../pan/src/Pan.cpp \
             ../sdp_client/src/SdpClient.cpp\
-            ../rsp/src/Rsp.cpp
+            ../rsp/src/Rsp.cpp \
+            ../gattctest/src/GattcTest.cpp \
+            ../gattstest/src/GattsTest.cpp
 
 if USE_BT_OBEX
 c_sources +=  ../pbap_client/src/PbapClient.cpp \
