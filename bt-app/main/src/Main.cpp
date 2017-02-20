@@ -705,7 +705,7 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case DIAL:
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_API_DIAL_REQ;
-            strncpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
+            strlcpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
         case START_VR:
@@ -1214,7 +1214,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     event = new BtEvent;
                     event->event_id = GAP_API_SET_BDNAME;
                     event->set_device_name_event.prop.type = BT_PROPERTY_BDNAME;
-                    strcpy((char*)&bd_name.name[0],user_cmd[ONE_PARAM]);
+                    strlcpy((char*)&bd_name.name[0],user_cmd[ONE_PARAM], COMMAND_SIZE);
                     event->set_device_name_event.prop.val = &bd_name;
                     event->set_device_name_event.prop.len = strlen((char*)bd_name.name);
                     PostMessage (THREAD_ID_GAP, event);
