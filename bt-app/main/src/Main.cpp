@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ *  Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *  Not a Contribution.
  *  Copyright (C) 2014 Google, Inc.
  *
@@ -42,12 +42,17 @@
 #include "Audio_Manager.hpp"
 #include "SdpClient.hpp"
 #include "Rsp.hpp"
+#include "GattcTest.hpp"
+#include "GattsTest.hpp"
+
+
 #ifdef USE_BT_OBEX
 #include "PbapClient.hpp"
 #include "Opp.hpp"
 #endif
 #include "osi/include/compat.h"
 #include "A2dp_Src.hpp"
+#include "Avrcp.hpp"
 
 #include "utils.h"
 
@@ -61,6 +66,9 @@ extern Pan *g_pan;
 extern Gatt *g_gatt;
 extern BT_Audio_Manager *pBTAM;
 extern Rsp *rsp;
+extern GattcTest *gattctest;
+extern GattsTest *gattstest;
+
 extern SdpClient *g_sdpClient;
 #ifdef USE_BT_OBEX
 extern PbapClient *g_pbapClient;
@@ -71,6 +79,7 @@ static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 extern Hfp_Client *pHfpClient;
 extern Hfp_Ag *pHfpAG;
+extern Avrcp *pAvrcp;
 #ifdef USE_BT_OBEX
 static alarm_t *opp_incoming_file_accept_timer = NULL;
 #define USER_ACCEPTANCE_TIMEOUT 25000
@@ -156,6 +165,14 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         case RSP_MENU:
             menu = &RspMenu[0];
             num_cmds  = NO_OF_COMMANDS(RspMenu);
+            break;
+        case GATTCTEST_MENU:
+            menu = &GattcTestMenu[0];
+            num_cmds  = NO_OF_COMMANDS(GattcTestMenu);
+            break;
+        case GATTSTEST_MENU:
+            menu = &GattsTestMenu[0];
+            num_cmds  = NO_OF_COMMANDS(GattsTestMenu);
             break;
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
@@ -257,6 +274,14 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &RspMenu[0];
             num_cmds  = NO_OF_COMMANDS(RspMenu);
             break;
+        case GATTCTEST_MENU:
+            menu = &GattcTestMenu[0];
+            num_cmds  = NO_OF_COMMANDS(GattcTestMenu);
+            break;
+        case GATTSTEST_MENU:
+            menu = &GattsTestMenu[0];
+            num_cmds  = NO_OF_COMMANDS(GattsTestMenu);
+            break;
         case MAIN_MENU:
             menu = &MainMenu[0];
             num_cmds  = NO_OF_COMMANDS(MainMenu);
@@ -325,7 +350,7 @@ static void ExitHandler(void) {
 }
 
 static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
-    ALOGD(LOGTAG, "HandleA2DPSinkCommand cmd_id = %d", cmd_id);
+    ALOGD(LOGTAG "HandleA2DPSinkCommand cmd_id = %d", cmd_id);
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
@@ -344,43 +369,50 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_PLAY;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case PAUSE:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_PAUSE;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case STOP:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_STOP;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case FASTFORWARD:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_FF;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case REWIND:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_REWIND;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case FORWARD:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_FORWARD;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case BACKWARD:
             event = new BtEvent;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlEvent.key_id = CMD_ID_BACKWARD;
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
             break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
@@ -729,6 +761,14 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = RSP_MENU;
             DisplayMenu(menu_type);
             break;
+        case GATTCTEST_OPTION:
+            menu_type = GATTCTEST_MENU;
+            DisplayMenu(menu_type);
+            break;
+        case GATTSTEST_OPTION:
+            menu_type = GATTSTEST_MENU;
+            DisplayMenu(menu_type);
+            break;
         case A2DP_SINK:
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);
@@ -856,6 +896,140 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 fprintf( stdout, "(Re)start Advertisement \n");
                 if (rsp) rsp->StartAdvertisement();
+            } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+            }
+            break;
+
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+
+        default:
+            fprintf(stdout, " Command not handled");
+            break;
+    }
+}
+
+
+static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+
+    long num;
+    char *end;
+    int index = 0;
+    switch (cmd_id) {
+
+        case GATTCTEST_INIT:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                fprintf( stdout, "ENABLE GATTCTEST\n");
+                if (gattctest) {
+                   fprintf(stdout,"gattctest already initialized \n");
+                   return;
+                } else {
+                  if (g_gatt) {
+                     gattctest = new GattcTest(g_gatt->GetGattInterface(),g_gatt);
+                     if (gattctest) {
+                        gattctest->EnableGATTCTEST();
+                        fprintf(stdout, " EnableGATTCTEST done \n");
+                     }
+                     else {
+                        fprintf(stdout, " GATTCTEST Alloc failed return failure \n");
+                     }
+                  } else {
+                     fprintf(stdout," gatt interface us null \n");
+                  }
+                }
+             }
+             else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+            break;
+
+         case GATTCTEST_START_SCAN:
+            fprintf(stdout,"starting scan \n");
+            if (gattctest) gattctest->StartScan();
+            break;
+
+        case GATTCTEST_STOP_SCAN:
+           fprintf(stdout,"stopping scan \n");
+           if (gattctest) gattctest->StopScan();
+           break;
+
+        case GATTCTEST_CONNECT:
+           fprintf(stdout,"connecting \n");
+           if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               bt_bdaddr_t         bd_addr;
+               string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
+               if (gattctest) gattctest->Connect(&bd_addr);
+           } else {
+            fprintf( stdout, " BD address is NULL/Invalid \n");
+           }
+            break;
+
+        case GATTCTEST_DISCONNECT:
+           fprintf(stdout,"disconnecting \n");
+           if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               bt_bdaddr_t         bd_addr;
+               string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
+               if (gattctest) gattctest->Disconnect(&bd_addr);
+           } else {
+            fprintf( stdout, " BD address is NULL/Invalid \n");
+           }
+            break;
+        case GATTCTEST_ALERT:
+           fprintf(stdout,"GATTCTEST_WRITE_CHAR \n");
+           if (gattctest) gattctest->SendAlert(atoi(user_cmd[ONE_PARAM]));
+            break;
+
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+
+        default:
+            fprintf(stdout, " Command not handled");
+            break;
+    }
+}
+
+
+static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+
+    long num;
+    char *end;
+    int index = 0;
+    switch (cmd_id) {
+        case GATTSTEST_INIT:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                fprintf( stdout, "ENABLE GATTSTEST\n");
+                if (gattstest) {
+                   fprintf(stdout,"rsp already initialized \n");
+                   return;
+                } else {
+                  if (g_gatt) {
+                     gattstest = new GattsTest(g_gatt->GetGattInterface(),g_gatt);
+                     if (gattstest) {
+                        gattstest->EnableGATTSTEST();
+                        fprintf(stdout, " EnableRSP done \n");
+                     }
+                     else {
+                        fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                     }
+                  } else {
+                     fprintf(stdout," gatt interface us null \n");
+                  }
+                }
+             }
+             else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+            break;
+
+        case GATTSTEST_START:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                fprintf( stdout, "(Re)start Advertisement \n");
+                if (gattstest) gattstest->StartAdvertisement();
             } else {
                 fprintf( stdout, "BT is in OFF State now \n");
             }
@@ -1482,6 +1656,12 @@ static void BtCmdHandler (void *context) {
             case RSP_MENU:
                 HandleRspCommand(cmd_id, user_cmd);
                 break;
+            case GATTCTEST_MENU:
+                HandleGattcTestCommand(cmd_id, user_cmd);
+                break;
+            case GATTSTEST_MENU:
+                HandleGattsTestCommand(cmd_id, user_cmd);
+                break;
             case MAIN_MENU:
                 HandleMainCommand(cmd_id,user_cmd );
                 break;
@@ -1970,6 +2150,16 @@ void BluetoothApp :: InitHandler (void) {
         }
     }
 
+    if(is_avrcp_enabled_) {
+        threadInfo[THREAD_ID_AVRCP].thread_id = thread_new (
+                threadInfo[THREAD_ID_AVRCP].thread_name);
+
+        if (threadInfo[THREAD_ID_AVRCP].thread_id) {
+            pAvrcp = new Avrcp (bt_interface, config);
+        }
+
+    }
+
     if(is_a2dp_source_enabled_) {
         threadInfo[THREAD_ID_A2DP_SOURCE].thread_id = thread_new (
                 threadInfo[THREAD_ID_A2DP_SOURCE].thread_name);
@@ -2096,6 +2286,15 @@ void BluetoothApp :: DeInitHandler (void) {
             thread_free (threadInfo[THREAD_ID_A2DP_SINK].thread_id);
             if ( pA2dpSink != NULL)
                 delete pA2dpSink;
+        }
+    }
+
+    if(is_avrcp_enabled_) {
+        //STOP Avrcp thread
+        if (threadInfo[THREAD_ID_AVRCP].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_AVRCP].thread_id);
+            if ( pAvrcp != NULL)
+                delete pAvrcp;
         }
     }
 
@@ -2266,6 +2465,9 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for a2dp sink
     is_a2dp_sink_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_A2DP_SINK_ENABLED, false);
+    //checking for avrcp
+    is_avrcp_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_AVRCP_ENABLED, false);
 
     //checking for a2dp source
     is_a2dp_source_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ *  Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *  Not a Contribution.
  *  Copyright (C) 2014 Google, Inc.
  *
@@ -56,6 +56,7 @@ extern thread_t *g_pbapc_thread;
 #define HFP_CLIENT_MSG_BASE     (400)
 #define A2DP_SOURCE_MSG_BASE    (500)
 #define HFP_AG_MSG_BASE         (600)
+#define AVRCP_MSG_BASE          (700)
 #define MAX_BD_STR_LEN          (18)
 #define BT_IPC_MSG_LEN 2
 
@@ -88,6 +89,7 @@ typedef enum {
 #endif
     THREAD_ID_HFP_AG,
     THREAD_ID_A2DP_SOURCE,
+    THREAD_ID_AVRCP,
     THREAD_ID_MAX,
 } ThreadIdType;
 
@@ -107,6 +109,7 @@ typedef enum {
 #endif
     PROFILE_ID_HFP_AG,
     PROFILE_ID_A2DP_SOURCE,
+    PROFILE_ID_AVRCP,
     PROFILE_ID_MAX
 } ProfileIdType;
 
@@ -175,13 +178,28 @@ typedef enum {
     A2DP_SINK_AUDIO_STOPPED,
     A2DP_SINK_AUDIO_STARTED,
     A2DP_SINK_CODEC_CONFIG,
-    AVRCP_CTRL_CONNECTED_CB,
-    AVRCP_CTRL_DISCONNECTED_CB,
-    AVRCP_CTRL_PASS_THRU_CMD_REQ,
     A2DP_SINK_FETCH_PCM_DATA,
     A2DP_SINK_FILL_COMPRESS_BUFFER,
     A2DP_SINK_CLEANUP_REQ,
     A2DP_SINK_CLEANUP_DONE,
+
+    A2DP_SINK_STREAMING_CLEANUP_REQ,
+    A2DP_SINK_STREAMING_API_START,
+    A2DP_SINK_STREAMING_API_STOP,
+    A2DP_SINK_STREAMING_OPEN_INPUT_STREAM,
+    A2DP_SINK_STREAMING_CLOSE_AUDIO_STREAM,
+    A2DP_SINK_STREAMING_AM_REQUEST_CONTROL,
+    A2DP_SINK_STREAMING_FETCH_PCM_DATA,
+    A2DP_SINK_STREAMING_CONTROL_STATUS,
+    A2DP_SINK_STREAMING_AM_RELEASE_CONTROL,
+    A2DP_SINK_STREAMING_DISCONNECTED,
+    A2DP_SINK_STREAMING_DISABLE_DONE,
+
+    AVRCP_CTRL_CONNECTED_CB = AVRCP_MSG_BASE,
+    AVRCP_CTRL_DISCONNECTED_CB,
+    AVRCP_CTRL_PASS_THRU_CMD_REQ,
+    AVRCP_CLEANUP_REQ,
+    AVRCP_CLEANUP_DONE,
 
     HFP_CLIENT_API_ENABLE = HFP_CLIENT_MSG_BASE,
     HFP_CLIENT_API_DISABLE,
@@ -345,7 +363,8 @@ typedef enum {
     PAN_EVENT_DEVICE_CONNECTED_LIST_REQ,
 
     //GATTS EVENTS
-    BTGATTS_REGISTER_APP_EVENT = GATT_MSG_BASE,
+    GEN_GATT_EVENT = GATT_MSG_BASE,
+    BTGATTS_REGISTER_APP_EVENT,
     BTGATTS_CONNECTION_EVENT,
     BTGATTS_SERVICE_ADDED_EVENT,
     BTGATTS_INCLUDED_SERVICE_ADDED_EVENT,
@@ -672,6 +691,12 @@ typedef struct {
     uint16_t           arg1;
     uint16_t           arg2;
 } A2dpSinkEvent;
+
+typedef struct {
+    BluetoothEventId   event_id;
+    bt_bdaddr_t         bd_addr;
+    ControlStatusType  status_type;
+} A2dpSinkStreamingEvent;
 
 typedef struct {
     BluetoothEventId   event_id;
@@ -1275,6 +1300,7 @@ typedef union {
     ProfileStartEvent                       profile_start_event;
     ProfileStopEvent                        profile_stop_event;
     A2dpSinkEvent                           a2dpSinkEvent;
+    A2dpSinkStreamingEvent                  a2dpSinkStreamingEvent;
     AvrcpCtrlPassThruCmdReq                 avrcpCtrlEvent;
     A2dpSourceEvent                         a2dpSourceEvent;
     AvrcpTargetEvent                        avrcpTargetEvent;
@@ -1407,6 +1433,7 @@ void BtHfpClientMsgHandler (void *context);
 void BtHfpAgMsgHandler (void *context);
 void BtAudioManagerHandler(void *msg);
 void BtSdpClientMsgHandler(void *context);
+void BtAvrcpMsgHandler(void *msg);
 #ifdef USE_BT_OBEX
 void BtPbapClientMsgHandler(void *context);
 void BtOppMsgHandler(void *context);

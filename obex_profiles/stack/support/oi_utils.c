@@ -464,7 +464,8 @@ void OI_RemoveNewlines(OI_CHAR *str)
     OI_UINT i = 0;
 
     OI_ASSERT(str != NULL);
-    OI_ASSERT(OI_StrLen(str) >= 1);
+    if (OI_StrLen(str) < 1)
+        return;
 
     /* Replace newline on the end with null */
     if ( (str[OI_StrLen(str) - 1] == '\n') ||
@@ -539,6 +540,7 @@ OI_UINT OI_UTF8_Terminate(OI_UTF8 *pStr, OI_UINT maxLen)
     }
     pStr[i] = 0;
 
-    OI_ASSERT(OI_StrLen((OI_CHAR*)pStr) == (i));
+    OI_UINT len = OI_StrLen((OI_CHAR*)pStr);
+    OI_ASSERT(len == (i));
     return (i);
 }

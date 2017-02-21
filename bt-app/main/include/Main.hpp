@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ *  Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *  Not a Contribution.
  *  Copyright (C) 2014 Google, Inc.
  *
@@ -30,6 +30,8 @@
 #include <hardware/bluetooth.h>
 #include "include/ipc.h"
 #include "utils.h"
+#include "GattcTest.hpp"
+#include "GattsTest.hpp"
 #include "Rsp.hpp"
 
 #include <cutils/sockets.h>
@@ -87,6 +89,7 @@ const char *BT_A2DP_SINK_ENABLED   = "BtA2dpSinkEnable";
 const char *BT_A2DP_SOURCE_ENABLED = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED  = "BtHfClientEnable";
 const char *BT_HFP_AG_ENABLED      = "BtHfpAGEnable";
+const char *BT_AVRCP_ENABLED       = "BtAvrcpEnable";
 
 /**
  * The Configuration file path
@@ -181,6 +184,16 @@ typedef enum {
     OPP_REGISTER,
     OPP_SEND,
     OPP_ABORT,
+    GATTCTEST_OPTION,
+    GATTCTEST_INIT,
+    GATTCTEST_START_SCAN,
+    GATTCTEST_STOP_SCAN,
+    GATTCTEST_CONNECT,
+    GATTCTEST_DISCONNECT,
+    GATTCTEST_ALERT,
+    GATTSTEST_OPTION,
+    GATTSTEST_INIT,
+    GATTSTEST_START,
 #endif
     HFP_CLIENT,
     CREATE_SCO_CONN,
@@ -235,6 +248,8 @@ typedef enum {
     HFP_CLIENT_MENU,
     PAN_MENU,
     RSP_MENU,
+    GATTCTEST_MENU,
+    GATTSTEST_MENU,
 #ifdef USE_BT_OBEX
     PBAP_CLIENT_MENU,
     OPP_MENU,
@@ -287,6 +302,8 @@ UserMenuList MainMenu[] = {
     {GAP_OPTION,            "gap_menu",         ZERO_PARAM,   "gap_menu"},
     {PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
     {RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
+    {GATTCTEST_OPTION,            "gattctest_menu",         ZERO_PARAM,   "gattctest_menu"},
+    {GATTSTEST_OPTION,            "gattstest_menu",         ZERO_PARAM,   "gattstest_menu"},
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
@@ -331,18 +348,46 @@ UserMenuList RspMenu[] = {
 };
 
 /**
+ * list of supported commands for GATTCTEST Menu
+ */
+UserMenuList GattcTestMenu[] = {
+    {GATTCTEST_INIT,              "gattctest_init",       ZERO_PARAM,    "gattctest_init (only for Init time)"},
+    {GATTCTEST_START_SCAN,        "gattctest_start_scan", ZERO_PARAM,    "gattctest_start_scan"},
+    {GATTCTEST_STOP_SCAN,         "gattctest_stop_scan",  ZERO_PARAM,    "gattctest_stop_scan"},
+    {BACK_TO_MAIN,          "main_menu",      ZERO_PARAM,    "main_menu"},
+    {GATTCTEST_CONNECT,           "gattctest_connect",    ONE_PARAM,     "gattctest_connect<space><bt_address> \
+         eg. gattctest_connect 00:11:22:33:44:55"},
+    {GATTCTEST_DISCONNECT,           "gattctest_disconnect", ONE_PARAM,     "gattctest_disconnect<space><bt_address> \
+          eg.gattctest_connect 00:11:22:33:44:55"},
+    {GATTCTEST_ALERT,             "gattctest_alert",      ONE_PARAM,    "gattctest_alert<space><alert_level> \
+         rg. gattctest_alert 1"},
+
+};
+
+/**
+ * list of supported commands for GATTSTEST Menu
+ */
+UserMenuList GattsTestMenu[] = {
+    {GATTSTEST_INIT,              "gattstest_init",  ZERO_PARAM,    "gattstest_init (only for Init time)"},
+    {GATTSTEST_START,             "gattstest_start", ZERO_PARAM,    "gattstest_start would (re)start adv"},
+    {BACK_TO_MAIN,          "main_menu",  ZERO_PARAM, "main_menu"},
+};
+
+
+
+/**
  * list of supported commands for A2DP_SINK Menu
  */
 UserMenuList A2dpSinkMenu[] = {
     {CONNECT,               "connect",          ONE_PARAM,    "connect<space><bt_address>"},
     {DISCONNECT,            "disconnect",       ONE_PARAM,    "disconnect<space><bt_address>"},
-    {PLAY,                  "play",             ZERO_PARAM,    "play"},
-    {PAUSE,                 "pause",            ZERO_PARAM,    "pause"},
-    {STOP,                  "stop",             ZERO_PARAM,    "stop<"},
-    {REWIND,                "rewind",           ZERO_PARAM,    "rewind"},
-    {FASTFORWARD,           "fastforward",      ZERO_PARAM,    "fastforward"},
-    {FORWARD,               "forward",          ZERO_PARAM,    "forward"},
-    {BACKWARD,              "backward",         ZERO_PARAM,    "backward"},
+    {PLAY,                  "play",             ONE_PARAM,    "play<space><bt_address>"},
+    {PAUSE,                 "pause",            ONE_PARAM,    "pause<space><bt_address>"},
+    {STOP,                  "stop",             ONE_PARAM,    "stop<space><bt_address>"},
+    {REWIND,                "rewind",           ONE_PARAM,    "rewind<space><bt_address>"},
+    {FASTFORWARD,           "fastforward",      ONE_PARAM,    "fastforward<space><bt_address>"},
+    {FORWARD,               "forward",          ONE_PARAM,    "forward<space><bt_address>"},
+    {BACKWARD,              "backward",         ONE_PARAM,    "backward<space><bt_address>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
 };
 
@@ -547,6 +592,28 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
  */
 static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
 
+/**
+ * @brief HandleGattcTestCommand
+ *
+ *  This function will handle all the commands in @ref RspMenu
+ *
+ * @param[in] cmd_id It has command id from @ref CommandList
+ * @param[in] user_cmd It has parsed commands with arguments passed by user
+ * @return none
+ */
+static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+
+/**
+ * @brief HandleGattcTestCommand
+ *
+ *  This function will handle all the commands in @ref RspMenu
+ *
+ * @param[in] cmd_id It has command id from @ref CommandList
+ * @param[in] user_cmd It has parsed commands with arguments passed by user
+ * @return none
+ */
+static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+
 
 /**
  * @brief HandleGapCommand
@@ -601,6 +668,7 @@ class BluetoothApp {
     bool is_user_input_enabled_;
     bool is_socket_input_enabled_;
     bool is_a2dp_sink_enabled_;
+    bool is_avrcp_enabled_;
     bool is_a2dp_source_enabled_;
     bool is_hfp_client_enabled_;
     bool is_hfp_ag_enabled_;

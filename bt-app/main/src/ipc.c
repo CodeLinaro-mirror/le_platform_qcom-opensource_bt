@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ *  Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *  Not a Contribution.
  *  Copyright (C) 2014 Google, Inc.
  *
@@ -38,6 +38,7 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
 #endif
     { NULL ,    THREAD_ID_HFP_AG,      &BtHfpAgMsgHandler,       "Hfp_AG_Thread" } ,
     { NULL ,    THREAD_ID_A2DP_SOURCE, &BtA2dpSourceMsgHandler,  "A2dp_Source_Thread" } ,
+    { NULL ,    THREAD_ID_AVRCP,       &BtAvrcpMsgHandler,       "Avrcp_Thread" } ,
 };
 
 void PostMessage(ThreadIdType thread_type, void *msg) {

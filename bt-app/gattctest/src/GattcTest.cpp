@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -28,73 +28,251 @@
  */
 
 #include "Gatt.hpp"
-#include "Rsp.hpp"
+#include "GattcTest.hpp"
+#include "utils.h"
 
-#define LOGTAG "RSP "
+
+
+#define LOGTAG "GATTCTEST "
 #define UNUSED
 
-Rsp *rsp = NULL;
-int serverif, clientif;
 
-class clientCallback : public BluetoothGattClientCallback
+ServiceData gattctestServData;
+
+int testest;
+
+int gattctestserverif, gattctestclientif;
+
+GattcTest *gattctest = NULL;
+
+bt_uuid_t client_uuid;
+bt_uuid_t gen_uuid;
+
+#define ADDRESS_STR_LEN 18
+#define UUID_STR_LEN 37
+#define HEX_VAL_STR_LEN 100
+
+#define CHARID_STR_LEN UUID_STR_LEN + 3 + 11
+#define SRVCID_STR_LEN UUID_STR_LEN + 3 + 11 + 1 + 11
+#define desc_id_to_string gatt_id_to_string
+
+#define MAX_NOTIFY_PARAMS_STR_LEN (SRVCID_STR_LEN + CHARID_STR_LEN \
++ ADDRESS_STR_LEN + HEX_VAL_STR_LEN + 60)
+#define MAX_READ_PARAMS_STR_LEN (SRVCID_STR_LEN + CHARID_STR_LEN \
++ UUID_STR_LEN + HEX_VAL_STR_LEN + 80)
+
+
+
+
+static char *uuid_to_string(const bt_uuid_t *uuid, char *buf)
+{
+int shift = 0;
+int i = 16;
+int limit = 0;
+int j = 0;
+
+/* for bluetooth uuid only 32 bits */
+if (0 == memcmp(&uuid->uu, &(gen_uuid.uu),
+sizeof(bt_uuid_t) - 4)) {
+limit = 12;
+/* make it 16 bits */
+if (uuid->uu[15] == 0 && uuid->uu[14] == 0)
+i = 14;
+}
+
+while (i-- > limit) {
+if (i == 11 || i == 9 || i == 7 || i == 5) {
+buf[j * 2 + shift] = '-';
+shift++;
+}
+
+sprintf(buf + j * 2 + shift, "%02x", uuid->uu[i]);
+++j;
+}
+
+return buf;
+}
+
+
+/* service_id formating function */
+char *service_id_to_string(const btgatt_srvc_id_t *srvc_id, char *buf){
+char uuid_buf[UUID_STR_LEN];
+sprintf(buf, "{%s,%d,%d}", uuid_to_string(&srvc_id->id.uuid, uuid_buf),srvc_id->id.inst_id, srvc_id->is_primary);
+return buf;
+}
+
+
+static char *gatt_id_to_string(const btgatt_gatt_id_t *char_id, char *buf)
+{
+char uuid_buf[UUID_STR_LEN];
+
+sprintf(buf, "{%s,%d}", uuid_to_string(&char_id->uuid, uuid_buf),
+char_id->inst_id);
+return buf;
+}
+
+static char *arr_to_string(const uint8_t *v, int size, char *buf, int out_size)
+{
+int limit = size;
+int i;
+
+if (out_size > 0) {
+*buf = '\0';
+if (size >= 2 * out_size)
+limit = (out_size - 2) / 2;
+
+for (i = 0; i < limit; ++i)
+sprintf(buf + 2 * i, "%02x", v[i]);
+
+/* output buffer not enough to hold whole field fill with ...*/
+if (limit < size)
+sprintf(buf + 2 * i, "...");
+}
+
+return buf;
+}
+
+
+static char *raw_data_to_string(const btgatt_unformatted_value_t *v,
+char *buf, int size)
+{
+return arr_to_string(v->value, v->len, buf, size);
+}
+
+static char *read_param_to_string(const btgatt_read_params_t *data,
+             char *buf)
+{
+char srvc_id[SRVCID_STR_LEN];
+char char_id[CHARID_STR_LEN];
+char descr_id[UUID_STR_LEN];
+char value[HEX_VAL_STR_LEN];
+sprintf(buf, "{srvc_id=%s, char_id=%s, descr_id=%s, val=%s value_type=%d, status=%d}",
+service_id_to_string(&data->srvc_id, srvc_id),
+gatt_id_to_string(&data->char_id, char_id),
+desc_id_to_string(&data->descr_id, descr_id),
+raw_data_to_string(&data->value, value, 100),
+data->value_type, data->status);
+return buf;
+}
+
+
+/*****************************/
+
+
+class gattctestClientCallback : public BluetoothGattClientCallback
 {
    public:
    void btgattc_client_register_app_cb(int status,int client_if,bt_uuid_t *uuid) {
 
-        fprintf(stdout,"gattServerRegisterAppCb\n ");
+        fprintf(stdout,"gattctest btgattc_client_register_app_cb\n ");
 
         GattcRegisterAppEvent event;
         event.event_id = RSP_ENABLE_EVENT;
         event.status = status;
         event.clientIf = client_if;
-        rsp->SetRSPClientAppData(&event);
+        if(gattctest) {
+        fprintf(stdout,"gattctest is not null \n");
+        }
+        gattctest->SetGATTCTESTClientAppData(&event);
 
-        rsp->ClientSetAdvData("Remote Start Profile");
-        rsp->StartAdvertisement();
+
+
+//start scan
+       // gattctest->ClientSetAdvData("Remote Start Profile");
+       // gattctest->StartAdvertisement();
    }
 
    void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data) {
-        UNUSED
+         bdstr_t bd_str;
+         bdaddr_to_string(bda, &bd_str[0], sizeof(bd_str));
+         fprintf(stdout,"btgattc_scan_result_cb %s \n ", bd_str);
    }
 
    void btgattc_open_cb(int conn_id, int status, int clientIf, bt_bdaddr_t* bda)
    {
-        UNUSED
+    fprintf(stdout,"btgattc_open_cb  gattctest   status is %d\n ", status);
+
+    GattcOpenEvent event;
+    event.event_id = BTGATTC_OPEN_EVENT;
+    event.conn_id = conn_id;
+    event.clientIf = clientIf;
+    event.bda = bda;
+
+    if (gattctest) {
+        gattctest->SetGATTCTESTConnectionData(&event);
+        //if (status == 0)
+        //{
+            gattctest->SearchService(conn_id);
+        //}
+    }
+
    }
 
    void btgattc_close_cb(int conn_id, int status, int clientIf, bt_bdaddr_t* bda)
    {
-        UNUSED
+        fprintf(stdout,"btgattc_close_cb  gattctest \n ");
    }
 
    void btgattc_search_complete_cb(int conn_id, int status)
    {
-        UNUSED
+        fprintf(stdout,"btgattc_search_complete_cb  conn_id %d, status %d \n ", conn_id,status);
+
    }
 
    void btgattc_search_result_cb(int conn_id, btgatt_srvc_id_t *srvc_id)
    {
-        UNUSED
+
+         char srvc_id_buf[(SRVCID_STR_LEN)];
+
+         fprintf(stdout,"%s: conn_id=%d srvc_id=%s\n", __func__, conn_id,service_id_to_string(srvc_id, srvc_id_buf));
+
+         gattctestServData.conn_id = conn_id;
+         gattctestServData.srvc_id = srvc_id;
+         gattctest->app_gatt->get_characteristic(conn_id,srvc_id,NULL);
    }
 
    void btgattc_get_characteristic_cb(int conn_id, int status,
                                      btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
                                      int char_prop)
    {
-        UNUSED
+
+        char srvc_id_buf[SRVCID_STR_LEN];
+        char char_id_buf[CHARID_STR_LEN];
+
+        fprintf(stdout,"%s: conn_id=%d status=%d srvc_id=%s char_id=%s, char_prop=%x\n",
+           __func__, conn_id, status,
+           service_id_to_string(srvc_id, srvc_id_buf),
+           gatt_id_to_string(char_id, char_id_buf), char_prop);
+
+
+          if(status == 0)
+         gattctest->app_gatt->get_characteristic(conn_id,srvc_id,char_id);
+
+         gattctest->app_gatt->get_descriptor(conn_id,srvc_id,char_id,NULL);
+     
    }
 
    void btgattc_get_descriptor_cb(int conn_id, int status,
                                  btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
                                  btgatt_gatt_id_t *descr_id)
    {
-        UNUSED
-   }
+       char buf[UUID_STR_LEN];
+       char srvc_id_buf[SRVCID_STR_LEN];
+       char char_id_buf[CHARID_STR_LEN];
 
-   void btgattc_get_included_service_cb(int conn_id, int status,
-                                       btgatt_srvc_id_t *srvc_id, btgatt_srvc_id_t *incl_srvc_id)
-   {
-        UNUSED
+       fprintf(stdout,"%s: conn_id=%d status=%d srvc_id=%s char_id=%s, descr_id=%s\n",
+               __func__, conn_id, status,
+              service_id_to_string(srvc_id, srvc_id_buf),
+              gatt_id_to_string(char_id, char_id_buf),
+              desc_id_to_string(descr_id, buf));
+          if(status == 0) {
+         gattctest->app_gatt->get_descriptor(conn_id,srvc_id,char_id,descr_id);
+         gattctestServData.conn_id = conn_id;
+         gattctestServData.srvc_id = srvc_id;
+         gattctestServData.char_id = char_id;
+         gattctestServData.descr_id = descr_id;
+          }
+
    }
 
    void btgattc_register_for_notification_cb(int conn_id, int registered,
@@ -112,18 +290,26 @@ class clientCallback : public BluetoothGattClientCallback
    void btgattc_read_characteristic_cb(int conn_id, int status,
                                           btgatt_read_params_t *p_data)
    {
-        UNUSED
+        char buf[MAX_READ_PARAMS_STR_LEN];
+
+        fprintf(stdout,"%s: conn_id=%d status=%d data=%s\n", __func__, conn_id,
+                status, read_param_to_string(p_data, buf));
    }
 
    void btgattc_write_characteristic_cb(int conn_id, int status,
                                            btgatt_write_params_t *p_data)
    {
-        UNUSED
+        fprintf(stdout,"btgattc_write_characteristic_cb status is %d conn_id %d \n ", status,conn_id);
    }
 
    void btgattc_read_descriptor_cb(int conn_id, int status, btgatt_read_params_t *p_data)
    {
-        UNUSED
+
+   char buf[MAX_READ_PARAMS_STR_LEN];
+
+   fprintf(stdout,"%s: conn_id=%d status=%d data=%s\n", __func__, conn_id,
+           status, read_param_to_string(p_data, buf));
+
    }
 
     void btgattc_write_descriptor_cb(int conn_id, int status, btgatt_write_params_t *p_data)
@@ -148,6 +334,12 @@ class clientCallback : public BluetoothGattClientCallback
    }
 
    void btgattc_configure_mtu_cb(int conn_id, int status, int mtu)
+   {
+        UNUSED
+   }
+
+   void btgattc_get_included_service_cb(int conn_id, int status,
+                                       btgatt_srvc_id_t *srvc_id, btgatt_srvc_id_t *incl_srvc_id)
    {
         UNUSED
    }
@@ -226,7 +418,7 @@ class clientCallback : public BluetoothGattClientCallback
 
 };
 
-class serverCallback :public BluetoothGattServerCallback
+class gattctestServerCallback :public BluetoothGattServerCallback
 {
 
       public:
@@ -243,9 +435,9 @@ class serverCallback :public BluetoothGattServerCallback
               rev.server_if = server_if;
               rev.uuid = uuid;
               rev.status = status;
-              fprintf(stdout," set rsp data \n");
-              rsp->SetRSPAppData(&rev);
-              rsp->AddService();
+              fprintf(stdout," set gattctest data \n");
+              gattctest->SetGATTCTESTAppData(&rev);
+              gattctest->AddService();
            } else {
               fprintf (stdout,"(%s) Failed to registerApp, %d \n",__FUNCTION__, server_if);
            }
@@ -254,22 +446,8 @@ class serverCallback :public BluetoothGattServerCallback
       void btgatts_connection_cb(int conn_id, int server_if, int connected, bt_bdaddr_t *bda)
       {
 
-           fprintf(stdout,"btgatts_connection_cb  rsp \n ");
+           fprintf(stdout,"btgatts_connection_cb  gattctest \n ");
 
-           GattsConnectionEvent event;
-           event.event_id = RSP_ENABLE_EVENT;
-           event.conn_id = conn_id;
-           event.server_if = server_if;
-           event.connected = connected;
-           event.bda = bda;
-
-           if (rsp) {
-               rsp->SetRSPConnectionData(&event);
-               if (connected)
-               {
-                   rsp->StopAdvertisement();
-               }
-           }
       }
 
       void btgatts_service_added_cb(int status, int server_if,
@@ -282,8 +460,8 @@ class serverCallback :public BluetoothGattServerCallback
                event.server_if = server_if;
                event.srvc_id = srvc_id;
                event.srvc_handle = srvc_handle;
-               rsp->SetRSPSrvcData(&event);
-               rsp->AddCharacteristics();
+               gattctest->SetGATTCTESTSrvcData(&event);
+               gattctest->AddCharacteristics();
            } else {
                fprintf(stdout, "(%s) Failed to Add_Service %d ",__FUNCTION__, server_if);
            }
@@ -306,8 +484,8 @@ class serverCallback :public BluetoothGattServerCallback
                event.char_id = char_id;
                event.srvc_handle = srvc_handle;
                event.char_handle = char_handle;
-               rsp->SetRSPCharacteristicData(&event);
-               rsp->AddDescriptor();
+               gattctest->SetGATTCTESTCharacteristicData(&event);
+               gattctest->AddDescriptor();
            } else {
                fprintf(stdout, "(%s) Failed to Add Characteristics %d ",__FUNCTION__, server_if);
            }
@@ -324,8 +502,8 @@ class serverCallback :public BluetoothGattServerCallback
                event.descr_id= descr_id;
                event.srvc_handle = srvc_handle;
                event.descr_handle= descr_handle;
-               rsp->SetRSPDescriptorData(&event);
-               rsp->StartService();
+               gattctest->SetGATTCTESTDescriptorData(&event);
+               gattctest->StartService();
             } else {
                fprintf(stdout, "(%s) Failed to add descriptor %d \n",__FUNCTION__, server_if);
             }
@@ -334,32 +512,32 @@ class serverCallback :public BluetoothGattServerCallback
       void btgatts_service_started_cb(int status, int server_if, int srvc_handle)
       {
            fprintf(stdout,"btgatts_service_started_cb \n");
-           rsp->RegisterClient();
+          // gattctest->RegisterClient();
       }
 
       void btgatts_service_stopped_cb(int status, int server_if, int srvc_handle)
       {
            fprintf(stdout,"btgatts_service_stopped_cb \n");
 
-          if (rsp) {
+          if (gattctest) {
               if (!status)
-                  rsp->DeleteService();
+                  gattctest->DeleteService();
           }
-          fprintf(stdout,  "RSP Service stopped successfully, deleting the service");
+          fprintf(stdout,  "GATTCTEST Service stopped successfully, deleting the service");
       }
 
       void btgatts_service_deleted_cb(int status, int server_if, int srvc_handle)
       {
          fprintf(stdout,"btgatts_service_deleted_cb \n");
 
-          if (rsp) {
+          if (gattctest) {
               if (!status) {
-                  rsp->CleanUp(server_if);
-                  delete rsp;
-                  rsp = NULL;
+                  gattctest->CleanUp(server_if);
+                  delete gattctest;
+                  gattctest = NULL;
               }
           }
-          fprintf(stdout,"RSP Service stopped & Unregistered successfully\n");
+          fprintf(stdout,"GATTCTEST Service stopped & Unregistered successfully\n");
       }
 
       void btgatts_request_read_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int attr_handle,
@@ -384,7 +562,7 @@ class serverCallback :public BluetoothGattServerCallback
            event.need_rsp = need_rsp;
            event.is_prep = is_prep;
            event.value = value;
-           rsp->SendResponse(&event);
+           gattctest->SendResponse(&event);
       }
 
       void btgatts_request_exec_write_cb(int conn_id, int trans_id,
@@ -414,27 +592,27 @@ class serverCallback :public BluetoothGattServerCallback
       }
 };
 
-serverCallback *serverCb = NULL;
-clientCallback *clientCb = NULL;
+gattctestServerCallback gattctestServerCb;
+gattctestClientCallback gattctestClientCb;
 
 
 
-Rsp::Rsp(btgatt_interface_t *gatt_itf, Gatt* gatt)
+GattcTest::GattcTest(btgatt_interface_t *gatt_itf, Gatt* gatt)
 {
 
-    fprintf(stdout,"rsp instantiated ");
+    fprintf(stdout,"gattctest instantiated ");
     gatt_interface = gatt_itf;
     app_gatt = gatt;
 }
 
 
-Rsp::~Rsp()
+GattcTest::~GattcTest()
 {
-    fprintf(stdout, "(%s) RSP DeInitialized",__FUNCTION__);
-    SetDeviceState(WLAN_INACTIVE);
+    fprintf(stdout, "(%s) GATTCTEST DeInitialized",__FUNCTION__);
+   // SetDeviceState(WLAN_INACTIVE);
 }
 
-bool Rsp::CopyUUID(bt_uuid_t *uuid)
+bool GattcTest::CopyUUID(bt_uuid_t *uuid)
 {
     CHECK_PARAM(uuid)
     for (int i = 0; i < 16; i++) {
@@ -443,7 +621,7 @@ bool Rsp::CopyUUID(bt_uuid_t *uuid)
     return true;
 }
 
-bool Rsp::CopyClientUUID(bt_uuid_t *uuid)
+bool GattcTest::CopyClientUUID(bt_uuid_t *uuid)
 {
     CHECK_PARAM(uuid)
     uuid->uu[0] = 0xff;
@@ -453,7 +631,32 @@ bool Rsp::CopyClientUUID(bt_uuid_t *uuid)
     return true;
 }
 
-bool Rsp::CopyParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
+bool GattcTest::CopyGenUUID(bt_uuid_t *uuid)
+{
+    CHECK_PARAM(uuid)
+     uuid->uu[0] = 0xfb;
+     uuid->uu[1] = 0x34;
+     uuid->uu[2] = 0x9b;
+     uuid->uu[3] = 0x5f;
+     uuid->uu[4] = 0x80;
+     uuid->uu[5] =0x00;
+     uuid->uu[6] = 0x00;
+     uuid->uu[7] = 0x80;
+     uuid->uu[8] =0x00;
+     uuid->uu[9] = 0x10;
+     uuid->uu[10] = 0x00;
+     uuid->uu[11] = 0x00;
+     uuid->uu[12] = 0x00;
+     uuid->uu[13] = 0x00;
+     uuid->uu[14] = 0x00;
+     uuid->uu[15] = 0x00;
+
+    return true;
+}
+
+
+
+bool GattcTest::CopyParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
 {
     CHECK_PARAM(uuid_dest)
     CHECK_PARAM(uuid_src)
@@ -464,7 +667,7 @@ bool Rsp::CopyParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
     return true;
 }
 
-bool Rsp::MatchParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
+bool GattcTest::MatchParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
 {
     CHECK_PARAM(uuid_dest)
     CHECK_PARAM(uuid_src)
@@ -477,68 +680,55 @@ bool Rsp::MatchParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
     return true;
 }
 
-bool Rsp::EnableRSP()
+bool GattcTest::EnableGATTCTEST()
 {
-    fprintf(stdout, "(%s) Enable RSP Initiated \n",__FUNCTION__);
-
-    RspEnableEvent rev;
-    rev.event_id = RSP_ENABLE_EVENT;// change it later
-    CopyUUID(&rev.characteristics_uuid);
-    CopyUUID(&rev.descriptor_uuid);
-    CopyUUID(&rev.server_uuid);
-    CopyClientUUID(&rev.client_uuid);
-    CopyUUID(&rev.service_uuid);
-
-    fprintf(stdout," set rsp data \n");
-    SetRSPAttrData(&rev);
-    RegisterApp();
+    fprintf(stdout, "(%s) Enable GATTCTEST Initiated \n",__FUNCTION__);
+    CopyClientUUID(&client_uuid);
+    CopyGenUUID(&gen_uuid);
+    gattctest->RegisterClient();
 }
 
-bool Rsp::DisableRSP(int server_if)
+bool GattcTest::DisableGATTCTEST(int server_if)
 {
-    fprintf(stdout, "(%s) Disable RSP Initiated",__FUNCTION__);
+    fprintf(stdout, "(%s) Disable GATTCTEST Initiated",__FUNCTION__);
 }
 
-bool Rsp::RegisterApp()
+bool GattcTest::RegisterApp()
 {
     if (GetGattInterface() == NULL)
     {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
-    serverCb = new serverCallback;
-    bt_uuid_t server_uuid = GetRSPAttrData()->server_uuid;
-    fprintf(stdout,"reg app addr is %d \n", GetRSPAttrData()->server_uuid);
-    app_gatt->RegisterServerCallback(serverCb,&GetRSPAttrData()->server_uuid);
+    bt_uuid_t server_uuid = GetGATTCTESTAttrData()->server_uuid;
+    fprintf(stdout,"reg app addr is %d \n", GetGATTCTESTAttrData()->server_uuid);
+    app_gatt->RegisterServerCallback(&gattctestServerCb,&GetGATTCTESTAttrData()->server_uuid);
     return app_gatt->register_server(&server_uuid) == BT_STATUS_SUCCESS;
 }
 
-bool Rsp::RegisterClient()
+bool GattcTest::RegisterClient()
 {
     if (GetGattInterface() == NULL)
     {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
-    clientCb = new clientCallback;
-    bt_uuid_t client_uuid = GetRSPAttrData()->client_uuid;
-    app_gatt->RegisterClientCallback(clientCb,&GetRSPAttrData()->client_uuid);
+   // bt_uuid_t client_uuid = GetGATTCTESTAttrData()->client_uuid;
+    app_gatt->RegisterClientCallback(&gattctestClientCb,&client_uuid);
     return app_gatt->register_client(&client_uuid) == BT_STATUS_SUCCESS;
 }
 
-bool Rsp::UnregisterClient(int client_if)
+bool GattcTest::UnregisterClient(int client_if)
 {
     if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
-    if(clientCb != NULL)
-        delete clientCb;
     app_gatt->UnRegisterClientCallback(client_if);
     return app_gatt->unregister_client(client_if) == BT_STATUS_SUCCESS;
 }
 
-bool Rsp::ClientSetAdvData(char *str)
+bool GattcTest::ClientSetAdvData(char *str)
 {
     bt_status_t        Ret;
     bool              SetScanRsp        = false;
@@ -547,43 +737,121 @@ bool Rsp::ClientSetAdvData(char *str)
     int               min_conn_interval = RSP_MIN_CI;
     int               max_conn_interval = RSP_MAX_CI;
 
-    app_gatt->set_adv_data(GetRSPClientAppData()->clientIf, SetScanRsp,
+    app_gatt->set_adv_data(GetGATTCTESTClientAppData()->clientIf, SetScanRsp,
                                                 IncludeName, IncludeTxPower, min_conn_interval,
                                                 max_conn_interval, 0,strlen(str), str,
                                                 strlen(str), str, 0,NULL);
 }
 
-void Rsp::CleanUp(int server_if)
+void GattcTest::CleanUp(int server_if)
 {
     UnregisterServer(server_if);
-    UnregisterClient(GetRSPClientAppData()->clientIf);
+    UnregisterClient(GetGATTCTESTClientAppData()->clientIf);
 }
 
-bool Rsp::UnregisterServer(int server_if)
+bool GattcTest::UnregisterServer(int server_if)
 {
     if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "Gatt Interface Not present");
         return false;
     }
     app_gatt->UnRegisterServerCallback(server_if);
-    if(serverCb != NULL)
-        delete serverCb;
     return app_gatt->unregister_server(server_if) == BT_STATUS_SUCCESS;
 }
 
-bool Rsp::StartAdvertisement()
+bool GattcTest::StartAdvertisement()
 {
     if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
     fprintf(stdout,  "(%s) Listening on the interface (%d) ",__FUNCTION__,
-            GetRSPAppData()->server_if);
-    SetDeviceState(WLAN_INACTIVE);
-    return app_gatt->listen(GetRSPClientAppData()->clientIf, true);
+            GetGATTCTESTAppData()->server_if);
+    //SetDeviceState(WLAN_INACTIVE);
+    return app_gatt->listen(GetGATTCTESTClientAppData()->clientIf, true);
 }
 
-bool Rsp::SendResponse(GattsRequestWriteEvent *event)
+bool GattcTest::StartScan()
+{
+ if (GetGattInterface() == NULL) {
+     ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
+     return false;
+ }
+ ALOGE(LOGTAG  "(%s) start scan",__FUNCTION__);
+
+return app_gatt->scan(true, GetGATTCTESTClientAppData()->clientIf);
+
+}
+
+bool GattcTest::StopScan()
+{
+ if (GetGattInterface() == NULL) {
+     ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
+     return false;
+ }
+ ALOGE(LOGTAG  "(%s) stop scan",__FUNCTION__);
+
+return app_gatt->scan(false, GetGATTCTESTClientAppData()->clientIf);
+
+}
+
+bool GattcTest::Connect(const bt_bdaddr_t *bd_addr)
+{
+ if (GetGattInterface() == NULL) {
+     ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
+     return false;
+ }
+ ALOGE(LOGTAG  "(%s) Connect",__FUNCTION__);
+;
+return app_gatt->clientConnect(GetGATTCTESTClientAppData()->clientIf,bd_addr,true,GATT_TRANSPORT_LE);
+
+}
+
+bool GattcTest::Disconnect(const bt_bdaddr_t *bd_addr)
+{
+ if (GetGattInterface() == NULL) {
+     ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
+     return false;
+ }
+ ALOGE(LOGTAG  "(%s) Disconnect",__FUNCTION__);
+
+return app_gatt->clientDisconnect(GetGATTCTESTConnectionData()->clientIf,bd_addr,GetGATTCTESTConnectionData()->conn_id);
+
+}
+
+bool GattcTest::SendAlert(int alert_level)
+{
+ if (GetGattInterface() == NULL) {
+     ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
+     return false;
+ }
+
+ fprintf(stdout,"sending alert now \n");
+ char alert[20];
+ memset( (void *) alert, '\0', sizeof(alert));
+
+ if (alert_level == LOW_ALERT )
+     return gattctest->app_gatt->write_characteristic(gattctestServData.conn_id,gattctestServData.srvc_id,gattctestServData.char_id,1,2,0,"00");
+ else if (alert_level == MID_ALERT)
+     return gattctest->app_gatt->write_characteristic(gattctestServData.conn_id,gattctestServData.srvc_id,gattctestServData.char_id,1,2,0,"01");
+ else if (alert_level == HIGH_ALERT)
+      return gattctest->app_gatt->write_characteristic(gattctestServData.conn_id,gattctestServData.srvc_id,gattctestServData.char_id,1,2,0,"02");
+
+}
+
+bool GattcTest::SearchService(int conn_id)
+{
+ if (GetGattInterface() == NULL) {
+     ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
+     return false;
+ }
+ ALOGE(LOGTAG  "(%s) SearchService",__FUNCTION__);
+
+return app_gatt->search_service(conn_id, NULL);
+
+}
+
+bool GattcTest::SendResponse(GattsRequestWriteEvent *event)
 {
     if (GetGattInterface() == NULL)
     {
@@ -601,25 +869,24 @@ bool Rsp::SendResponse(GattsRequestWriteEvent *event)
     att_resp.attr_value.auth_req = 0;
 
     if(!strncasecmp((const char *)(event->value), "on", 2)) {
-        if (GetDeviceState() == WLAN_INACTIVE)
-        {
-            HandleWlanOn();
-            SetDeviceState(WLAN_TRANSACTION_PENDING);
-        }
+     //   if (GetDeviceState() == WLAN_INACTIVE)
+       // {
+       //     HandleWlanOn();
+       //     SetDeviceState(WLAN_TRANSACTION_PENDING);
+       // }
         response = 0;
     } else {
         response = -1;
     }
 
-    fprintf(stdout, "(%s) Sending RSP response to write (%d) value (%s) State (%d)",__FUNCTION__,
-            GetRSPAppData()->server_if, event->value,GetDeviceState());
+    fprintf(stdout, "(%s) Sending GATTCTEST response to write (%d) value (%s) State (%d)",__FUNCTION__,
+            GetGATTCTESTAppData()->server_if, event->value,GetDeviceState());
 
-    rsp->SetDeviceState(WLAN_ACTIVE);;
     return app_gatt->send_response(event->conn_id, event->trans_id,
                                                          response, &att_resp);
 }
 
-bool Rsp::HandleWlanOn()
+bool GattcTest::HandleWlanOn()
 {
     BtEvent *event = new BtEvent;
     CHECK_PARAM(event);
@@ -632,7 +899,7 @@ bool Rsp::HandleWlanOn()
     return true;
 }
 
-bool Rsp::StopAdvertisement()
+bool GattcTest::StopAdvertisement()
 {
     if (GetGattInterface() == NULL)
     {
@@ -640,11 +907,11 @@ bool Rsp::StopAdvertisement()
         return false;
     }
     fprintf(stdout, "(%s) Stopping listen on the interface (%d) \n",__FUNCTION__,
-            GetRSPClientAppData()->clientIf);
-    return app_gatt->listen(GetRSPClientAppData()->clientIf, false);
+            GetGATTCTESTClientAppData()->clientIf);
+    return app_gatt->listen(GetGATTCTESTClientAppData()->clientIf, false);
 }
 
-bool Rsp::AddService()
+bool GattcTest::AddService()
 {
     if (GetGattInterface() == NULL)
     {
@@ -654,22 +921,22 @@ bool Rsp::AddService()
     btgatt_srvc_id_t srvc_id;
     srvc_id.id.inst_id = 0;   // 1 instance
     srvc_id.is_primary = 1;   // Primary addition
-    srvc_id.id.uuid = GetRSPAttrData()->service_uuid;
-    return app_gatt->add_service(GetRSPAppData()->server_if, &srvc_id,4)
+    srvc_id.id.uuid = GetGATTCTESTAttrData()->service_uuid;
+    return app_gatt->add_service(GetGATTCTESTAppData()->server_if, &srvc_id,4)
                                                         ==BT_STATUS_SUCCESS;
 }
 
-bool Rsp::DisconnectServer()
+bool GattcTest::DisconnectServer()
 {
-    int server_if = GetRSPConnectionData()->server_if;
-    bt_bdaddr_t * bda = GetRSPConnectionData()->bda;
-    int conn_id = GetRSPConnectionData()->conn_id;
+    int server_if = GetGATTCTESTConnectionData()->clientIf;
+    bt_bdaddr_t * bda = GetGATTCTESTConnectionData()->bda;
+    int conn_id = GetGATTCTESTConnectionData()->conn_id;
     fprintf(stdout,  "(%s) Disconnecting interface (%d), connid (%d) ",__FUNCTION__,
             server_if, conn_id);
     return app_gatt->serverDisconnect(server_if, bda, conn_id) == BT_STATUS_SUCCESS;
 }
 
-bool Rsp::DeleteService()
+bool GattcTest::DeleteService()
 {
     if (GetGattInterface() == NULL)
     {
@@ -677,12 +944,12 @@ bool Rsp::DeleteService()
         return false;
     }
     bool status = false;
-    int srvc_handle = GetRspSrvcData()->srvc_handle;
-    return app_gatt->delete_service(GetRSPAppData()->server_if,
+    int srvc_handle = GetGATTCTESTSrvcData()->srvc_handle;
+    return app_gatt->delete_service(GetGATTCTESTAppData()->server_if,
                                                             srvc_handle) == BT_STATUS_SUCCESS;
 }
 
-bool Rsp::AddCharacteristics()
+bool GattcTest::AddCharacteristics()
 {
     if (GetGattInterface() == NULL)
     {
@@ -690,9 +957,9 @@ bool Rsp::AddCharacteristics()
         return false;
     }
     bt_uuid_t char_uuid;
-    CopyParams(&char_uuid, &(GetRspSrvcData()->srvc_id->id.uuid));
-    int srvc_handle = GetRspSrvcData()->srvc_handle;
-    int server_if = GetRspSrvcData()->server_if;
+    CopyParams(&char_uuid, &(GetGATTCTESTSrvcData()->srvc_id->id.uuid));
+    int srvc_handle = GetGATTCTESTSrvcData()->srvc_handle;
+    int server_if = GetGATTCTESTSrvcData()->server_if;
     fprintf(stdout,  "(%s) Adding Characteristics server_if (%d), srvc_handle (%d) \n",
             __FUNCTION__, server_if,srvc_handle);
     return app_gatt->add_characteristic(server_if, srvc_handle, &char_uuid,
@@ -700,7 +967,7 @@ bool Rsp::AddCharacteristics()
                                                             ==BT_STATUS_SUCCESS;
 }
 
-bool Rsp::AddDescriptor(void)
+bool GattcTest::AddDescriptor(void)
 {
     if (GetGattInterface() == NULL)
     {
@@ -709,14 +976,14 @@ bool Rsp::AddDescriptor(void)
     }
 
     bt_uuid_t desc_uuid;
-    desc_uuid = GetRSPAttrData()->descriptor_uuid;
-    int srvc_handle = GetRspSrvcData()->srvc_handle;
-    return app_gatt->add_descriptor(GetRSPAppData()->server_if,
+    desc_uuid = GetGATTCTESTAttrData()->descriptor_uuid;
+    int srvc_handle = GetGATTCTESTSrvcData()->srvc_handle;
+    return app_gatt->add_descriptor(GetGATTCTESTAppData()->server_if,
                                                         srvc_handle, &desc_uuid,
                                                         GATT_PERM_READ) == BT_STATUS_SUCCESS;
 }
 
-bool Rsp::StartService()
+bool GattcTest::StartService()
 {
     if (GetGattInterface() == NULL)
     {
@@ -724,13 +991,13 @@ bool Rsp::StartService()
         return false;
     }
 
-    int srvc_handle = GetRspSrvcData()->srvc_handle;
-    return app_gatt->start_service(GetRSPAppData()->server_if,
+    int srvc_handle = GetGATTCTESTSrvcData()->srvc_handle;
+    return app_gatt->start_service(GetGATTCTESTAppData()->server_if,
                                                         srvc_handle, GATT_TRANSPORT_LE)
                                                         == BT_STATUS_SUCCESS;
 }
 
-bool Rsp::StopService()
+bool GattcTest::StopService()
 {
     if (GetGattInterface() == NULL)
     {
@@ -738,7 +1005,7 @@ bool Rsp::StopService()
         return false;
     }
 
-    int srvc_handle = GetRspSrvcData()->srvc_handle;
-    return app_gatt->stop_service(GetRSPAppData()->server_if,
+    int srvc_handle = GetGATTCTESTSrvcData()->srvc_handle;
+    return app_gatt->stop_service(GetGATTCTESTAppData()->server_if,
                                                         srvc_handle) == BT_STATUS_SUCCESS;
 }

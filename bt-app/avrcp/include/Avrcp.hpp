@@ -27,92 +27,44 @@
   * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   */
 
-#ifndef A2DP_SINK_APP_H
-#define A2DP_SINK_APP_H
+#ifndef AVRCP_APP_H
+#define AVRCP_APP_H
 
 #include <map>
-#include <list>
 #include <string>
 #include <hardware/bluetooth.h>
-#include <hardware/bt_av.h>
+#include <hardware/bt_rc.h>
 #include <pthread.h>
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "osi/include/allocator.h"
-#include "osi/include/alarm.h"
 #include "ipc.h"
 #include "utils.h"
-#include "hardware/bt_av_vendor.h"
-#include "A2dp_Sink_Streaming.hpp"
+#include "hardware/bt_rc_vendor.h"
 
-using namespace std;
-using std::list;
-using std::string;
 
-typedef enum {
-    DEVICE_STATE_DISCONNECTED = 0,
-    DEVICE_STATE_PENDING,
-    DEVICE_STATE_CONNECTED,
-}A2dpSinkDeviceState;
-
-typedef enum {
-    SINK_STATE_NOT_STARTED = 0,
-    SINK_STATE_STARTED,
-}A2dpSinkState;
-
-typedef struct {
-    uint32_t sample_rate;
-    uint8_t channel_count;
-}A2dpSinkConfig_t;
-
-class A2dp_Device {
-
-  public:
-    config_t *config;
-    bt_bdaddr_t mDevice;
-    bt_bdaddr_t mConnectingDevice;
-    bt_bdaddr_t mConnectedDevice;
-    A2dpSinkDeviceState mSinkDeviceState;
-    A2dpSinkConfig_t av_config;
-    btav_codec_config_t dev_codec_config;
-    uint16_t dev_codec_type;
-    pthread_mutex_t lock;
-    bool mAvrcpConnected;
-
-  public:
-    A2dp_Device(config_t *config, bt_bdaddr_t dev);
-    ~A2dp_Device();
-};
-
-class A2dp_Sink {
+class Avrcp {
 
   private:
     config_t *config;
     const bt_interface_t * bluetooth_interface;
-    const btav_interface_t *sBtA2dpSinkInterface;
-    A2dpSinkState mSinkState;
-    const btav_sink_vendor_interface_t *sBtA2dpSinkVendorInterface;
+    const btrc_ctrl_interface_t *sBtAvrcpCtrlInterface;
+    const btrc_ctrl_vendor_interface_t *sBtAvrcpCtrlVendorInterface;
 
   public:
-    A2dp_Sink(const bt_interface_t *bt_interface, config_t *config);
-    ~A2dp_Sink();
-    void ProcessEvent(BtEvent* pEvent, list<A2dp_Device>::iterator iter);
-    void state_disconnected_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter);
-    void state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter);
-    void state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter);
-    void change_state(list<A2dp_Device>::iterator iter, A2dpSinkDeviceState mState);
+    Avrcp(const bt_interface_t *bt_interface, config_t *config);
+    ~Avrcp();
     char* dump_message(BluetoothEventId event_id);
     pthread_mutex_t lock;
-    uint32_t max_a2dp_conn;
-    void HandleEnableSink();
-    void HandleDisableSink();
-    void HandleSinkStreamingDisableDone();
-    void ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev);
-    void EventManager(BtEvent* pEvent, bt_bdaddr_t dev);
-    bool isConnectionEvent(BluetoothEventId event_id);
-    list<A2dp_Device> pA2dpDeviceList;
+    bt_bdaddr_t mConnectedAvrcpDevice;
+    uint32_t max_avrcp_conn;
+    void HandleAvrcpEvents(BtEvent* pEvent);
+    void HandleEnableAvrcp();
+    void HandleDisableAvrcp();
+    void SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct);
+    void OnDisconnected();
 };
 
 #endif
