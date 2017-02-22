@@ -70,14 +70,13 @@ char outputFilename [50] = "/etc/bluetooth/output_sample.pcm";
 #endif
 
 static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
+extern void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type);
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define BE_STREAM_TO_UINT16(u16, p) {u16 = (uint16_t)(((uint16_t)(*(p)) << 8) + (uint16_t)(*((p) + 1))); (p) += 2;}
 #define BE_STREAM_TO_UINT32(u32, p) {u32 = ((uint32_t)(*((p) + 3)) + ((uint32_t)(*((p) + 2)) << 8) +((uint32_t)(*((p) + 1)) << 16) + ((uint32_t)(*(p)) << 24)); (p) += 4;}
-
 
 void BtA2dpSinkStreamingMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
@@ -175,6 +174,9 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     (pcm_data_read)) {
                 out_buf.buffer = pA2dpSinkStream->pcm_buf;
                 out_buf.bytes = pcm_data_read;
+                if (pA2dpSinkStream->relay_sink_data) {
+                    enque_relay_data(pA2dpSinkStream->pcm_buf, pcm_data_read, 0);
+                }
                 qahw_out_write(pA2dpSinkStream->out_stream, &out_buf);
             }
 #endif
@@ -537,6 +539,9 @@ void A2dp_Sink_Streaming::HandleEnableSinkStreaming(void) {
     if(use_bt_a2dp_hal) {
         LoadBtA2dpHAL();
     }
+    relay_sink_data = config_get_bool (config,
+            CONFIG_DEFAULT_SECTION, "BtRelaySinkDatatoSrc", false);
+    ALOGD(LOGTAG " Sink Relay ENabled %d", relay_sink_data);
 }
 
 void A2dp_Sink_Streaming::HandleDisableSinkStreaming(void) {

@@ -47,6 +47,8 @@
 #include <math.h>
 #include <algorithm>
 #include <cutils/properties.h>
+#include "osi/include/list.h"
+#include "osi/include/allocator.h"
 
 #define LOGTAG_A2DP "A2DP_SRC "
 #define LOGTAG_AVRCP "AVRCP_TG "
@@ -74,6 +76,7 @@ long mCurrentTrackID = NO_TRACK_SELECTED;
 
 #define AVRCP_MAX_VOL 127
 int mAudioStreamMax = 15;
+bool is_sink_relay_enabled = false;
 
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
 audio_hw_device_t *a2dp_device = NULL;
@@ -82,7 +85,14 @@ static pthread_mutex_t a2dp_hal_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
 #define AUDIO_STREAM_OUTPUT_BUFFER_SZ      (20*512)
-
+typedef struct
+{
+    uint16_t codec_type;
+    uint16_t len;
+    uint16_t offset;
+} t_SINK_RELAY_DATA;
+list_t *a2dp_sink_relay_data_list;
+static pthread_mutex_t a2dp_sink_relay_mutex = PTHREAD_MUTEX_INITIALIZER;
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -350,6 +360,74 @@ static void BtA2dpResumeStreaming()
     ALOGD(LOGTAG_A2DP "A2dp Stream resumed successfully");
 }
 
+void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type)
+{
+    ALOGD(" enque_relay_data size %d list_len = %d", size, list_length(a2dp_sink_relay_data_list));
+    pthread_mutex_lock(&a2dp_sink_relay_mutex);
+    if (list_length(a2dp_sink_relay_data_list) > 10) {
+        pthread_mutex_unlock(&a2dp_sink_relay_mutex);
+        return;
+    }
+    /* allocate memory, first 4 bytes will have size, next 4 bytes will have offset */
+    t_SINK_RELAY_DATA* ptr = (t_SINK_RELAY_DATA*)osi_malloc(size + sizeof(t_SINK_RELAY_DATA));
+    uint8_t* data_ptr;
+    if(ptr != NULL)
+    {
+        data_ptr  = (uint8_t*)(ptr+1);
+        memcpy(data_ptr, (uint8_t*)buffer, size);
+        ptr->codec_type = codec_type;// 0 is for SBC
+        ptr->offset = 0;
+        ptr->len = size;
+    }
+    list_append(a2dp_sink_relay_data_list, ptr);
+    pthread_mutex_unlock(&a2dp_sink_relay_mutex);
+}
+size_t get_pcm_data(uint8_t* buffer, size_t size)
+{
+    ALOGD(" get PCM Data size %d list_len = %d", size, list_length(a2dp_sink_relay_data_list));
+    uint8_t* start_buf_ptr = buffer;
+    uint8_t* end_buf_ptr = buffer + size;
+    uint8_t* data_ptr;
+    pthread_mutex_lock(&a2dp_sink_relay_mutex);
+    if(list_is_empty(a2dp_sink_relay_data_list)) {
+        pthread_mutex_unlock(&a2dp_sink_relay_mutex);
+        return 0;
+    }
+    t_SINK_RELAY_DATA* ptr = (t_SINK_RELAY_DATA*)list_front(a2dp_sink_relay_data_list);
+    if(ptr->codec_type != 0)
+    {
+        list_remove(a2dp_sink_relay_data_list, ptr);
+        pthread_mutex_unlock(&a2dp_sink_relay_mutex);
+        return 0;
+    }
+
+    while((start_buf_ptr < end_buf_ptr) && (!list_is_empty(a2dp_sink_relay_data_list)))
+    {
+        data_ptr = (uint8_t*)(ptr + 1);
+        /* packets in topmost element are more than what is to be written */
+        if((ptr->len - ptr->offset) > (end_buf_ptr - start_buf_ptr))
+        {
+            memcpy(start_buf_ptr, data_ptr + ptr->offset, (end_buf_ptr - start_buf_ptr));
+            ptr->offset += (end_buf_ptr -  start_buf_ptr);
+            start_buf_ptr += (end_buf_ptr -  start_buf_ptr);
+        }
+        else /* packets in topmost element is lesser than what is required */
+        {
+            memcpy(start_buf_ptr, data_ptr + ptr->offset, (ptr->len - ptr->offset));
+            start_buf_ptr += (ptr->len - ptr->offset);
+            ptr->offset += (ptr->len - ptr->offset);
+            list_remove(a2dp_sink_relay_data_list, ptr);
+            if (!list_is_empty(a2dp_sink_relay_data_list)) {
+                ptr = (t_SINK_RELAY_DATA*)list_front(a2dp_sink_relay_data_list);
+            }
+        }
+    }
+    pthread_mutex_unlock(&a2dp_sink_relay_mutex);
+    if(start_buf_ptr == end_buf_ptr)
+        return size;
+    else
+        return(end_buf_ptr - start_buf_ptr);
+}
 static void *thread_func(void *in_param)
 {
     size_t len = 0;
@@ -375,12 +453,25 @@ static void *thread_func(void *in_param)
     }
 #endif
     do {
-        len = fread(buffer, out_buffer_size, 1, in_file);
-        if (len == 0) {
-            ALOGD(LOGTAG_A2DP "Read %d bytes from file", len);
-            fseek(in_file, 0, SEEK_SET);
-            continue;
+        if(is_sink_relay_enabled)
+        {
+            len = get_pcm_data((uint8_t*)buffer, out_buffer_size);
+            if (len == 0) {
+                ALOGD(LOGTAG_A2DP "Read %d bytes from file", len);
+                sleep(2);
+            }
         }
+        else
+        {
+             /* Use file for streaming */
+            len = fread(buffer, out_buffer_size, 1, in_file);
+            if (len == 0) {
+                ALOGD(LOGTAG_A2DP "Read %d bytes from file", len);
+                fseek(in_file, 0, SEEK_SET);
+                continue;
+            }
+        }
+
         ALOGD(LOGTAG_A2DP "Read %d bytes from file", len);
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
         pthread_mutex_lock(&a2dp_hal_mutex);
@@ -404,10 +495,12 @@ static void BtA2dpStartStreaming()
     FILE *in_file = NULL;
 
     ALOGD(LOGTAG_A2DP "Start A2dp Stream");
-    in_file = fopen("/data/misc/bluetooth/pcmtest.wav", "r");
-    if (!in_file) {
-        ALOGE(LOGTAG_A2DP "Cannot open input file. Bail out!!");
-        return;
+    if (!is_sink_relay_enabled) {
+        in_file = fopen("/data/misc/bluetooth/pcmtest.wav", "r");
+        if (!in_file) {
+            ALOGE(LOGTAG_A2DP "Cannot open input file. Bail out!!");
+            return;
+        }
     }
     ALOGD(LOGTAG_A2DP "Successfully opened input file for playback");
     media_playing = true;
@@ -1301,6 +1394,7 @@ void A2dp_Source::HandleEnableSource(void) {
         mCurrentTrackID = NO_TRACK_SELECTED;
         registerMediaPlayers();
     }
+    a2dp_sink_relay_data_list = list_new(NULL);
 }
 
 void A2dp_Source::HandleDisableSource(void) {
@@ -1322,6 +1416,8 @@ void A2dp_Source::HandleDisableSource(void) {
    media_playing = false;
    playStatus = BTRC_PLAYSTATE_ERROR;
    mCurrentTrackID = NO_TRACK_SELECTED;
+   if(a2dp_sink_relay_data_list != NULL)
+   list_free(a2dp_sink_relay_data_list);
 }
 
 void A2dp_Source::ProcessEvent(BtEvent* pEvent) {
@@ -1569,6 +1665,9 @@ A2dp_Source :: A2dp_Source(const bt_interface_t *bt_interface, config_t *config)
     memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mConnectedAvrcpDevice, 0, sizeof(bt_bdaddr_t));
     pthread_mutex_init(&this->lock, NULL);
+    is_sink_relay_enabled = config_get_bool (config,
+            CONFIG_DEFAULT_SECTION, "BtRelaySinkDatatoSrc", false);
+    ALOGD(LOGTAG_A2DP " Sink Relay Enabled %d ", is_sink_relay_enabled);
 }
 
 A2dp_Source :: ~A2dp_Source() {
