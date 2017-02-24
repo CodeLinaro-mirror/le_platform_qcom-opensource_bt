@@ -207,7 +207,8 @@ OI_STATUS OI_Dispatch_Init(OI_DISPATCH_SERVICE_REQUEST_HANDLER handler)
     }
 
     // we require real configuration
-    OI_ASSERT(NULL != OI_CONFIG_TABLE_GET(DISPATCH));
+    OI_CONFIG_DISPATCH *pConfigDispatch = OI_CONFIG_TABLE_GET(DISPATCH);
+    OI_ASSERT(NULL != pConfigDispatch);
 
     OI_MemZero(&Dispatcher, sizeof(Dispatcher));
 
