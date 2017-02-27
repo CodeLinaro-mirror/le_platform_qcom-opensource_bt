@@ -699,7 +699,7 @@ static void ServerConnectInd(OI_BD_ADDR *clientAddr,
     if (getOppState() == STATE_CONNECTING) {
         bdaddr_to_string((const bt_bdaddr_t*)&opp.addr, bd_str, MAX_BD_STR_LEN);
         ALOGE(LOGTAG "%s: Already connecting to %s", __FUNCTION__, bd_str);
-        cout << "Already connecting to " << bd_str << endl;
+        fprintf(stdout, "Already connecting to %s\n", bd_str);
         OI_Printf("Rejecting connection\n");
         status = OI_OPP_AcceptConnect(connectionId, FALSE, FALSE);
         return;
@@ -707,7 +707,7 @@ static void ServerConnectInd(OI_BD_ADDR *clientAddr,
     if (getOppState() >= STATE_CONNECTED) {
         bdaddr_to_string((const bt_bdaddr_t*)&opp.addr, bd_str, MAX_BD_STR_LEN);
         ALOGE(LOGTAG "%s: Already connected to %s", __FUNCTION__, bd_str);
-        cout << "Already connected to " << bd_str << endl;
+        fprintf(stdout, "Already connected to %s\n", bd_str);
         OI_Printf("Rejecting connection\n");
         status = OI_OPP_AcceptConnect(connectionId, FALSE, FALSE);
         return;
@@ -755,7 +755,7 @@ static void ServerDisconnectInd(OI_OPP_SERVER_CONNECTION_HANDLE connectionId)
         opp.lowerProtocol.protocol = OI_OBEX_LOWER_NONE;
     }
     if (opp.abort == true) {
-        cout << "Aborted last operation " << endl;
+        fprintf(stdout, "Aborted last operation \n");
         opp.abort = false;
     }
 }
@@ -963,7 +963,7 @@ void ConnectionCfmCb(OI_OPP_CLIENT_CONNECTION_HANDLE connectionId,
         opp.clientConnectionHandle = connectionId;
         setOppState(STATE_CONNECTED);
         opp.abort = false;
-        cout << "Connected to " << bd_str << endl;
+        fprintf(stdout, "Connected to %s\n", bd_str);
         /* Send Internal Connect Message to OPP Thread */
         BtEvent *event = new BtEvent;
         event->event_id = OPP_INTERNAL_SEND;
@@ -973,7 +973,7 @@ void ConnectionCfmCb(OI_OPP_CLIENT_CONNECTION_HANDLE connectionId,
         setOppState(STATE_IDLE);
         uint8_t zero[sizeof(bt_bdaddr_t)] = { 0 };
         memcpy(&opp.addr, zero, sizeof(bt_bdaddr_t));
-        cout << "Failed to Connect to " << bd_str << endl;
+        fprintf(stdout, "Failed to Connect to %s\n", bd_str);
     }
 }
 
@@ -983,7 +983,7 @@ void DisconnectionCfmCb(OI_OPP_CLIENT_CONNECTION_HANDLE connectionId)
     char bd_str[MAX_BD_STR_LEN];
     if (opp.clientConnectionHandle == connectionId) {
         bdaddr_to_string((const bt_bdaddr_t*)&opp.addr, bd_str, MAX_BD_STR_LEN);
-        cout << "Disconnected with " << bd_str << endl;
+        fprintf(stdout, "Disconnected with %s\n", bd_str);
         opp.clientConnectionHandle = NULL;
         setOppState(STATE_IDLE);
         opp.lowerProtocol.protocol = OI_OBEX_LOWER_NONE;
@@ -996,7 +996,7 @@ void DisconnectionCfmCb(OI_OPP_CLIENT_CONNECTION_HANDLE connectionId)
 void AbortCfmCb(OI_OPP_CLIENT_CONNECTION_HANDLE connectionId)
 {
     ALOGV(LOGTAG "%s: connectionID = %p", __FUNCTION__, connectionId);
-    cout << "Aborted last operation " << endl;
+    fprintf(stdout, "Aborted last operation \n");
     opp.abort = false;
 }
 
@@ -1072,11 +1072,11 @@ static void sdp_add_record_callback(bt_status_t status, int handle)
         if (opp.numOfEntries == 0) {
             ALOGE(LOGTAG "%s: unable to read mime type entries", __FUNCTION__);
         }
-        cout << "Successfully Registered OPP Server SDP Record" << endl;
+        fprintf(stdout, "Successfully Registered OPP Server SDP Record\n");
         ret = OI_OPPServer_Register(&callbacks, &objSys,
             OI_OPP_SERVER_OBJ_FORMAT_ANY, &strings, &opp.serverHandle);
     } else {
-        cout << "Sdp add record failed. Incoming transfer will fail" << endl;
+        fprintf(stdout, "Sdp add record failed. Incoming transfer will fail\n");
         ALOGE(LOGTAG "%s: sdp add record failed, status %d", __FUNCTION__, status);
     }
 }
@@ -1100,7 +1100,7 @@ static void sdp_search_callback(bt_status_t status, bt_bdaddr_t *bd_addr, uint8_
 
     if (status) {
         ALOGE(LOGTAG "%s: sdp search failed, status %d", __FUNCTION__, status);
-        cout << "Sdp search failed can't proceed with connection" << endl;
+        fprintf(stdout, "Sdp search failed can't proceed with connection\n");
         return;
     }
     ALOGE(LOGTAG "%s", __FUNCTION__);
@@ -1133,11 +1133,11 @@ static void sdp_search_callback(bt_status_t status, bt_bdaddr_t *bd_addr, uint8_
         } else {
             ALOGE(LOGTAG "%s: Could not find remote rfcomm channel or l2cap psm, can't connect",
                  __FUNCTION__);
-            cout << "Could not find remote rfcomm channel or l2cap psm, can't connect" << endl;
+            fprintf(stdout, "Could not find remote rfcomm channel or l2cap psm, can't connect\n");
         }
     } else {
         ALOGE(LOGTAG "%s: Unknown uuid sdp result received, ignoring!!", __FUNCTION__);
-        cout << "Unknown uuid sdp result received, ignoring!!" << endl;
+        fprintf(stdout, "Unknown uuid sdp result received, ignoring!!\n");
     }
 }
 
@@ -1223,7 +1223,7 @@ void Opp::ProcessEvent(BtEvent* pEvent)
 void Opp :: AddSdpRecord()
 {
     if (getOppState() >= STATE_IDLE) {
-        cout << "Already registered " << endl;
+        fprintf(stdout, "Already registered \n");
         return;
     }
     /* Add OPP Server SDP Record */
@@ -1272,15 +1272,15 @@ bool Opp :: PerformSdp(bt_bdaddr_t *addr)
     bdaddr_to_string((const bt_bdaddr_t*)&opp.addr, bd_str, MAX_BD_STR_LEN);
     if (getOppState() == STATE_INITIAL) {
         ALOGE(LOGTAG "%s: Not registered, please register before connecting!!", __FUNCTION__);
-        cout << "Not registered, please register before connecting!!" << endl;
+        fprintf(stdout, "Not registered, please register before connecting!!\n");
         return false;
     } else if (getOppState() == STATE_CONNECTING) {
         ALOGE(LOGTAG "%s: Currently connecting to %s", __FUNCTION__, bd_str);
-        cout << "Currently connecting to " << bd_str << endl;
+        fprintf(stdout, "Currently connecting to %s\n", bd_str);
         return false;
     } else if (getOppState() >= STATE_CONNECTED) {
         ALOGE(LOGTAG "%s: Already connected to %s", __FUNCTION__, bd_str);
-        cout << "Already connected to " << bd_str << endl;
+        fprintf(stdout, "Already connected to %s\n", bd_str);
         return false;
     }
     memcpy(&opp.addr, addr, sizeof(bt_bdaddr_t));
@@ -1303,13 +1303,13 @@ bool Opp :: Connect()
     if (getOppState() == STATE_CONNECTING) {
         bdaddr_to_string((const bt_bdaddr_t*)&opp.addr, bd_str, MAX_BD_STR_LEN);
         ALOGE(LOGTAG "%s: Already connecting to %s", __FUNCTION__, bd_str);
-        cout << "Already connecting to " << bd_str << endl;
+        fprintf(stdout, "Already connecting to %s\n", bd_str);
         return false;
     }
     if (getOppState() >= STATE_CONNECTED) {
         bdaddr_to_string((const bt_bdaddr_t*)&opp.addr, bd_str, MAX_BD_STR_LEN);
         ALOGE(LOGTAG "%s: Already connected to %s", __FUNCTION__, bd_str);
-        cout << "Already connected to " << bd_str << endl;
+        fprintf(stdout, "Already connecting to %s\n", bd_str);
         return false;
     }
 
@@ -1320,7 +1320,7 @@ bool Opp :: Connect()
     if (ret) {
         bdaddr_to_string((const bt_bdaddr_t*)&opp.addr, bd_str, MAX_BD_STR_LEN);
         ALOGE(LOGTAG "%s: Failed to connect to %s", __FUNCTION__, bd_str);
-        cout << "Failed to connect to " << bd_str << endl;
+        fprintf(stdout, "Failed to connect to %s\n", bd_str);
     } else {
          // start the profile connect timer
         alarm_set(opp_connect_timer, OPP_CONNECT_TIMEOUT_DELAY,
@@ -1350,7 +1350,7 @@ bool Opp :: HandleConnectTimeout(bt_bdaddr_t *addr)
 {
     char bd_str[MAX_BD_STR_LEN];
     bdaddr_to_string((const bt_bdaddr_t*)addr, bd_str, MAX_BD_STR_LEN);
-    cout << "Failed to Connect to " << bd_str <<" due to ConnectionTimeout " << endl;
+    fprintf(stdout, "Failed to Connect to %s due to ConnectionTimeout\n", bd_str);
     opp.clientConnectionHandle = NULL;
     setOppState(STATE_IDLE);
     opp.lowerProtocol.protocol = OI_OBEX_LOWER_NONE;
@@ -1366,7 +1366,7 @@ bool Opp :: Disconnect()
 
     if (getOppState() != STATE_CONNECTED ) {
         ALOGE(LOGTAG "%s: not connected", __FUNCTION__);
-        cout << "Not connected " << endl;
+        fprintf(stdout, "Not connected \n");
         return false;
     }
     ALOGV(LOGTAG "%s", __FUNCTION__);
@@ -1376,7 +1376,7 @@ bool Opp :: Disconnect()
         ret = false;
         char bd_str[MAX_BD_STR_LEN];
         bdaddr_to_string((const bt_bdaddr_t*)&opp.addr, bd_str, MAX_BD_STR_LEN);
-        cout << "Failed to disconnect to " << bd_str << endl;
+        fprintf(stdout, "Failed to disconnect to %s\n", bd_str);
         ALOGE(LOGTAG "%s: Failed disconnect %s status: %d", __FUNCTION__, bd_str, status);
     }
     return ret;
@@ -1389,7 +1389,7 @@ bool Opp :: Abort()
     ALOGV(LOGTAG "%s", __FUNCTION__);
     if (getOppState() != STATE_SENDING && getOppState() != STATE_RECEIVING) {
         ALOGE(LOGTAG "%s: Data transfer not ongoing, can't abort", __FUNCTION__);
-        cout << "Data transfer not ongoing, can't abort" << endl;
+        fprintf(stdout, "Data transfer not ongoing, can't abort\n");
         return false;
     }
     opp.abort = true;
@@ -1402,7 +1402,7 @@ bool Opp :: Abort()
         opp.abort = false;
         ret = false;
     } else {
-        cout << "Abort in progress!!" << endl;
+        fprintf(stdout, "Abort in progress!!\n");
     }
     return ret;
 }
