@@ -39,6 +39,7 @@
 #include "Avrcp.hpp"
 #include "Gap.hpp"
 #include "hardware/bt_av_vendor.h"
+#include <algorithm>
 
 #define LOGTAG "A2DP_SINK"
 
@@ -325,6 +326,16 @@ void A2dp_Sink::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
                 fprintf(stdout, "Already %d device connected\n", max_a2dp_conn);
                 return;
             }
+            if (pA2dpDeviceList.size() != 0) {
+                ALOGD(LOGTAG " Atleast 1 remote device connected/connecting ");
+                iter = FindDeviceByAddr(pA2dpDeviceList, dev);
+                if (iter != pA2dpDeviceList.end())
+                {
+                    ALOGE(LOGTAG " Connect req for already connected/connecting device");
+                    fprintf(stdout, "Connect req for already connected/connecting device\n");
+                    return;
+                }
+            }
             if (pA2dpDeviceList.size() < max_a2dp_conn) {
                 ALOGD(LOGTAG " pA2dpDeviceList.size() < max_a2dp_conn ");
                 pA2dpDeviceList.push_back(A2dp_Device(config, dev));
@@ -335,6 +346,7 @@ void A2dp_Sink::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
         case A2DP_SINK_CONNECTING_CB:
         case A2DP_SINK_CONNECTED_CB:
             iter = FindDeviceByAddr(pA2dpDeviceList, dev);
+            bdstr_t bd_str;
             if (iter != pA2dpDeviceList.end())
             {
                 ALOGD(LOGTAG " found a match, donot alloc new");
@@ -351,6 +363,23 @@ void A2dp_Sink::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
                 ALOGE(LOGTAG " already max devices connected");
                 fprintf(stdout, "Already %d device connected\n", max_a2dp_conn);
                 return;
+            }
+            if (!pAvrcp->rc_only_devices.empty())
+            {
+                bdaddr_to_string(&iter->mDevice, &bd_str[0], sizeof(bd_str));
+                std::string deviceAddress(bd_str);
+                std::list<std::string>::iterator bdstring;
+                bdstring = std::find(pAvrcp->rc_only_devices.begin(), pAvrcp->rc_only_devices.end(), deviceAddress);
+                if (bdstring != pAvrcp->rc_only_devices.end())
+                {
+                    ALOGE(LOGTAG "RC already connected earlier for this AV connected device, set RC connected");
+                    iter->mAvrcpConnected = true;
+                    pAvrcp->rc_only_devices.remove(deviceAddress);
+                }
+                else
+                {
+                    ALOGE(LOGTAG "RC not already connected with this device ");
+                }
             }
             break;
         case A2DP_SINK_API_DISCONNECT_REQ:
