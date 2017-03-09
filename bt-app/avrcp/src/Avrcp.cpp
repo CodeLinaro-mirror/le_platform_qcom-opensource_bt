@@ -106,6 +106,23 @@ void BtAvrcpMsgHandler(void *msg) {
 #endif
 
 
+static void btavrcpctrl_passthru_rsp_vendor_callback(int id, int key_state, bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_passthru_rsp_vendor_callback id = %d key_state = %d",
+            id, key_state);
+    if (id == CMD_ID_PAUSE && key_state == 1 &&
+            !memcmp(&pA2dpSinkStream->mStreamingDevice, bd_addr, sizeof(bt_bdaddr_t)))
+    {
+        ALOGD(LOGTAG_CTRL " need to flush both stack queue and audio queue ");
+        BtEvent *pFlushAudioPackets = new BtEvent;
+        pFlushAudioPackets->a2dpSinkStreamingEvent.event_id = A2DP_SINK_STREAMING_FLUSH_AUDIO;
+        memcpy(&pFlushAudioPackets->a2dpSinkStreamingEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+        if (pA2dpSinkStream) {
+            thread_post(pA2dpSinkStream->threadInfo.thread_id,
+            pA2dpSinkStream->threadInfo.thread_handler, (void*)pFlushAudioPackets);
+        }
+    }
+}
+
 static void btavrcpctrl_passthru_rsp_callback(int id, int key_state) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_passthru_rsp_callback id = %d key_state = %d", id, key_state);
 }
@@ -191,6 +208,7 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
    btavrcpctrl_getplaystatus_rsp_vendor_callback,
    btavrcpctrl_setabsvol_cmd_vendor_callback,
    btavrcpctrl_registernotification_absvol_vendor_callback,
+   btavrcpctrl_passthru_rsp_vendor_callback,
 };
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {

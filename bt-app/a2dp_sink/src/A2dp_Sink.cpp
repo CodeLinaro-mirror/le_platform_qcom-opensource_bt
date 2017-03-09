@@ -267,34 +267,36 @@ void A2dp_Sink::HandleEnableSink(void) {
 }
 
 void A2dp_Sink::HandleDisableSink(void) {
-   ALOGD(LOGTAG " HandleDisableSink ");
-   pA2dpSink->mSinkState = SINK_STATE_NOT_STARTED;
+    ALOGD(LOGTAG " HandleDisableSink ");
+    pA2dpSink->mSinkState = SINK_STATE_NOT_STARTED;
 
-   BtEvent *pDisableSinkStreaming = new BtEvent;
-   pDisableSinkStreaming->a2dpSinkStreamingEvent.event_id = A2DP_SINK_STREAMING_API_STOP;
-   if (pA2dpSinkStream) {
-       thread_post(pA2dpSinkStream->threadInfo.thread_id,
-       pA2dpSinkStream->threadInfo.thread_handler, (void*)pDisableSinkStreaming);
-   }
+    BtEvent *pDisableSinkStreaming = new BtEvent;
+    pDisableSinkStreaming->a2dpSinkStreamingEvent.event_id = A2DP_SINK_STREAMING_API_STOP;
+    if (pA2dpSinkStream) {
+        thread_post(pA2dpSinkStream->threadInfo.thread_id,
+        pA2dpSinkStream->threadInfo.thread_handler, (void*)pDisableSinkStreaming);
+    }
 }
 
 void A2dp_Sink::HandleSinkStreamingDisableDone(void) {
     ALOGD(LOGTAG " HandleSinkStreamingDisableDone ");
+    if (pA2dpSink->pA2dpDeviceList.size() != 0)
+        pA2dpSink->pA2dpDeviceList.clear();
 
-   if(sBtA2dpSinkInterface != NULL) {
-       sBtA2dpSinkInterface->cleanup();
-       sBtA2dpSinkInterface = NULL;
-   }
-   if(sBtA2dpSinkVendorInterface != NULL) {
-       sBtA2dpSinkVendorInterface->cleanup_vendor();
-       sBtA2dpSinkVendorInterface = NULL;
-   }
+    if(sBtA2dpSinkInterface != NULL) {
+        sBtA2dpSinkInterface->cleanup();
+        sBtA2dpSinkInterface = NULL;
+    }
+    if(sBtA2dpSinkVendorInterface != NULL) {
+        sBtA2dpSinkVendorInterface->cleanup_vendor();
+        sBtA2dpSinkVendorInterface = NULL;
+    }
 
-   BtEvent *pEvent = new BtEvent;
-   pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
-   pEvent->profile_stop_event.profile_id = PROFILE_ID_A2DP_SINK;
-   pEvent->profile_stop_event.status = true;
-   PostMessage(THREAD_ID_GAP, pEvent);
+    BtEvent *pEvent = new BtEvent;
+    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
+    pEvent->profile_stop_event.profile_id = PROFILE_ID_A2DP_SINK;
+    pEvent->profile_stop_event.status = true;
+    PostMessage(THREAD_ID_GAP, pEvent);
 }
 
 void A2dp_Sink::ProcessEvent(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
