@@ -329,100 +329,100 @@ static void audio_state_cb(bthf_client_audio_state_t state, bt_bdaddr_t* bd_addr
 
 void vr_cmd_cb(bthf_client_vr_state_t state) {
     ALOGD(LOGTAG "VR state is %s",(state == BTHF_CLIENT_VR_STATE_STOPPED) ? "stopped": "started");
-    cout << LOGTAG "VR state is " << ((state == BTHF_CLIENT_VR_STATE_STOPPED) ? "stopped": "started") << endl;
+    fprintf(stdout, "VR state is %s\n",(state == BTHF_CLIENT_VR_STATE_STOPPED) ? "stopped": "started");
 }
 
 void network_state_cb (bthf_client_network_state_t state) {
     ALOGD(LOGTAG "network state is %s", (state == BTHF_CLIENT_NETWORK_STATE_NOT_AVAILABLE) ? "not available": "available");
-    cout << LOGTAG "network state is " << ((state == BTHF_CLIENT_NETWORK_STATE_NOT_AVAILABLE) ? "not available": "available") << endl;
+    fprintf(stdout, "network state is %s\n", (state == BTHF_CLIENT_NETWORK_STATE_NOT_AVAILABLE) ? "not available": "available");
 }
 
 void network_roaming_cb (bthf_client_service_type_t type) {
     ALOGD(LOGTAG "AG is in %s", (type == BTHF_CLIENT_SERVICE_TYPE_HOME) ? "home network": "roaming");
-    cout << LOGTAG "AG is in " << ((type == BTHF_CLIENT_SERVICE_TYPE_HOME) ? "home network": "roaming") << endl;
+    fprintf(stdout, "AG is in %s\n", (type == BTHF_CLIENT_SERVICE_TYPE_HOME) ? "home network": "roaming");
 }
 
 void network_signal_cb (int signal) {
     ALOGD(LOGTAG "signal level is %d", signal);
-    cout << "signal level is " << signal << endl;
+    fprintf(stdout, "signal level is %d\n", signal);
 }
 
 void battery_level_cb (int level) {
     ALOGD(LOGTAG "battery level is %d", level);
-    cout << LOGTAG "battery level is " << level << endl;
+    fprintf(stdout, "battery level is %d\n", level);
 }
 
 void current_operator_cb (const char *name) {
     ALOGD(LOGTAG "operator name is %s", name);
-    cout << LOGTAG "operator name is " << name << endl;
+    fprintf(stdout, "operator name is %s\n", name);
 }
 
 void call_cb (bthf_client_call_t call) {
     ALOGD(LOGTAG "%s call is in progress", (call == BTHF_CLIENT_CALL_NO_CALLS_IN_PROGRESS) ? "no": "a");
-    cout << LOGTAG << ((call == BTHF_CLIENT_CALL_NO_CALLS_IN_PROGRESS) ? "no": "a") << " call is in progress" << endl;
+    fprintf(stdout, "%s call is in progress\n", (call == BTHF_CLIENT_CALL_NO_CALLS_IN_PROGRESS) ? "no": "a");
 }
 
 void callsetup_cb (bthf_client_callsetup_t callsetup) {
    BtEvent *pEvent = new BtEvent;
    if (callsetup == BTHF_CLIENT_CALLSETUP_NONE) {
-      cout << LOGTAG "no call in setup" << endl;
+      fprintf(stdout, "no call in setup\n");
       ALOGD(LOGTAG "no call is setup");
       // TODO: post this only when MT call ends
       pEvent->hfp_client_event.event_id = HFP_CLIENT_STOP_RINGTONE_REQ;
       PostMessage(THREAD_ID_HFP_CLIENT, pEvent);
    }
    else if(callsetup == BTHF_CLIENT_CALLSETUP_INCOMING) {
-      cout << LOGTAG "Incoming call is in setup" << endl;
+      fprintf(stdout, "Incoming call is in setup\n");
       ALOGD(LOGTAG "Incoming call is in setup");
    }
    else if(callsetup == BTHF_CLIENT_CALLSETUP_OUTGOING) {
-      cout << LOGTAG "Outgoing call is in setup" << endl;
+      fprintf(stdout, "Outgoing call is in setup\n");
       ALOGD(LOGTAG "Outgoing call is in setup");
    }
    else if(callsetup == BTHF_CLIENT_CALLSETUP_ALERTING) {
-      cout << LOGTAG "Outgoing call in alerting state" << endl;
+      fprintf(stdout, "Outgoing call in alerting state\n");
       ALOGD(LOGTAG "Outgoing call in alerting state");
    }
 }
 
 void callheld_cb (bthf_client_callheld_t callheld) {
    if (callheld == BTHF_CLIENT_CALLHELD_NONE) {
-      cout << LOGTAG "no held call" << endl;
+      fprintf(stdout, "no held call\n");
       ALOGD(LOGTAG "no held call");
    }
    else if (callheld == BTHF_CLIENT_CALLHELD_HOLD_AND_ACTIVE) {
-      cout << LOGTAG "a call is placed on hold or calls are swapped" << endl;
+      fprintf(stdout,"a call is placed on hold or calls are swapped\n");
       ALOGD(LOGTAG "a call is placed on hold or calls are swapped");
    }
    else if (callheld == BTHF_CLIENT_CALLHELD_HOLD) {
-      cout << LOGTAG "a call is on hold, no active calls" << endl;
+      fprintf(stdout,"a call is on hold, no active calls\n");
       ALOGD(LOGTAG "a call is on hold, no active calls");
    }
 }
 
 void resp_and_hold_cb (bthf_client_resp_and_hold_t resp_and_hold) {
    if (resp_and_hold == BTHF_CLIENT_RESP_AND_HOLD_HELD) {
-      cout << LOGTAG "incoming call put on held" << endl;
+      fprintf(stdout,"incoming call put on held\n");
       ALOGD(LOGTAG "incoming call put on held");
    }
    else if (resp_and_hold == BTRH_CLIENT_RESP_AND_HOLD_ACCEPT) {
-      cout << LOGTAG "held incoming call accepted" << endl;
+      fprintf(stdout,"held incoming call accepted\n");
       ALOGD(LOGTAG "held incoming call accepted");
    }
    else if (resp_and_hold == BTRH_CLIENT_RESP_AND_HOLD_REJECT) {
-      cout << LOGTAG "held incoming call rejected" << endl;
+      fprintf(stdout,"held incoming call rejected\n");
       ALOGD(LOGTAG "held incoming call rejected");
    }
 }
 
 void clip_cb (const char *number) {
    ALOGD(LOGTAG "CLIP number is %s", number);
-   cout << LOGTAG "CLIP number is " << number << endl;
+   fprintf(stdout, "CLIP number is %s\n", number);
 }
 
 void call_waiting_cb (const char *number) {
    ALOGD(LOGTAG "a call is waiting from number %s", number);
-   cout << LOGTAG "a call is waiting from number " << number << endl;
+   fprintf(stdout, "a call is waiting from number %s\n", number);
 }
 
 void current_calls_cb (int index, bthf_client_call_direction_t dir,
@@ -431,16 +431,16 @@ void current_calls_cb (int index, bthf_client_call_direction_t dir,
                                             const char *number) {
    ALOGD(LOGTAG "%s: index %d, call direction %d, call state %d, multiparty %d, number %s",
         __func__, index, dir, state, mpty, number);
-   cout << __func__ << ": index " << index << " call direction " << dir;
-   cout << " call state " << state << " multiparty " << mpty << " number " << number << endl;
+   fprintf(stdout, "%s: index %d, call direction %d, call state %d, multiparty %d, number %s\n",
+    __func__, index, dir, state, mpty, number);
 }
 
 void volume_change_cb (bthf_client_volume_type_t type, int volume) {
    BtEvent *pEvent = new BtEvent;
-   ALOGD(LOGTAG "%s : %s volume is %d", __func__,
+   ALOGD(LOGTAG "%s : %s volume is %d\n", __func__,
           (type == BTHF_CLIENT_VOLUME_TYPE_SPK) ? "speaker": "mic", volume);
-   cout << LOGTAG << " " << __func__ << ": " << ((type == BTHF_CLIENT_VOLUME_TYPE_SPK) ? "speaker": "mic");
-   cout << " volume is " << volume;
+   fprintf(stdout,"%s : %s volume is %d\n", __func__,
+          (type == BTHF_CLIENT_VOLUME_TYPE_SPK) ? "speaker": "mic", volume);
 
    if (type == BTHF_CLIENT_VOLUME_TYPE_SPK)
        pEvent->hfp_client_event.event_id = HFP_CLIENT_API_SPK_VOL_CTRL_REQ;
@@ -458,26 +458,26 @@ void cmd_complete_cb (bthf_client_cmd_complete_t type, int cme) {
 void subscriber_info_cb (const char *name, bthf_client_subscriber_service_type_t type) {
    if (type == BTHF_CLIENT_SERVICE_UNKNOWN) {
        ALOGD(LOGTAG "subscriber name is %s type is unknown", name);
-       cout << LOGTAG "subscriber name is " << name << " type is unknown" << endl;
+       fprintf(stdout, "subscriber name is %s type is unknown\n", name);
    }
    else if (type == BTHF_CLIENT_SERVICE_VOICE) {
        ALOGD(LOGTAG "subscriber name is %s type is voice", name);
-       cout << LOGTAG "subscriber name is " << name << " type is voice" << endl;
+       fprintf(stdout, "subscriber name is %s type is voice\n", name);
    }
    else if (type == BTHF_CLIENT_SERVICE_FAX) {
        ALOGD(LOGTAG "subscriber name is %s type is fax", name);
-       cout << LOGTAG "subscriber name is " << name << " type is fax" << endl;
+       fprintf(stdout, "subscriber name is %s type is fax\n", name);
    }
 }
 
 void in_band_ring_cb (bthf_client_in_band_ring_state_t in_band) {
    if (in_band == BTHF_CLIENT_IN_BAND_RINGTONE_NOT_PROVIDED) {
        ALOGD(LOGTAG " in-band ringtone not provided");
-       cout << "in-band ringtone not provided" << endl;
+       fprintf(stdout, "in-band ringtone not provided\n");
    }
    else if (in_band == BTHF_CLIENT_IN_BAND_RINGTONE_PROVIDED) {
        ALOGD(LOGTAG " in-band ringtone provided");
-       cout << "in-band ringtone provided" << endl;
+       fprintf(stdout, "in-band ringtone provided\n");
    }
 }
 
@@ -488,7 +488,7 @@ void last_voice_tag_number_cb (const char *number) {
 void ring_indication_cb () {
    BtEvent *pEvent = new BtEvent;
    ALOGD(LOGTAG "ring_indication");
-   cout << "RING indication for incoming call" << endl;
+   fprintf(stdout, "RING indication for incoming call\n");
    pEvent->hfp_client_event.event_id = HFP_CLIENT_PLAY_RINGTONE_REQ;
    PostMessage(THREAD_ID_HFP_CLIENT, pEvent);
 }
@@ -565,7 +565,7 @@ void Hfp_Client::HandleDisableClient(void) {
 
 void Hfp_Client::ProcessEvent(BtEvent* pEvent) {
     ALOGD(LOGTAG " Processing event %d in state %d", pEvent->event_id, mClientState);
-    cout << " Processing event " << pEvent->event_id << " in state " << mClientState << endl;
+    fprintf(stdout, " Processing event %d in state %d\n", pEvent->event_id, mClientState);
     switch(mClientState) {
         case HFP_CLIENT_STATE_DISCONNECTED:
             state_disconnected_handler(pEvent);
@@ -595,7 +595,7 @@ void Hfp_Client::state_disconnected_handler(BtEvent* pEvent) {
                 sBtHfpClientInterface->connect(&pEvent->hfp_client_event.bd_addr);
             }
             bdaddr_to_string(&mConnectingDevice, str, 18);
-            cout << "connecting with device " << str << endl;
+            fprintf(stdout, "connecting with device %s\n", str);
             ALOGD(LOGTAG "connecting with device %s", str);
             change_state(HFP_CLIENT_STATE_CONNECTING);
             break;
@@ -613,7 +613,7 @@ void Hfp_Client::state_disconnected_handler(BtEvent* pEvent) {
             mAudioWbs = false;
 
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "SLC connected with device " << str << endl;
+            fprintf(stdout, "SLC connected with device %s\n", str);
             ALOGD(LOGTAG "SLC connected with device %s", str);
             change_state(HFP_CLIENT_STATE_CONNECTED);
             break;
@@ -638,13 +638,13 @@ void Hfp_Client::state_connecting_handler(BtEvent* pEvent) {
             mAudioWbs = false;
 
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "SLC connected with device " << str << endl;
+            fprintf(stdout, "SLC connected with device %s\n", str);
             ALOGD(LOGTAG "SLC connected with device %s", str);
             change_state(HFP_CLIENT_STATE_CONNECTED);
             break;
         case HFP_CLIENT_DISCONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-            cout << "Disconneced from or Unable to connect with device " << str << endl;
+            fprintf(stdout, "Disconnected from or Unable to connect with device %s\n", str);
             ALOGD(LOGTAG "Disconnected from or Unable to connect with device %s", str);
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
@@ -680,7 +680,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             }
 
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-            cout << "Disconnecting with device " << str << endl;
+            fprintf(stdout, "Disconnecting with device %s\n", str);
             ALOGD(LOGTAG "Disconnecting with device %s", str);
             change_state(HFP_CLIENT_STATE_CONNECTING);
             break;
@@ -693,7 +693,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
 
             mcontrolStatus = STATUS_LOSS_TRANSIENT;
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-            cout << "Disconnected with device " << str << endl;
+            fprintf(stdout, "Disconnected with device %s\n", str);
             ALOGD(LOGTAG "Disconnected with device %s", str);
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
@@ -715,7 +715,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_CLIENT_API_CONNECT_AUDIO_REQ:
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-            cout << "Connecting SCO/eSCO with device " << str << endl;
+            fprintf(stdout, "Connecting SCO/eSCO with device %s\n", str);
             ALOGD(LOGTAG "Connecting SCO/eSCO with device %s", str);
 
             if (sBtHfpClientInterface != NULL) {
@@ -727,12 +727,12 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             // intentional fall through.
         case HFP_CLIENT_AUDIO_STATE_CONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-            cout << "SCO/eSCO connected with device " << str << endl;
+            fprintf(stdout, "SCO/eSCO connected with device %s\n", str);
             ALOGD(LOGTAG " SCO/eSCO connected with device %s", str);
 
             if (mcontrolStatus == STATUS_LOSS || mcontrolStatus == STATUS_LOSS_TRANSIENT)
             {
-                cout << "Connected state: Requesting for focus" << endl;
+                fprintf(stdout, "Connected state: Requesting for focus\n");
                 ALOGD(LOGTAG  " Connected state: Requesting for focus");
                 pControlRequest = new BtEvent;
                 pControlRequest->btamControlReq.event_id = BT_AM_REQUEST_CONTROL;
@@ -743,14 +743,14 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             else
             {
                 // we already have the focus, configure for SCO connection. TODO: cross check
-                cout << "Connected state: already have focus, configure audio for SCO" << endl;
+                fprintf(stdout, "Connected state: already have focus, configure audio for SCO\n");
                 ALOGD(LOGTAG " Connected state: already have focus, configure audio for SCO, current mode %d", mAudioMode);
 
                 // for MT call, stop ring tone if it is playing before connecting sco
                 if (mAudioMode == HFP_CLIENT_MODE_RINGTONE)
                 {
                     ALOGD("Audio Mode is ring tone, stop the ring tone");
-                    cout << "Audio Mode is ring tone, stop the ring tone" << endl;
+                    fprintf(stdout, "Audio Mode is ring tone, stop the ring tone\n");
                     change_mode(HFP_CLIENT_MODE_NORMAL);
                     StopRingTone();
                 }
@@ -775,7 +775,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             else
             {
                 ALOGD("Audio Mode is ring tone, play the ring tone");
-                cout << "Audio Mode is ring tone, play the ring tone" << endl;
+                fprintf(stdout, "Audio Mode is ring tone, play the ring tone\n");
                 PlayRingTone();
             }
             break;
@@ -783,7 +783,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             if (mAudioMode == HFP_CLIENT_MODE_RINGTONE)
             {
                 ALOGD("Audio Mode is ring tone, stop the ring tone");
-                cout << "Audio Mode is ring tone, stop the ring tone" << endl;
+                fprintf(stdout, "Audio Mode is ring tone, stop the ring tone\n");
 
                 StopRingTone();
                 // release control
@@ -800,8 +800,9 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
         case BT_AM_CONTROL_STATUS:
             ALOGD(LOGTAG "earlier status = %d  new status = %d", mcontrolStatus,
                                    pEvent->btamControlStatus.status_type);
-            cout << "Connected: earlier status " << mcontrolStatus << " new status "
-                            << pEvent->btamControlStatus.status_type << endl;
+            fprintf(stdout, "earlier status = %d  new status = %d\n", mcontrolStatus,
+                                   pEvent->btamControlStatus.status_type);
+
             mcontrolStatus = pEvent->btamControlStatus.status_type;
 
             switch(mcontrolStatus) {
@@ -818,14 +819,14 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
                     if (mAudioMode == HFP_CLIENT_MODE_RINGTONE)
                     {
                         ALOGD(LOGTAG " in Ringtone mode, configure and play ringtone");
-                        cout << "in Ringtone mode, configure and play ringtone" << endl;
+                        fprintf(stdout, "in Ringtone mode, configure and play ringtone\n");
                         ConfigureRingTonePlayback();
                         PlayRingTone();
                     }
                     else
                     {
                         ALOGD(LOGTAG " Configure audio for SCO");
-                        cout << "Configure audio for SCO" << endl;
+                        fprintf(stdout, "Configure audio for SCO\n");
                         ConfigureAudio(true);
                     }
                     break;
@@ -845,7 +846,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             if (mAudioMode == HFP_CLIENT_MODE_RINGTONE)
             {
                 ALOGD("Audio Mode is ring tone, stop the ring tone");
-                cout << "Audio Mode is ring tone, stop the ring tone" << endl;
+                fprintf(stdout, "Audio Mode is ring tone, stop the ring tone\n");
 
                 StopRingTone();
                 // release control
@@ -1001,7 +1002,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             }
 
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-            cout << "Disconnecting SCO/eSCO with device " << str << endl;
+            fprintf(stdout, "Disconnecting SCO/eSCO with device %s\n", str);
             ALOGD(LOGTAG "Disconnecting SCO/eSCO with device %s", str);
             break;
         case HFP_CLIENT_AUDIO_STATE_DISCONNECTED_CB:
@@ -1020,14 +1021,14 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             change_state(HFP_CLIENT_STATE_CONNECTED);
 
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-            cout << "Disconnected SCO connection with device " << str << endl;
+            fprintf(stdout, "Disconnected SCO connection with device %s\n", str);
             ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
             break;
         case BT_AM_CONTROL_STATUS:
             ALOGD(LOGTAG "earlier status = %d  new status = %d", mcontrolStatus,
                                    pEvent->btamControlStatus.status_type);
-            cout << "AudioOn: earlier status " << mcontrolStatus << " new status "
-                            << pEvent->btamControlStatus.status_type << endl;
+            fprintf(stdout, "earlier status = %d  new status = %d\n", mcontrolStatus,
+                                   pEvent->btamControlStatus.status_type);
             mcontrolStatus = pEvent->btamControlStatus.status_type;
 
             switch(mcontrolStatus) {
@@ -1042,7 +1043,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
                     break;
                  case STATUS_GAIN_TRANSIENT:
                     ALOGD(LOGTAG " Configure audio for SCO");
-                    cout << "Configure audio for SCO" << endl;
+                    fprintf(stdout, "Configure audio for SCO\n");
                     ConfigureAudio(true);
                     break;
             }
@@ -1190,7 +1191,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
                 sBtHfpClientInterface->send_at_cmd(15, 1, 0, NULL);
             }
             break;
-         
+
         default:
             ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
             break;
@@ -1207,11 +1208,11 @@ void Hfp_Client::ConfigureRingTonePlayback() {
    audio_io_handle_t handle = 0x7;
 
    ALOGD(LOGTAG "ConfigureRingTonePlayback");
-   cout << "ConfigureRingTonePlayback" << endl;
+   fprintf(stdout, "ConfigureRingTonePlayback\n");
 
    if (pBTAM == NULL) {
       ALOGD(LOGTAG "Audio Manager not initialized");
-      cout << "Audio Manager not initialized" << endl;
+      fprintf(stdout, "Audio Manager not initialized\n");
       return;
    }
 
@@ -1230,12 +1231,12 @@ void Hfp_Client::ConfigureRingTonePlayback() {
                                         &config, &out_stream_ring_tone, "bt_hfp_client");
    }
    else {
-      cout << "ConfigureRingTonePlayback: audio_device is NULL" << endl;
+      fprintf(stdout, "ConfigureRingTonePlayback: audio_device is NULL\n");
       ALOGD(LOGTAG " ConfigureRingTonePlayback: audio_device is NULL");
    }
 #else
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-   cout << "BT_AUDIO_HAL_INTEGRATION needs to be defined" << endl;
+   fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
 #endif
 }
 
@@ -1249,7 +1250,7 @@ void Hfp_Client::PlayRingTone() {
 
   if (buf == NULL)
   {
-     cout << "memory allocation for playing ringtone failed" << endl;
+     fprintf(stdout, "memory allocation for playing ringtone failed\n");
      ALOGD("%s: memory allocation for playing ringtone failed", __func__);
      return;
   }
@@ -1270,7 +1271,7 @@ void Hfp_Client::PlayRingTone() {
 
 #else
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-   cout << "BT_AUDIO_HAL_INTEGRATION needs to be defined" << endl;
+   fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
 #endif
 }
 
@@ -1296,11 +1297,11 @@ void Hfp_Client::ConfigureAudio(bool enable) {
    audio_io_handle_t handle = 0x999;
 
    ALOGD(LOGTAG "Configure Audio for enable/disable %d, wbs %d", enable, mAudioWbs);
-   cout << "Configure Audio for enable/disable " <<  enable << " wbs " <<  mAudioWbs << endl;
+   fprintf(stdout, "Configure Audio for enable/disable %d, wbs %d\n", enable, mAudioWbs);
 
    if (pBTAM == NULL) {
       ALOGD(LOGTAG "Audio Manager not initialized");
-      cout << "Audio Manager not initialized" << endl;
+      fprintf(stdout, "Audio Manager not initialized\n");
       return;
    }
 
@@ -1315,25 +1316,25 @@ void Hfp_Client::ConfigureAudio(bool enable) {
          audio_device->open_output_stream(audio_device, handle, 2, AUDIO_OUTPUT_FLAG_NONE,
                                         &config, &out_stream, "bt_hfp_client");
          ALOGD(LOGTAG " setting sample rate %s", (mAudioWbs ? "16000" : "8000"));
-         cout << "setting sample rate " << (mAudioWbs ? "16000" : "8000") << endl;
+         fprintf(stdout, " setting sample rate %s\n", (mAudioWbs ? "16000" : "8000"));
          if (mAudioWbs)
             audio_device->set_parameters(audio_device, "hfp_set_sampling_rate=16000");
          else
             audio_device->set_parameters(audio_device, "hfp_set_sampling_rate=8000");
 
-         cout << "setting hfp_enable to true" << endl;
+         fprintf(stdout, "setting hfp_enable to true\n");
          ALOGD(LOGTAG " setting hfp_enable to true");
          audio_device->set_parameters(audio_device, "hfp_volume=15");
          audio_device->set_parameters(audio_device, "hfp_enable=true");
       }
       else
       {
-         cout << "setting hfp_enable to false" << endl;
+         fprintf(stdout, "setting hfp_enable to false\n");
          ALOGD(LOGTAG " setting hfp_enable to false");
          audio_device->set_parameters(audio_device, "hfp_enable=false");
 
          if (out_stream != NULL) {
-            cout << "closing output stream for SCO/eSCO" << endl;
+            fprintf(stdout, "closing output stream for SCO/eSCO\n");
             ALOGD(LOGTAG " Closing output stream for SCO/eSCO");
             audio_device->close_output_stream(audio_device, out_stream);
             out_stream = NULL;
@@ -1341,12 +1342,12 @@ void Hfp_Client::ConfigureAudio(bool enable) {
       }
    }
    else {
-      cout << "ConfigureAudio: audio_device is NULL" << endl;
+      fprintf(stdout, "ConfigureAudio: audio_device is NULL\n");
       ALOGD(LOGTAG " ConfigureAudio: audio_device is NULL");
    }
 #else
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-   cout << "BT_AUDIO_HAL_INTEGRATION needs to be defined" << endl;
+   fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
 #endif
 }
 
@@ -1358,19 +1359,19 @@ void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bo
 
    ALOGD(LOGTAG "ConfigureVolume for %s vol level %d, mute_mic %d",
            (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK)? "speaker" :"mic", vol, mute_mic);
-   cout << "ConfigureVolume for " << (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK)? "speaker" :"mic";
-   cout << "vol level " << vol << " mute_mic " << mute_mic << endl;
+   fprintf(stdout, "ConfigureVolume for %s vol level %d, mute_mic %d\n",
+           (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK)? "speaker" :"mic", vol, mute_mic);
 
    if (pBTAM == NULL) {
       ALOGD(LOGTAG "Audio Manager not initialized");
-      cout << "Audio Manager not initialized" << endl;
+      fprintf(stdout, "Audio Manager not initialized\n");
       return;
    }
 
    audio_device = pBTAM->GetAudioDevice();
    if(audio_device == NULL || out_stream == NULL) {
       ALOGD(LOGTAG "Audio is not configured for SCO");
-      cout << "Audio is not configured for SCO" << endl;
+      fprintf(stdout, "Audio is not configured for SCO\n");
       return;
    }
 
@@ -1395,7 +1396,7 @@ void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bo
 
 void Hfp_Client::change_state(HfpClientState mState) {
    ALOGD(LOGTAG " current State = %d, new state = %d", mClientState, mState);
-   cout <<  "change_state: current State = " << mClientState << " new state = " <<  mState;
+   fprintf(stdout, " current State = %d, new state = %d\n", mClientState, mState);
    pthread_mutex_lock(&lock);
    mClientState = mState;
    ALOGD(LOGTAG " state changes to %d ", mState);
@@ -1404,7 +1405,7 @@ void Hfp_Client::change_state(HfpClientState mState) {
 
 void Hfp_Client::change_mode(HfpClientMode mode) {
    ALOGD(LOGTAG " current mode = %d, new mode = %d", mAudioMode, mode);
-   cout << "change_mode: current mode " << mAudioMode << " new mode " << mode << endl;
+   fprintf(stdout, " current mode = %d, new mode = %d\n", mAudioMode, mode);
    pthread_mutex_lock(&lock);
    mAudioMode = mode;
    ALOGD(LOGTAG " mode changes to %d ", mAudioMode);

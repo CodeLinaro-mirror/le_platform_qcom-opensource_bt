@@ -431,14 +431,14 @@ void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent) {
         case A2DP_SINK_CONNECTING_CB:
             memcpy(&mConnectingDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
             bdaddr_to_string(&mConnectingDevice, str, 18);
-            cout << "A2DP Sink Connecting to " << str << endl;
+            fprintf(stdout, "A2DP Sink Connecting to %s\n", str);
             change_state(STATE_PENDING);
             break;
         case A2DP_SINK_CONNECTED_CB:
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             memcpy(&mConnectedDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "A2DP Sink Connected to " << str << endl;
+            fprintf(stdout, "A2DP Sink Connected to %s\n", str);
             change_state(STATE_CONNECTED);
             break;
         default:
@@ -456,19 +456,19 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent) {
             memcpy(&mConnectedDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "A2DP Sink Connected to " << str << endl;
+            fprintf(stdout,  "A2DP Sink Connected to %s\n", str);
             change_state(STATE_CONNECTED);
             break;
         case A2DP_SINK_DISCONNECTED_CB:
             cout << "A2DP Sink DisConnected "<< endl;
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
-
+            fprintf(stdout, "A2DP Sink DisConnected %s\n", str);
             change_state(STATE_DISCONNECTED);
             break;
         case A2DP_SINK_API_CONNECT_REQ:
             bdaddr_to_string(&mConnectingDevice, str, 18);
-            cout << "A2DP Sink Connecting to " << str << endl;
+            fprintf(stdout, "A2DP Sink Connecting to %s\n", str);
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
@@ -484,7 +484,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
     switch(pEvent->event_id) {
         case A2DP_SINK_API_CONNECT_REQ:
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "A2DP Sink Connected to " << str << endl;
+            fprintf(stdout, "A2DP Sink Connected to %s\n", str);
             break;
         case A2DP_SINK_API_DISCONNECT_REQ:
             CloseAudioStream();
@@ -495,7 +495,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
 
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "A2DP Sink DisConnecting from " << str << endl;
+            fprintf(stdout, "A2DP Sink DisConnecting from %s\n", str);
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             if (sBtA2dpSinkInterface != NULL) {
@@ -513,7 +513,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
-            cout << "A2DP Sink DisConnected " << endl;
+            fprintf(stdout, "A2DP Sink DisConnected \n");
             change_state(STATE_DISCONNECTED);
             break;
         case A2DP_SINK_DISCONNECTING_CB:
@@ -523,8 +523,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent) {
             pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
             pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
             PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
-
-            cout << "A2DP Sink DisConnecting " << endl;
+            fprintf(stdout, "A2DP Sink DisConnecting\n");
             change_state(STATE_PENDING);
             break;
         case A2DP_SINK_AUDIO_STARTED:

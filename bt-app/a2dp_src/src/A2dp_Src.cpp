@@ -531,7 +531,7 @@ void A2dp_Source::ProcessEvent(BtEvent* pEvent) {
             state_connected_handler(pEvent);
             break;
         case STATE_A2DP_SOURCE_NOT_STARTED:
-            cout << "Ignore!! Make sure BT is turned on!!" << endl;
+            fprintf(stdout, "Ignore!! Make sure BT is turned on!!\n");
             ALOGE(LOGTAG_A2DP " STATE UNINITIALIZED, return");
             break;
     }
@@ -579,23 +579,23 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
                 sBtA2dpSourceInterface->connect(&pEvent->a2dpSourceEvent.bd_addr);
             }
             bdaddr_to_string(&mConnectingDevice, str, 18);
-            cout << "A2DP Source Connecting to " << str << endl;
+            fprintf(stdout, "A2DP Source Connecting to %s\n", str);
             change_state(STATE_A2DP_SOURCE_PENDING);
             break;
         case A2DP_SOURCE_API_DISCONNECT_REQ:
-            cout << "A2DP Source Disconnect can not be processed" << endl;
+            fprintf(stdout, "A2DP Source Disconnect can not be processed\n");
             break;
         case A2DP_SOURCE_CONNECTING_CB:
             memcpy(&mConnectingDevice, &pEvent->a2dpSourceEvent.bd_addr, sizeof(bt_bdaddr_t));
             bdaddr_to_string(&mConnectingDevice, str, 18);
-            cout << "A2DP Source Connecting to " << str << endl;
+            fprintf(stdout, "A2DP Source Connecting to %s\n", str);
             change_state(STATE_A2DP_SOURCE_PENDING);
             break;
         case A2DP_SOURCE_CONNECTED_CB:
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             memcpy(&mConnectedDevice, &pEvent->a2dpSourceEvent.bd_addr, sizeof(bt_bdaddr_t));
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "A2DP Source Connected to " << str << endl;
+            fprintf(stdout, "A2DP Source Connected to %s\n", str);
             change_state(STATE_A2DP_SOURCE_CONNECTED);
             BtA2dpOpenOutputStream();
             break;
@@ -605,7 +605,7 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
             }
             break;
         default:
-            cout << "Event not processed in disconnected state "<< pEvent->event_id << endl;
+            fprintf(stdout, "Event not processed in disconnected state %d ", pEvent->event_id);
             ALOGE(LOGTAG_A2DP " event not handled %d ", pEvent->event_id);
             break;
     }
@@ -618,12 +618,12 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             memcpy(&mConnectedDevice, &pEvent->a2dpSourceEvent.bd_addr, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "A2DP Source Connected to " << str << endl;
+            fprintf(stdout, "A2DP Source Connected to %s\n", str);
             change_state(STATE_A2DP_SOURCE_CONNECTED);
             BtA2dpOpenOutputStream();
             break;
         case A2DP_SOURCE_DISCONNECTED_CB:
-            cout << "A2DP Source DisConnected "<< endl;
+            fprintf(stdout, "A2DP Source DisConnected \n");
             media_playing = false;
             BtA2dpCloseOutputStream();
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
@@ -632,10 +632,10 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             break;
         case A2DP_SOURCE_API_CONNECT_REQ:
             bdaddr_to_string(&mConnectingDevice, str, 18);
-            cout << "A2DP Source already Connecting to " << str << endl;
+            fprintf(stdout, "A2DP Source already Connecting to %s\n", str);
             break;
         case A2DP_SOURCE_API_DISCONNECT_REQ:
-            cout << "A2DP Source Disconnect can not be processed" << endl;
+            fprintf(stdout, "A2DP Source Disconnect can not be processed\n");
             break;
         case A2DP_SOURCE_CONNECTION_PRIORITY_REQ:
             if (sBtA2dpSourceInterface != NULL) {
@@ -643,7 +643,7 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             }
             break;
         default:
-            cout << "Event not processed in pending state "<< pEvent->event_id << endl;
+            fprintf(stdout, "Event not processed in pending state %d ", pEvent->event_id);
             ALOGE(LOGTAG_A2DP " event not handled %d ", pEvent->event_id);
             break;
     }
@@ -656,17 +656,17 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
     switch(pEvent->event_id) {
         case A2DP_SOURCE_API_CONNECT_REQ:
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "A2DP Source Already Connected to " << str << endl;
+            fprintf(stdout, "A2DP Source Already Connected to %s\n", str);
             break;
         case A2DP_SOURCE_API_DISCONNECT_REQ:
             if (memcmp(&mConnectedDevice, &pEvent->a2dpSourceEvent.bd_addr, sizeof(bt_bdaddr_t)))
             {
                 bdaddr_to_string(&pEvent->a2dpSourceEvent.bd_addr, str, 18);
-                cout << "Device not connected: " << str << endl;
+                fprintf(stdout, "Device not connected: %s\n", str);
                 break;
             }
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            cout << "A2DP Source DisConnecting: " << str << endl;
+            fprintf(stdout, "A2DP Source DisConnecting: %s\n", str);
             media_playing = false;
             if (sBtA2dpSourceInterface != NULL) {
                 sBtA2dpSourceInterface->disconnect(&pEvent->a2dpSourceEvent.bd_addr);
@@ -683,20 +683,20 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             BtA2dpCloseOutputStream();
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
-            cout << "A2DP Source DisConnected " << endl;
+            fprintf(stdout, "A2DP Source DisConnected \n");
             change_state(STATE_A2DP_SOURCE_DISCONNECTED);
             break;
         case A2DP_SOURCE_DISCONNECTING_CB:
-            cout << "A2DP Source DisConnecting " << endl;
+            fprintf(stdout, "A2DP Source DisConnecting \n");
             change_state(STATE_A2DP_SOURCE_PENDING);
             break;
         case A2DP_SOURCE_AUDIO_STARTED:
         case A2DP_SOURCE_AUDIO_SUSPENDED:
         case A2DP_SOURCE_AUDIO_STOPPED:
-            cout << "A2DP Source Audio state changes to: " << pEvent->event_id << endl;
+            fprintf(stdout, "A2DP Source Audio state changes to: %d ", pEvent->event_id);
             break;
         default:
-            cout << "Event not processed in connected state "<< pEvent->event_id << endl;
+            fprintf(stdout, "Event not processed in connected state %d ", pEvent->event_id);
             ALOGE(LOGTAG_A2DP " event not handled %d ", pEvent->event_id);
             break;
     }
