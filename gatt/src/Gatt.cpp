@@ -841,6 +841,7 @@ void btgatts_request_write_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int a
                                         uint8_t* value)
 {
     char c_address[32];
+    uint8_t *mem = NULL;
     snprintf(c_address,sizeof(c_address), "%02X:%02X:%02X:%02X:%02X:%02X",
             bda->address[0], bda->address[1], bda->address[2],
            bda->address[3], bda->address[4], bda->address[5]);
@@ -860,7 +861,13 @@ void btgatts_request_write_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int a
     event->gatts_request_write_event.length = length;
     event->gatts_request_write_event.need_rsp = need_rsp;
     event->gatts_request_write_event.is_prep = is_prep;
-    event->gatts_request_write_event.value = value;
+    if(length > 0 && value != NULL)
+    {
+        mem = (uint8_t *)osi_malloc(length);
+        if(mem != NULL)
+            memcpy(mem,value,length);
+    }
+    event->gatts_request_write_event.value = mem;
 
     PostMessage(THREAD_ID_GATT, event);
 }
