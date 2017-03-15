@@ -594,7 +594,7 @@ bool Rsp::SendResponse(GattsRequestWriteEvent *event)
     att_resp.attr_value.len = event->length;
     att_resp.attr_value.auth_req = 0;
 
-    if(!strncasecmp((const char *)(event->value), "on", 2)) {
+    if(event->value != NULL && !strncasecmp((const char *)(event->value), "on", 2)) {
         if (GetDeviceState() == WLAN_INACTIVE)
         {
             HandleWlanOn();
@@ -607,6 +607,8 @@ bool Rsp::SendResponse(GattsRequestWriteEvent *event)
 
     fprintf(stdout, "(%s) Sending RSP response to write (%d) value (%s) State (%d)",__FUNCTION__,
             GetRSPAppData()->server_if, event->value,GetDeviceState());
+    if(event->value != NULL)
+        osi_free(event->value);
 
     rsp->SetDeviceState(WLAN_ACTIVE);;
     return app_gatt->send_response(event->conn_id, event->trans_id,

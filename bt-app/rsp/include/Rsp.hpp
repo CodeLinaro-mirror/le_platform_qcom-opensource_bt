@@ -38,6 +38,7 @@
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
+#include "osi/include/allocator.h"
 #include "ipc.h"
 #include "Rsp.hpp"
 #include "Gatt.hpp"
