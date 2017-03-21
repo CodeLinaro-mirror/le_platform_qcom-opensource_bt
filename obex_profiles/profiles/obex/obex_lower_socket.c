@@ -889,13 +889,15 @@ static OI_STATUS LowerRegServer(OI_OBEX_LOWER_SERVER serverHandle,
         securityFlags = BTSOCK_FLAG_ENCRYPT | BTSOCK_FLAG_AUTH;
     }
     OI_DBGTRACE(("Listening on %s socket", OI_UUIDDataelemText(&policy->serviceUuid)));
+    //TODO: check and update last argument of below call.
+    //Added 0 to compile
     if (OI_SUCCESS(status) && socket_interface) {
         connectStatus = socket_interface->listen(sock_type,
                 OI_UUIDDataelemText(&policy->serviceUuid),
                 NULL,
                 channel,
                 &serverHandle->lowerPrivate->socket,
-                securityFlags);
+                securityFlags, 0);
     }
 
     if (BT_STATUS_SUCCESS == connectStatus) {
@@ -1025,12 +1027,14 @@ static OI_STATUS LowerConnect(OI_OBEX_LOWER_CONNECTION connectionHandle,
      * lowerPrivate->connect will be updated.
      */
 
+    //TODO: check and update last argument of below call.
+    //Added 0 to compile
     if (socket_interface) {
         connectStatus = socket_interface->connect(addr, sock_type,
                 NULL, /* UUID is set to NULL as channel has required info */
                 connectionHandle->lowerPrivate->channel,
                 &connectionHandle->lowerPrivate->socket,
-                securityFlags);
+                securityFlags, 0);
     }
 
     // Other fields in connectionHandle are populated by the caller

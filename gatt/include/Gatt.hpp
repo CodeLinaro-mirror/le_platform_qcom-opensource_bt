@@ -99,30 +99,8 @@ class BluetoothGattClientCallback {
       {
       }
 
-      virtual void btgattc_search_result_cb(int conn_id, btgatt_srvc_id_t *srvc_id)
-      {
-      }
-
-      virtual void btgattc_get_characteristic_cb(int conn_id, int status,
-                    btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
-                    int char_prop)
-      {
-      }
-
-      virtual void btgattc_get_descriptor_cb(int conn_id, int status,
-                    btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
-                    btgatt_gatt_id_t *descr_id)
-      {
-      }
-
-      virtual void btgattc_get_included_service_cb(int conn_id, int status,
-                    btgatt_srvc_id_t *srvc_id, btgatt_srvc_id_t *incl_srvc_id)
-      {
-      }
-
       virtual void btgattc_register_for_notification_cb(int conn_id, int registered,
-                                                        int status, btgatt_srvc_id_t *srvc_id,
-                                                        btgatt_gatt_id_t *char_id)
+                                                        int status, uint16_t handle)
       {
       }
 
@@ -136,7 +114,7 @@ class BluetoothGattClientCallback {
       }
 
       virtual void btgattc_write_characteristic_cb(int conn_id, int status,
-        btgatt_write_params_t *p_data)
+        uint16_t handle)
       {
       }
 
@@ -144,7 +122,7 @@ class BluetoothGattClientCallback {
       {
       }
 
-      virtual void btgattc_write_descriptor_cb(int conn_id, int status, btgatt_write_params_t *p_data)
+      virtual void btgattc_write_descriptor_cb(int conn_id, int status, uint16_t handle)
       {
       }
 
@@ -219,8 +197,11 @@ class BluetoothGattClientCallback {
       virtual void btgattc_scan_parameter_setup_completed_cb(int client_if, btgattc_error_t status)
       {
       }
+      virtual void btgattc_get_gatt_db_cb(int conn_id, btgatt_db_element_t *db, int count)
+      {
+      }
 };
- 
+
  /**
    * This virtual class is used to implement {@link BluetoothGattServer} callbacks.
    */
@@ -352,16 +333,12 @@ class Gatt {
         void HandleGattcOpenEvent(GattcOpenEvent*) ;
         void HandleGattcCloseEvent(GattcCloseEvent*) ;
         void HandleGattcSearchCompleteEvent(GattcSearchCompleteEvent*) ;
-        void HandleGattcSSearchResultEvent(GattcSearchResultEvent*) ;
-        void HandleGattcGetCharacteristicsEvent(GattcGetCharacteristicEvent*) ;
-        void HandleGattcGetDescriptorEvent(GattcGetDescriptorEvent*) ;
-        void HandleGattcGetIncludedServiceEvent(GattcGetIncludedServiceEvent*) ;
         void HandleGattcRegisterForNotificationEvent(GattcRegisterForNotificationEvent*) ;
         void HandleGattcNotifyEvent(GattcNotifyEvent*) ;
         void HandleGattcReadCharacteristicEvent(GattcReadCharacteristicEvent*) ;
         void HandleGattcWriteCharacteristicEvent(GattcWriteCharacteristicEvent*) ;
         void HandleGattcReadDescriptorEvent(GattcReadDescriptorEvent*) ;
-        void HandleGattcWriteDescriptorEvent(GattcWriteCharacteristicEvent *) ;
+        void HandleGattcWriteDescriptorEvent(GattcWriteDescriptorEvent *) ;
         void HandleGattcExecuteWriteEvent(GattcExecuteWriteEvent*) ;
         void HandleGattcRemoteRssiEvent(GattcRemoteRssiEvent*) ;
         void HandleGattcAdvertiseEvent(GattcAdvertiseEvent*) ;
@@ -380,6 +357,7 @@ class Gatt {
         void HandleGattcBatchscanThresholdEvent(GattcBatchscanThresholdEvent*) ;
         void HandleGattcTrackAdvEventEvent(GattcTrackAdvEventEvent*) ;
         void HandleGattcScanParameterSetupCompletedEvent(GattcScanParameterSetupCompletedEvent*) ;
+        void HandleGattcGetGattDbEvent(GattcGetGattDbEvent *event);
         void HandleRspEnableEvent(RspEnableEvent *);
         void HandleRspDisableEvent(RspDisableEvent *);
         bool HandleEnableGatt(void);
@@ -437,24 +415,20 @@ class Gatt {
 
         /** Read a characteristic on a remote device */
         bt_status_t read_characteristic( int conn_id,
-                        btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
-                        int auth_req );
+                        uint16_t handle, int auth_req );
 
         /** Write a remote characteristic */
         bt_status_t write_characteristic(int conn_id,
-                        btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
-                        int write_type, int len, int auth_req,
+                        uint16_t handle, int write_type, int len, int auth_req,
                         char* p_value);
 
         /** Read the descriptor for a given characteristic */
         bt_status_t read_descriptor(int conn_id,
-                        btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
-                        btgatt_gatt_id_t *descr_id, int auth_req);
+                        uint16_t handle, int auth_req);
 
         /** Write a remote descriptor for a given characteristic */
         bt_status_t write_descriptor( int conn_id,
-                        btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
-                        btgatt_gatt_id_t *descr_id, int write_type, int len,
+                        uint16_t handle, int write_type, int len,
                         int auth_req, char* p_value);
 
         /** Execute a prepared write operation */
@@ -465,13 +439,11 @@ class Gatt {
                 * characteristic
                 */
         bt_status_t register_for_notification( int client_if,
-                        const bt_bdaddr_t *bd_addr, btgatt_srvc_id_t *srvc_id,
-                        btgatt_gatt_id_t *char_id);
+                        const bt_bdaddr_t *bd_addr, uint16_t handle);
 
         /** Deregister a previous request for notifications/indications */
         bt_status_t deregister_for_notification( int client_if,
-                        const bt_bdaddr_t *bd_addr, btgatt_srvc_id_t *srvc_id,
-                        btgatt_gatt_id_t *char_id);
+                        const bt_bdaddr_t *bd_addr, uint16_t handle);
 
         /** Request RSSI for a given remote device */
         bt_status_t read_remote_rssi( int client_if, const bt_bdaddr_t *bd_addr);
@@ -547,6 +519,9 @@ class Gatt {
 
         /** Test mode interface */
         bt_status_t test_command( int command, btgatt_test_params_t* params);
+
+        /** get gatt database */
+        bt_status_t get_gatt_db(int conn_id);
 
         /** Registers a GATT server application with the stack */
         bt_status_t register_server( bt_uuid_t *uuid );

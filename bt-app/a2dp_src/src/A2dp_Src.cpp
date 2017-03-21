@@ -506,10 +506,11 @@ void A2dp_Source::HandleEnableSource(void) {
              PostMessage(THREAD_ID_GAP, pEvent);
              return;
         }
+        //TODO: check and update
 #ifdef USE_LIBHW_AOSP
-        sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks);
+//        sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks);
 #else
-        sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, 0);
+ //       sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, 0);
 #endif
         sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0);
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
@@ -519,10 +520,11 @@ void A2dp_Source::HandleEnableSource(void) {
         sBtAvrcpTargetInterface = (btrc_interface_t *)bluetooth_interface->
                 get_profile_interface(BT_PROFILE_AV_RC_ID);
         if (sBtAvrcpTargetInterface != NULL) {
+        //TODO: check and update
 #ifdef USE_LIBHW_AOSP
-            sBtAvrcpTargetInterface->init(&sBluetoothAvrcpTargetCallbacks);
+//            sBtAvrcpTargetInterface->init(&sBluetoothAvrcpTargetCallbacks);
 #else
-            sBtAvrcpTargetInterface->init(&sBluetoothAvrcpTargetCallbacks, 1);
+//            sBtAvrcpTargetInterface->init(&sBluetoothAvrcpTargetCallbacks, 1);
 #endif
         }
         // AVRCP TG vendor Initialization

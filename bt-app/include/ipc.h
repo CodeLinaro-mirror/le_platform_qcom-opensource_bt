@@ -396,6 +396,7 @@ typedef enum {
     BTGATTC_BATCHSCAN_THRESHOLD_EVENT,
     BTGATTC_TRACK_ADV_EVENT_EVENT,
     BTGATTC_SCAN_PARAMETER_SETUP_COMPLETED_EVENT,
+    BTGATTC_GET_GATT_DB_EVENT,
 
     RSP_ENABLE_EVENT = RSP_MSG_BASE,
     RSP_DISABLE_EVENT,
@@ -855,8 +856,7 @@ typedef struct{
     int conn_id;
     int registered;
     int status;
-    btgatt_srvc_id_t *srvc_id;
-    btgatt_gatt_id_t *char_id;
+    int handle;
 } GattcRegisterForNotificationEvent;
 
 typedef struct{
@@ -876,7 +876,7 @@ typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_write_params_t *p_data;
+    int handle;
 } GattcWriteCharacteristicEvent;
 
 typedef struct{
@@ -896,7 +896,7 @@ typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_write_params_t *p_data;
+    uint16_t handle;
 } GattcWriteDescriptorEvent;
 
 typedef struct{
@@ -1017,6 +1017,14 @@ typedef struct
     int client_if;
     btgattc_error_t status;
 } GattcScanParameterSetupCompletedEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int conn_id;
+    btgatt_db_element_t *db;
+    int count;
+} GattcGetGattDbEvent;
 
 typedef struct{
     BluetoothEventId event_id;
@@ -1341,7 +1349,8 @@ typedef union {
     GattcBatchscanReportsEvent              gattc_batchscan_reports_event;
     GattcBatchscanThresholdEvent            gattc_batchscan_threshold_event;
     GattcTrackAdvEventEvent                 gattc_track_adv_event_event;
-    GattcScanParameterSetupCompletedEvent  gattc_scan_parameter_setup_completed_event;
+    GattcScanParameterSetupCompletedEvent   gattc_scan_parameter_setup_completed_event;
+    GattcGetGattDbEvent                     gattc_get_gatt_db_event;
 
     RspEnableEvent                          rsp_enable_event;
     RspDisableEvent                         rsp_disable_event;

@@ -331,10 +331,21 @@ static void btavrcpctrl_registernotification_absvol_vendor_callback(bt_bdaddr_t 
     ALOGD(LOGTAG_CTRL " btavrcpctrl_registernotification_absvol_vendor_callback");
 }
 
+//TODO: check and update callbacks
 static btrc_ctrl_callbacks_t sBluetoothAvrcpCtrlCallbacks = {
    sizeof(sBluetoothAvrcpCtrlCallbacks),
-   btavrcpctrl_passthru_rsp_callback,
-   btavrcpctrl_connection_state_callback,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
 };
 
 static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
@@ -416,10 +427,11 @@ void A2dp_Sink::HandleEnableSink(void) {
         fetch_rtp_info = config_get_bool (config,
                 CONFIG_DEFAULT_SECTION, "BtFetchRTPForSink", false);
         ALOGD(LOGTAG " Fetch RTP Info %d", fetch_rtp_info);
+        //TODO: check and update
 #ifdef USE_LIBHW_AOSP
-        sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks);
+//        sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks);
 #else
-        sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks, 1, 0);
+  //      sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks, 1, 0);
 #endif
         if (fetch_rtp_info) {
             sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks, 1, 0,

@@ -243,6 +243,7 @@ static void EnergyInfoRecvCb(bt_activity_energy_info *p_energy_info) {
     ALOGV (LOGTAG " EnergyInfoRecvCb: ");
 }
 
+//TODO: update the callbacks, made NULL to compile
 static bt_callbacks_t sBluetoothCallbacks = {
     sizeof(sBluetoothCallbacks),
     AdapterStateChangeCallback,
@@ -257,7 +258,7 @@ static bt_callbacks_t sBluetoothCallbacks = {
     CbThreadEvent,
     DutModeRecvCb,
     LeTestModeRecvCb,
-    EnergyInfoRecvCb,
+    NULL,
     NULL,
 };
 
