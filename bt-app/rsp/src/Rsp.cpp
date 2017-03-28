@@ -442,14 +442,122 @@ bool Rsp::CopyUUID(bt_uuid_t *uuid)
     }
     return true;
 }
+bool Rsp::CopyCharacteristicsUUID(bt_uuid_t *uuid)
+{
+    CHECK_PARAM(uuid);
+    uuid->uu[0] = 0xfb;
+    uuid->uu[1] = 0x34;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[4] = 0x80;
+    uuid->uu[5] = 0x00;
+    uuid->uu[6] = 0x00;
+    uuid->uu[7] = 0x80;
+    uuid->uu[8] = 0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[10] = 0x00;
+    uuid->uu[11] = 0x00;
 
+    uuid->uu[12] = 0x02;
+    uuid->uu[13] = 0xbb;
+
+    uuid->uu[14] = 0x00;
+    uuid->uu[15] = 0x00;
+
+    return true;
+}
+bool Rsp::CopyDescriptorUUID(bt_uuid_t *uuid)
+{
+    CHECK_PARAM(uuid);
+    uuid->uu[0] = 0xfb;
+    uuid->uu[1] = 0x34;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[4] = 0x80;
+    uuid->uu[5] = 0x00;
+    uuid->uu[6] = 0x00;
+    uuid->uu[7] = 0x80;
+    uuid->uu[8] = 0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[10] = 0x00;
+    uuid->uu[11] = 0x00;
+
+    uuid->uu[12] = 0x03;
+    uuid->uu[13] = 0xcc;
+
+    uuid->uu[14] = 0x00;
+    uuid->uu[15] = 0x00;
+
+    return true;
+}
+bool Rsp::CopyServerUUID(bt_uuid_t *uuid)
+{
+    CHECK_PARAM(uuid);
+    uuid->uu[0] = 0xfb;
+    uuid->uu[1] = 0x34;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[4] = 0x80;
+    uuid->uu[5] = 0x00;
+    uuid->uu[6] = 0x00;
+    uuid->uu[7] = 0x80;
+    uuid->uu[8] = 0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[10] = 0x00;
+    uuid->uu[11] = 0x00;
+
+    uuid->uu[12] = 0x06;
+    uuid->uu[13] = 0x00;
+
+    uuid->uu[14] = 0x00;
+    uuid->uu[15] = 0x00;
+
+    return true;
+}
+bool Rsp::CopyServiceUUID(bt_uuid_t *uuid)
+{
+    CHECK_PARAM(uuid);
+    uuid->uu[0] = 0xfb;
+    uuid->uu[1] = 0x34;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[4] = 0x80;
+    uuid->uu[5] = 0x00;
+    uuid->uu[6] = 0x00;
+    uuid->uu[7] = 0x80;
+    uuid->uu[8] = 0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[10] = 0x00;
+    uuid->uu[11] = 0x00;
+
+    uuid->uu[12] = 0x01;
+    uuid->uu[13] = 0xaa;
+
+    uuid->uu[14] = 0x00;
+    uuid->uu[15] = 0x00;
+    return true;
+}
 bool Rsp::CopyClientUUID(bt_uuid_t *uuid)
 {
     CHECK_PARAM(uuid)
     uuid->uu[0] = 0xff;
-    for (int i = 1; i < 16; i++) {
-        uuid->uu[i] = 0x30;
-    }
+    uuid->uu[1] = 0x34;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[4] = 0x80;
+    uuid->uu[5] = 0x00;
+    uuid->uu[6] = 0x00;
+    uuid->uu[7] = 0x80;
+    uuid->uu[8] = 0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[10] = 0x00;
+    uuid->uu[11] = 0x00;
+
+    uuid->uu[12] = 0x05;
+    uuid->uu[13] = 0x00;
+
+    uuid->uu[14] = 0x00;
+    uuid->uu[15] = 0x00;
     return true;
 }
 
@@ -483,11 +591,11 @@ bool Rsp::EnableRSP()
 
     RspEnableEvent rev;
     rev.event_id = RSP_ENABLE_EVENT;// change it later
-    CopyUUID(&rev.characteristics_uuid);
-    CopyUUID(&rev.descriptor_uuid);
-    CopyUUID(&rev.server_uuid);
+    CopyCharacteristicsUUID(&rev.characteristics_uuid);
+    CopyDescriptorUUID(&rev.descriptor_uuid);
+    CopyServerUUID(&rev.server_uuid);
     CopyClientUUID(&rev.client_uuid);
-    CopyUUID(&rev.service_uuid);
+    CopyServiceUUID(&rev.service_uuid);
 
     fprintf(stdout," set rsp data \n");
     SetRSPAttrData(&rev);
@@ -690,7 +798,7 @@ bool Rsp::AddCharacteristics()
         return false;
     }
     bt_uuid_t char_uuid;
-    CopyParams(&char_uuid, &(GetRspSrvcData()->srvc_id->id.uuid));
+    char_uuid=GetRSPAttrData()->characteristics_uuid;
     int srvc_handle = GetRspSrvcData()->srvc_handle;
     int server_if = GetRspSrvcData()->server_if;
     fprintf(stdout,  "(%s) Adding Characteristics server_if (%d), srvc_handle (%d) \n",

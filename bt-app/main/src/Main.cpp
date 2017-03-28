@@ -645,7 +645,7 @@ static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
 
 static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     ALOGD(LOGTAG, "HandleHfpAGCommand cmd_id = %d", cmd_id);
-    std::cout << LOGTAG "HandleHfpAGCommand cmd_id = " <<  cmd_id << std::endl;
+    fprintf(stdout, "HandleHfpAGCommand cmd_id = %d\n" , cmd_id);
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
@@ -705,7 +705,7 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case DIAL:
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_API_DIAL_REQ;
-            strncpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
+            strlcpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
         case START_VR:
@@ -907,7 +907,7 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
 
         default:
-            fprintf(stdout, " Command not handled");
+            fprintf(stdout, " Command not handled\n");
             break;
     }
 }
@@ -1200,8 +1200,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 bdstr_t bd_str;
                 bt_bdaddr_t *bd_addr = g_gap->GetBtAddress();
                 bdaddr_to_string(bd_addr, &bd_str[0], sizeof(bd_str));
-                std::string deviceAddress(bd_str);
-                std::cout << " BT Address :" << deviceAddress << std::endl;
+                fprintf(stdout, " BT Address : %s\n", bd_str);
             } else {
                 fprintf( stdout, "No Addr due to BT is OFF\n");
             }
@@ -1215,7 +1214,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     event = new BtEvent;
                     event->event_id = GAP_API_SET_BDNAME;
                     event->set_device_name_event.prop.type = BT_PROPERTY_BDNAME;
-                    strcpy((char*)&bd_name.name[0],user_cmd[ONE_PARAM]);
+                    strlcpy((char*)&bd_name.name[0],user_cmd[ONE_PARAM], COMMAND_SIZE);
                     event->set_device_name_event.prop.val = &bd_name;
                     event->set_device_name_event.prop.len = strlen((char*)bd_name.name);
                     PostMessage (THREAD_ID_GAP, event);
@@ -1249,10 +1248,10 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                             &event->pan_device_connect_event.bd_addr);
                     PostMessage (THREAD_ID_PAN, event);
                 } else {
-                    fprintf(stdout, " BD address is NULL/Invalid ");
+                    fprintf(stdout, " BD address is NULL/Invalid \n");
                 }
             } else {
-                fprintf(stdout, " Currently BT is in OFF state");
+                fprintf(stdout, " Currently BT is in OFF state\n");
             }
             break;
 
@@ -1265,10 +1264,10 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                             &event->pan_device_disconnect_event.bd_addr);
                     PostMessage (THREAD_ID_PAN, event);
                 } else {
-                    fprintf(stdout, " BD address is NULL/Invalid ");
+                    fprintf(stdout, " BD address is NULL/Invalid\n");
                 }
             } else {
-                fprintf(stdout, " Currently BT is in OFF state");
+                fprintf(stdout, " Currently BT is in OFF state\n");
             }
             break;
 
@@ -1278,7 +1277,7 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 event->event_id = PAN_EVENT_DEVICE_CONNECTED_LIST_REQ;
                 PostMessage (THREAD_ID_PAN, event);
             } else {
-                fprintf(stdout," Currently BT is in OFF state");
+                fprintf(stdout," Currently BT is in OFF state\n");
             }
             break;
 
@@ -1301,7 +1300,7 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 event->pan_set_tethering_event.is_tethering_on = is_tethering_enable;
                 PostMessage (THREAD_ID_PAN, event);
             } else {
-                fprintf(stdout, " Currently BT is in OFF state");
+                fprintf(stdout, " Currently BT is in OFF state\n");
             }
             break;
 
@@ -1311,7 +1310,7 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 event->event_id = PAN_EVENT_GET_MODE_REQ;
                 PostMessage (THREAD_ID_PAN, event);
             } else {
-                fprintf(stdout, " Currently BT is in OFF state");
+                fprintf(stdout, " Currently BT is in OFF state\n");
             }
             break;
 
@@ -2057,29 +2056,26 @@ bt_state_t BluetoothApp:: GetState() {
 
 void BluetoothApp:: PrintInquiryList() {
 
-    std::cout << "\n**************************** Inquiry List \
-*********************************\n";
+    fprintf(stdout, "\n**************************** Inquiry List \
+*********************************\n");
     std::map<std::string, std::string>::iterator it;
-    for (it = inquiry_list.begin(); it != inquiry_list.end(); ++it) {
-        std::cout << std::left << std::setw(50) << it->second << std::left <<
-        std::setw(50) << it->first << std::endl;
-    }
-    std::cout << "**************************** End of List \
-*********************************\n";
+    for (it = inquiry_list.begin(); it != inquiry_list.end(); ++it)
+        fprintf(stdout, "%-*s %s\n", 50, it->second.data(), it->first.data());
+    fprintf(stdout, "**************************** End of List \
+*********************************\n");
 }
 
 
 void BluetoothApp:: PrintBondedDeviceList() {
 
-    std::cout <<"\n**************************** Bonded Device List \
-**************************** \n";
+    fprintf(stdout, "\n**************************** Bonded Device List \
+**************************** \n");
     std::map<std::string, std::string>::iterator it;
-    for (it = bonded_devices.begin(); it != bonded_devices.end(); ++it) {
-            std::cout << std::left << std::setw(50) << it->second
-             << std::left << std::setw(50) << it->first << std::endl;
-    }
-    std::cout<< "****************************  End of List \
-*********************************\n";
+    for (it = bonded_devices.begin(); it != bonded_devices.end(); ++it)
+        fprintf(stdout, "%-*s %s\n", 50, it->second.data(), it->first.data());
+
+    fprintf(stdout, "****************************  End of List \
+*********************************\n");
 }
 
 bool BluetoothApp :: LoadBtStack (void) {
@@ -2484,9 +2480,9 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
         ALOGE (LOGTAG " Both HFP AG and Client are enabled, disabling AG. Set \
            BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
            enable only AG");
-        std::cout << " Both HFP AG and Client are enabled, disabling AG. Set \
+        fprintf(stdout, " Both HFP AG and Client are enabled, disabling AG. Set \
            BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
-           enable only AG" << std::endl;
+           enable only AG\n" );
         is_hfp_ag_enabled_ = false;
     }
     //checking for Pan handler

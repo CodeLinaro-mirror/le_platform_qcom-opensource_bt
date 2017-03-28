@@ -59,7 +59,7 @@ typedef struct {
     char *thread_name;
 } A2dpSinkStreamingThreadInfo;
 
-#define A2DP_SINK_PCM_FETCH_TIMER_DURATION         40
+#define A2DP_SINK_PCM_FETCH_TIMER_DURATION         35
 #define A2DP_SINK_COMPRESS_FEED_TIMER_DURATION     40
 
 class A2dp_Sink_Streaming {

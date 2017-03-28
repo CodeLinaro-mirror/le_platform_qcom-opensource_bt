@@ -36,6 +36,7 @@
 #define LOGTAG "GATTCTEST "
 #define UNUSED
 
+#define COPYMAXLEN 200
 
 ServiceData gattctestServData;
 
@@ -86,7 +87,7 @@ buf[j * 2 + shift] = '-';
 shift++;
 }
 
-sprintf(buf + j * 2 + shift, "%02x", uuid->uu[i]);
+snprintf(buf + j * 2 + shift,COPYMAXLEN, "%02x", uuid->uu[i]);
 ++j;
 }
 
@@ -97,7 +98,8 @@ return buf;
 /* service_id formating function */
 char *service_id_to_string(const btgatt_srvc_id_t *srvc_id, char *buf){
 char uuid_buf[UUID_STR_LEN];
-sprintf(buf, "{%s,%d,%d}", uuid_to_string(&srvc_id->id.uuid, uuid_buf),srvc_id->id.inst_id, srvc_id->is_primary);
+snprintf(buf,COPYMAXLEN,"{%s,%d,%d}", uuid_to_string(&srvc_id->id.uuid,
+uuid_buf),srvc_id->id.inst_id,srvc_id->is_primary);
 return buf;
 }
 
@@ -106,7 +108,7 @@ static char *gatt_id_to_string(const btgatt_gatt_id_t *char_id, char *buf)
 {
 char uuid_buf[UUID_STR_LEN];
 
-sprintf(buf, "{%s,%d}", uuid_to_string(&char_id->uuid, uuid_buf),
+snprintf(buf,COPYMAXLEN, "{%s,%d}", uuid_to_string(&char_id->uuid, uuid_buf),
 char_id->inst_id);
 return buf;
 }
@@ -122,11 +124,11 @@ if (size >= 2 * out_size)
 limit = (out_size - 2) / 2;
 
 for (i = 0; i < limit; ++i)
-sprintf(buf + 2 * i, "%02x", v[i]);
+snprintf(buf + 2 * i,COPYMAXLEN, "%02x", v[i]);
 
 /* output buffer not enough to hold whole field fill with ...*/
 if (limit < size)
-sprintf(buf + 2 * i, "...");
+snprintf(buf + 2 * i,COPYMAXLEN, "...");
 }
 
 return buf;
@@ -146,7 +148,7 @@ char srvc_id[SRVCID_STR_LEN];
 char char_id[CHARID_STR_LEN];
 char descr_id[UUID_STR_LEN];
 char value[HEX_VAL_STR_LEN];
-sprintf(buf, "{srvc_id=%s, char_id=%s, descr_id=%s, val=%s value_type=%d, status=%d}",
+snprintf(buf,COPYMAXLEN, "{srvc_id=%s, char_id=%s, descr_id=%s, val=%s value_type=%d, status=%d}",
 service_id_to_string(&data->srvc_id, srvc_id),
 gatt_id_to_string(&data->char_id, char_id),
 desc_id_to_string(&data->descr_id, descr_id),
@@ -260,6 +262,11 @@ class gattctestClientCallback : public BluetoothGattClientCallback
        char srvc_id_buf[SRVCID_STR_LEN];
        char char_id_buf[CHARID_STR_LEN];
 
+       gattctestServData.conn_id = conn_id;
+       gattctestServData.srvc_id = srvc_id;
+       gattctestServData.char_id = char_id;
+       gattctestServData.descr_id = descr_id;
+
        fprintf(stdout,"%s: conn_id=%d status=%d srvc_id=%s char_id=%s, descr_id=%s\n",
                __func__, conn_id, status,
               service_id_to_string(srvc_id, srvc_id_buf),
@@ -267,10 +274,6 @@ class gattctestClientCallback : public BluetoothGattClientCallback
               desc_id_to_string(descr_id, buf));
           if(status == 0) {
          gattctest->app_gatt->get_descriptor(conn_id,srvc_id,char_id,descr_id);
-         gattctestServData.conn_id = conn_id;
-         gattctestServData.srvc_id = srvc_id;
-         gattctestServData.char_id = char_id;
-         gattctestServData.descr_id = descr_id;
           }
 
    }

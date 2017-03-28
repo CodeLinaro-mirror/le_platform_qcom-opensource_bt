@@ -162,6 +162,10 @@ class Rsp {
         }
         bool SendResponse(GattsRequestWriteEvent *);
         bool CopyUUID(bt_uuid_t *);
+        bool CopyCharacteristicsUUID(bt_uuid_t *);
+        bool CopyDescriptorUUID(bt_uuid_t *);
+        bool CopyServerUUID(bt_uuid_t *);
+        bool CopyServiceUUID(bt_uuid_t *);
         bool CopyClientUUID(bt_uuid_t *);
         bool ClientSetAdvData(char *);
         bool CopyParams(bt_uuid_t *, bt_uuid_t *);
