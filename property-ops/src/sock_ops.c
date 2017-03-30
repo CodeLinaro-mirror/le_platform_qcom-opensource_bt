@@ -256,9 +256,6 @@ bool parse_and_exec(int cmd, unsigned char* command, unsigned char* prop_val)
             if (!strncmp(prop_value, "true", strlen(prop_value))) {
                 LOG_DEBUG("starting wcnssfilter\n");
                 system("wcnssfilter &");
-            } else {
-                LOG_DEBUG("stopping wcnssfilter\n");
-                system("killall -KILL wcnssfilter");
             }
         }
         if (!strncmp(prop_name, "bluetooth.startbtsnoop", strlen(prop_name))) {
