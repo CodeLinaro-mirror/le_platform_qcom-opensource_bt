@@ -151,6 +151,8 @@ class A2dp_Source {
     void state_pending_handler(BtEvent* pEvent);
     void state_connected_handler(BtEvent* pEvent);
     void change_state(A2dpSourceState mState);
+    A2dpSourceState get_state(void);
+    bool get_codec_cfg(uint8_t* info, uint8_t* type);
     char* dump_message(BluetoothEventId event_id);
     pthread_mutex_t lock;
     bt_bdaddr_t mConnectingDevice;
