@@ -414,8 +414,8 @@ class gattstestServerCallback :public BluetoothGattServerCallback
       }
 };
 
-gattstestServerCallback gattstestServerCb;
-gattstestClientCallback gattstestClientCb;
+gattstestServerCallback *gattstestServerCb = NULL;
+gattstestClientCallback *gattstestClientCb = NULL;
 
 
 
@@ -426,13 +426,16 @@ GattsTest::GattsTest(btgatt_interface_t *gatt_itf, Gatt* gatt)
     fprintf(stdout,"gattstest instantiated ");
     gatt_interface = gatt_itf;
     app_gatt = gatt;
+    gattstestClientCb = new gattstestClientCallback;
+    gattstestServerCb = new gattstestServerCallback;
 }
 
 
 GattsTest::~GattsTest()
 {
     fprintf(stdout, "(%s) GATTSTEST DeInitialized",__FUNCTION__);
-    //SetDeviceState(WLAN_INACTIVE);
+    free(gattstestClientCb);
+    free(gattstestServerCb);
 }
 
 bool GattsTest::CopyUUID(bt_uuid_t *uuid)
@@ -580,7 +583,7 @@ bool GattsTest::RegisterApp()
     }
     bt_uuid_t server_uuid = GetGATTSTESTAttrData()->server_uuid;
     fprintf(stdout,"reg app addr is %d \n", GetGATTSTESTAttrData()->server_uuid);
-    app_gatt->RegisterServerCallback(&gattstestServerCb,&GetGATTSTESTAttrData()->server_uuid);
+    app_gatt->RegisterServerCallback(gattstestServerCb,&GetGATTSTESTAttrData()->server_uuid);
     return app_gatt->register_server(&server_uuid) == BT_STATUS_SUCCESS;
 }
 
@@ -592,7 +595,7 @@ bool GattsTest::RegisterClient()
         return false;
     }
     bt_uuid_t client_uuid = GetGATTSTESTAttrData()->client_uuid;
-    app_gatt->RegisterClientCallback(&gattstestClientCb,&GetGATTSTESTAttrData()->client_uuid);
+    app_gatt->RegisterClientCallback(gattstestClientCb,&GetGATTSTESTAttrData()->client_uuid);
     return app_gatt->register_client(&client_uuid) == BT_STATUS_SUCCESS;
 }
 
