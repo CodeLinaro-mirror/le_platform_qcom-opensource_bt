@@ -215,6 +215,7 @@ static btav_sink_vendor_callbacks_t sBluetoothA2dpSinkVendorCallbacks = {
 void A2dp_Sink::HandleEnableSink(void) {
     ALOGD(LOGTAG " HandleEnableSink ");
 
+    uint8_t streaming_prarm = A2DP_SINK_ENABLE_SBC_DECODING;
     BtEvent *pEvent = new BtEvent;
     max_a2dp_conn = config_get_int (config,
             CONFIG_DEFAULT_SECTION, "BtMaxA2dpConn", 1);
@@ -238,20 +239,24 @@ void A2dp_Sink::HandleEnableSink(void) {
         pA2dpSinkStream->fetch_rtp_info = config_get_bool (config,
                          CONFIG_DEFAULT_SECTION, "BtFetchRTPForSink", false);
         ALOGD(LOGTAG " Fetch RTP Info %d", pA2dpSinkStream->fetch_rtp_info);
+        pA2dpSinkStream->enable_delay_report = config_get_bool (config,
+                         CONFIG_DEFAULT_SECTION, "BtA2dpDelayReportEnable", false);
+        ALOGD(LOGTAG " ~~ enable_delay_report  %d ", pA2dpSinkStream->enable_delay_report);
 #ifdef USE_LIBHW_AOSP
         sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks);
 #else
         sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks, max_a2dp_conn, 0);
 #endif
-        if (pA2dpSinkStream->fetch_rtp_info) {
-            sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
+        if (pA2dpSinkStream->fetch_rtp_info)
+            streaming_prarm |= A2DP_SINK_RETREIVE_RTP_HEADER;
+
+        if (pA2dpSinkStream->enable_delay_report)
+             streaming_prarm |= A2DP_SINK_ENABLE_DELAY_REPORTING;
+
+        sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
                     max_a2dp_conn, 0,
-                    A2DP_SINK_ENABLE_SBC_DECODING|A2DP_SINK_RETREIVE_RTP_HEADER);
-        } else {
-            sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
-                    max_a2dp_conn, 0,
-                    A2DP_SINK_ENABLE_SBC_DECODING);
-        }
+                    streaming_prarm);
+
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SINK;
         pEvent->profile_start_event.status = true;

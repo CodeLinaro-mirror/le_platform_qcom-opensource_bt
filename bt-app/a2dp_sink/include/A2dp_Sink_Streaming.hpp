@@ -100,6 +100,7 @@ class A2dp_Sink_Streaming {
     uint32_t GetInputStreamBufferSize();
     bool use_bt_a2dp_hal;
     bool fetch_rtp_info;
+    bool enable_delay_report;
     // apis for out_stream Audio HAL, to write data.
     void ConfigureAudioHal();
     void CloseAudioStream();

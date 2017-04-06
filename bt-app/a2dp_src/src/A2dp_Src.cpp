@@ -507,12 +507,18 @@ void A2dp_Source::HandleEnableSource(void) {
              PostMessage(THREAD_ID_GAP, pEvent);
              return;
         }
+        enable_delay_report = config_get_bool (config,
+                         CONFIG_DEFAULT_SECTION, "BtA2dpDelayReportEnable", false);
+        ALOGD(LOGTAG_A2DP " ~~ Try to get config , enable_delay_report %d", enable_delay_report);
 #ifdef USE_LIBHW_AOSP
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks);
 #else
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, 0);
 #endif
-        sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0);
+        if(enable_delay_report)
+              sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, A2DP_SRC_ENABLE_DELAY_REPORTING);
+        else
+              sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, 0);
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SOURCE;
         pEvent->profile_start_event.status = true;

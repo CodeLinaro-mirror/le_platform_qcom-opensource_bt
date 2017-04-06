@@ -76,6 +76,7 @@ class A2dp_Source {
     void change_state(A2dpSourceState mState);
     char* dump_message(BluetoothEventId event_id);
     pthread_mutex_t lock;
+    bool enable_delay_report;
     bt_bdaddr_t mConnectingDevice;
     bt_bdaddr_t mConnectedDevice;
     bt_bdaddr_t mConnectedAvrcpDevice;
