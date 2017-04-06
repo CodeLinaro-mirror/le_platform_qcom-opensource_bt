@@ -141,6 +141,7 @@ static void BtA2dpStopStreaming()
         pthread_mutex_unlock(&a2dp_hal_mutex);
         return;
     }
+    output_stream->common.set_parameters(&output_stream->common, "A2dpSuspended=false");
     output_stream->common.standby(&output_stream->common);
     pthread_mutex_unlock(&a2dp_hal_mutex);
 #endif
