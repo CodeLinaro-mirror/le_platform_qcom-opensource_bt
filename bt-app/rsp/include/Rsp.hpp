@@ -81,7 +81,7 @@ class Rsp {
         ~Rsp();
 
         bool EnableRSP();
-        bool DisableRSP(int server_if);
+        bool DisableRSP();
         inline btgatt_interface_t* GetGattInterface()
         {
             return gatt_interface;

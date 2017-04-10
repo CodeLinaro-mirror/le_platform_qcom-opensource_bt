@@ -148,8 +148,8 @@ void btgattc_search_result_cb(int conn_id, btgatt_srvc_id_t *srvc_id)
 
     event->event_id = BTGATTC_SEARCH_RESULT_EVENT;
     event->gattc_search_result_event.conn_id= conn_id;
-    event->gattc_search_result_event.srvc_id= srvc_id;
-
+    event->gattc_search_result_event.srvc_id= (btgatt_srvc_id_t *) malloc (sizeof(btgatt_srvc_id_t));
+    memcpy(event->gattc_search_result_event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
     PostMessage(THREAD_ID_GATT, event);
 
 }
@@ -160,29 +160,37 @@ void btgattc_get_characteristic_cb(int conn_id, int status,
 {
 
     ALOGD(LOGTAG "(%s) status (%d) conn_id (%d)",__FUNCTION__,status, conn_id);
+    fprintf(stdout,  "\nDiagnostic: (%s) status (%d) conn_id (%d) ++ \n",__FUNCTION__,status, conn_id);
 
-    ALOGD(LOGTAG,"srvc_id->id.uuid is \n");
+    ALOGD(LOGTAG "srvc_id->id.uuid is \n");
+    fprintf(stdout,  "\nDiagnostic: srvc_id->id.uuid is ++\n");
     for (int j = 0; j < sizeof(srvc_id->id.uuid); j++) {
-         ALOGD(LOGTAG, "%02x", srvc_id->id.uuid.uu[j]);
+         ALOGD(LOGTAG  "%02x", srvc_id->id.uuid.uu[j]);
+	 fprintf(stdout,  "%02x", srvc_id->id.uuid.uu[j]);
      }
 
-    ALOGD(LOGTAG,"char_id->id.uuid is \n");
+    ALOGD(LOGTAG "char_id->id.uuid is ++\n");
+    fprintf(stdout, "\nDiagnostic: char_id->id.uuid is \n");
     for (int j = 0; j < sizeof(char_id->uuid); j++) {
-         ALOGD(LOGTAG, "%02x", char_id->uuid.uu[j]);
+         ALOGD(LOGTAG  "%02x", char_id->uuid.uu[j]);
+         fprintf(stdout,  "%02x", char_id->uuid.uu[j]);
     }
 
     BtEvent *event = new BtEvent;
     CHECK_PARAM_VOID(event)
-
     event->event_id = BTGATTC_GET_CHARACTERISTIC_EVENT;
     event->gattc_get_characteristic_event.status= status;
     event->gattc_get_characteristic_event.conn_id= conn_id;
-    event->gattc_get_characteristic_event.srvc_id= srvc_id;
-    event->gattc_get_characteristic_event.char_id= char_id;
     event->gattc_get_characteristic_event.char_prop= char_prop;
 
-    PostMessage(THREAD_ID_GATT, event);
+    event->gattc_get_characteristic_event.srvc_id= (btgatt_srvc_id_t *) malloc (sizeof(btgatt_srvc_id_t));
+    memcpy(event->gattc_get_characteristic_event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
 
+    event->gattc_get_characteristic_event.char_id= (btgatt_gatt_id_t *) malloc (sizeof(btgatt_gatt_id_t));
+    memcpy(event->gattc_get_characteristic_event.char_id, char_id, sizeof(btgatt_gatt_id_t));
+
+    PostMessage(THREAD_ID_GATT, event);
+    fprintf(stdout,  "\n(%s) Diagnostic: -- 1\n", __FUNCTION__);
 }
 
 void btgattc_get_descriptor_cb(int conn_id, int status,
@@ -191,17 +199,17 @@ void btgattc_get_descriptor_cb(int conn_id, int status,
 {
     ALOGD(LOGTAG "(%s) status (%d) conn_id (%d)",__FUNCTION__,status, conn_id);
 
-    ALOGD(LOGTAG,"srvc_id->id.uuid is \n");
+    ALOGD(LOGTAG "srvc_id->id.uuid is \n");
     for (int j = 0; j < sizeof(srvc_id->id.uuid); j++) {
-         ALOGD(LOGTAG, "%02x", srvc_id->id.uuid.uu[j]);
+         ALOGD(LOGTAG  "%02x", srvc_id->id.uuid.uu[j]);
     }
-    ALOGD(LOGTAG,"char_id->id.uuid is \n");
+    ALOGD(LOGTAG "char_id->id.uuid is \n");
     for (int j = 0; j < sizeof(char_id->uuid); j++) {
-         ALOGD(LOGTAG, "%02x", char_id->uuid.uu[j]);
+         ALOGD(LOGTAG  "%02x", char_id->uuid.uu[j]);
     }
-    ALOGD(LOGTAG,"descr_id->id.uuid is \n");
+    ALOGD(LOGTAG "descr_id->id.uuid is \n");
     for (int j = 0; j < sizeof(descr_id->uuid); j++) {
-         ALOGD(LOGTAG, "%02x", descr_id->uuid.uu[j]);
+         ALOGD(LOGTAG  "%02x", descr_id->uuid.uu[j]);
     }
 
     BtEvent *event = new BtEvent;
@@ -846,8 +854,8 @@ void btgatts_request_write_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int a
             bda->address[0], bda->address[1], bda->address[2],
            bda->address[3], bda->address[4], bda->address[5]);
 
-    ALOGD(LOGTAG "(%s) connid:(%d) bdaddr:(%s) value (%s) need_rsp (%d)\n",__FUNCTION__, conn_id,
-            c_address, value, need_rsp);
+    ALOGD(LOGTAG "(%s) connid:(%d) bdaddr:(%s) need_rsp (%d)\n",__FUNCTION__, conn_id,
+            c_address, need_rsp);
 
     BtEvent *event = new BtEvent;
     CHECK_PARAM_VOID(event)
@@ -1200,7 +1208,7 @@ void Gatt::HandleGattsRequestWriteEvent(GattsRequestWriteEvent *event)
 
     it = serverCbSifMap.find(ConnidServerifMap[event->conn_id]);
     if (it != serverCbSifMap.end()) {
-        ALOGD(LOGTAG "found \n");
+        ALOGD(LOGTAG "found in the connection server map\n");
         it->second->btgatts_request_write_cb(event->conn_id,event->trans_id, event->bda, event->attr_handle,
                                     event->offset, event->length, event->need_rsp, event->is_prep,
                                     event->value);
@@ -1444,13 +1452,17 @@ void Gatt::HandleGattcSSearchResultEvent(GattcSearchResultEvent *event)  {
     } else {
         ALOGD(LOGTAG "Not found \n");
     }
+    if (event->srvc_id != NULL) {
+	ALOGD(LOGTAG  "** Freeing up SRVC ID \n");
+	fprintf (stdout, "Diagnostic(%s) Freeing up SRVC ID \n", __FUNCTION__ );
+        free (event->srvc_id);
+    }
 }
 
 void Gatt::HandleGattcGetCharacteristicsEvent(GattcGetCharacteristicEvent *event)  {
 
     ALOGD(LOGTAG "(%s) conn_id (%d) event_id (%d) status (%d)\n",__FUNCTION__, event->conn_id,
             event->event_id, event->status);
-
 
     std::map<int,BluetoothGattClientCallback *> ::iterator it;
 
@@ -1463,14 +1475,23 @@ void Gatt::HandleGattcGetCharacteristicsEvent(GattcGetCharacteristicEvent *event
     } else {
         ALOGD(LOGTAG "Not found \n");
     }
-}
 
+    if (event->srvc_id != NULL) {
+	ALOGD(LOGTAG  "** Freeing up SRVC ID \n");
+	fprintf (stdout, "Diagnostic(%s) Freeing up SRVC ID \n", __FUNCTION__ );
+        free (event->srvc_id);
+    }
+    if (event->char_id != NULL) {
+	ALOGD(LOGTAG "** Freeing up char_id ID \n");
+	fprintf (stdout, "Diagnostic(%s) Freeing up char_id ID \n", __FUNCTION__ );
+        free (event->char_id);
+    }
+}
 
 void Gatt::HandleGattcGetDescriptorEvent(GattcGetDescriptorEvent *event)  {
 
-    ALOGD(LOGTAG "(%s) conn_id (%d) event_id (%d) status (%d)\n",__FUNCTION__, event->conn_id,
+     ALOGD(LOGTAG "(%s) conn_id (%d) event_id (%d) status (%d)\n",__FUNCTION__, event->conn_id,
             event->event_id, event->status);
-
 
      std::map<int,BluetoothGattClientCallback *> ::iterator it;
 
@@ -2054,9 +2075,12 @@ void Gatt::UnRegisterServerCallback( int serverif)
          }
      }
      it2 = serverCbSifMap.find(serverif);
-     serverCbSifMap.erase (it2);
+     if (it2 != serverCbSifMap.end())
+         serverCbSifMap.erase (it2);
+
      it3 = ConnidServerifMap.find(serverif);
-     ConnidServerifMap.erase(it3);
+     if (it3 != ConnidServerifMap.end())
+         ConnidServerifMap.erase(it3);
 }
 
 void Gatt::RegisterClientCallback(BluetoothGattClientCallback * clientCb,bt_uuid_t *client_uuid)
@@ -2077,9 +2101,12 @@ void Gatt::UnRegisterClientCallback( int clientif)
           }
      }
      it2 = clientCbCifMap.find(clientif);
-     clientCbCifMap.erase (it2);
+     if (it2 != clientCbCifMap.end())
+         clientCbCifMap.erase (it2);
+
      it3 = ConnidClientifMap.find(clientif);
-     ConnidClientifMap.erase(it3);
+     if (it3 != ConnidClientifMap.end())
+         ConnidClientifMap.erase(it3);
 }
 
 void Gatt::GattInterfaceCleanup()
@@ -2118,6 +2145,7 @@ bool Gatt::HandleDisableGatt()
 {
     bool status = true;
     ALOGD(LOGTAG  "(%s) Closing Gatt Instance",__FUNCTION__);
+    GattInterfaceCleanup();
     return status;
 }
 
@@ -2191,7 +2219,6 @@ bt_status_t Gatt::get_characteristic( int conn_id,
             return gatt_interface->client->get_characteristic(conn_id, srvc_id,
             start_char_id);
         }
-
 }
 
 

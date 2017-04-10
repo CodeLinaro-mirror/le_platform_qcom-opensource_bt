@@ -602,9 +602,10 @@ bool Rsp::EnableRSP()
     RegisterApp();
 }
 
-bool Rsp::DisableRSP(int server_if)
+bool Rsp::DisableRSP()
 {
     fprintf(stdout, "(%s) Disable RSP Initiated",__FUNCTION__);
+    StopService();
 }
 
 bool Rsp::RegisterApp()
@@ -711,6 +712,7 @@ bool Rsp::SendResponse(GattsRequestWriteEvent *event)
     if(event->value != NULL && !strncasecmp((const char *)(event->value), "on", 2)) {
         if (GetDeviceState() == WLAN_INACTIVE)
         {
+            fprintf(stdout, "(%s) Turn ON WLAN\n", __FUNCTION__);
             HandleWlanOn();
             SetDeviceState(WLAN_TRANSACTION_PENDING);
         }
@@ -718,6 +720,7 @@ bool Rsp::SendResponse(GattsRequestWriteEvent *event)
     } else {
         response = -1;
     }
+
 
     fprintf(stdout, "(%s) Sending RSP response to write (%d) value (%s) State (%d)",__FUNCTION__,
             GetRSPAppData()->server_if, event->value,GetDeviceState());

@@ -68,6 +68,7 @@ extern BT_Audio_Manager *pBTAM;
 extern Rsp *rsp;
 extern GattcTest *gattctest;
 extern GattsTest *gattstest;
+bool gattsEnabled = false;
 
 extern SdpClient *g_sdpClient;
 #ifdef USE_BT_OBEX
@@ -811,6 +812,7 @@ void HandleOnOffTest (void *context) {
     int index = 0;
     long  num = (long) context;
     for( index = 0; index < (long)num; index++) {
+
         BtEvent *event_on = new BtEvent;
         event_on->event_id = GAP_API_ENABLE;
         fprintf( stdout, "Iteration: %d : Posting enable\n", index + 1);
@@ -894,8 +896,12 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
         case RSP_START:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
-                fprintf( stdout, "(Re)start Advertisement \n");
-                if (rsp) rsp->StartAdvertisement();
+                if (rsp) {
+                    fprintf( stdout, "(Re)start Advertisement \n");
+                    rsp->StartAdvertisement();
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
             } else {
                 fprintf( stdout, "BT is in OFF State now \n");
             }
@@ -947,39 +953,61 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             break;
 
          case GATTCTEST_START_SCAN:
-            fprintf(stdout,"starting scan \n");
-            if (gattctest) gattctest->StartScan();
+            if (gattctest) {
+                fprintf(stdout,"starting scan \n");
+                gattctest->StartScan();
+            } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+            }
             break;
 
         case GATTCTEST_STOP_SCAN:
-           fprintf(stdout,"stopping scan \n");
-           if (gattctest) gattctest->StopScan();
+           if (gattctest) {
+                fprintf(stdout,"stopping scan \n");
+                gattctest->StopScan();
+           } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+           }
            break;
 
         case GATTCTEST_CONNECT:
-           fprintf(stdout,"connecting \n");
-           if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
-               bt_bdaddr_t         bd_addr;
-               string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
-               if (gattctest) gattctest->Connect(&bd_addr);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                bt_bdaddr_t bd_addr;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
+                if (gattctest) {
+                    fprintf(stdout,"connecting \n");
+                    gattctest->Connect(&bd_addr);
+                } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+                }
            } else {
-            fprintf( stdout, " BD address is NULL/Invalid \n");
+                fprintf( stdout, " BD address is NULL/Invalid \n");
            }
             break;
 
         case GATTCTEST_DISCONNECT:
-           fprintf(stdout,"disconnecting \n");
-           if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
                bt_bdaddr_t         bd_addr;
                string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
-               if (gattctest) gattctest->Disconnect(&bd_addr);
-           } else {
-            fprintf( stdout, " BD address is NULL/Invalid \n");
-           }
+               if (gattctest) {
+                   fprintf(stdout,"disconnecting \n");
+                   gattctest->Disconnect(&bd_addr);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
             break;
         case GATTCTEST_ALERT:
-           fprintf(stdout,"GATTCTEST_WRITE_CHAR \n");
-           if (gattctest) gattctest->SendAlert(atoi(user_cmd[ONE_PARAM]));
+
+           if (gattctest){
+               fprintf(stdout, "GATTCTEST_WRITE_CHAR \n");
+               gattctest->SendAlert(atoi(user_cmd[ONE_PARAM]));
+           }
+           else{
+               fprintf(stdout, "Do the GATTCINIT first\n");
+           }
             break;
 
         case BACK_TO_MAIN:
@@ -1010,7 +1038,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                   if (g_gatt) {
                      gattstest = new GattsTest(g_gatt->GetGattInterface(),g_gatt);
                      if (gattstest) {
-                        gattstest->EnableGATTSTEST();
+                         gattsEnabled = gattstest->EnableGATTSTEST();
                         fprintf(stdout, " EnableRSP done \n");
                      }
                      else {
@@ -1028,8 +1056,12 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
 
         case GATTSTEST_START:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
-                fprintf( stdout, "(Re)start Advertisement \n");
-                if (gattstest) gattstest->StartAdvertisement();
+                if (gattstest) {
+                    fprintf( stdout, "(Re)start Advertisement \n");
+                    gattstest->StartAdvertisement();
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
             } else {
                 fprintf( stdout, "BT is in OFF State now \n");
             }
@@ -1059,6 +1091,12 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             if ((g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
                 (g_bt_app->bt_state == BT_STATE_OFF)) {
 
+                // Killing previous iteration filter if they still exists
+                system("killall -KILL wcnssfilter");
+                system("killall -KILL btsnoop");
+                system("killall -KILL qcbtdaemon");
+                usleep(200);
+
                 g_bt_app->status.enable_cmd = COMMAND_INPROGRESS;
                 BtEvent *event = new BtEvent;
 
@@ -1075,8 +1113,26 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case BT_DISABLE:
 
             if ((g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
-                                (g_bt_app->bt_state == BT_STATE_ON)) {
+                (g_bt_app->bt_state == BT_STATE_ON)) {
 
+                if (gattstest) {
+                    fprintf(stdout, " DisableGATTSTEST \n");
+                    gattstest->DisableGATTSTEST();
+                } else {
+                    ALOGV (LOGTAG " gattstest interface is null");
+                }
+                if (rsp) {
+                    rsp->DisableRSP();
+                    fprintf(stdout, " DisableRSP \n");
+                } else {
+                    ALOGV (LOGTAG " rsp interface is null");
+                }
+                if (gattctest) {
+                    fprintf(stdout, " DisableGATTCTEST \n");
+                    gattctest->DisableGATTCTEST();
+                } else {
+                    ALOGV (LOGTAG " gattctest interface is null");
+                }
                 g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
                 event = new BtEvent;
                 event->event_id = GAP_API_DISABLE;
@@ -1873,18 +1929,18 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             bt_state = event->state_event.status;
             if (event->state_event.status == BT_STATE_ON) {
                 fprintf(stdout, " Error in disabling BT\n");
-            } else {
-                // clear the inquiry related cmds
-                status.enquiry_cmd = COMMAND_COMPLETE;
-                status.stop_enquiry_cmd = COMMAND_COMPLETE;
-                bt_discovery_state = BT_DISCOVERY_STOPPED;
-                // clearing bond_devices list and inquiry_list
-                bonded_devices.clear();
-                inquiry_list.clear();
-                system("killall -KILL wcnssfilter");
-                usleep(200);
-                fprintf(stdout, " BT State is OFF\n");
-            }
+        } else {
+            // clear the inquiry related cmds
+            status.enquiry_cmd = COMMAND_COMPLETE;
+            status.stop_enquiry_cmd = COMMAND_COMPLETE;
+            bt_discovery_state = BT_DISCOVERY_STOPPED;
+            // clearing bond_devices list and inquiry_list
+            bonded_devices.clear();
+            inquiry_list.clear();
+            system("killall -KILL wcnssfilter");
+            usleep(200);
+            fprintf(stdout, " BT State is OFF\n");
+        }
             status.disable_cmd = COMMAND_COMPLETE;
             break;
 
