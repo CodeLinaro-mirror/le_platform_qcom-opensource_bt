@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ *  Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
  *  Not a Contribution.
  *  Copyright (C) 2014 Google, Inc.
  *
@@ -87,6 +87,7 @@ const char *BT_A2DP_SINK_ENABLED   = "BtA2dpSinkEnable";
 const char *BT_A2DP_SOURCE_ENABLED = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED  = "BtHfClientEnable";
 const char *BT_HFP_AG_ENABLED      = "BtHfpAGEnable";
+const char *BT_AVRCP_ENABLED       = "BtAvrcpEnable";
 
 /**
  * The Configuration file path
@@ -336,13 +337,13 @@ UserMenuList RspMenu[] = {
 UserMenuList A2dpSinkMenu[] = {
     {CONNECT,               "connect",          ONE_PARAM,    "connect<space><bt_address>"},
     {DISCONNECT,            "disconnect",       ONE_PARAM,    "disconnect<space><bt_address>"},
-    {PLAY,                  "play",             ZERO_PARAM,    "play"},
-    {PAUSE,                 "pause",            ZERO_PARAM,    "pause"},
-    {STOP,                  "stop",             ZERO_PARAM,    "stop<"},
-    {REWIND,                "rewind",           ZERO_PARAM,    "rewind"},
-    {FASTFORWARD,           "fastforward",      ZERO_PARAM,    "fastforward"},
-    {FORWARD,               "forward",          ZERO_PARAM,    "forward"},
-    {BACKWARD,              "backward",         ZERO_PARAM,    "backward"},
+    {PLAY,                  "play",             ONE_PARAM,    "play<space><bt_address>"},
+    {PAUSE,                 "pause",            ONE_PARAM,    "pause<space><bt_address>"},
+    {STOP,                  "stop",             ONE_PARAM,    "stop<space><bt_address>"},
+    {REWIND,                "rewind",           ONE_PARAM,    "rewind<space><bt_address>"},
+    {FASTFORWARD,           "fastforward",      ONE_PARAM,    "fastforward<space><bt_address>"},
+    {FORWARD,               "forward",          ONE_PARAM,    "forward<space><bt_address>"},
+    {BACKWARD,              "backward",         ONE_PARAM,    "backward<space><bt_address>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
 };
 
@@ -601,6 +602,7 @@ class BluetoothApp {
     bool is_user_input_enabled_;
     bool is_socket_input_enabled_;
     bool is_a2dp_sink_enabled_;
+    bool is_avrcp_enabled_;
     bool is_a2dp_source_enabled_;
     bool is_hfp_client_enabled_;
     bool is_hfp_ag_enabled_;
