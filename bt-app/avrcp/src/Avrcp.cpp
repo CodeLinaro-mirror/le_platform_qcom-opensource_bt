@@ -34,6 +34,7 @@
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
 #include <hardware/bt_rc.h>
+#include <algorithm>
 
 #include "Avrcp.hpp"
 #include "A2dp_Sink_Streaming.hpp"
@@ -105,6 +106,23 @@ void BtAvrcpMsgHandler(void *msg) {
 }
 #endif
 
+
+static void btavrcpctrl_passthru_rsp_vendor_callback(int id, int key_state, bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_passthru_rsp_vendor_callback id = %d key_state = %d",
+            id, key_state);
+    if (id == CMD_ID_PAUSE && key_state == 1 &&
+            !memcmp(&pA2dpSinkStream->mStreamingDevice, bd_addr, sizeof(bt_bdaddr_t)))
+    {
+        ALOGD(LOGTAG_CTRL " need to flush both stack queue and audio queue ");
+        BtEvent *pFlushAudioPackets = new BtEvent;
+        pFlushAudioPackets->a2dpSinkStreamingEvent.event_id = A2DP_SINK_STREAMING_FLUSH_AUDIO;
+        memcpy(&pFlushAudioPackets->a2dpSinkStreamingEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+        if (pA2dpSinkStream) {
+            thread_post(pA2dpSinkStream->threadInfo.thread_id,
+            pA2dpSinkStream->threadInfo.thread_handler, (void*)pFlushAudioPackets);
+        }
+    }
+}
 
 static void btavrcpctrl_passthru_rsp_callback(int id, int key_state) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_passthru_rsp_callback id = %d key_state = %d", id, key_state);
@@ -225,6 +243,7 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
    btavrcpctrl_notification_rsp_vendor_callback,
    btavrcpctrl_getelementattrib_rsp_vendor_callback,
    btavrcpctrl_getplaystatus_rsp_vendor_callback,
+   btavrcpctrl_passthru_rsp_vendor_callback,
 };
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {
@@ -278,6 +297,8 @@ list<A2dp_Device>::iterator FindAvDeviceByAddr(list<A2dp_Device>& pA2dpDev, bt_b
 
 void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
     list<A2dp_Device>::iterator iter;
+    bdstr_t bd_str;
+    std::list<std::string>::iterator bdstring;
     ALOGD(LOGTAG_CTRL " HandleAvrcpEvents event = %s",
             dump_message(pEvent->avrcpCtrlEvent.event_id));
     switch(pEvent->avrcpCtrlEvent.event_id) {
@@ -291,6 +312,18 @@ void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
         else
         {
             ALOGE(LOGTAG_CTRL " Rc connection from device without AV connection");
+            bdaddr_to_string(&pEvent->avrcpCtrlEvent.bd_addr, &bd_str[0], sizeof(bd_str));
+            std::string deviceAddress(bd_str);
+            bdstring = std::find(rc_only_devices.begin(), rc_only_devices.end(), deviceAddress);
+            if (bdstring == rc_only_devices.end())
+            {
+                ALOGE(LOGTAG_CTRL " RC connected for this dev w/o AV, cache this device in list");
+                rc_only_devices.push_back(deviceAddress);
+            }
+            else
+            {
+                ALOGE(LOGTAG_CTRL " this RC device already in list, should never hit here, ERROR!!!");
+            }
         }
         break;
     case AVRCP_CTRL_DISCONNECTED_CB:
@@ -303,6 +336,18 @@ void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
         else
         {
             ALOGE(LOGTAG_CTRL " Rc disconnection from device without AV connection");
+            bdaddr_to_string(&pEvent->avrcpCtrlEvent.bd_addr, &bd_str[0], sizeof(bd_str));
+            std::string deviceAddress(bd_str);
+            bdstring = std::find(rc_only_devices.begin(), rc_only_devices.end(), deviceAddress);
+            if (bdstring != rc_only_devices.end())
+            {
+                ALOGD (LOGTAG " found match for RC only disconnection, remove from list");
+                rc_only_devices.remove(deviceAddress);
+            }
+            else
+            {
+                ALOGD (LOGTAG " found no match for RC only disconnection, entry was removed during AV connection");
+            }
         }
         break;
     case AVRCP_CTRL_PASS_THRU_CMD_REQ:
@@ -405,4 +450,5 @@ Avrcp :: Avrcp(const bt_interface_t *bt_interface, config_t *config) {
 
 Avrcp :: ~Avrcp() {
     pthread_mutex_destroy(&lock);
+    rc_only_devices.clear();
 }

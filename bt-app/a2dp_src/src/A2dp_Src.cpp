@@ -141,6 +141,7 @@ static void BtA2dpStopStreaming()
         pthread_mutex_unlock(&a2dp_hal_mutex);
         return;
     }
+    output_stream->common.set_parameters(&output_stream->common, "A2dpSuspended=false");
     output_stream->common.standby(&output_stream->common);
     pthread_mutex_unlock(&a2dp_hal_mutex);
 #endif
@@ -518,7 +519,7 @@ void A2dp_Source::HandleEnableSource(void) {
 #ifdef USE_LIBHW_AOSP
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks);
 #else
-        sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, 0, NULL);
+        sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, 0);
 #endif
         sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
