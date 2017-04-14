@@ -367,6 +367,12 @@ static void bta2dp_multicast_state_vendor_callback(int state) {
     ALOGD(LOGTAG_A2DP " Multicast State CB");
 }
 
+static void bta2dp_delay_report_vendor_callback(bt_bdaddr_t *bd_addr, uint16_t report_delay) {
+    char str[18];
+    bdaddr_to_string(bd_addr,str, 18);
+    ALOGD(LOGTAG_A2DP "Received delay report! [%s] the delay is [%d]", str, report_delay);
+    fprintf(stdout, "Received delay report! the delay is %d ms\n", report_delay);
+}
 static btav_callbacks_t sBluetoothA2dpSourceCallbacks = {
     sizeof(sBluetoothA2dpSourceCallbacks),
     bta2dp_connection_state_callback,
@@ -379,6 +385,7 @@ static btav_vendor_callbacks_t sBluetoothA2dpSourceVendorCallbacks = {
     bta2dp_connection_priority_vendor_callback,
     bta2dp_multicast_state_vendor_callback,
     NULL,
+    bta2dp_delay_report_vendor_callback,
 };
 
 static void btavrc_target_passthrough_cmd_vendor_callback(int id, int key_state, bt_bdaddr_t* bd_addr) {
