@@ -716,6 +716,7 @@ void Gap::ProcessEvent(BtEvent* event) {
 
         case GAP_API_SET_BDNAME:
             SetBtName(&event->set_device_name_event.prop);
+            config_set_string(config_,CONFIG_DEFAULT_SECTION,BT_LOCAL_DEV_NAME,(char *)event->set_device_name_event.prop.val);
             break;
 
         case GAP_EVENT_DEVICE_FOUND_INT:
