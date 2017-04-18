@@ -530,11 +530,6 @@ void Gap::ProcessEvent(BtEvent* event) {
                 prop.len = sizeof(bt_scan_mode_t);
                 bluetooth_interface_->set_adapter_property(&prop);
 
-                bt_event = new BtEvent;
-                bt_event->event_id = MAIN_EVENT_DISABLED;
-                bt_event->state_event.status = event->state_event.status;
-                PostMessage(THREAD_ID_MAIN, bt_event);
-
                 adapter_properties_obj_->FlushBondedDeviceList();
                 remote_devices_obj_->FlushDiscoveredDeviceList();
                 // cleanup the stack
@@ -546,6 +541,11 @@ void Gap::ProcessEvent(BtEvent* event) {
                     sock_interface_ = NULL;
                 }
 #endif
+                bt_event = new BtEvent;
+                bt_event->event_id = MAIN_EVENT_DISABLED;
+                bt_event->state_event.status = event->state_event.status;
+                PostMessage(THREAD_ID_MAIN, bt_event);
+
             }
             break;
 

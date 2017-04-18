@@ -92,7 +92,7 @@ extern "C"
 #endif
 
 thread_t *test_thread_id = NULL;
-
+static void SendDisableCmdToGap();
 /**
  * @brief main function
  *
@@ -329,10 +329,10 @@ static void ExitHandler(void) {
 
     // post the disable message to GAP incase BT is on
     if ( g_bt_app && g_bt_app->bt_state == BT_STATE_ON) {
-        BtEvent *event = new BtEvent;
-        event->event_id = GAP_API_DISABLE;
-        PostMessage (THREAD_ID_GAP, event);
-        sleep(1);
+        SendDisableCmdToGap();
+        sleep(3);
+        system("killall -KILL wcnssfilter");
+        usleep(200);
     }
 
     // TODO to wait for complete turn off before proceeding
@@ -814,15 +814,15 @@ void HandleOnOffTest (void *context) {
     for( index = 0; index < (long)num; index++) {
 
         BtEvent *event_on = new BtEvent;
-        event_on->event_id = GAP_API_ENABLE;
+        event_on->event_id = MAIN_API_ENABLE;
         fprintf( stdout, "Iteration: %d : Posting enable\n", index + 1);
-        PostMessage (THREAD_ID_GAP, event_on);
-        sleep(3);
+        PostMessage (THREAD_ID_MAIN, event_on);
+        sleep(5);
         BtEvent *event_off = new BtEvent;
-        event_off->event_id = GAP_API_DISABLE;
+        event_off->event_id = MAIN_API_DISABLE;
         fprintf( stdout, "Iteration: %d : Posting disable\n", index + 1);
-        PostMessage (THREAD_ID_GAP, event_off);
-        sleep(3);
+        PostMessage (THREAD_ID_MAIN, event_off);
+        sleep(5);
     }
     reactor_stop(thread_get_reactor(test_thread_id));
     test_thread_id = NULL;
@@ -1021,7 +1021,6 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     }
 }
 
-
 static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num;
@@ -1078,6 +1077,72 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     }
 }
 
+
+static void SendEnableCmdToGap() {
+
+    if ((g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->bt_state == BT_STATE_OFF)) {
+
+        g_bt_app->status.enable_cmd = COMMAND_INPROGRESS;
+        // Killing previous iteration filter if they still exists
+        system("killall -KILL wcnssfilter");
+        system("killall -KILL btsnoop");
+        system("killall -KILL qcbtdaemon");
+        usleep(200);
+
+        BtEvent *event = new BtEvent;
+        event->event_id = GAP_API_ENABLE;
+        ALOGV (LOGTAG " Posting BT enable to GAP thread");
+        PostMessage (THREAD_ID_GAP, event);
+    } else if ( g_bt_app->status.enable_cmd == COMMAND_INPROGRESS ) {
+        fprintf( stdout, "BT enable is already in process\n");
+    } else if ( g_bt_app->status.disable_cmd == COMMAND_INPROGRESS ) {
+        fprintf( stdout, "Previous BT disable is still in progress\n");
+    } else {
+        fprintf( stdout, "Currently BT is already ON\n");
+    }
+}
+
+static void SendDisableCmdToGap() {
+
+    if ((g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->bt_state == BT_STATE_ON)) {
+
+        g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
+
+        if (gattstest) {
+            fprintf(stdout, " DisableGATTSTEST \n");
+            gattstest->DisableGATTSTEST();
+        } else {
+            ALOGV (LOGTAG " gattstest interface is null");
+        }
+        if (rsp) {
+            rsp->DisableRSP();
+            fprintf(stdout, " DisableRSP \n");
+        } else {
+            ALOGV (LOGTAG " rsp interface is null");
+        }
+        if (gattctest) {
+            fprintf(stdout, " DisableGATTCTEST \n");
+            gattctest->DisableGATTCTEST();
+        } else {
+            ALOGV (LOGTAG " gattctest interface is null");
+        }
+
+        BtEvent *event = new BtEvent;
+        event->event_id = GAP_API_DISABLE;
+        ALOGV (LOGTAG " Posting disable to GAP thread");
+        PostMessage (THREAD_ID_GAP, event);
+    } else if (g_bt_app->status.disable_cmd == COMMAND_INPROGRESS) {
+        fprintf( stdout, " disable command is already in process\n");
+    } else if (g_bt_app->status.enable_cmd == COMMAND_INPROGRESS) {
+        fprintf( stdout, " Previous enable command is still in process\n");
+    } else {
+        fprintf( stdout, "Currently BT is already OFF\n");
+    }
+}
 static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *event = NULL;
 
@@ -1088,61 +1153,11 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
 
         case BT_ENABLE:
-            if ((g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
-                (g_bt_app->bt_state == BT_STATE_OFF)) {
-
-                // Killing previous iteration filter if they still exists
-                system("killall -KILL wcnssfilter");
-                system("killall -KILL btsnoop");
-                system("killall -KILL qcbtdaemon");
-                usleep(200);
-
-                g_bt_app->status.enable_cmd = COMMAND_INPROGRESS;
-                BtEvent *event = new BtEvent;
-
-                event->event_id = GAP_API_ENABLE;
-                ALOGV (LOGTAG " Posting BT enable to GAP thread");
-                PostMessage (THREAD_ID_GAP, event);
-            } else if ( g_bt_app->status.enable_cmd == COMMAND_INPROGRESS ) {
-                fprintf( stdout, "BT enable is already in process\n");
-            } else {
-                fprintf( stdout, "Currently BT is already ON\n");
-            }
+            SendEnableCmdToGap();
             break;
 
         case BT_DISABLE:
-
-            if ((g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
-                (g_bt_app->bt_state == BT_STATE_ON)) {
-
-                if (gattstest) {
-                    fprintf(stdout, " DisableGATTSTEST \n");
-                    gattstest->DisableGATTSTEST();
-                } else {
-                    ALOGV (LOGTAG " gattstest interface is null");
-                }
-                if (rsp) {
-                    rsp->DisableRSP();
-                    fprintf(stdout, " DisableRSP \n");
-                } else {
-                    ALOGV (LOGTAG " rsp interface is null");
-                }
-                if (gattctest) {
-                    fprintf(stdout, " DisableGATTCTEST \n");
-                    gattctest->DisableGATTCTEST();
-                } else {
-                    ALOGV (LOGTAG " gattctest interface is null");
-                }
-                g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
-                event = new BtEvent;
-                event->event_id = GAP_API_DISABLE;
-                ALOGV (LOGTAG " Posting disable to GAP thread");
-                PostMessage (THREAD_ID_GAP, event);
-            } else if (g_bt_app->status.disable_cmd == COMMAND_INPROGRESS) {
-                fprintf( stdout, " disable command is already in process\n");
-            } else {
-                fprintf( stdout, "Currently BT is already OFF\n");
-            }
+            SendDisableCmdToGap();
             break;
 
         case START_ENQUIRY:
@@ -1915,6 +1930,14 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             DeInitHandler();
             break;
 
+        case MAIN_API_ENABLE:
+            SendEnableCmdToGap();
+            break;
+
+        case MAIN_API_DISABLE:
+            SendDisableCmdToGap();
+            break;
+
         case MAIN_EVENT_ENABLED:
             bt_state = event->state_event.status;
             if (event->state_event.status == BT_STATE_OFF) {
@@ -1929,18 +1952,18 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             bt_state = event->state_event.status;
             if (event->state_event.status == BT_STATE_ON) {
                 fprintf(stdout, " Error in disabling BT\n");
-        } else {
-            // clear the inquiry related cmds
-            status.enquiry_cmd = COMMAND_COMPLETE;
-            status.stop_enquiry_cmd = COMMAND_COMPLETE;
-            bt_discovery_state = BT_DISCOVERY_STOPPED;
-            // clearing bond_devices list and inquiry_list
-            bonded_devices.clear();
-            inquiry_list.clear();
-            system("killall -KILL wcnssfilter");
-            usleep(200);
-            fprintf(stdout, " BT State is OFF\n");
-        }
+            } else {
+                // clear the inquiry related cmds
+                status.enquiry_cmd = COMMAND_COMPLETE;
+                status.stop_enquiry_cmd = COMMAND_COMPLETE;
+                bt_discovery_state = BT_DISCOVERY_STOPPED;
+                // clearing bond_devices list and inquiry_list
+                bonded_devices.clear();
+                inquiry_list.clear();
+                system("killall -KILL wcnssfilter");
+                usleep(200);
+                fprintf(stdout, " BT State is OFF\n");
+            }
             status.disable_cmd = COMMAND_COMPLETE;
             break;
 
