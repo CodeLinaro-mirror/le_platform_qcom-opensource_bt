@@ -38,6 +38,7 @@
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
+#include "osi/include/allocator.h"
 #include "ipc.h"
 #include "Rsp.hpp"
 #include "Gatt.hpp"
@@ -80,7 +81,7 @@ class Rsp {
         ~Rsp();
 
         bool EnableRSP();
-        bool DisableRSP(int server_if);
+        bool DisableRSP();
         inline btgatt_interface_t* GetGattInterface()
         {
             return gatt_interface;

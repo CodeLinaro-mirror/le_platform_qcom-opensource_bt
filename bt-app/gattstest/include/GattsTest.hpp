@@ -105,13 +105,15 @@ class GattsTest {
         GattsConnectionEvent conn_data;
         btgatt_interface_t *gatt_interface;
         Gatt *app_gatt;
+        bool isClientRegistered;
+        bool isServerRegistered;
 
     public:
         GattsTest(btgatt_interface_t *, Gatt *);
         ~GattsTest();
 
         bool EnableGATTSTEST();
-        bool DisableGATTSTEST(int server_if);
+        bool DisableGATTSTEST();
         inline btgatt_interface_t* GetGattInterface()
         {
             return gatt_interface;
