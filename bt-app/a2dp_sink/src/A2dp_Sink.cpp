@@ -767,6 +767,9 @@ A2dp_Device :: A2dp_Device(config_t *config, bt_bdaddr_t dev) {
     memset(&av_config, 0, sizeof(A2dpSinkConfig_t));
     pthread_mutex_init(&this->lock, NULL);
     mAvrcpConnected = false;
+    mNotificationLabel = -1;
+    mAbsVolNotificationRequested = false;
+    mAbsoluteVolumeChangeInProgress = false;
 }
 
 A2dp_Device :: ~A2dp_Device() {

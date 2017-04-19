@@ -109,6 +109,7 @@ class A2dp_Sink_Streaming {
     uint8_t* pcm_buf;
     bool pcm_timer;
     bool compress_offload_timer;
+    int current_vol_idx;
     void StartPcmTimer();
     void StopDataFetchTimer();
     void OnDisconnected();
@@ -126,6 +127,7 @@ class A2dp_Sink_Streaming {
     void FillCompressBuffertoAudioOutHal();
     void StartCompressAudioFeedTimer();
     void StopCompressAudioFeedTimer();
+    void SetStreamVol(int curr_audio_index);
 };
 
 #endif

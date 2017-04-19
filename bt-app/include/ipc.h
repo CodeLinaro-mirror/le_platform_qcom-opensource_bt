@@ -60,6 +60,8 @@ extern thread_t *g_pbapc_thread;
 #define MAX_BD_STR_LEN          (18)
 #define BT_IPC_MSG_LEN 2
 
+#define CMD_ID_VOL_UP           0x41
+#define CMD_ID_VOL_DOWN         0x42
 #define CMD_ID_PLAY             0x44
 #define CMD_ID_STOP             0x45
 #define CMD_ID_PAUSE            0x46
@@ -201,6 +203,9 @@ typedef enum {
     AVRCP_CTRL_PASS_THRU_CMD_REQ,
     AVRCP_CLEANUP_REQ,
     AVRCP_CLEANUP_DONE,
+    AVRCP_CTRL_REG_NOTI_ABS_VOL_CB,
+    AVRCP_CTRL_VOL_CHANGED_NOTI_REQ,
+    AVRCP_CTRL_SET_ABS_VOL_CMD_CB,
 
     HFP_CLIENT_API_ENABLE = HFP_CLIENT_MSG_BASE,
     HFP_CLIENT_API_DISABLE,
@@ -320,6 +325,19 @@ typedef enum {
     A2DP_SOURCE_AUDIO_STARTED,
     AVRCP_TARGET_CONNECTED_CB,
     AVRCP_TARGET_DISCONNECTED_CB,
+    AVRCP_TARGET_GET_ELE_ATTR,
+    AVRCP_TARGET_GET_PLAY_STATUS,
+    AVRCP_TARGET_REG_NOTI,
+    AVRCP_TARGET_TRACK_CHANGED,
+    AVRCP_TARGET_VOLUME_CHANGED,
+    AVRCP_TARGET_SET_ABS_VOL,
+    AVRCP_TARGET_ABS_VOL_TIMEOUT,
+    AVRCP_TARGET_SEND_VOL_UP_DOWN,
+    AVRCP_TARGET_GET_FOLDER_ITEMS_CB,
+    AVRCP_TARGET_SET_ADDR_PLAYER_CB,
+    AVRCP_TARGET_ADDR_PLAYER_CHANGED,
+    AVRCP_TARGET_AVAIL_PLAYER_CHANGED,
+    AVRCP_TARGET_USE_BIGGER_METADATA,
 
     GAP_API_ENABLE = GAP_MSG_BASE,
     GAP_API_DISABLE,
@@ -706,14 +724,22 @@ typedef struct {
 
 typedef struct {
     BluetoothEventId   event_id;
-    uint8_t             key_id;
-    bt_bdaddr_t         bd_addr;
+    uint8_t            key_id;
+    bt_bdaddr_t        bd_addr;
+    uint8_t*           buf_ptr;
+    uint16_t           buf_size;
+    uint16_t           arg1;
+    uint32_t           arg2;
+    uint8_t            arg3;
+    uint8_t            arg4;
 } AvrcpTargetEvent;
 
 typedef struct {
-    BluetoothEventId   event_id;
+    BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
     uint8_t             key_id;
+    uint8_t             arg1;
+    uint8_t             arg2;
 } AvrcpCtrlPassThruCmdReq;
 
 /**

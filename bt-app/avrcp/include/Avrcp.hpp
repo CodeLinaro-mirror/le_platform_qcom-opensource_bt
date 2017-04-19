@@ -52,7 +52,8 @@ class Avrcp {
     const bt_interface_t * bluetooth_interface;
     const btrc_ctrl_interface_t *sBtAvrcpCtrlInterface;
     const btrc_ctrl_vendor_interface_t *sBtAvrcpCtrlVendorInterface;
-
+    int mPreviousPercentageVol;
+    bool mFirstAbsVolCmdRecvd;
   public:
     Avrcp(const bt_interface_t *bt_interface, config_t *config);
     ~Avrcp();
@@ -66,6 +67,7 @@ class Avrcp {
     void HandleDisableAvrcp();
     void SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct);
     void OnDisconnected();
+    void setAbsVolume(bt_bdaddr_t* dev, int absVol, int label);
 };
 
 #endif

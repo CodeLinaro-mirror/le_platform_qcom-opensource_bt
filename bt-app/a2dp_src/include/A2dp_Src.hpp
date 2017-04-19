@@ -42,9 +42,42 @@
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
+#include "osi/include/allocator.h"
+#include "osi/include/alarm.h"
 #include "ipc.h"
 #include "utils.h"
+#include <list>
 
+using std::list;
+using std::string;
+
+#define A2DP_SOURCE_SET_ABS_VOL_TIMER_DURATION         4000
+
+typedef enum {
+    AVRC_RSP_NOT_IMPL = 8,
+    AVRC_RSP_ACCEPT,
+    AVRC_RSP_REJ,
+    AVRC_RSP_IN_TRANS,
+    AVRC_RSP_IMPL_STBL,
+    AVRC_RSP_CHANGED,
+    AVRC_RSP_INTERIM = 15,
+}AvrcRspType;
+
+typedef enum {
+    AVRC_KEY_DOWN = 0,
+    AVRC_KEY_UP,
+}AvrcKeyDir;
+
+typedef enum {
+    ATTR_TRACK_NUM = 0,
+    ATTR_TITLE,
+    ATTR_ARTIST_NAME,
+    ATTR_ALBUM_NAME,
+    ATTR_MEDIA_NUMBER,
+    ATTR_MEDIA_TOTAL_NUMBER,
+    ATTR_GENRE,
+    ATTR_PLAYING_TIME_MS,
+}AttrType;
 
 typedef enum {
     STATE_A2DP_SOURCE_NOT_STARTED = 0,
@@ -53,6 +86,50 @@ typedef enum {
     STATE_A2DP_SOURCE_CONNECTED,
 }A2dpSourceState;
 
+
+class MediaPlayerInfo {
+  public:
+    short mPlayerId;
+    char mMajorPlayerType;
+    int mPlayerSubType;
+    char mPlayState;
+    short mCharsetId;
+    short mDisplayableNameLength;
+    char* mDisplayableName;
+    char* mPlayerPackageName;
+    bool mIsAvailable;
+    bool mIsFocussed;
+    char mItemType;
+    bool mIsRemoteAddressable;
+    short mItemLength;
+    short mEntryLength;
+    char mFeatureMask[16];
+
+
+  public:
+    MediaPlayerInfo(short playerId, char majorPlayerType, int playerSubType, char playState,
+                        short charsetId, short displayableNameLength, char* displayableName,
+                        char* playerPackageName, bool isAvailable, bool isFocussed, char itemType,
+                        bool isRemoteAddressable, short itemLength, short entryLength,
+                        char featureMask[]);
+    int RetrievePlayerEntryLength();
+    char* RetrievePlayerItemEntry();
+    ~MediaPlayerInfo();
+};
+
+typedef struct  {
+    btrc_media_attr_t *p_attr;
+    long mUid;
+    int mSize;
+}ItemAttr;
+
+typedef struct  {
+    uint32_t mStart;
+    uint32_t mEnd;
+    uint32_t mSize;
+    uint8_t mNumAttr;
+    uint32_t p_attr[BTRC_MAX_ELEM_ATTR_SIZE];
+}FolderListEntries;
 
 class A2dp_Source {
 
@@ -79,9 +156,25 @@ class A2dp_Source {
     bt_bdaddr_t mConnectingDevice;
     bt_bdaddr_t mConnectedDevice;
     bt_bdaddr_t mConnectedAvrcpDevice;
+    bool mVolCmdSetInProgress;
+    bool mVolCmdAdjustInProgress;
+    bool mAbsVolRemoteSupported;
+    int mInitialRemoteVolume;
+    int mLastRemoteVolume;
+    int mRemoteVolume;
+    int mLastLocalVolume;
+    int mLocalVolume;
+    alarm_t *set_abs_volume_timer;
+    bool abs_vol_timer;
+    uint16_t mPreviousAddrPlayerId;
+    uint16_t mCurrentAddrPlayerId;
     void HandleAvrcpEvents(BtEvent* pEvent);
     void HandleEnableSource();
     void HandleDisableSource();
+    void StartSetAbsVolTimer();
+    void StopSetAbsVolTimer();
+    void updateResetNotification(btrc_event_id_t noti);
+    list<MediaPlayerInfo> pMediaPlayerList;
 };
 
 #endif
