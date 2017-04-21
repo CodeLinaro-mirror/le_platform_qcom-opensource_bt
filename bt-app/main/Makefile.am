@@ -7,7 +7,7 @@ AM_CFLAGS = -Wall \
             -Wno-trigraphs \
             -std=c99
 
-if USE_BT_OBEX
+if PLATFORM_USE_OBEX
 AM_CFLAGS += -DOI_CPU_TYPE=19
 endif
 ACLOCAL_AMFLAGS = -I m4
@@ -36,8 +36,9 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
                -I${WORKSPACE}/mcm-api/api
 
-if USE_BT_OBEX
+if PLATFORM_USE_OBEX
 AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
+               -DUSE_OBEX \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/pbap_client/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/opp/include \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include \
@@ -71,7 +72,7 @@ c_sources = ../utils/src/utils.c \
             ../gattctest/src/GattcTest.cpp \
             ../gattstest/src/GattsTest.cpp
 
-if USE_BT_OBEX
+if PLATFORM_USE_OBEX
 c_sources +=  ../pbap_client/src/PbapClient.cpp \
               ../opp/src/Opp.cpp
 endif
@@ -82,7 +83,7 @@ if AUDIO_HAL_SUPPORTED
 requiredlibs += $(SYS_LIB)/libqahw.la
 endif
 
-if USE_BT_OBEX
+if PLATFORM_USE_OBEX
 requiredlibs += $(SYS_LIB)/libbtobex.la
 endif
 

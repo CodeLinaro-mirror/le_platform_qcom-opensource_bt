@@ -83,7 +83,7 @@ typedef enum {
     THREAD_ID_GATT,
     THREAD_ID_BT_AM,
     THREAD_ID_SDP_CLIENT,
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     THREAD_ID_PBAP_CLIENT,
     THREAD_ID_OPP,
 #endif
@@ -103,7 +103,7 @@ typedef enum {
     PROFILE_ID_PAN,
     PROFILE_ID_GATT,
     PROFILE_ID_SDP_CLIENT,
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     PROFILE_ID_PBAP_CLIENT,
     PROFILE_ID_OPP,
 #endif
@@ -156,7 +156,7 @@ typedef enum {
     MAIN_EVENT_DISABLED,
     MAIN_EVENT_SSP_REQUEST,
     MAIN_EVENT_PIN_REQUEST,
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     MAIN_EVENT_INCOMING_FILE_REQUEST,
 #endif
 
@@ -1228,7 +1228,7 @@ typedef struct {
     int                     rec_handle;
 } SdpClientEvent;
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 typedef struct {
     BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
@@ -1375,7 +1375,7 @@ typedef union {
     RspEnableEvent                          rsp_enable_event;
     RspDisableEvent                         rsp_disable_event;
     SdpClientEvent                          sdp_client_event;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     PbapClientEvent                         pbap_client_event;
     OppEvent                                opp_event;
 #endif
@@ -1437,7 +1437,7 @@ void BtHfpAgMsgHandler (void *context);
 void BtAudioManagerHandler(void *msg);
 void BtSdpClientMsgHandler(void *context);
 void BtAvrcpMsgHandler(void *msg);
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 void BtPbapClientMsgHandler(void *context);
 void BtOppMsgHandler(void *context);
 #endif

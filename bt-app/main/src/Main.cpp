@@ -46,7 +46,7 @@
 #include "GattsTest.hpp"
 
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 #include "PbapClient.hpp"
 #include "Opp.hpp"
 #endif
@@ -71,7 +71,7 @@ extern GattsTest *gattstest;
 bool gattsEnabled = false;
 
 extern SdpClient *g_sdpClient;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 extern PbapClient *g_pbapClient;
 extern Opp *g_opp;
 extern const char *BT_OBEX_ENABLED;
@@ -81,7 +81,7 @@ extern ThreadInfo threadInfo[THREAD_ID_MAX];
 extern Hfp_Client *pHfpClient;
 extern Hfp_Ag *pHfpAG;
 extern Avrcp *pAvrcp;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 static alarm_t *opp_incoming_file_accept_timer = NULL;
 #define USER_ACCEPTANCE_TIMEOUT 25000
 #endif
@@ -187,7 +187,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &HfpClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
             break;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
         case PBAP_CLIENT_MENU:
             menu = &PbapClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(PbapClientMenu);
@@ -299,7 +299,7 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &HfpClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
             break;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
         case PBAP_CLIENT_MENU:
             menu = &PbapClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(PbapClientMenu);
@@ -782,7 +782,7 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = HFP_CLIENT_MENU;
             DisplayMenu(menu_type);
             break;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
         case PBAP_CLIENT_OPTION:
             menu_type = PBAP_CLIENT_MENU;
             DisplayMenu(menu_type);
@@ -1396,7 +1396,7 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 static void HandlePbapClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num;
@@ -1744,7 +1744,7 @@ static void BtCmdHandler (void *context) {
             case HFP_CLIENT_MENU:
                 HandleHfpClientCommand(cmd_id,user_cmd );
                 break;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
             case PBAP_CLIENT_MENU:
                 HandlePbapClientCommand(cmd_id,user_cmd );
                 break;
@@ -1771,7 +1771,7 @@ static void BtCmdHandler (void *context) {
         // validate the user input for PIN
         g_bt_app->pin_notification = false;
     }
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     else if (g_bt_app->incoming_file_notification && user_cmd[0][0] &&
                         (!strcasecmp (user_cmd[ZERO_PARAM], "accept") ||
                         !strcasecmp (user_cmd[ZERO_PARAM], "reject"))
@@ -1885,7 +1885,7 @@ bool BluetoothApp :: HandleSspInput(char user_cmd[][COMMAND_ARG_SIZE]) {
     return true;
 }
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 bool BluetoothApp :: HandleIncomingFile(char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *bt_event = new BtEvent;
     if (!strcasecmp (user_cmd[ZERO_PARAM], "accept")) {
@@ -2048,7 +2048,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             pin_notification = true;
             break;
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
         case MAIN_EVENT_INCOMING_FILE_REQUEST:
 
             fprintf(stdout, "\n*************************************************");
@@ -2307,7 +2307,7 @@ void BluetoothApp :: InitHandler (void) {
             g_gatt = new Gatt(bt_interface, config);
     }
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     if (is_obex_enabled_ && is_pbap_client_enabled_) {
         threadInfo[THREAD_ID_PBAP_CLIENT].thread_id = thread_new (
             threadInfo[THREAD_ID_PBAP_CLIENT].thread_name);
@@ -2433,7 +2433,7 @@ void BluetoothApp :: DeInitHandler (void) {
         }
     }
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     if (opp_incoming_file_accept_timer) {
         alarm_free(opp_incoming_file_accept_timer);
         opp_incoming_file_accept_timer = NULL;
@@ -2574,7 +2574,7 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_gatt_enable_default_= config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_GATT_ENABLED, false);
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     //checking for OBEX handler
     is_obex_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_OBEX_ENABLED, false);
