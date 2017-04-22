@@ -371,7 +371,7 @@ static void set_repository(const OI_CHAR *str)
     OI_ASSERT(str);
 
     if (*str == '\0') {
-        cout << "Repository cannot be set to nothing" << endl;
+        fprintf(stdout, "Repository cannot be set to nothing\n");
         print_help(&variable_list[0]);
         return;
     }
@@ -380,9 +380,9 @@ static void set_repository(const OI_CHAR *str)
 
     if (i < OI_ARRAYSIZE(valid_repositories) - 1) {
         pbap_client.repository = (OI_PBAP_REPOSITORY)i;
-        cout <<"Repository set to: " << str << endl;
+        fprintf(stdout, "Repository set to: %s\n", str);
     } else {
-        cout <<"Invalid repository name: " << str << endl;
+        fprintf(stdout, "Invalid repository name: %s\n", str);
         print_help(&variable_list[0]);
     }
 }
@@ -399,7 +399,7 @@ static void get_repository()
     OI_UINT str_len = 256;
 
     strlcpy(str, valid_repositories[pbap_client.repository], str_len);
-    cout << "Current repository = " << str << endl;
+    fprintf(stdout, "Current repository = %s\n", str);
     ALOGV(LOGTAG "%s: Current repository: %s", __FUNCTION__, str);
     print_help(&variable_list[0]);
 }
@@ -419,7 +419,7 @@ static void set_phonebook(const OI_CHAR *str)
 
     if (*str == '\0') {
         OI_Printf("phonebook cannot be set to nothing\n");
-        cout <<"Phonebook cannot be set to nothing " << endl;
+        fprintf(stdout, "Phonebook cannot be set to nothing \n");
         print_help(&variable_list[1]);
         return;
     }
@@ -428,9 +428,9 @@ static void set_phonebook(const OI_CHAR *str)
 
     if (i < OI_ARRAYSIZE(valid_phonebooks) - 1) {
         pbap_client.phonebook = (OI_PBAP_PHONEBOOK)i;
-        cout <<"Phonebook set to: " << str << endl;
+        fprintf(stdout, "Phonebook set to: %s\n", str);
     } else {
-        cout <<"Invalid phonebook name: " << str << endl;
+        fprintf(stdout, "Invalid phonebook name: %s\n", str);
         print_help(&variable_list[1]);
     }
 }
@@ -447,7 +447,7 @@ static void get_phonebook()
     OI_UINT str_len = 256;
 
     strlcpy(str, valid_phonebooks[pbap_client.phonebook], str_len);
-    cout << "Current phonebook = " << str << endl;
+    fprintf(stdout, "Current phonebook = %s\n", str);
     ALOGV(LOGTAG "%s: Current phonebook: %s", __FUNCTION__, str);
     print_help(&variable_list[1]);
 }
@@ -466,7 +466,7 @@ static void set_format(const OI_CHAR *str)
 
     if (*str == '\0') {
         OI_Printf("format cannot be set to nothing\n");
-        cout <<"Format cannot be set to nothing " << endl;
+        fprintf(stdout, "Format cannot be set to nothing \n");
         print_help(&variable_list[2]);
         return;
     }
@@ -475,9 +475,9 @@ static void set_format(const OI_CHAR *str)
 
     if (i < OI_ARRAYSIZE(valid_formats)) {
         pbap_client.format = (OI_PBAP_FORMAT_TAG_VALUES)i;
-        cout <<"Format set to: " << str << endl;
+        fprintf(stdout, "Format set to: %s\n", str);
     } else {
-        cout <<"Invalid format: " << str << endl;
+        fprintf(stdout, "Invalid format: %s\n", str);
         print_help(&variable_list[2]);
     }
 }
@@ -494,7 +494,7 @@ static void get_format()
     OI_UINT str_len = 256;
 
     strlcpy(str, valid_formats[pbap_client.format], str_len);
-    cout << "Current format = " << str << endl;
+    fprintf(stdout, "Current format = %s\n", str);
     ALOGV(LOGTAG "%s: Current format: %s", __FUNCTION__, str);
     print_help(&variable_list[2]);
 }
@@ -514,12 +514,12 @@ static void set_filter(const OI_CHAR *str)
 
     if (*str == '\0') {
         OI_Printf("filter cannot be set to nothing\n");
-        cout <<"Filter cannot be set to nothing " << endl;
+        fprintf(stdout, "Filter cannot be set to nothing \n");
         print_help(&variable_list[3]);
         return;
     }
 
-    cout <<"Setting Filter to: " << str << endl;
+    fprintf(stdout, "Setting Filter to: %s\n", str);
     while (*str != '\0') {
         i = find_str_in_list(str, valid_filters, OI_ARRAYSIZE(valid_filters));
 
@@ -530,7 +530,7 @@ static void set_filter(const OI_CHAR *str)
         }
 
         if (i >= OI_ARRAYSIZE(valid_filters)) {
-            cout <<"Invalid filter values: " << str << endl;
+            fprintf(stdout, "Invalid filter values: %s\n", str);
             print_help(&variable_list[3]);
             return;
         }
@@ -578,7 +578,7 @@ static void get_filter()
         }
     }
     str[pos - 1] = '\0';
-    printf("Current filter: %s\n", str);
+    fprintf(stdout, "Current filter: %s\n", str);
     ALOGV(LOGTAG "%s: Current filter: %s", __FUNCTION__, str);
     print_help(&variable_list[3]);
 }
@@ -598,7 +598,7 @@ static void set_order(const OI_CHAR *str)
 
     if (*str == '\0') {
         OI_Printf("order cannot be set to nothing\n");
-        cout <<"Order cannot be set to nothing " << endl;
+        fprintf(stdout, "Order cannot be set to nothing \n");
         print_help(&variable_list[4]);
         return;
     }
@@ -615,9 +615,9 @@ static void set_order(const OI_CHAR *str)
 
     if (i < OI_ARRAYSIZE(valid_orders)) {
         pbap_client.order = (OI_PBAP_ORDER_TAG_VALUES)i;
-        cout <<"Order set to: " << str << endl;
+        fprintf(stdout, "Order set to: %s\n", str);
     } else {
-        cout <<"Invalid order: " << str << endl;
+        fprintf(stdout, "Invalid order: %s\n", str);
         print_help(&variable_list[4]);
     }
 }
@@ -634,7 +634,7 @@ static void get_order()
     OI_UINT str_len = 256;
 
     strlcpy(str, valid_orders[pbap_client.order], str_len);
-    cout << "Current search order = " << str << endl;
+    fprintf(stdout, "Current search order = %s\n", str);
     ALOGV(LOGTAG "%s: Current search order: %s", __FUNCTION__, str);
     print_help(&variable_list[4]);
 }
@@ -677,7 +677,7 @@ static void set_search_attribute(const OI_CHAR *str)
 
     if (*str == '\0') {
         OI_Printf("search attribute cannot be set to nothing\n");
-        cout <<"search attribute cannot be set to nothing " << endl;
+        fprintf(stdout, "search attribute cannot be set to nothing \n");
         print_help(&variable_list[5]);
         return;
     }
@@ -694,9 +694,9 @@ static void set_search_attribute(const OI_CHAR *str)
 
     if (i < OI_ARRAYSIZE(valid_search_attribs)) {
         pbap_client.searchAttribute = (OI_PBAP_SEARCH_ATTRIBUTE_TAG_VALUES)i;
-        cout <<"search attribute set to: " << str << endl;
+        fprintf(stdout, "search attribute set to: %s\n", str);
     } else {
-        cout <<"Invalid search attribute: " << str << endl;
+        fprintf(stdout, "Invalid search attribute: %s\n", str);
         print_help(&variable_list[5]);
     }
 }
@@ -713,7 +713,7 @@ static void get_search_attribute()
     OI_UINT str_len = 256;
 
     strlcpy(str, valid_search_attribs[pbap_client.searchAttribute], str_len);
-    cout << "Current search attribute = " << str << endl;
+    fprintf(stdout, "Current search attribute = %s\n", str);
     ALOGV(LOGTAG "%s: Current search attribute: %s", __FUNCTION__, str);
     print_help(&variable_list[5]);
 }
@@ -962,13 +962,13 @@ void connectionCfm(OI_PBAP_CONNECTION connectionId,
         pbap_client.getting_listing = false;
         pbap_client.set_path = false;
         pbap_client.abort = false;
-        cout << "Connected to " << bd_str << endl;
+        fprintf(stdout, "Connected to %s\n", bd_str );
     } else {
         pbap_client.connection = NULL;
         pbap_client.state = STATE_IDLE;
         uint8_t zero[sizeof(bt_bdaddr_t)] = { 0 };
         memcpy(&pbap_client.addr, zero, sizeof(bt_bdaddr_t));
-        cout << "Failed to Connect to " << bd_str << endl;
+        fprintf(stdout, "Failed to Connect to %s\n", bd_str );
     }
 }
 
@@ -993,7 +993,7 @@ void disconnectInd(OI_PBAP_CONNECTION connectionId)
     char bd_str[MAX_BD_STR_LEN];
     if (pbap_client.connection == connectionId) {
         bdaddr_to_string((const bt_bdaddr_t*)&pbap_client.addr, bd_str, MAX_BD_STR_LEN);
-        cout << "Disconnected with " << bd_str << endl;
+        fprintf(stdout, "Disconnected with %s\n", bd_str );
         pbap_client.connection = NULL;
         pbap_client.state = STATE_IDLE;
         if (pbap_client.searchValue) {
@@ -1021,7 +1021,7 @@ void authenticationCB(OI_PBAP_CONNECTION connectionId, OI_BOOL userIdRequired)
     OI_CHAR password_buf[OI_OBEX_MAX_PASSWORD_LEN + 1] = "password";
     OI_UINT8 useridLen = strlen("userid");
     OI_STATUS status;
-    cout << "Authentication requested by remote device" << endl;
+    fprintf(stdout, "Authentication requested by remote device\n");
     ALOGV(LOGTAG "%s: connectionID = %p, userIdRequired = %d",
         __FUNCTION__, connectionId, userIdRequired);
     if (userIdRequired) {
@@ -1051,9 +1051,9 @@ void pullPhonebookSizeCB(OI_PBAP_CONNECTION connectionId,
     ALOGV(LOGTAG "%s: connectionID = %p, phonebookSize = %d status = %d",
         __FUNCTION__, connectionId, phonebookSize, status);
     if (status == OI_STATUS_SUCCESS) {
-        cout << "Phonebook Size is " << phonebookSize << endl;
+        fprintf(stdout, "Phonebook Size is %d\n", phonebookSize);
     } else {
-        cout << "Get Phonebook Size failed!!" << endl;
+        fprintf(stdout, "Get Phonebook Size failed!!\n");
     }
     pbap_client.getting_phonebook = false;
 }
@@ -1065,11 +1065,11 @@ void pullPhonebookCB(OI_PBAP_CONNECTION connectionId,
     ALOGV(LOGTAG "%s: connectionID = %p, newMissedCalls = %d status = %d",
         __FUNCTION__, connectionId, newMissedCalls, status);
     if (status == OI_STATUS_SUCCESS) {
-        ALOGD(LOGTAG "Phonebook downloaded to %s ", pbap_client.fileName);
-        cout << "Phonebook downloaded to " << pbap_client.fileName << endl;
+        ALOGD(LOGTAG "Phonebook downloaded to %s", pbap_client.fileName);
+        fprintf(stdout, "Phonebook downloaded to %s\n", pbap_client.fileName);
     } else {
         ALOGD(LOGTAG "Download Phonebook failed, status %d ", status);
-        cout << "Download Phonebook failed!!" << endl;
+        fprintf(stdout, "Download Phonebook failed!!\n");
     }
     pbap_client.getting_phonebook = false;
     if (pbap_client.fileName != NULL) {
@@ -1084,10 +1084,10 @@ void pullVcardCB(OI_PBAP_CONNECTION connectionId, OI_STATUS status)
         __FUNCTION__, connectionId, status);
     if (status == OI_STATUS_SUCCESS) {
         ALOGD(LOGTAG "Vcard downloaded to %s ", pbap_client.fileName);
-        cout << "Vcard downloaded to " << pbap_client.fileName << endl;
+        fprintf(stdout, "Vcard downloaded to %s \n", pbap_client.fileName);
     } else {
         ALOGD(LOGTAG "Vcard Download failed, status %d ", status);
-        cout << "Vcard Download failed!!" << endl;
+        fprintf(stdout, "Vcard Download failed!!\n");
     }
     pbap_client.getting_vcard = false;
     if (pbap_client.fileName != NULL) {
@@ -1104,10 +1104,10 @@ void pullPVcardListingCB(OI_PBAP_CONNECTION connectionId,
         __FUNCTION__, connectionId, newMissedCalls, status);
     if (status == OI_STATUS_SUCCESS) {
         ALOGD(LOGTAG "Vcard Listing downloaded to %s ", pbap_client.fileName);
-        cout << "Vcard Listing downloaded to " << pbap_client.fileName << endl;
+        fprintf(stdout, "Vcard Listing downloaded to %s\n ", pbap_client.fileName);
     } else {
         ALOGD(LOGTAG "Vcard Listing failed, status %d ", status);
-        cout << "Vcard Listing failed!!" << endl;
+        fprintf(stdout, "Vcard Listing failed!!\n");
     }
     pbap_client.getting_listing = false;
     if (pbap_client.fileName != NULL) {
@@ -1125,10 +1125,10 @@ void setPathCB (OI_PBAP_CONNECTION connectionId, OI_STATUS status)
 {
     if (status == OI_STATUS_SUCCESS) {
         ALOGD(LOGTAG "set path succeeded");
-        cout << "set path succeeded" << endl;
+        fprintf(stdout, "set path succeeded\n");
     } else {
         ALOGD(LOGTAG "set path failed, status %d ", status);
-        cout << "set path failed!!" << endl;
+        fprintf(stdout, "set path failed!!\n");
     }
     pbap_client.set_path = false;
 }
@@ -1136,7 +1136,7 @@ void setPathCB (OI_PBAP_CONNECTION connectionId, OI_STATUS status)
 void abortCfm(OI_PBAP_CONNECTION connectionId)
 {
     ALOGV(LOGTAG "%s: connectionID = %p", __FUNCTION__, connectionId);
-    cout << "Aborted last operation " << endl;
+    fprintf(stdout, "Aborted last operation \n");
     pbap_client.getting_vcard = false;
     pbap_client.getting_phonebook = false;
     pbap_client.getting_listing = false;
@@ -1147,12 +1147,12 @@ void abortCfm(OI_PBAP_CONNECTION connectionId)
 static void sdp_add_record_callback(bt_status_t status, int handle)
 {
     if (status) {
-        cout << "Sdp add record failed can't proceed with connection" << endl;
+        fprintf(stdout, "Sdp add record failed can't proceed with connection\n");
         ALOGE(LOGTAG "%s: sdp add record failed, status %d", __FUNCTION__, status);
     } else {
         pbap_client.rec_handle = handle;
         pbap_client.state = STATE_IDLE;
-        cout << "Successfully Registered PBAP Client SDP Record" << endl;
+        fprintf(stdout, "Successfully Registered PBAP Client SDP Record\n");
     }
 }
 
@@ -1174,7 +1174,7 @@ static void sdp_search_callback(bt_status_t status, bt_bdaddr_t *bd_addr, uint8_
 
     if (status) {
         ALOGE(LOGTAG "%s: sdp search failed, status %d", __FUNCTION__, status);
-        cout << "Sdp search failed can't proceed with connection" << endl;
+        fprintf(stdout, "Sdp search failed can't proceed with connection\n");
         return;
     }
     ALOGE(LOGTAG "%s", __FUNCTION__);
@@ -1209,11 +1209,11 @@ static void sdp_search_callback(bt_status_t status, bt_bdaddr_t *bd_addr, uint8_
         } else {
             ALOGE(LOGTAG "%s: Could not find remote rfcomm channel or l2cap psm, can't connect",
                  __FUNCTION__);
-            cout << "Could not find remote rfcomm channel or l2cap psm, can't connect" << endl;
+            fprintf(stdout, "Could not find remote rfcomm channel or l2cap psm, can't connect\n");
         }
     } else {
         ALOGE(LOGTAG "%s: Unknown uuid sdp result received, ignoring!!", __FUNCTION__);
-        cout << "Unknown uuid sdp result received, ignoring!!" << endl;
+        fprintf(stdout, "Unknown uuid sdp result received, ignoring!!\n");
     }
 }
 
@@ -1321,22 +1321,22 @@ void PbapClient::ProcessEvent(BtEvent* pEvent)
 
         case PBAP_CLIENT_SET_LIST_COUNT:
             pbap_client.max_list_count = pEvent->pbap_client_event.max_list_count;
-            cout << "Max List set to " << pbap_client.max_list_count << endl;
+            fprintf(stdout, "Max List set to =: %d\n", pbap_client.max_list_count);
             break;
 
         case PBAP_CLIENT_GET_LIST_COUNT:
             ALOGV(LOGTAG "%s: Max List Count =: %d", __FUNCTION__, pbap_client.max_list_count);
-            cout << "Max List Count = " << pbap_client.max_list_count << endl;
+            fprintf(stdout, " Max List Count =: %d\n", pbap_client.max_list_count);
             break;
 
         case PBAP_CLIENT_SET_START_OFFSET:
             pbap_client.start_offset = pEvent->pbap_client_event.list_start_offset;
-            cout << "List Start set to " << pbap_client.start_offset << endl;
+            fprintf(stdout, "List Start set to %d\n", pbap_client.start_offset);
             break;
 
         case PBAP_CLIENT_GET_START_OFFSET:
             ALOGV(LOGTAG "%s: List Start Offset =: %d", __FUNCTION__, pbap_client.start_offset);
-            cout << "List Start Offset = " << pbap_client.start_offset << endl;
+            fprintf(stdout, "List Start Offset =: %d\n", pbap_client.start_offset);
             break;
 
         default:
@@ -1348,7 +1348,7 @@ void PbapClient::ProcessEvent(BtEvent* pEvent)
 void PbapClient :: AddSdpRecord()
 {
     if (pbap_client.state >= STATE_IDLE) {
-        cout << "Already registered " << endl;
+        fprintf(stdout, "Already registered \n");
         return;
     }
     /* Add PBAP Client SDP Record */
@@ -1396,15 +1396,15 @@ bool PbapClient :: PerformSdp(bt_bdaddr_t *addr)
     bdaddr_to_string((const bt_bdaddr_t*)&pbap_client.addr, bd_str, MAX_BD_STR_LEN);
     if (pbap_client.state == STATE_INITIAL) {
         ALOGE(LOGTAG "%s: Not registered, please register before connecting!!", __FUNCTION__);
-        cout << "Not registered, please register before connecting!!" << endl;
+        fprintf(stdout, "Not registered, please register before connecting!!\n");
         return false;
     } else if (pbap_client.state == STATE_CONNECTING) {
         ALOGE(LOGTAG "%s: Currently connecting to %s", __FUNCTION__, bd_str);
-        cout << "Currently connecting to " << bd_str << endl;
+        fprintf(stdout, "Currently connecting to %s\n", bd_str);
         return false;
     } else if (pbap_client.state == STATE_CONNECTED) {
         ALOGE(LOGTAG "%s: Already connected to %s", __FUNCTION__, bd_str);
-        cout << "Already connected to " << bd_str << endl;
+        fprintf(stdout, "Already connected to %s\n", bd_str);
         return false;
     }
     memcpy(&pbap_client.addr, addr, sizeof(bt_bdaddr_t));
@@ -1432,7 +1432,7 @@ bool PbapClient :: Connect()
         char bd_str[MAX_BD_STR_LEN];
         bdaddr_to_string((const bt_bdaddr_t*)&pbap_client.addr, bd_str, MAX_BD_STR_LEN);
         ALOGE(LOGTAG "%s: Failed to connect to %s", __FUNCTION__, bd_str);
-        cout << "Failed to connect to " << bd_str << endl;
+        fprintf(stdout, "Failed to connect to %s\n", bd_str);
     } else {
          // start the profile connect timer
         alarm_set(pbap_connect_timer, PBAP_CONNECT_TIMEOUT_DELAY,
@@ -1446,7 +1446,7 @@ bool PbapClient :: HandleConnectTimeout(bt_bdaddr_t *addr)
 {
     char bd_str[MAX_BD_STR_LEN];
     bdaddr_to_string((const bt_bdaddr_t*)addr, bd_str, MAX_BD_STR_LEN);
-    cout << "Failed to Connect to " << bd_str <<" due to ConnectionTimeout " << endl;
+    fprintf(stdout, "Failed to Connect to %s due to ConnectionTimeout\n", bd_str);
     pbap_client.connection = NULL;
     pbap_client.state = STATE_IDLE;
     uint8_t zero[sizeof(bt_bdaddr_t)] = { 0 };
@@ -1467,7 +1467,7 @@ bool PbapClient :: Disconnect(bt_bdaddr_t *addr)
     if (pbap_client.state != STATE_CONNECTED || !bdaddr_equals(addr,
             (const bt_bdaddr_t *)&pbap_client.addr)) {
         ALOGE(LOGTAG "%s: not connected to %s", __FUNCTION__, bd_str);
-        cout << "Not connected to " << bd_str << endl;
+        fprintf(stdout, "Not connected to %s\n", bd_str);
         return false;
     }
     ALOGV(LOGTAG "%s: %s", __FUNCTION__, bd_str);
@@ -1477,7 +1477,7 @@ bool PbapClient :: Disconnect(bt_bdaddr_t *addr)
         ret = false;
         char bd_str[MAX_BD_STR_LEN];
         bdaddr_to_string((const bt_bdaddr_t*)&pbap_client.addr, bd_str, MAX_BD_STR_LEN);
-        cout << "Failed to disconnect to " << bd_str << endl;
+        fprintf(stdout, "Failed to disconnect to %s\n", bd_str);
         ALOGE(LOGTAG "%s: Failed disconnect %s status: %d", __FUNCTION__, bd_str, status);
     }
     return ret;
@@ -1491,12 +1491,12 @@ bool PbapClient :: GetPhonebookSize()
     if (pbap_client.getting_vcard || pbap_client.getting_phonebook
             || pbap_client.getting_listing || pbap_client.set_path
             || pbap_client.abort) {
-        cout << "PBAP Operation in progress, please retry again!!" << endl;
+        fprintf(stdout, "PBAP Operation in progress, please retry again!!\n");
         return false;
     }
     if (pbap_client.state != STATE_CONNECTED) {
         ALOGE(LOGTAG "%s: Not connected", __FUNCTION__);
-        cout << "Not connected, can't get phonebook size" << endl;
+        fprintf(stdout, "Not connected, can't get phonebook size\n");
         return false;
     }
     OI_STATUS status = OI_PBAPClient_GetPhonebookSize(pbap_client.connection,
@@ -1504,11 +1504,11 @@ bool PbapClient :: GetPhonebookSize()
                         &pullPhonebookSizeCB);
     if (status != OI_STATUS_SUCCESS) {
         ALOGE(LOGTAG "%s: Failed get phonebook size, status: %d", __FUNCTION__, status);
-        cout << "Failed get phonebook size, err: " << status << endl;
+        fprintf(stdout, "Failed get phonebook size, err: %d\n", status);
         ret = false;
     } else {
         pbap_client.getting_phonebook = true;
-        cout << "Get Phonebook size in progress!!" << endl;
+        fprintf(stdout, "Get Phonebook size in progress!!\n");
     }
     return ret;
 }
@@ -1521,12 +1521,12 @@ bool PbapClient :: GetPhonebook()
     if (pbap_client.getting_vcard || pbap_client.getting_phonebook
             || pbap_client.getting_listing || pbap_client.set_path
             || pbap_client.abort) {
-        cout << "PBAP Operation in progress, please retry again!!" << endl;
+        fprintf(stdout, "PBAP Operation in progress, please retry again!!\n");
         return false;
     }
     if (pbap_client.state != STATE_CONNECTED) {
         ALOGE(LOGTAG "%s: Not connected", __FUNCTION__);
-        cout << "Not connected, can't download" << endl;
+        fprintf(stdout, "Not connected, can't download\n");
         return false;
     }
     pbap_client.getting_phonebook = true;
@@ -1537,11 +1537,11 @@ bool PbapClient :: GetPhonebook()
                         &pullPhonebookCB);
     if (status != OI_STATUS_SUCCESS) {
         ALOGE(LOGTAG "%s: Failed pull phonebook, status: %d", __FUNCTION__, status);
-        cout << "Pull Phonebook failed, err: " << status << endl;
+        fprintf(stdout, "Pull Phonebook failed, err: %d\n", status);
         pbap_client.getting_phonebook = false;
         ret = false;
     } else {
-        cout << "Pull Phonebook in progress!!" << endl;
+        fprintf(stdout, "Pull Phonebook in progress!!\n");
     }
     return ret;
 }
@@ -1556,12 +1556,12 @@ bool PbapClient :: GetVcard(const OI_CHAR *handle)
     if (pbap_client.getting_vcard || pbap_client.getting_phonebook
             || pbap_client.getting_listing || pbap_client.set_path
             || pbap_client.abort) {
-        cout << "PBAP Operation in progress, please retry again!!" << endl;
+        fprintf(stdout, "PBAP Operation in progress, please retry again!!\n");
         return false;
     }
     if (pbap_client.state != STATE_CONNECTED) {
         ALOGE(LOGTAG "%s: Not connected", __FUNCTION__);
-        cout << "Not connected, can't download" << endl;
+        fprintf(stdout, "Not connected, can't download\n");
         return false;
     }
     while (*dp != '\0' && ishexdigit(*dp) && (number < OI_UINT32_MAX)) {
@@ -1581,11 +1581,11 @@ bool PbapClient :: GetVcard(const OI_CHAR *handle)
                         &pbap_client.filter, pbap_client.format, &pullVcardCB);
     if (status != OI_STATUS_SUCCESS) {
         ALOGE(LOGTAG "%s: Failed pull vcard, status: %d", __FUNCTION__, status);
-        cout << "Pull Vcard failed, err: " << status << endl;
+        fprintf(stdout, "Pull Vcard failed, err: %d\n", status);
         pbap_client.getting_vcard = false;
         ret = false;
     } else {
-        cout << "Pull Vcard in progress!!" << endl;
+        fprintf(stdout, "Pull Vcard in progress!!\n");
     }
     return ret;
 }
@@ -1598,12 +1598,12 @@ bool PbapClient :: GetVcardListing()
     if (pbap_client.getting_vcard || pbap_client.getting_phonebook
             || pbap_client.getting_listing || pbap_client.set_path
             || pbap_client.abort) {
-        cout << "PBAP Operation in progress, please retry again!!" << endl;
+        fprintf(stdout, "PBAP Operation in progress, please retry again!!\n");
         return false;
     }
     if (pbap_client.state != STATE_CONNECTED) {
         ALOGE(LOGTAG "%s: Not connected", __FUNCTION__);
-        cout << "Not connected, can't download" << endl;
+        fprintf(stdout, "Not connected, can't download\n");
         return false;
     }
     pbap_client.getting_listing = true;
@@ -1615,11 +1615,11 @@ bool PbapClient :: GetVcardListing()
                         &pullPVcardListingCB);
     if (status != OI_STATUS_SUCCESS) {
         ALOGE(LOGTAG "%s: Failed pull vcard, status: %d", __FUNCTION__, status);
-        cout << "Pull Vcard listing failed, err: " << status << endl;
+        fprintf(stdout, "Pull Vcard listing failed, err: %d\n", status);
         pbap_client.getting_listing = false;
         ret = false;
     } else {
-        cout << "Pull Vcard Listing in progress!!" << endl;
+        fprintf(stdout, "Pull Vcard Listing in progress!!\n");
     }
     return ret;
 }
@@ -1633,19 +1633,19 @@ bool PbapClient :: SetPath(const OI_CHAR *str)
     if (pbap_client.getting_vcard || pbap_client.getting_phonebook
             || pbap_client.getting_listing || pbap_client.set_path
             || pbap_client.abort) {
-        cout << "PBAP Operation in progress, please retry again!!" << endl;
+        fprintf(stdout, "PBAP Operation in progress, please retry again!!\n");
         return false;
     }
     if (pbap_client.state != STATE_CONNECTED) {
         ALOGE(LOGTAG "%s: Not connected", __FUNCTION__);
-        cout << "Not connected, can't perform setpath" << endl;
+        fprintf(stdout, "Not connected, can't perform setpath\n");
         return false;
     }
     OI_ASSERT(str);
 
     if (*str == '\0') {
         OI_Printf("path cannot be set to nothing\n");
-        cout <<"path cannot be set to nothing " << endl;
+        fprintf(stdout, "path cannot be set to nothing \n");
         print_help(&variable_list[6]);
         return false;
     }
@@ -1653,9 +1653,9 @@ bool PbapClient :: SetPath(const OI_CHAR *str)
     i = find_str_in_list(str, valid_paths, OI_ARRAYSIZE(valid_paths));
 
     if (i < OI_ARRAYSIZE(valid_paths)) {
-        cout <<"path set to: " << str << endl;
+        fprintf(stdout, "path set to: %s\n", str);
     } else {
-        cout <<"Invalid format: " << str << endl;
+        fprintf(stdout, "Invalid format: %s\n", str);
         print_help(&variable_list[6]);
     }
     switch (i) {
@@ -1712,11 +1712,11 @@ bool PbapClient :: SetPath(const OI_CHAR *str)
     OI_STATUS status = OI_PBAPClient_SetPath(pbap_client.connection, rep, pb, &setPathCB);
     if (status != OI_STATUS_SUCCESS) {
         ALOGE(LOGTAG "%s: Set path, status: %d", __FUNCTION__, status);
-        cout << "Set path failed, err: " << status << endl;
+        fprintf(stdout, "Set path failed, err:  %d\n", status);
         pbap_client.set_path = false;
         return false;
     } else {
-        cout << "Set path in progress!!" << endl;
+        fprintf(stdout, "Set path in progress!!\n");
         return true;
     }
 }
@@ -1728,13 +1728,13 @@ bool PbapClient :: Abort()
     ALOGV(LOGTAG "%s", __FUNCTION__);
     if (pbap_client.state != STATE_CONNECTED) {
         ALOGE(LOGTAG "%s: Not connected", __FUNCTION__);
-        cout << "Not connected, can't perform abort" << endl;
+        fprintf(stdout, "Not connected, can't perform abort\n");
         return false;
     }
     if (!(pbap_client.getting_vcard || pbap_client.getting_phonebook ||
         pbap_client.getting_listing)) {
         ALOGE(LOGTAG "%s: no operation ongoing", __FUNCTION__);
-        cout << "No operation ongoing, can't perform abort" << endl;
+        fprintf(stdout, "No operation ongoing, can't perform abort\n");
         return false;
     }
     pbap_client.abort = true;
@@ -1744,7 +1744,7 @@ bool PbapClient :: Abort()
         pbap_client.abort = false;
         ret = false;
     } else {
-        cout << "Abort in progress!!" << endl;
+        fprintf(stdout, "Abort in progress!!\n");
     }
     return ret;
 }
