@@ -585,6 +585,11 @@ static void *thread_func(void *in_param)
                                 //if(src_codec_type == A2DP_SINK_AUDIO_CODEC_SBC
                                 if (!memcmp(&src_codec_cfg,&snk_codec_cfg,sizeof(btav_sbc_codec_config_t)))
                                     len = get_sbc_data((uint8_t*)buffer, out_buffer_size);
+                                else
+                                {
+                                    ALOGD(LOGTAG_A2DP "sbc codec not match, and decoding is not enabled. using file");
+                                    use_file_stream = 1;
+                                }
                             }
                             else
                             {
