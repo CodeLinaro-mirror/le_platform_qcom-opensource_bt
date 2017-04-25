@@ -46,6 +46,7 @@
 #include "hardware/bt_rc_vendor.h"
 #include <math.h>
 #include <algorithm>
+#include <cutils/properties.h>
 
 #define LOGTAG_A2DP "A2DP_SRC "
 #define LOGTAG_AVRCP "AVRCP_TG "
@@ -1242,6 +1243,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
 
 void A2dp_Source::HandleEnableSource(void) {
     BtEvent *pEvent = new BtEvent;
+    char value[PROPERTY_VALUE_MAX] = {'\0'};
     if (bluetooth_interface != NULL)
     {
         sBtA2dpSourceInterface = (btav_interface_t *)bluetooth_interface->
@@ -1262,6 +1264,12 @@ void A2dp_Source::HandleEnableSource(void) {
 #else
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, 0);
 #endif
+        property_get("persist.bt.a2dp_offload_cap", value, "false");
+        ALOGD(LOGTAG_A2DP "offload_cap:%s", value);
+        if (strcmp(value, "false") == 0)
+            sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
+        else
+            sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, value);
         sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SOURCE;
