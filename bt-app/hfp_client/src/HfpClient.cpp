@@ -1026,7 +1026,6 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
         case HFP_CLIENT_AUDIO_STATE_DISCONNECTED_CB:
 
             mAudioWbs = false;
-            ConfigureAudio(false);
 
             // release control
             pReleaseControlReq = new BtEvent;
@@ -1039,6 +1038,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             change_state(HFP_CLIENT_STATE_CONNECTED);
 
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
+            ConfigureAudio(false);
             fprintf(stdout, "Disconnected SCO connection with device %s\n", str);
             ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
             break;

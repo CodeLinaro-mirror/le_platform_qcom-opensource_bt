@@ -40,6 +40,8 @@
 #include "Gap.hpp"
 #include "hardware/bt_rc_vendor.h"
 #include "A2dp_Sink.hpp"
+#include <math.h>
+#include <algorithm>
 
 #define LOGTAG "AVRCP"
 #define LOGTAG_CTRL "AVRCP_CTRL"
@@ -53,7 +55,9 @@ extern A2dp_Sink_Streaming *pA2dpSinkStream;
 extern A2dp_Sink *pA2dpSink;
 
 static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
+#define ABS_VOL_BASE 127
+#define AUDIO_MAX_VOL_LEVEL 15
+int curr_audio_index = 1;
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -89,8 +93,10 @@ void BtAvrcpMsgHandler(void *msg) {
         case AVRCP_CTRL_CONNECTED_CB:
         case AVRCP_CTRL_DISCONNECTED_CB:
         case AVRCP_CTRL_PASS_THRU_CMD_REQ:
+        case AVRCP_CTRL_REG_NOTI_ABS_VOL_CB:
+        case AVRCP_CTRL_VOL_CHANGED_NOTI_REQ:
+        case AVRCP_CTRL_SET_ABS_VOL_CMD_CB:
             ALOGD( LOGTAG_CTRL " handle avrcp events ");
-
             if (pAvrcp) {
                 pAvrcp->HandleAvrcpEvents(( BtEvent *) msg);
             }
@@ -105,6 +111,23 @@ void BtAvrcpMsgHandler(void *msg) {
 }
 #endif
 
+
+static void btavrcpctrl_passthru_rsp_vendor_callback(int id, int key_state, bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_passthru_rsp_vendor_callback id = %d key_state = %d",
+            id, key_state);
+    if (id == CMD_ID_PAUSE && key_state == 1 &&
+            !memcmp(&pA2dpSinkStream->mStreamingDevice, bd_addr, sizeof(bt_bdaddr_t)))
+    {
+        ALOGD(LOGTAG_CTRL " need to flush both stack queue and audio queue ");
+        BtEvent *pFlushAudioPackets = new BtEvent;
+        pFlushAudioPackets->a2dpSinkStreamingEvent.event_id = A2DP_SINK_STREAMING_FLUSH_AUDIO;
+        memcpy(&pFlushAudioPackets->a2dpSinkStreamingEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+        if (pA2dpSinkStream) {
+            thread_post(pA2dpSinkStream->threadInfo.thread_id,
+            pA2dpSinkStream->threadInfo.thread_handler, (void*)pFlushAudioPackets);
+        }
+    }
+}
 
 static void btavrcpctrl_passthru_rsp_callback(int id, int key_state) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_passthru_rsp_callback id = %d key_state = %d", id, key_state);
@@ -194,10 +217,21 @@ static void btavrcpctrl_getplaystatus_rsp_vendor_callback(bt_bdaddr_t *bd_addr, 
 
 static void btavrcpctrl_setabsvol_cmd_callback(bt_bdaddr_t *bd_addr, uint8_t abs_vol, uint8_t label) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_setabsvol_cmd_vendor_callback");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpCtrlEvent.event_id = AVRCP_CTRL_SET_ABS_VOL_CMD_CB;
+    pEvent->avrcpCtrlEvent.arg1 = label;
+    pEvent->avrcpCtrlEvent.arg2 = abs_vol;
+    memcpy(&pEvent->avrcpCtrlEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    PostMessage(THREAD_ID_AVRCP, pEvent);
 }
 
 static void btavrcpctrl_registernotification_absvol_callback(bt_bdaddr_t *bd_addr, uint8_t label) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_registernotification_absvol_vendor_callback");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpCtrlEvent.event_id = AVRCP_CTRL_REG_NOTI_ABS_VOL_CB;
+    pEvent->avrcpCtrlEvent.arg1 = label;
+    memcpy(&pEvent->avrcpCtrlEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    PostMessage(THREAD_ID_AVRCP, pEvent);
 }
 
 static btrc_ctrl_callbacks_t sBluetoothAvrcpCtrlCallbacks = {
@@ -225,10 +259,11 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
    btavrcpctrl_notification_rsp_vendor_callback,
    btavrcpctrl_getelementattrib_rsp_vendor_callback,
    btavrcpctrl_getplaystatus_rsp_vendor_callback,
+   btavrcpctrl_passthru_rsp_vendor_callback,
 };
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {
-
+    ALOGD(LOGTAG_CTRL " SendPassThruCommandNative ");
     if (memcmp(&pA2dpSinkStream->mStreamingDevice, &bd_addr_null, sizeof(bt_bdaddr_t)) &&
             memcmp(&pA2dpSinkStream->mStreamingDevice, addr, sizeof(bt_bdaddr_t)) &&
             (key_id == CMD_ID_PLAY))
@@ -276,8 +311,49 @@ list<A2dp_Device>::iterator FindAvDeviceByAddr(list<A2dp_Device>& pA2dpDev, bt_b
     return p;
 }
 
+int getVolumePercentage() {
+    int maxVolume = AUDIO_MAX_VOL_LEVEL;
+                  //mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+    int currIndex = curr_audio_index;
+                  //mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+    int percentageVol = ((currIndex * ABS_VOL_BASE) / maxVolume);
+    return percentageVol;
+}
+
+void Avrcp::setAbsVolume(bt_bdaddr_t* dev, int absVol, int label) {
+    int maxVolume = AUDIO_MAX_VOL_LEVEL;
+                  //mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+    int currIndex = curr_audio_index;
+                  //mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+
+    // Ignore first volume command since phone may not know difference between stream volume
+    // and amplifier volume.
+    if (mFirstAbsVolCmdRecvd) {
+        int newIndex =(int) round((double) absVol * maxVolume / ABS_VOL_BASE);
+        ALOGD(LOGTAG_CTRL " setAbsVol = %d maxVol = %d cur = %d new = %d", absVol,
+                                                  maxVolume, currIndex, newIndex);
+        /*
+              * In some cases change in percentage is not sufficient enough to warrant
+              * change in index values which are in range of 0-15. For such cases
+              * no action is required
+              */
+        if (newIndex != currIndex) {
+            curr_audio_index = newIndex;
+            pA2dpSinkStream->SetStreamVol(curr_audio_index);
+        }
+    } else {
+        mFirstAbsVolCmdRecvd = true;
+        absVol = (currIndex * ABS_VOL_BASE) / maxVolume;
+        ALOGD(LOGTAG_CTRL " SetAbsVol recvd for first time, respond with absVol %d", absVol);
+    }
+    sBtAvrcpCtrlInterface->set_volume_rsp(dev, absVol, label);
+}
+
 void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
     list<A2dp_Device>::iterator iter;
+    int perVol;
+    bdstr_t bd_str;
+    std::list<std::string>::iterator bdstring;
     ALOGD(LOGTAG_CTRL " HandleAvrcpEvents event = %s",
             dump_message(pEvent->avrcpCtrlEvent.event_id));
     switch(pEvent->avrcpCtrlEvent.event_id) {
@@ -291,6 +367,18 @@ void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
         else
         {
             ALOGE(LOGTAG_CTRL " Rc connection from device without AV connection");
+            bdaddr_to_string(&pEvent->avrcpCtrlEvent.bd_addr, &bd_str[0], sizeof(bd_str));
+            std::string deviceAddress(bd_str);
+            bdstring = std::find(rc_only_devices.begin(), rc_only_devices.end(), deviceAddress);
+            if (bdstring == rc_only_devices.end())
+            {
+                ALOGE(LOGTAG_CTRL " RC connected for this dev w/o AV, cache this device in list");
+                rc_only_devices.push_back(deviceAddress);
+            }
+            else
+            {
+                ALOGE(LOGTAG_CTRL " this RC device already in list, should never hit here, ERROR!!!");
+            }
         }
         break;
     case AVRCP_CTRL_DISCONNECTED_CB:
@@ -303,6 +391,18 @@ void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
         else
         {
             ALOGE(LOGTAG_CTRL " Rc disconnection from device without AV connection");
+            bdaddr_to_string(&pEvent->avrcpCtrlEvent.bd_addr, &bd_str[0], sizeof(bd_str));
+            std::string deviceAddress(bd_str);
+            bdstring = std::find(rc_only_devices.begin(), rc_only_devices.end(), deviceAddress);
+            if (bdstring != rc_only_devices.end())
+            {
+                ALOGD (LOGTAG " found match for RC only disconnection, remove from list");
+                rc_only_devices.remove(deviceAddress);
+            }
+            else
+            {
+                ALOGD (LOGTAG " found no match for RC only disconnection, entry was removed during AV connection");
+            }
         }
         break;
     case AVRCP_CTRL_PASS_THRU_CMD_REQ:
@@ -317,6 +417,73 @@ void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
         }
+        break;
+    case AVRCP_CTRL_SET_ABS_VOL_CMD_CB:
+        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
+        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        {
+            ALOGD(LOGTAG_CTRL " setabsvol cmd cb for AV & RC connected device, send to stack");
+            iter->mAbsoluteVolumeChangeInProgress = true;
+            setAbsVolume(&iter->mDevice, (int)pEvent->avrcpCtrlEvent.arg2,
+                                         (int)pEvent->avrcpCtrlEvent.arg1);
+        }
+        else
+        {
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+        }
+        break;
+    case AVRCP_CTRL_REG_NOTI_ABS_VOL_CB:
+        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
+        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        {
+            ALOGD(LOGTAG_CTRL " NOTI_ABS_VOL_CB for AV & RC connected device, send to stack");
+            iter->mNotificationLabel = (int)pEvent->avrcpCtrlEvent.arg1;
+            iter->mAbsVolNotificationRequested = true;
+            perVol = getVolumePercentage();
+            ALOGD(LOGTAG_CTRL " Sending Interim Response = %d label %d", perVol,
+                                                      iter->mNotificationLabel);
+            sBtAvrcpCtrlInterface->register_abs_vol_rsp(&pEvent->avrcpCtrlEvent.bd_addr,
+                    BTRC_NOTIFICATION_TYPE_INTERIM, perVol, iter->mNotificationLabel);
+        }
+        else
+        {
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+        }
+        break;
+    case AVRCP_CTRL_VOL_CHANGED_NOTI_REQ:
+        ALOGD(LOGTAG_CTRL " AVRCP_CTRL_VOL_CHANGED_NOTI_REQ, vol level = %d",
+                                                 pEvent->avrcpCtrlEvent.arg1);
+        iter = pA2dpSink->pA2dpDeviceList.begin();
+        while(iter != pA2dpSink->pA2dpDeviceList.end()) {
+            if (iter->mAbsoluteVolumeChangeInProgress)
+            {
+                iter->mAbsoluteVolumeChangeInProgress = false;
+            }
+            else
+            {
+                ALOGD(LOGTAG_CTRL " iter->mAvrcpConnected %d ", iter->mAvrcpConnected);
+                ALOGD(LOGTAG_CTRL " iter->mAbsVolNotificationRequested %d",
+                                    iter->mAbsVolNotificationRequested);
+                if (iter->mAvrcpConnected && iter->mAbsVolNotificationRequested)
+                {
+                    perVol = (((int)pEvent->avrcpCtrlEvent.arg1*ABS_VOL_BASE)/AUDIO_MAX_VOL_LEVEL);
+                    curr_audio_index = (int)pEvent->avrcpCtrlEvent.arg1;
+                    ALOGD(LOGTAG_CTRL " perVol %d & mPreviousPercentageVol %d", perVol,
+                                                    mPreviousPercentageVol);
+                    if (perVol != mPreviousPercentageVol)
+                    {
+                        sBtAvrcpCtrlInterface->register_abs_vol_rsp(&iter->mDevice,
+                                BTRC_NOTIFICATION_TYPE_CHANGED, perVol, iter->mNotificationLabel);
+                        iter->mAbsVolNotificationRequested = false;
+                    }
+                }
+                else
+                    ALOGD(LOGTAG_CTRL " iter %x !conn to RC or !reg for Abs vol change noti", iter);
+            }
+            iter++;
+        }
+        mPreviousPercentageVol = perVol;
+        pA2dpSinkStream->SetStreamVol(curr_audio_index);
         break;
     }
 }
@@ -401,8 +568,11 @@ Avrcp :: Avrcp(const bt_interface_t *bt_interface, config_t *config) {
     max_avrcp_conn = 0;
     memset(&mConnectedAvrcpDevice, 0, sizeof(bt_bdaddr_t));
     pthread_mutex_init(&this->lock, NULL);
+    mPreviousPercentageVol = -1;
+    mFirstAbsVolCmdRecvd = false;
 }
 
 Avrcp :: ~Avrcp() {
     pthread_mutex_destroy(&lock);
+    rc_only_devices.clear();
 }
