@@ -67,11 +67,11 @@ if (size >= 2 * out_size)
 limit = (out_size - 2) / 2;
 
 for (i = 0; i < limit; ++i)
-sprintf(buf + 2 * i, "%02x", v[i]);
+snprintf(buf + 2 * i,200, "%02x", v[i]);
 
 /* output buffer not enough to hold whole field fill with ...*/
 if (limit < size)
-sprintf(buf + 2 * i, "...");
+snprintf(buf + 2 * i,200, "...");
 }
 
 fprintf(stdout,"\nconverted to %s \n",buf);
@@ -105,13 +105,15 @@ class GattsTest {
         GattsConnectionEvent conn_data;
         btgatt_interface_t *gatt_interface;
         Gatt *app_gatt;
+        bool isClientRegistered;
+        bool isServerRegistered;
 
     public:
         GattsTest(btgatt_interface_t *, Gatt *);
         ~GattsTest();
 
         bool EnableGATTSTEST();
-        bool DisableGATTSTEST(int server_if);
+        bool DisableGATTSTEST();
         inline btgatt_interface_t* GetGattInterface()
         {
             return gatt_interface;

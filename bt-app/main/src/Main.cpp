@@ -46,7 +46,7 @@
 #include "GattsTest.hpp"
 
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 #include "PbapClient.hpp"
 #include "Opp.hpp"
 #endif
@@ -68,9 +68,10 @@ extern BT_Audio_Manager *pBTAM;
 extern Rsp *rsp;
 extern GattcTest *gattctest;
 extern GattsTest *gattstest;
+bool gattsEnabled = false;
 
 extern SdpClient *g_sdpClient;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 extern PbapClient *g_pbapClient;
 extern Opp *g_opp;
 extern const char *BT_OBEX_ENABLED;
@@ -80,7 +81,7 @@ extern ThreadInfo threadInfo[THREAD_ID_MAX];
 extern Hfp_Client *pHfpClient;
 extern Hfp_Ag *pHfpAG;
 extern Avrcp *pAvrcp;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 static alarm_t *opp_incoming_file_accept_timer = NULL;
 #define USER_ACCEPTANCE_TIMEOUT 25000
 #endif
@@ -91,7 +92,7 @@ extern "C"
 #endif
 
 thread_t *test_thread_id = NULL;
-
+static void SendDisableCmdToGap();
 /**
  * @brief main function
  *
@@ -186,7 +187,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &HfpClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
             break;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
         case PBAP_CLIENT_MENU:
             menu = &PbapClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(PbapClientMenu);
@@ -298,7 +299,7 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &HfpClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
             break;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
         case PBAP_CLIENT_MENU:
             menu = &PbapClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(PbapClientMenu);
@@ -328,10 +329,10 @@ static void ExitHandler(void) {
 
     // post the disable message to GAP incase BT is on
     if ( g_bt_app && g_bt_app->bt_state == BT_STATE_ON) {
-        BtEvent *event = new BtEvent;
-        event->event_id = GAP_API_DISABLE;
-        PostMessage (THREAD_ID_GAP, event);
-        sleep(1);
+        SendDisableCmdToGap();
+        sleep(3);
+        system("killall -KILL wcnssfilter");
+        usleep(200);
     }
 
     // TODO to wait for complete turn off before proceeding
@@ -781,7 +782,7 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = HFP_CLIENT_MENU;
             DisplayMenu(menu_type);
             break;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
         case PBAP_CLIENT_OPTION:
             menu_type = PBAP_CLIENT_MENU;
             DisplayMenu(menu_type);
@@ -811,16 +812,17 @@ void HandleOnOffTest (void *context) {
     int index = 0;
     long  num = (long) context;
     for( index = 0; index < (long)num; index++) {
+
         BtEvent *event_on = new BtEvent;
-        event_on->event_id = GAP_API_ENABLE;
+        event_on->event_id = MAIN_API_ENABLE;
         fprintf( stdout, "Iteration: %d : Posting enable\n", index + 1);
-        PostMessage (THREAD_ID_GAP, event_on);
-        sleep(3);
+        PostMessage (THREAD_ID_MAIN, event_on);
+        sleep(5);
         BtEvent *event_off = new BtEvent;
-        event_off->event_id = GAP_API_DISABLE;
+        event_off->event_id = MAIN_API_DISABLE;
         fprintf( stdout, "Iteration: %d : Posting disable\n", index + 1);
-        PostMessage (THREAD_ID_GAP, event_off);
-        sleep(3);
+        PostMessage (THREAD_ID_MAIN, event_off);
+        sleep(5);
     }
     reactor_stop(thread_get_reactor(test_thread_id));
     test_thread_id = NULL;
@@ -894,8 +896,12 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
         case RSP_START:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
-                fprintf( stdout, "(Re)start Advertisement \n");
-                if (rsp) rsp->StartAdvertisement();
+                if (rsp) {
+                    fprintf( stdout, "(Re)start Advertisement \n");
+                    rsp->StartAdvertisement();
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
             } else {
                 fprintf( stdout, "BT is in OFF State now \n");
             }
@@ -947,39 +953,61 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             break;
 
          case GATTCTEST_START_SCAN:
-            fprintf(stdout,"starting scan \n");
-            if (gattctest) gattctest->StartScan();
+            if (gattctest) {
+                fprintf(stdout,"starting scan \n");
+                gattctest->StartScan();
+            } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+            }
             break;
 
         case GATTCTEST_STOP_SCAN:
-           fprintf(stdout,"stopping scan \n");
-           if (gattctest) gattctest->StopScan();
+           if (gattctest) {
+                fprintf(stdout,"stopping scan \n");
+                gattctest->StopScan();
+           } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+           }
            break;
 
         case GATTCTEST_CONNECT:
-           fprintf(stdout,"connecting \n");
-           if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
-               bt_bdaddr_t         bd_addr;
-               string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
-               if (gattctest) gattctest->Connect(&bd_addr);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                bt_bdaddr_t bd_addr;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
+                if (gattctest) {
+                    fprintf(stdout,"connecting \n");
+                    gattctest->Connect(&bd_addr);
+                } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+                }
            } else {
-            fprintf( stdout, " BD address is NULL/Invalid \n");
+                fprintf( stdout, " BD address is NULL/Invalid \n");
            }
             break;
 
         case GATTCTEST_DISCONNECT:
-           fprintf(stdout,"disconnecting \n");
-           if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
                bt_bdaddr_t         bd_addr;
                string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
-               if (gattctest) gattctest->Disconnect(&bd_addr);
-           } else {
-            fprintf( stdout, " BD address is NULL/Invalid \n");
-           }
+               if (gattctest) {
+                   fprintf(stdout,"disconnecting \n");
+                   gattctest->Disconnect(&bd_addr);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
             break;
         case GATTCTEST_ALERT:
-           fprintf(stdout,"GATTCTEST_WRITE_CHAR \n");
-           if (gattctest) gattctest->SendAlert(atoi(user_cmd[ONE_PARAM]));
+
+           if (gattctest){
+               fprintf(stdout, "GATTCTEST_WRITE_CHAR \n");
+               gattctest->SendAlert(atoi(user_cmd[ONE_PARAM]));
+           }
+           else{
+               fprintf(stdout, "Do the GATTCINIT first\n");
+           }
             break;
 
         case BACK_TO_MAIN:
@@ -992,7 +1020,6 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             break;
     }
 }
-
 
 static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
@@ -1010,7 +1037,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                   if (g_gatt) {
                      gattstest = new GattsTest(g_gatt->GetGattInterface(),g_gatt);
                      if (gattstest) {
-                        gattstest->EnableGATTSTEST();
+                         gattsEnabled = gattstest->EnableGATTSTEST();
                         fprintf(stdout, " EnableRSP done \n");
                      }
                      else {
@@ -1028,8 +1055,12 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
 
         case GATTSTEST_START:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
-                fprintf( stdout, "(Re)start Advertisement \n");
-                if (gattstest) gattstest->StartAdvertisement();
+                if (gattstest) {
+                    fprintf( stdout, "(Re)start Advertisement \n");
+                    gattstest->StartAdvertisement();
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
             } else {
                 fprintf( stdout, "BT is in OFF State now \n");
             }
@@ -1046,6 +1077,72 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     }
 }
 
+
+static void SendEnableCmdToGap() {
+
+    if ((g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->bt_state == BT_STATE_OFF)) {
+
+        g_bt_app->status.enable_cmd = COMMAND_INPROGRESS;
+        // Killing previous iteration filter if they still exists
+        system("killall -KILL wcnssfilter");
+        system("killall -KILL btsnoop");
+        system("killall -KILL qcbtdaemon");
+        usleep(200);
+
+        BtEvent *event = new BtEvent;
+        event->event_id = GAP_API_ENABLE;
+        ALOGV (LOGTAG " Posting BT enable to GAP thread");
+        PostMessage (THREAD_ID_GAP, event);
+    } else if ( g_bt_app->status.enable_cmd == COMMAND_INPROGRESS ) {
+        fprintf( stdout, "BT enable is already in process\n");
+    } else if ( g_bt_app->status.disable_cmd == COMMAND_INPROGRESS ) {
+        fprintf( stdout, "Previous BT disable is still in progress\n");
+    } else {
+        fprintf( stdout, "Currently BT is already ON\n");
+    }
+}
+
+static void SendDisableCmdToGap() {
+
+    if ((g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->bt_state == BT_STATE_ON)) {
+
+        g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
+
+        if (gattstest) {
+            fprintf(stdout, " DisableGATTSTEST \n");
+            gattstest->DisableGATTSTEST();
+        } else {
+            ALOGV (LOGTAG " gattstest interface is null");
+        }
+        if (rsp) {
+            rsp->DisableRSP();
+            fprintf(stdout, " DisableRSP \n");
+        } else {
+            ALOGV (LOGTAG " rsp interface is null");
+        }
+        if (gattctest) {
+            fprintf(stdout, " DisableGATTCTEST \n");
+            gattctest->DisableGATTCTEST();
+        } else {
+            ALOGV (LOGTAG " gattctest interface is null");
+        }
+
+        BtEvent *event = new BtEvent;
+        event->event_id = GAP_API_DISABLE;
+        ALOGV (LOGTAG " Posting disable to GAP thread");
+        PostMessage (THREAD_ID_GAP, event);
+    } else if (g_bt_app->status.disable_cmd == COMMAND_INPROGRESS) {
+        fprintf( stdout, " disable command is already in process\n");
+    } else if (g_bt_app->status.enable_cmd == COMMAND_INPROGRESS) {
+        fprintf( stdout, " Previous enable command is still in process\n");
+    } else {
+        fprintf( stdout, "Currently BT is already OFF\n");
+    }
+}
 static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *event = NULL;
 
@@ -1056,37 +1153,11 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
 
         case BT_ENABLE:
-            if ((g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
-                (g_bt_app->bt_state == BT_STATE_OFF)) {
-
-                g_bt_app->status.enable_cmd = COMMAND_INPROGRESS;
-                BtEvent *event = new BtEvent;
-
-                event->event_id = GAP_API_ENABLE;
-                ALOGV (LOGTAG " Posting BT enable to GAP thread");
-                PostMessage (THREAD_ID_GAP, event);
-            } else if ( g_bt_app->status.enable_cmd == COMMAND_INPROGRESS ) {
-                fprintf( stdout, "BT enable is already in process\n");
-            } else {
-                fprintf( stdout, "Currently BT is already ON\n");
-            }
+            SendEnableCmdToGap();
             break;
 
         case BT_DISABLE:
-
-            if ((g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
-                                (g_bt_app->bt_state == BT_STATE_ON)) {
-
-                g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
-                event = new BtEvent;
-                event->event_id = GAP_API_DISABLE;
-                ALOGV (LOGTAG " Posting disable to GAP thread");
-                PostMessage (THREAD_ID_GAP, event);
-            } else if (g_bt_app->status.disable_cmd == COMMAND_INPROGRESS) {
-                fprintf( stdout, " disable command is already in process\n");
-            } else {
-                fprintf( stdout, "Currently BT is already OFF\n");
-            }
+            SendDisableCmdToGap();
             break;
 
         case START_ENQUIRY:
@@ -1325,7 +1396,7 @@ static void HandlePanCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 static void HandlePbapClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num;
@@ -1673,7 +1744,7 @@ static void BtCmdHandler (void *context) {
             case HFP_CLIENT_MENU:
                 HandleHfpClientCommand(cmd_id,user_cmd );
                 break;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
             case PBAP_CLIENT_MENU:
                 HandlePbapClientCommand(cmd_id,user_cmd );
                 break;
@@ -1700,7 +1771,7 @@ static void BtCmdHandler (void *context) {
         // validate the user input for PIN
         g_bt_app->pin_notification = false;
     }
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     else if (g_bt_app->incoming_file_notification && user_cmd[0][0] &&
                         (!strcasecmp (user_cmd[ZERO_PARAM], "accept") ||
                         !strcasecmp (user_cmd[ZERO_PARAM], "reject"))
@@ -1814,7 +1885,7 @@ bool BluetoothApp :: HandleSspInput(char user_cmd[][COMMAND_ARG_SIZE]) {
     return true;
 }
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 bool BluetoothApp :: HandleIncomingFile(char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *bt_event = new BtEvent;
     if (!strcasecmp (user_cmd[ZERO_PARAM], "accept")) {
@@ -1859,6 +1930,14 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             DeInitHandler();
             break;
 
+        case MAIN_API_ENABLE:
+            SendEnableCmdToGap();
+            break;
+
+        case MAIN_API_DISABLE:
+            SendDisableCmdToGap();
+            break;
+
         case MAIN_EVENT_ENABLED:
             bt_state = event->state_event.status;
             if (event->state_event.status == BT_STATE_OFF) {
@@ -1881,7 +1960,9 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 // clearing bond_devices list and inquiry_list
                 bonded_devices.clear();
                 inquiry_list.clear();
-               fprintf(stdout, " BT State is OFF\n");
+                system("killall -KILL wcnssfilter");
+                usleep(200);
+                fprintf(stdout, " BT State is OFF\n");
             }
             status.disable_cmd = COMMAND_COMPLETE;
             break;
@@ -1967,7 +2048,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             pin_notification = true;
             break;
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
         case MAIN_EVENT_INCOMING_FILE_REQUEST:
 
             fprintf(stdout, "\n*************************************************");
@@ -2226,7 +2307,7 @@ void BluetoothApp :: InitHandler (void) {
             g_gatt = new Gatt(bt_interface, config);
     }
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     if (is_obex_enabled_ && is_pbap_client_enabled_) {
         threadInfo[THREAD_ID_PBAP_CLIENT].thread_id = thread_new (
             threadInfo[THREAD_ID_PBAP_CLIENT].thread_name);
@@ -2352,7 +2433,7 @@ void BluetoothApp :: DeInitHandler (void) {
         }
     }
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     if (opp_incoming_file_accept_timer) {
         alarm_free(opp_incoming_file_accept_timer);
         opp_incoming_file_accept_timer = NULL;
@@ -2493,7 +2574,7 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_gatt_enable_default_= config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_GATT_ENABLED, false);
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     //checking for OBEX handler
     is_obex_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_OBEX_ENABLED, false);

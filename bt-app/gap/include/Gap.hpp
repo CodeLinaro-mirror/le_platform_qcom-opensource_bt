@@ -141,7 +141,7 @@ class Gap {
 
     bool is_user_input_enabled_;
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     bool is_obex_enabled_;
 
     int obex_logging_level_;

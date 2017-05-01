@@ -229,210 +229,211 @@ class gattstestClientCallback : public BluetoothGattClientCallback
 class gattstestServerCallback :public BluetoothGattServerCallback
 {
 
-      public:
+    public:
 
-      void gattServerRegisterAppCb(int status, int server_if, bt_uuid_t *uuid) {
+    void gattServerRegisterAppCb(int status, int server_if, bt_uuid_t *uuid) {
 
-           fprintf(stdout,"gattServerRegisterAppCb status is %d, serverif is %d \n ",
-                   status, server_if);
+        fprintf(stdout,"gattServerRegisterAppCb status is %d, serverif is %d \n ",
+                status, server_if);
 
-           if (status == BT_STATUS_SUCCESS)
-           {
-              GattsRegisterAppEvent rev;
-              rev.event_id = GEN_GATT_EVENT;
-              rev.server_if = server_if;
-              rev.uuid = uuid;
-              rev.status = status;
-              fprintf(stdout," set gattstest data \n");
-              gattstest->SetGATTSTESTAppData(&rev);
-              gattstest->AddService();
-           } else {
-              fprintf (stdout,"(%s) Failed to registerApp, %d \n",__FUNCTION__, server_if);
-           }
-      }
+        if (status == BT_STATUS_SUCCESS) {
+            GattsRegisterAppEvent rev;
+            rev.event_id = GEN_GATT_EVENT;
+            rev.server_if = server_if;
+            rev.uuid = uuid;
+            rev.status = status;
+            fprintf(stdout," set gattstest data \n");
+            gattstest->SetGATTSTESTAppData(&rev);
+            gattstest->AddService();
+        } else {
+            fprintf (stdout,"(%s) Failed to registerApp, %d \n",__FUNCTION__, server_if);
+        }
+    }
 
-      void btgatts_connection_cb(int conn_id, int server_if, int connected, bt_bdaddr_t *bda)
-      {
+    void btgatts_connection_cb(int conn_id, int server_if, int connected, bt_bdaddr_t *bda)
+    {
 
-           fprintf(stdout,"btgatts_connection_cb  gattstest \n ");
+        fprintf(stdout,"btgatts_connection_cb  gattstest \n ");
 
-           GattsConnectionEvent event;
-           event.event_id = GEN_GATT_EVENT;
-           event.conn_id = conn_id;
-           event.server_if = server_if;
-           event.connected = connected;
-           event.bda = bda;
+        GattsConnectionEvent event;
+        event.event_id = GEN_GATT_EVENT;
+        event.conn_id = conn_id;
+        event.server_if = server_if;
+        event.connected = connected;
+        event.bda = bda;
 
-           if (gattstest) {
-               gattstest->SetGATTSTESTConnectionData(&event);
-               if (connected)
-               {
-                   gattstest->StopAdvertisement();
-               }
-           }
-      }
-
-      void btgatts_service_added_cb(int status, int server_if,
-                                    btgatt_srvc_id_t *srvc_id, int srvc_handle)
-      {
-           fprintf(stdout,"btgatts_service_added_cb \n");
-           if (status == BT_STATUS_SUCCESS) {
-              GattsServiceAddedEvent event;
-               event.event_id =GEN_GATT_EVENT;
-               event.server_if = server_if;
-               event.srvc_id = srvc_id;
-               event.srvc_handle = srvc_handle;
-               gattstest->SetGATTSTESTSrvcData(&event);
-               gattstest->AddCharacteristics();
-           } else {
-               fprintf(stdout, "(%s) Failed to Add_Service %d ",__FUNCTION__, server_if);
-           }
-      }
-
-      void btgatts_included_service_added_cb(int status, int server_if, int srvc_handle,
-                                                   int incl_srvc_handle)
-      {
-            UNUSED;
-      }
-
-      void btgatts_characteristic_added_cb(int status, int server_if, bt_uuid_t *char_id,
-                                                      int srvc_handle, int char_handle)
-      {
-           fprintf(stdout,"btgatts_characteristic_added_cb \n");
-           if (status == BT_STATUS_SUCCESS) {
-               GattsCharacteristicAddedEvent event;
-               event.event_id =GEN_GATT_EVENT;
-               event.server_if = server_if;
-               event.char_id = char_id;
-               event.srvc_handle = srvc_handle;
-               event.char_handle = char_handle;
-               gattstest->SetGATTSTESTCharacteristicData(&event);
-               gattstest->AddDescriptor();
-           } else {
-               fprintf(stdout, "(%s) Failed to Add Characteristics %d ",__FUNCTION__, server_if);
-           }
-      }
-
-      void btgatts_descriptor_added_cb(int status, int server_if, bt_uuid_t *descr_id,
-                                                  int srvc_handle, int descr_handle)
-      {
-           fprintf(stdout,"btgatts_descriptor_added_cb \n");
-           if (status == BT_STATUS_SUCCESS) {
-               GattsDescriptorAddedEvent event;
-               event.event_id =GEN_GATT_EVENT;
-               event.server_if = server_if;
-               event.descr_id= descr_id;
-               event.srvc_handle = srvc_handle;
-               event.descr_handle= descr_handle;
-               gattstest->SetGATTSTESTDescriptorData(&event);
-               gattstest->StartService();
-            } else {
-               fprintf(stdout, "(%s) Failed to add descriptor %d \n",__FUNCTION__, server_if);
+        if (gattstest) {
+            gattstest->SetGATTSTESTConnectionData(&event);
+            if (connected) {
+                gattstest->StopAdvertisement();
             }
-      }
+        }
+    }
 
-      void btgatts_service_started_cb(int status, int server_if, int srvc_handle)
-      {
-           fprintf(stdout,"btgatts_service_started_cb \n");
-           gattstest->RegisterClient();
-      }
+    void btgatts_service_added_cb(int status, int server_if,
+                                    btgatt_srvc_id_t *srvc_id, int srvc_handle)
+    {
+        fprintf(stdout,"btgatts_service_added_cb \n");
+        if (status == BT_STATUS_SUCCESS) {
+            GattsServiceAddedEvent event;
+            event.event_id =GEN_GATT_EVENT;
+            event.server_if = server_if;
+            event.srvc_id = srvc_id;
+            event.srvc_handle = srvc_handle;
+            gattstest->SetGATTSTESTSrvcData(&event);
+            gattstest->AddCharacteristics();
+        } else {
+            fprintf(stdout, "(%s) Failed to Add_Service %d ",__FUNCTION__, server_if);
+        }
+    }
 
-      void btgatts_service_stopped_cb(int status, int server_if, int srvc_handle)
-      {
-           fprintf(stdout,"btgatts_service_stopped_cb \n");
+    void btgatts_included_service_added_cb(int status, int server_if, int srvc_handle,
+                                                int incl_srvc_handle)
+    {
+            UNUSED;
+    }
 
-          if (gattstest) {
-              if (!status)
-                  gattstest->DeleteService();
-          }
-          fprintf(stdout,  "GATTSTEST Service stopped successfully, deleting the service");
-      }
+    void btgatts_characteristic_added_cb(int status, int server_if, bt_uuid_t *char_id,
+                                                    int srvc_handle, int char_handle)
+    {
+        fprintf(stdout,"btgatts_characteristic_added_cb \n");
+        if (status == BT_STATUS_SUCCESS) {
+            GattsCharacteristicAddedEvent event;
+            event.event_id =GEN_GATT_EVENT;
+            event.server_if = server_if;
+            event.char_id = char_id;
+            event.srvc_handle = srvc_handle;
+            event.char_handle = char_handle;
+            gattstest->SetGATTSTESTCharacteristicData(&event);
+            gattstest->AddDescriptor();
+        } else {
+            fprintf(stdout, "(%s) Failed to Add Characteristics %d ",__FUNCTION__, server_if);
+        }
+    }
 
-      void btgatts_service_deleted_cb(int status, int server_if, int srvc_handle)
-      {
-         fprintf(stdout,"btgatts_service_deleted_cb \n");
+    void btgatts_descriptor_added_cb(int status, int server_if, bt_uuid_t *descr_id,
+                                                int srvc_handle, int descr_handle)
+    {
+        fprintf(stdout,"btgatts_descriptor_added_cb \n");
+        if (status == BT_STATUS_SUCCESS) {
+            GattsDescriptorAddedEvent event;
+            event.event_id =GEN_GATT_EVENT;
+            event.server_if = server_if;
+            event.descr_id= descr_id;
+            event.srvc_handle = srvc_handle;
+            event.descr_handle= descr_handle;
+            gattstest->SetGATTSTESTDescriptorData(&event);
+            gattstest->StartService();
+            } else {
+            fprintf(stdout, "(%s) Failed to add descriptor %d \n",__FUNCTION__, server_if);
+            }
+    }
 
-          if (gattstest) {
-              if (!status) {
-                  gattstest->CleanUp(server_if);
-                  delete gattstest;
-                  gattstest = NULL;
-              }
-          }
-          fprintf(stdout,"GATTSTEST Service stopped & Unregistered successfully\n");
-      }
+    void btgatts_service_started_cb(int status, int server_if, int srvc_handle)
+    {
+        fprintf(stdout,"btgatts_service_started_cb \n");
+        gattstest->RegisterClient();
+    }
 
-      void btgatts_request_read_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int attr_handle,
-                                              int offset, bool is_long)
-      {
-           UNUSED;
-      }
+    void btgatts_service_stopped_cb(int status, int server_if, int srvc_handle)
+    {
+        fprintf(stdout,"btgatts_service_stopped_cb \n");
 
-      void btgatts_request_write_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int attr_handle,
-                                              int offset, int length, bool need_rsp, bool is_prep,
-                                              uint8_t* value)
-      {
-           fprintf(stdout,"onCharacteristicWriteRequest \n");
-           GattsRequestWriteEvent event;
-           event.event_id = GEN_GATT_EVENT;
-           event.conn_id = conn_id;
-           event.trans_id = trans_id;
-           event.bda = bda;
-           event.attr_handle = attr_handle;
-           event.offset = offset;
-           event.length = length;
-           event.need_rsp = need_rsp;
-           event.is_prep = is_prep;
-           event.value = value;
+        if (gattstest) {
+            if (!status)
+                gattstest->DeleteService();
+        }
+        fprintf(stdout,  "GATTSTEST Service stopped successfully, deleting the service\n");
+    }
 
-           gattstest->SendResponse(&event);
-      }
-      void btgatts_request_exec_write_cb(int conn_id, int trans_id,
-                                                      bt_bdaddr_t *bda, int exec_write)
-      {
-           UNUSED;
-      }
+    void btgatts_service_deleted_cb(int status, int server_if, int srvc_handle)
+    {
+        fprintf(stdout,"btgatts_service_deleted_cb \n");
 
-      void btgatts_response_confirmation_cb(int status, int handle)
-      {
-           UNUSED;
-      }
+        if (gattstest) {
+            if (!status) {
+                gattstest->CleanUp(server_if);
+                delete gattstest;
+                gattstest = NULL;
+            }
+        }
+        fprintf(stdout,"GATTSTEST Service stopped & Unregistered successfully\n");
+    }
 
-      void btgatts_indication_sent_cb(int conn_id, int status)
-      {
-           UNUSED;
-      }
+    void btgatts_request_read_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int attr_handle,
+                                            int offset, bool is_long)
+    {
+        UNUSED;
+    }
 
-      void btgatts_congestion_cb(int conn_id, bool congested)
-      {
-           UNUSED;
-      }
+    void btgatts_request_write_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int attr_handle,
+                                            int offset, int length, bool need_rsp, bool is_prep,
+                                            uint8_t* value)
+    {
+        fprintf(stdout,"onCharacteristicWriteRequest \n");
+        GattsRequestWriteEvent event;
+        event.event_id = GEN_GATT_EVENT;
+        event.conn_id = conn_id;
+        event.trans_id = trans_id;
+        event.bda = bda;
+        event.attr_handle = attr_handle;
+        event.offset = offset;
+        event.length = length;
+        event.need_rsp = need_rsp;
+        event.is_prep = is_prep;
+    event.value = value;
 
-      void btgatts_mtu_changed_cb(int conn_id, int mtu)
-      {
-           UNUSED;
-      }
+        gattstest->SendResponse(&event);
+    }
+    void btgatts_request_exec_write_cb(int conn_id, int trans_id,
+                                                    bt_bdaddr_t *bda, int exec_write)
+    {
+        UNUSED;
+    }
+
+    void btgatts_response_confirmation_cb(int status, int handle)
+    {
+        UNUSED;
+    }
+
+    void btgatts_indication_sent_cb(int conn_id, int status)
+    {
+        UNUSED;
+    }
+
+    void btgatts_congestion_cb(int conn_id, bool congested)
+    {
+        UNUSED;
+    }
+
+    void btgatts_mtu_changed_cb(int conn_id, int mtu)
+    {
+        UNUSED;
+    }
 };
 
-gattstestServerCallback gattstestServerCb;
-gattstestClientCallback gattstestClientCb;
-
-
-
+gattstestServerCallback *gattstestServerCb = NULL;
+gattstestClientCallback *gattstestClientCb = NULL;
 
 GattsTest::GattsTest(btgatt_interface_t *gatt_itf, Gatt* gatt)
 {
-
     fprintf(stdout,"gattstest instantiated ");
     gatt_interface = gatt_itf;
     app_gatt = gatt;
+    gattstestClientCb = new gattstestClientCallback;
+    gattstestServerCb = new gattstestServerCallback;
+    isClientRegistered = false;
+    isServerRegistered = false;
 }
 
 
 GattsTest::~GattsTest()
 {
-    fprintf(stdout, "(%s) GATTSTEST DeInitialized",__FUNCTION__);
-    //SetDeviceState(WLAN_INACTIVE);
+    free(gattstestClientCb);
+    free(gattstestServerCb);
+    fprintf(stdout, "(%s) GATTSTEST DeInitialized\n",__FUNCTION__);
+    isClientRegistered = false;
+    isServerRegistered = false;
 }
 
 bool GattsTest::CopyUUID(bt_uuid_t *uuid)
@@ -479,23 +480,22 @@ bool GattsTest::CopyAlertServUUID(bt_uuid_t *uuid)
 bool GattsTest::CopyAlertCharUUID(bt_uuid_t *uuid)
 {
     CHECK_PARAM(uuid)
-     uuid->uu[15] = 0x00;
-     uuid->uu[14] = 0x00;
-     uuid->uu[13] = 0x2a;
-     uuid->uu[12] = 0x06;
-     uuid->uu[11] = 0x00;
-     uuid->uu[10] =0x00;
-     uuid->uu[9] = 0x10;
-     uuid->uu[8] = 0x00;
-     uuid->uu[7] =0x80;
-     uuid->uu[6] = 0x00;
-     uuid->uu[5] = 0x00;
-     uuid->uu[4] = 0x80;
-     uuid->uu[3] = 0x5f;
-     uuid->uu[2] = 0x9b;
-     uuid->uu[1] = 0x34;
-     uuid->uu[0] = 0xfb;
-
+    uuid->uu[15] = 0x00;
+    uuid->uu[14] = 0x00;
+    uuid->uu[13] = 0x2a;
+    uuid->uu[12] = 0x06;
+    uuid->uu[11] = 0x00;
+    uuid->uu[10] =0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[8] = 0x00;
+    uuid->uu[7] =0x80;
+    uuid->uu[6] = 0x00;
+    uuid->uu[5] = 0x00;
+    uuid->uu[4] = 0x80;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[1] = 0x34;
+    uuid->uu[0] = 0xfb;
 
     return true;
 }
@@ -503,22 +503,22 @@ bool GattsTest::CopyAlertCharUUID(bt_uuid_t *uuid)
 bool GattsTest::CopyAlertDescUUID(bt_uuid_t *uuid)
 {
     CHECK_PARAM(uuid)
-     uuid->uu[15] = 0x00;
-     uuid->uu[14] = 0x00;
-     uuid->uu[13] = 0x2a;
-     uuid->uu[12] = 0x07;
-     uuid->uu[11] = 0x00;
-     uuid->uu[10] =0x00;
-     uuid->uu[9] = 0x10;
-     uuid->uu[8] = 0x00;
-     uuid->uu[7] =0x80;
-     uuid->uu[6] = 0x00;
-     uuid->uu[5] = 0x00;
-     uuid->uu[4] = 0x80;
-     uuid->uu[3] = 0x5f;
-     uuid->uu[2] = 0x9b;
-     uuid->uu[1] = 0x34;
-     uuid->uu[0] = 0xfb;
+    uuid->uu[15] = 0x00;
+    uuid->uu[14] = 0x00;
+    uuid->uu[13] = 0x2a;
+    uuid->uu[12] = 0x07;
+    uuid->uu[11] = 0x00;
+    uuid->uu[10] =0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[8] = 0x00;
+    uuid->uu[7] =0x80;
+    uuid->uu[6] = 0x00;
+    uuid->uu[5] = 0x00;
+    uuid->uu[4] = 0x80;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[1] = 0x34;
+    uuid->uu[0] = 0xfb;
 
 
     return true;
@@ -563,37 +563,38 @@ bool GattsTest::EnableGATTSTEST()
 
     fprintf(stdout," set gattstest data \n");
     SetGATTSTESTAttrData(&rev);
-    RegisterApp();
+    return RegisterApp();
 }
 
-bool GattsTest::DisableGATTSTEST(int server_if)
+bool GattsTest::DisableGATTSTEST()
 {
     fprintf(stdout, "(%s) Disable GATTSTEST Initiated",__FUNCTION__);
+    StopService();
 }
 
 bool GattsTest::RegisterApp()
 {
-    if (GetGattInterface() == NULL)
-    {
+    if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
     bt_uuid_t server_uuid = GetGATTSTESTAttrData()->server_uuid;
     fprintf(stdout,"reg app addr is %d \n", GetGATTSTESTAttrData()->server_uuid);
-    app_gatt->RegisterServerCallback(&gattstestServerCb,&GetGATTSTESTAttrData()->server_uuid);
-    return app_gatt->register_server(&server_uuid) == BT_STATUS_SUCCESS;
+    app_gatt->RegisterServerCallback(gattstestServerCb,&GetGATTSTESTAttrData()->server_uuid);
+    isServerRegistered = (app_gatt->register_server(&server_uuid) == BT_STATUS_SUCCESS);
+    return isServerRegistered;
 }
 
 bool GattsTest::RegisterClient()
 {
-    if (GetGattInterface() == NULL)
-    {
+    if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
     bt_uuid_t client_uuid = GetGATTSTESTAttrData()->client_uuid;
-    app_gatt->RegisterClientCallback(&gattstestClientCb,&GetGATTSTESTAttrData()->client_uuid);
-    return app_gatt->register_client(&client_uuid) == BT_STATUS_SUCCESS;
+    app_gatt->RegisterClientCallback(gattstestClientCb,&GetGATTSTESTAttrData()->client_uuid);
+    isClientRegistered =(app_gatt->register_client(&client_uuid) == BT_STATUS_SUCCESS);
+    return isClientRegistered;
 }
 
 bool GattsTest::UnregisterClient(int client_if)
@@ -623,8 +624,13 @@ bool GattsTest::ClientSetAdvData(char *str)
 
 void GattsTest::CleanUp(int server_if)
 {
-    UnregisterServer(server_if);
-    UnregisterClient(GetGATTSTESTClientAppData()->clientIf);
+    int client_if = GetGATTSTESTClientAppData()->clientIf ;
+    fprintf(stdout, "(%s) unregistering serverif(%d) & ClientIf(%d)\n",__FUNCTION__, server_if,client_if);
+    if (isServerRegistered)
+        UnregisterServer(server_if);
+    if (isClientRegistered)
+        UnregisterClient(client_if);
+    fprintf(stdout, "(%s) unregistered serverif(%d) & ClientIf(%d)\n",__FUNCTION__, server_if,client_if);
 }
 
 bool GattsTest::UnregisterServer(int server_if)
@@ -652,8 +658,7 @@ bool GattsTest::StartAdvertisement()
 bool GattsTest::SendResponse(GattsRequestWriteEvent *event)
 {
     char val[5];
-    if (GetGattInterface() == NULL)
-    {
+    if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present \n",__FUNCTION__);
         return false;
     }
@@ -668,9 +673,8 @@ bool GattsTest::SendResponse(GattsRequestWriteEvent *event)
     att_resp.attr_value.auth_req = 0;
 
 
-    fprintf(stdout, "(%s) Sending GATTSTEST response to write (%d) value (%s) State (%d)",__FUNCTION__,
-            GetGATTSTESTAppData()->server_if, event->value,GetDeviceState());
-
+    fprintf(stdout, "(%s) Sending GATTSTEST response to write (%d) ",__FUNCTION__,
+        GetGATTSTESTAppData()->server_if);
 
     if(0 == strncmp((char *) att_resp.attr_value.value ,"00",2) ) {
          fprintf(stdout,"low alert written \n");
@@ -680,9 +684,7 @@ bool GattsTest::SendResponse(GattsRequestWriteEvent *event)
          fprintf(stdout,"high alert written \n");
     } else {
      fprintf(stdout,"default alert written \n");
-
     }
-
     return app_gatt->send_response(event->conn_id, event->trans_id,
                                                          response, &att_resp);
 }
@@ -702,8 +704,7 @@ bool GattsTest::HandleWlanOn()
 
 bool GattsTest::StopAdvertisement()
 {
-    if (GetGattInterface() == NULL)
-    {
+    if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
@@ -714,8 +715,7 @@ bool GattsTest::StopAdvertisement()
 
 bool GattsTest::AddService()
 {
-    if (GetGattInterface() == NULL)
-    {
+    if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
@@ -739,8 +739,7 @@ bool GattsTest::DisconnectServer()
 
 bool GattsTest::DeleteService()
 {
-    if (GetGattInterface() == NULL)
-    {
+    if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
@@ -752,8 +751,7 @@ bool GattsTest::DeleteService()
 
 bool GattsTest::AddCharacteristics()
 {
-    if (GetGattInterface() == NULL)
-    {
+    if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
@@ -770,8 +768,7 @@ bool GattsTest::AddCharacteristics()
 
 bool GattsTest::AddDescriptor(void)
 {
-    if (GetGattInterface() == NULL)
-    {
+    if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
@@ -786,8 +783,7 @@ bool GattsTest::AddDescriptor(void)
 
 bool GattsTest::StartService()
 {
-    if (GetGattInterface() == NULL)
-    {
+    if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
@@ -800,8 +796,7 @@ bool GattsTest::StartService()
 
 bool GattsTest::StopService()
 {
-    if (GetGattInterface() == NULL)
-    {
+    if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }

@@ -66,6 +66,7 @@ AC_ARG_ENABLE(target,
   [TARGET=none]
 )
 AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$TARGET" = "xapq8009" -o "x$TARGET" = "xapq8017" -o "x$TARGET" = "xapq8096" -o "x$TARGET" = "xapq8053"])
+AM_CONDITIONAL(PLATFORM_USE_OBEX, test "x$TARGET" != "xmdm9607")
 
 AC_SUBST(SYS_LIB)
 AC_SUBST([CFLAGS])
