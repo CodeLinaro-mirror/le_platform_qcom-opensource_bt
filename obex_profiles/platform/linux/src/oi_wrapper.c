@@ -364,7 +364,6 @@ void OI_OBEX_Deinit(void)
      */
     OI_Wrapper_GetToken();
     terminateDone = FALSE;
-    OI_Wrapper_GetToken();
     /*
      * Terminate the stack itself.
      */
