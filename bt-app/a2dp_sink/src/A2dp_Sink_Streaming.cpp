@@ -548,6 +548,9 @@ void A2dp_Sink_Streaming::HandleDisableSinkStreaming(void) {
    if(use_bt_a2dp_hal) {
        UnLoadBtA2dpHAL();
    }
+
+   ALOGD(LOGTAG " set the mStreamingDevice to zero");
+   memset(&mStreamingDevice, 0, sizeof(bt_bdaddr_t));
    pEvent->a2dpSinkEvent.event_id = A2DP_SINK_STREAMING_DISABLE_DONE;
    PostMessage(THREAD_ID_A2DP_SINK, pEvent);
 }
