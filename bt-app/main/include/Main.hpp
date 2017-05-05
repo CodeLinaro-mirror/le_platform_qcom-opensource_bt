@@ -145,6 +145,15 @@ typedef enum {
     REWIND,
     FORWARD,
     BACKWARD,
+    VOL_UP,
+    VOL_DOWN,
+    TRACK_CHANGE,
+    SET_ABS_VOL,
+    SEND_VOL_UP_DOWN,
+    VOL_CHANGED_NOTI,
+    ADDR_PLAYER_CHANGE,
+    AVAIL_PLAYER_CHANGE,
+    BIGGER_METADATA,
     PAN_OPTION,
     CONNECTED_LIST,
     SET_TETHERING,
@@ -344,7 +353,10 @@ UserMenuList A2dpSinkMenu[] = {
     {FASTFORWARD,           "fastforward",      ONE_PARAM,    "fastforward<space><bt_address>"},
     {FORWARD,               "forward",          ONE_PARAM,    "forward<space><bt_address>"},
     {BACKWARD,              "backward",         ONE_PARAM,    "backward<space><bt_address>"},
-    {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
+    {VOL_UP,                "volup",            ONE_PARAM,    "volup<space><bt_address>"},
+    {VOL_DOWN,              "voldown",          ONE_PARAM,    "voldown<space><bt_address>"},
+    {VOL_CHANGED_NOTI,      "volchangednoti",   ONE_PARAM,    "volchangednoti<space><vol level>"},
+    {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
 /**
@@ -356,6 +368,15 @@ UserMenuList A2dpSourceMenu[] = {
     {PLAY,                  "start",            ZERO_PARAM,   "start"},
     {PAUSE,                 "suspend",          ZERO_PARAM,   "suspend"},
     {STOP,                  "stop",             ZERO_PARAM,   "stop"},
+    {TRACK_CHANGE,          "trackchange",      ZERO_PARAM,   "trackchange"},
+    {SET_ABS_VOL,           "setabsolutevol",   ONE_PARAM,
+            "setabsolutevol<space><volstep>  eg: setabsolutevol 10 (range 0-15)"},
+    {SEND_VOL_UP_DOWN,      "sendvolupdown",    ONE_PARAM,
+            "sendvolupdown<space><1/0>  eg: sendvolupdown 1 (1-up, 0-down)"},
+    {ADDR_PLAYER_CHANGE,    "addrplayerchange", ONE_PARAM,
+            "addrplayerchange<space><1/0>  eg: addrplayerchange 1 "},
+    {AVAIL_PLAYER_CHANGE,   "availplayerchange",ZERO_PARAM,   "availplayerchange"},
+    {BIGGER_METADATA,       "biggermetadata",   ZERO_PARAM,   "biggermetadata"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 

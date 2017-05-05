@@ -391,6 +391,26 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
+        case VOL_UP:
+            event = new BtEvent;
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlEvent.key_id = CMD_ID_VOL_UP;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case VOL_DOWN:
+            event = new BtEvent;
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlEvent.key_id = CMD_ID_VOL_DOWN;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case VOL_CHANGED_NOTI:
+            event = new BtEvent;
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_VOL_CHANGED_NOTI_REQ;
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
@@ -430,6 +450,39 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
             event = new BtEvent;
             event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
             event->avrcpTargetEvent.key_id = CMD_ID_STOP;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case TRACK_CHANGE:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_TARGET_TRACK_CHANGED;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case SET_ABS_VOL:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_TARGET_SET_ABS_VOL;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case SEND_VOL_UP_DOWN:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_TARGET_SEND_VOL_UP_DOWN;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case ADDR_PLAYER_CHANGE:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_TARGET_ADDR_PLAYER_CHANGED;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case AVAIL_PLAYER_CHANGE:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_TARGET_AVAIL_PLAYER_CHANGED;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case BIGGER_METADATA:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_TARGET_USE_BIGGER_METADATA;
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
         case BACK_TO_MAIN:

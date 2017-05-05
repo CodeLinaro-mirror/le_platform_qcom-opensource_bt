@@ -43,7 +43,7 @@
 #include "ipc.h"
 #include "utils.h"
 #include "hardware/bt_rc_vendor.h"
-
+#include <list>
 
 class Avrcp {
 
@@ -52,12 +52,14 @@ class Avrcp {
     const bt_interface_t * bluetooth_interface;
     const btrc_ctrl_interface_t *sBtAvrcpCtrlInterface;
     const btrc_ctrl_vendor_interface_t *sBtAvrcpCtrlVendorInterface;
-
+    int mPreviousPercentageVol;
+    bool mFirstAbsVolCmdRecvd;
   public:
     Avrcp(const bt_interface_t *bt_interface, config_t *config);
     ~Avrcp();
     char* dump_message(BluetoothEventId event_id);
     pthread_mutex_t lock;
+    std::list <std::string> rc_only_devices;
     bt_bdaddr_t mConnectedAvrcpDevice;
     uint32_t max_avrcp_conn;
     void HandleAvrcpEvents(BtEvent* pEvent);
@@ -65,6 +67,7 @@ class Avrcp {
     void HandleDisableAvrcp();
     void SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct);
     void OnDisconnected();
+    void setAbsVolume(bt_bdaddr_t* dev, int absVol, int label);
 };
 
 #endif

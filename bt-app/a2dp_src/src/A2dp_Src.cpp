@@ -39,11 +39,14 @@
 #include <list>
 #include <map>
 #include <dlfcn.h>
-
+#include "Avrcp.hpp"
 #include "A2dp_Src.hpp"
 #include "Gap.hpp"
 #include "hardware/bt_av_vendor.h"
 #include "hardware/bt_rc_vendor.h"
+#include <math.h>
+#include <algorithm>
+#include <cutils/properties.h>
 
 #define LOGTAG_A2DP "A2DP_SRC "
 #define LOGTAG_AVRCP "AVRCP_TG "
@@ -52,9 +55,25 @@ using namespace std;
 using std::list;
 using std::string;
 
+
+extern Avrcp *pAvrcp;
 A2dp_Source *pA2dpSource = NULL;
 static pthread_t playback_thread = NULL;
+AttrType mAttrType;
 bool media_playing = false;
+bool use_bigger_metadata = false;
+btrc_play_status_t playStatus = BTRC_PLAYSTATE_ERROR;
+btrc_notification_type_t mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+btrc_notification_type_t mTrackChangeNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+btrc_notification_type_t mAddrPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+btrc_notification_type_t mAvailPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+
+long NO_TRACK_SELECTED = -1L;
+long TRACK_IS_SELECTED = 0L;
+long mCurrentTrackID = NO_TRACK_SELECTED;
+
+#define AVRCP_MAX_VOL 127
+int mAudioStreamMax = 15;
 
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
 audio_hw_device_t *a2dp_device = NULL;
@@ -67,6 +86,76 @@ static pthread_mutex_t a2dp_hal_mutex = PTHREAD_MUTEX_INITIALIZER;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void registerMediaPlayers () {
+    ALOGD(LOGTAG_AVRCP "registerMediaPlayers");
+
+    char* playerName1 = "Music";/*Music*/;
+    char* playerName2 = "Music2";/*Music2*/;
+
+    char featureMasks[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    char featureMasks2[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    featureMasks[5] = featureMasks[5] | 0x01;
+    featureMasks[5] = featureMasks[5] | 0x04;
+    featureMasks[5] = featureMasks[5] | 0x02;
+    featureMasks[7] = featureMasks[7] | 0x04;
+
+    featureMasks2[5] = featureMasks2[5] | 0x01;
+    featureMasks2[5] = featureMasks2[5] | 0x04;
+    featureMasks2[5] = featureMasks2[5] | 0x02;
+    featureMasks2[7] = featureMasks2[7] | 0x04;
+
+    pA2dpSource->pMediaPlayerList.push_back(MediaPlayerInfo (0, 1, 0, 2, 0x006A, 5,
+            playerName1, "com.default.music", false, false, 0x01, true, 0, 0, featureMasks));
+
+    pA2dpSource->pMediaPlayerList.push_back(MediaPlayerInfo (1, 1, 0, 2, 0x006A, 6,
+            playerName2, "com.external.music", false, false, 0x01, true, 0, 0, featureMasks2));
+
+    ALOGD(LOGTAG_AVRCP "Exit registerMediaPlayers()");
+}
+
+void A2dp_Source:: updateResetNotification(btrc_event_id_t noti) {
+    ALOGD(LOGTAG_AVRCP "updateResetNotification for %d", noti);
+    btrc_register_notification_t param;
+    long TrackNumberRsp = -1L;
+    switch(noti)
+    {
+        case BTRC_EVT_PLAY_STATUS_CHANGED:
+            if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_REJECT;
+                param.play_status = BTRC_PLAYSTATE_PAUSED;
+                sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_STATUS_CHANGED,
+                        mPlayStatusNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+            }
+            break;
+        case BTRC_EVT_TRACK_CHANGE:
+            if (mTrackChangeNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                mTrackChangeNotiType = BTRC_NOTIFICATION_TYPE_REJECT;
+                mCurrentTrackID = TRACK_IS_SELECTED;
+                TrackNumberRsp = mCurrentTrackID;
+                ALOGD(LOGTAG_AVRCP " TrackNumberRsp = %l", TrackNumberRsp);
+                for (int i = 0; i < 8; ++i) {
+                    param.track[i] = (uint8_t) (TrackNumberRsp >> (56 - 8 * i));
+                }
+                sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_TRACK_CHANGE,
+                        mTrackChangeNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+            }
+            break;
+        default:
+            ALOGD(LOGTAG_AVRCP "Invalid Noti");
+            break;
+    }
+}
+
+void resetAndSendPlayerStatusReject() {
+    ALOGD(LOGTAG_A2DP "resetAndSendPlayerStatusReject");
+    pA2dpSource->updateResetNotification(BTRC_EVT_PLAY_STATUS_CHANGED);
+    pA2dpSource->updateResetNotification(BTRC_EVT_TRACK_CHANGE);
+}
 
 void BtA2dpSourceMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
@@ -92,6 +181,19 @@ void BtA2dpSourceMsgHandler(void *msg) {
         case AVRCP_TARGET_CONNECTED_CB:
         case AVRCP_TARGET_DISCONNECTED_CB:
         case A2DP_SOURCE_AUDIO_CMD_REQ:
+        case AVRCP_TARGET_GET_ELE_ATTR:
+        case AVRCP_TARGET_GET_PLAY_STATUS:
+        case AVRCP_TARGET_REG_NOTI:
+        case AVRCP_TARGET_TRACK_CHANGED:
+        case AVRCP_TARGET_VOLUME_CHANGED:
+        case AVRCP_TARGET_ADDR_PLAYER_CHANGED:
+        case AVRCP_TARGET_AVAIL_PLAYER_CHANGED:
+        case AVRCP_TARGET_SET_ABS_VOL:
+        case AVRCP_TARGET_ABS_VOL_TIMEOUT:
+        case AVRCP_TARGET_SEND_VOL_UP_DOWN:
+        case AVRCP_TARGET_GET_FOLDER_ITEMS_CB:
+        case AVRCP_TARGET_SET_ADDR_PLAYER_CB:
+        case AVRCP_TARGET_USE_BIGGER_METADATA:
             if (pA2dpSource) {
                 pA2dpSource->HandleAvrcpEvents(( BtEvent *) msg);
             }
@@ -141,6 +243,7 @@ static void BtA2dpStopStreaming()
         pthread_mutex_unlock(&a2dp_hal_mutex);
         return;
     }
+    output_stream->common.set_parameters(&output_stream->common, "A2dpSuspended=false");
     output_stream->common.standby(&output_stream->common);
     pthread_mutex_unlock(&a2dp_hal_mutex);
 #endif
@@ -366,6 +469,12 @@ static void bta2dp_multicast_state_vendor_callback(int state) {
     ALOGD(LOGTAG_A2DP " Multicast State CB");
 }
 
+static void bta2dp_delay_report_vendor_callback(bt_bdaddr_t *bd_addr, uint16_t report_delay) {
+    char str[18];
+    bdaddr_to_string(bd_addr,str, 18);
+    ALOGD(LOGTAG_A2DP "Received delay report! [%s] the delay is [%d]", str, report_delay);
+    fprintf(stdout, "Received delay report! the delay is %d ms\n", report_delay);
+}
 static btav_callbacks_t sBluetoothA2dpSourceCallbacks = {
     sizeof(sBluetoothA2dpSourceCallbacks),
     bta2dp_connection_state_callback,
@@ -378,6 +487,8 @@ static btav_vendor_callbacks_t sBluetoothA2dpSourceVendorCallbacks = {
     bta2dp_connection_priority_vendor_callback,
     bta2dp_multicast_state_vendor_callback,
     NULL,
+    NULL,
+    bta2dp_delay_report_vendor_callback,
 };
 
 static void btavrc_target_passthrough_cmd_vendor_callback(int id, int key_state, bt_bdaddr_t* bd_addr) {
@@ -393,6 +504,36 @@ static void btavrc_target_passthrough_cmd_vendor_callback(int id, int key_state,
     }
 }
 
+static void btavrc_target_setaddrplayer_cmd_vendor_callback(uint32_t player_id, bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_AVRCP " btavrc_target_setaddrplayer_cmd_vendor_callback ");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_SET_ADDR_PLAYER_CB;
+    pEvent->avrcpTargetEvent.arg1 = (uint16_t)player_id;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    PostMessage (THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
+static void btavrc_target_getfolderitems_cmd_vendor_callback(btrc_vendor_browse_folderitem_t id,
+                  btrc_vendor_getfolderitem_t *param, bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_AVRCP " btavrc_target_getfolderitems_cmd_vendor_callback ");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_FOLDER_ITEMS_CB;
+
+    FolderListEntries* folderItem = (FolderListEntries*)osi_malloc(sizeof(FolderListEntries));
+    memcpy(&folderItem->p_attr, &param->attrs, sizeof(param->attrs));
+    folderItem->mStart = param->start_item;
+    folderItem->mEnd = param->end_item;
+    folderItem->mSize = param->size;
+    folderItem->mNumAttr = param->attr_count;
+
+    pEvent->avrcpTargetEvent.buf_size = sizeof(folderItem);
+    pEvent->avrcpTargetEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->avrcpTargetEvent.buf_size);
+    memcpy(pEvent->avrcpTargetEvent.buf_ptr, &folderItem, pEvent->avrcpTargetEvent.buf_size);
+    pEvent->avrcpTargetEvent.arg1 = (uint16_t)id;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    PostMessage (THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
 static void btavrc_target_connection_state_vendor_callback(bool state, bt_bdaddr_t* bd_addr) {
     ALOGD(LOGTAG_AVRCP " btavrcp_target_connection_state_callback state = %d", state);
     BtEvent *pEvent = new BtEvent;
@@ -406,6 +547,72 @@ static void btavrc_target_connection_state_vendor_callback(bool state, bt_bdaddr
 
 static void btavrcp_target_rcfeatures_callback( bt_bdaddr_t* bd_addr, btrc_remote_features_t features) {
     ALOGD(LOGTAG_AVRCP " btavrcp_target_rcfeatures_callback features = %d", features);
+    if ((features & BTRC_FEAT_ABSOLUTE_VOLUME) != 0) {
+        ALOGD(LOGTAG_AVRCP " Abs vol supported for dev ");
+        pA2dpSource->mAbsVolRemoteSupported = true;
+    } else {
+        ALOGD(LOGTAG_AVRCP " Abs vol NOT supported for dev ");
+    }
+    pA2dpSource->mVolCmdSetInProgress = false;
+    pA2dpSource->mVolCmdAdjustInProgress = false;
+    pA2dpSource->mInitialRemoteVolume = -1;
+    pA2dpSource->mLastRemoteVolume = -1;
+    pA2dpSource->mRemoteVolume = -1;
+    pA2dpSource->mLastLocalVolume = -1;
+    pA2dpSource->mLocalVolume = -1;
+}
+
+static void btavrcp_target_getelemattr_vendor_callback(uint8_t num_attr,
+        btrc_vendor_media_attr_t *p_attrs, bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_AVRCP " btavrcp_target_getelemattr_vendor_callback ");
+    int i;
+    for (i = 0; i < num_attr; ++i) {
+        ALOGD(LOGTAG_AVRCP " btavrcp_target_getelemattr_callback features = %d", p_attrs[i]);
+    }
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_ELE_ATTR;
+
+    ItemAttr* itemAttr = (ItemAttr*)osi_malloc(sizeof(ItemAttr));
+    memcpy(&itemAttr->p_attr, &p_attrs, sizeof(p_attrs));
+    itemAttr->mUid = 0;
+    itemAttr->mSize = 0;
+
+    pEvent->avrcpTargetEvent.buf_size = sizeof(ItemAttr);
+    pEvent->avrcpTargetEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->avrcpTargetEvent.buf_size);
+    memcpy(pEvent->avrcpTargetEvent.buf_ptr, &itemAttr, pEvent->avrcpTargetEvent.buf_size);
+    pEvent->avrcpTargetEvent.arg1 = (uint16_t)num_attr;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
+static void btavrcp_target_getplaystatus_vendor_callback(bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_AVRCP " btavrcp_target_getplaystatus_vendor_callback ");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_PLAY_STATUS;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
+static void btavrcp_target_regnoti_vendor_callback(btrc_vendor_event_id_t event_id, uint32_t param,
+        bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_AVRCP " btavrcp_target_regnoti_vendor_callback ");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_REG_NOTI;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->avrcpTargetEvent.arg1 = (uint16_t)event_id;
+    pEvent->avrcpTargetEvent.arg2 = param;
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
+static void btavrcp_target_volchanged_vendor_callback(uint8_t volume, uint8_t ctype,
+        bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_AVRCP " btavrcp_target_volchanged_vendor_callback ");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_VOLUME_CHANGED;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->avrcpTargetEvent.arg3 = volume;
+    pEvent->avrcpTargetEvent.arg4 = (AvrcRspType)ctype;
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
 }
 
 static btrc_callbacks_t sBluetoothAvrcpTargetCallbacks = {
@@ -426,19 +633,19 @@ static btrc_callbacks_t sBluetoothAvrcpTargetCallbacks = {
 
 static btrc_vendor_callbacks_t sBluetoothAvrcpTargetVendorCallbacks = {
    sizeof(sBluetoothAvrcpTargetVendorCallbacks),
+   btavrcp_target_getplaystatus_vendor_callback,
    NULL,
    NULL,
    NULL,
    NULL,
    NULL,
    NULL,
-   NULL,
-   NULL,
-   NULL,
-   NULL,
+   btavrcp_target_getelemattr_vendor_callback,
+   btavrcp_target_regnoti_vendor_callback,
+   btavrcp_target_volchanged_vendor_callback,
    btavrc_target_passthrough_cmd_vendor_callback,
-   NULL,
-   NULL,
+   btavrc_target_getfolderitems_cmd_vendor_callback,
+   btavrc_target_setaddrplayer_cmd_vendor_callback,
    NULL,
    NULL,
    NULL,
@@ -447,51 +654,596 @@ static btrc_vendor_callbacks_t sBluetoothAvrcpTargetVendorCallbacks = {
    NULL,
 };
 
+const char* getString(int mAttrType) {
+    const char* new_str = "";
+    const char* title1 = "Here, on the other hand, I've gone crazy \
+        and really let the literal span several lines, \
+        without bothering with quoting each line's \
+        content. This works, but you can't indent \
+        Here, on the other hand, I've gone crazy \
+        and really let the literal span several lines";
+    const char* artistName1 = "Here, on the other hand, I've gone crazy \
+        and really let the literal span several lines, \
+        without bothering with quoting each line's \
+        content. This works, but you can't indent \
+        Here, on the other hand, I've gone crazy \
+        and really let the literal span several lines";
+    const char* title = "abc1";
+    const char* artistName = "abc2";
+    const char* albumName = "abc3";
+    const char* mediaNumber = "abc4";
+    const char* mediaTotalNumber = "abc5";
+    const char* genre = "abc6";
+    const char* playingTimeMs = "abc7";
+    const char* tracknum = "abc8";
+
+    switch (mAttrType) {
+        case ATTR_TRACK_NUM:
+            return tracknum;
+        case ATTR_TITLE:
+            if (use_bigger_metadata)
+                return title1;
+            else
+                return title;
+        case ATTR_ARTIST_NAME:
+            if (use_bigger_metadata)
+                return artistName1;
+            else
+                return artistName;
+        case ATTR_ALBUM_NAME:
+            return albumName;
+        case ATTR_MEDIA_NUMBER:
+            return mediaNumber;
+        case ATTR_MEDIA_TOTAL_NUMBER:
+            return mediaTotalNumber;
+        case ATTR_GENRE:
+            return genre;
+        case ATTR_PLAYING_TIME_MS:
+            return playingTimeMs;
+        default:
+            return new_str;
+    }
+}
+
+void set_abs_volume_timer_handler(void *context) {
+    ALOGD(LOGTAG_AVRCP " set_abs_volume_timer_handler ");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_ABS_VOL_TIMEOUT;
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
+void A2dp_Source::StartSetAbsVolTimer() {
+    if(abs_vol_timer) {
+        ALOGD(LOGTAG_AVRCP " Abs Vol Timer still running + ");
+        return;
+    }
+    alarm_set(set_abs_volume_timer, A2DP_SOURCE_SET_ABS_VOL_TIMER_DURATION,
+           set_abs_volume_timer_handler, NULL);
+    abs_vol_timer = true;
+}
+
+void A2dp_Source::StopSetAbsVolTimer() {
+    ALOGD(LOGTAG_AVRCP " StopSetAbsVolTimer ");
+    if((set_abs_volume_timer != NULL) && (abs_vol_timer)) {
+        alarm_cancel(set_abs_volume_timer);
+        ALOGD(LOGTAG_AVRCP " StopSetAbsVolTimer -1");
+        abs_vol_timer = false;
+    }
+}
+
+int convertToAudioStreamVolume(int volume) {
+    // Rescale volume to match AudioSystem's volume
+    return (int) round((double) volume*mAudioStreamMax/AVRCP_MAX_VOL);
+}
+
+int convertToAvrcpVolume(int volume) {
+    return (int) ceil((double) volume*AVRCP_MAX_VOL/mAudioStreamMax);
+}
+
+bool isAbsoluteVolumeSupported() {
+    ALOGD(LOGTAG_AVRCP " isAbsoluteVolumeSupported() %d ", pA2dpSource->mAbsVolRemoteSupported);
+    return pA2dpSource->mAbsVolRemoteSupported;
+}
+
 void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
     ALOGD(LOGTAG_AVRCP " HandleAvrcpEvents event = %s",
             dump_message(pEvent->avrcpTargetEvent.event_id));
+    uint8_t absvol, avrcpVolume;
+    long TrackNumberRsp = -1L, pecentVolChanged;
+    char *folderItems, *playerEntry;
+    uint16_t num_attr, scope, set_addr_player_id = 0;
+    bool isSetVol, volAdj = false, player_found = false;
+    int i, pos = 0, song_len = 0, volIndex, start = 0, count = 0, countElementLength = 0;
+    int countTotalBytes = 0, countTemp = 0, checkLength = 0, folderItemLengths[32];
+    int availableMediaPlayers = 0, positionItemStart = 0;
+    AvrcRspType ctype;
+    AvrcKeyDir dir;
+    ItemAttr *item = NULL;
+    FolderListEntries *folderitem = NULL;
+    btrc_element_attr_val_t *pAttrs = NULL;
+    btrc_register_notification_t param;
+    btrc_vendor_folder_list_entries_t *p_param;
+
     switch(pEvent->avrcpTargetEvent.event_id) {
-    case AVRCP_TARGET_CONNECTED_CB:
-        mAvrcpConnected = true;
-        memcpy(&mConnectedAvrcpDevice, &pEvent->avrcpTargetEvent.bd_addr,
-                sizeof(bt_bdaddr_t));
-        break;
-    case AVRCP_TARGET_DISCONNECTED_CB:
-        mAvrcpConnected = false;
-        memset(&mConnectedAvrcpDevice, 0, sizeof(bt_bdaddr_t));
-        break;
-    case A2DP_SOURCE_AUDIO_CMD_REQ:
-        uint8_t key_id = pEvent->avrcpTargetEvent.key_id;
-        if (!mAvrcpConnected || (memcmp(&mConnectedAvrcpDevice, &mConnectedDevice,
-                                                          sizeof(bt_bdaddr_t)) != 0)) {
-            ALOGD(LOGTAG_AVRCP " No Active connection. Bail out!! ");
+        case AVRCP_TARGET_USE_BIGGER_METADATA:
+            ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_USE_BIGGER_METADATA ");
+            use_bigger_metadata = true;
             break;
-        }
-        switch(key_id) {
-        case CMD_ID_PLAY:
-            if (media_playing)
-                BtA2dpResumeStreaming();
+        case AVRCP_TARGET_SET_ADDR_PLAYER_CB:
+            set_addr_player_id = pEvent->avrcpTargetEvent.arg1;
+            if (pMediaPlayerList.size() > 0) {
+                list<MediaPlayerInfo>::iterator p = pMediaPlayerList.begin();
+                while (p != pMediaPlayerList.end()) {
+                    if (p->mPlayerId == set_addr_player_id)
+                    {
+                        player_found = true;
+                        ALOGD(LOGTAG_AVRCP " valid player found for set addr player ");
+                        break;
+                    }
+                    p++;
+                }
+            }
+            else {
+                ALOGE(LOGTAG_AVRCP "  No media players");
+            }
+
+            if (!player_found)
+            {
+                ALOGE(LOGTAG_AVRCP " Since not a valid player %d send error", set_addr_player_id);
+                sBtAvrcpTargetVendorInterface->set_addressed_player_response_vendor(
+                        (btrc_status_t)0x11, &pEvent->avrcpTargetEvent.bd_addr);
+                break;
+            }
+
+            ALOGD(LOGTAG_AVRCP " Send response for set addressed player %d", set_addr_player_id);
+            sBtAvrcpTargetVendorInterface->set_addressed_player_response_vendor((btrc_status_t)0x04,
+                    &pEvent->avrcpTargetEvent.bd_addr);
+
+            if (mCurrentAddrPlayerId == set_addr_player_id)
+            {
+                ALOGD(LOGTAG_AVRCP " Player already addresssed %d", set_addr_player_id);
+            }
             else
-                BtA2dpStartStreaming();
+            {
+                mPreviousAddrPlayerId = mCurrentAddrPlayerId;
+                mCurrentAddrPlayerId = set_addr_player_id;
+                ALOGD(LOGTAG_AVRCP " mPreviousAddrPlayerId %d mCurrentAddrPlayerId = %d",
+                                     mPreviousAddrPlayerId, mCurrentAddrPlayerId);
+                if (mAddrPlayerChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                    mAddrPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                    param.player_id = mCurrentAddrPlayerId;
+                    sBtAvrcpTargetInterface->register_notification_rsp(
+                            BTRC_EVT_ADDRESSED_PLAYER_CHANGED,
+                            mAddrPlayerChangedNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                    if (mPreviousAddrPlayerId != -1)
+                        resetAndSendPlayerStatusReject();
+                }
+            }
             break;
-        case CMD_ID_PAUSE:
-            /*Pause key id is mapped to A2dp suspend*/
-            BtA2dpSuspendStreaming();
+        case AVRCP_TARGET_GET_FOLDER_ITEMS_CB:
+            scope = pEvent->avrcpTargetEvent.arg1;
+            ALOGD(LOGTAG_AVRCP " Send response for get folder items for scope %d", scope);
+            if (pEvent->avrcpTargetEvent.buf_ptr == NULL) {
+                break;
+            }
+            folderitem = (FolderListEntries*)osi_malloc(sizeof(FolderListEntries));
+            memcpy(&folderitem, pEvent->avrcpTargetEvent.buf_ptr, pEvent->avrcpTargetEvent.buf_size);
+            ALOGD(LOGTAG_AVRCP "  %d %d %d %d", folderitem->mStart, folderitem->mEnd,
+                                                folderitem->mSize, folderitem->mNumAttr);
+            start = folderitem->mStart;
+            folderItems = (char*) osi_malloc(folderitem->mSize * sizeof(char));
+            if (scope == 0x00) {
+                if (pMediaPlayerList.size() > 0) {
+                    list<MediaPlayerInfo>::iterator p = pMediaPlayerList.begin();
+                    while (p != pMediaPlayerList.end()) {
+                        if (start == 0) {
+                            playerEntry = (char*)osi_malloc(p->RetrievePlayerEntryLength()*
+                                                               sizeof(char));
+                            playerEntry = p->RetrievePlayerItemEntry();
+                            int length = p->RetrievePlayerEntryLength();
+                            folderItemLengths[availableMediaPlayers ++] = length;
+                            for (count = 0; count < length; count ++) {
+                                folderItems[positionItemStart + count] = playerEntry[count];
+                            }
+                            positionItemStart += length; // move start to next item star
+                            osi_free(playerEntry);
+                        }
+                        else if (start > 0) {
+                            --start;
+                        }
+                        p++;
+                    }
+                }
+                else {
+                    ALOGE(LOGTAG_AVRCP "  No media players");
+                }
+            }
+            else {
+                ALOGE(LOGTAG_AVRCP " Incorrect scope");
+            }
+            p_param = (btrc_vendor_folder_list_entries_t*)osi_malloc(
+                                    sizeof(btrc_vendor_folder_list_entries_t));
+            p_param->status = 0x04;
+            p_param->uid_counter = 0;
+            p_param->item_count = availableMediaPlayers;
+            p_param->p_item_list =
+               (btrc_vendor_folder_list_item_t*) osi_malloc (p_param->item_count*
+                                      sizeof(btrc_vendor_folder_list_item_t));
+            for (count = 0; count < p_param->item_count; count++) {
+                p_param->p_item_list[count].item_type =
+                    folderItems[countTotalBytes]; countTotalBytes++;
+                p_param->p_item_list[count].u.player.player_id =
+                    (uint16_t)(folderItems[countTotalBytes] & 0x00ff); countTotalBytes++;
+                p_param->p_item_list[count].u.player.player_id +=
+                    (uint16_t)((folderItems[countTotalBytes] << 8) & 0xff00); countTotalBytes++;
+                p_param->p_item_list[count].u.player.major_type =
+                    folderItems[countTotalBytes]; countTotalBytes++;
+                p_param->p_item_list[count].u.player.sub_type =
+                    (uint32_t)(folderItems[countTotalBytes] & 0x000000ff); countTotalBytes++;
+                p_param->p_item_list[count].u.player.sub_type +=
+                    (uint32_t)((folderItems[countTotalBytes] << 8) & 0x0000ff00); countTotalBytes++;
+                p_param->p_item_list[count].u.player.sub_type +=
+                    (uint32_t)((folderItems[countTotalBytes] << 16) & 0x00ff0000); countTotalBytes++;
+                p_param->p_item_list[count].u.player.sub_type +=
+                    (uint32_t)((folderItems[countTotalBytes] << 24) & 0xff000000); countTotalBytes++;
+                p_param->p_item_list[count].u.player.play_status =
+                    folderItems[countTotalBytes]; countTotalBytes++;
+                for (countTemp = 0; countTemp < 16; countTemp ++) {
+                    p_param->p_item_list[count].u.player.features[countTemp] =
+                    folderItems[countTotalBytes];
+                    ALOGD(LOGTAG_A2DP "player feat sending in resp %d",
+                        p_param->p_item_list[count].u.player.features[countTemp]);
+                    countTotalBytes++;
+                }
+                p_param->p_item_list[count].u.player.name.charset_id =
+                    (uint16_t)(folderItems[countTotalBytes] & 0x00ff); countTotalBytes++;
+                p_param->p_item_list[count].u.player.name.charset_id +=
+                    (uint16_t)((folderItems[countTotalBytes] << 8) & 0xff00); countTotalBytes++;
+                p_param->p_item_list[count].u.player.name.str_len =
+                    (uint16_t)(folderItems[countTotalBytes] & 0x00ff); countTotalBytes++;
+                p_param->p_item_list[count].u.player.name.str_len +=
+                    (uint16_t)((folderItems[countTotalBytes] << 8) & 0xff00); countTotalBytes++;
+                p_param->p_item_list[count].u.player.name.p_str =
+                    new uint8_t[p_param->p_item_list[count].u.player.name.str_len];
+                for (countTemp = 0; countTemp < p_param->p_item_list[count].u.player.name.str_len;
+                              countTemp ++) {
+                    p_param->p_item_list[count].u.player.name.p_str[countTemp] =
+                        folderItems[countTotalBytes]; countTotalBytes++;
+                }
+                /*To check if byte feeding went well*/
+                checkLength += folderItemLengths[count];
+                ALOGD(LOGTAG_AVRCP "checkLength = %u countTotalBytes = %u", checkLength,
+                        countTotalBytes);
+                if (checkLength != countTotalBytes) {
+                    ALOGE(LOGTAG_AVRCP "Error Populating Intermediate Folder Entry");
+                }
+            }
+            sBtAvrcpTargetVendorInterface->get_folder_items_response_vendor(p_param,
+                                           &pEvent->avrcpTargetEvent.bd_addr);
+            osi_free(pEvent->avrcpTargetEvent.buf_ptr);
+            osi_free(folderitem);
+            osi_free(folderItems);
+            osi_free(p_param->p_item_list);
+            osi_free(p_param);
             break;
-        case CMD_ID_STOP:
-            /*Pause and Stop passthrough commands are handled here*/
-            media_playing = false;
-            BtA2dpStopStreaming();
+        case AVRCP_TARGET_ABS_VOL_TIMEOUT:
+            ALOGD(LOGTAG_AVRCP " MESSAGE_ABS_VOL_TIMEOUT: Volume change cmd timed out");
+            mVolCmdSetInProgress = false;
+            mVolCmdAdjustInProgress = false;
             break;
-        default:
-            ALOGD(LOGTAG_AVRCP " Command not supported ");
-        }
-        break;
+        case AVRCP_TARGET_SEND_VOL_UP_DOWN:
+            dir = (AvrcKeyDir)pEvent->avrcpTargetEvent.arg3;
+            ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_SEND_VOL_UP_DOWN, dir = %d ", dir);
+            if (dir == AVRC_KEY_UP)
+            {
+                sBtAvrcpTargetInterface->send_pass_through_cmd(&mConnectedDevice, CMD_ID_VOL_UP, 0);
+                sBtAvrcpTargetInterface->send_pass_through_cmd(&mConnectedDevice, CMD_ID_VOL_UP, 1);
+            }
+            else if (dir == AVRC_KEY_DOWN)
+            {
+                sBtAvrcpTargetInterface->send_pass_through_cmd(&mConnectedDevice,
+                                                                        CMD_ID_VOL_DOWN, 0);
+                sBtAvrcpTargetInterface->send_pass_through_cmd(&mConnectedDevice,
+                                                                        CMD_ID_VOL_DOWN, 1);
+            }
+            else
+            {
+                ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_SEND_VOL_UP_DOWN: Invalid value");
+            }
+            break;
+        case AVRCP_TARGET_VOLUME_CHANGED:
+            if (!isAbsoluteVolumeSupported()) {
+                ALOGD(LOGTAG_AVRCP "ignore AVRCP_TARGET_VOLUME_CHANGED");
+                break;
+            }
+            absvol = pEvent->avrcpTargetEvent.arg3 & 0x7f; // discard MSB as it is RFD
+            ctype = (AvrcRspType)pEvent->avrcpTargetEvent.arg4;
+            ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_VOLUME_CHANGED, vol = %d absvol = %d ctype = %x",
+                    pEvent->avrcpTargetEvent.arg3, absvol, ctype);
+
+            if (ctype == AVRC_RSP_ACCEPT || ctype == AVRC_RSP_REJ) {
+                if ((mVolCmdSetInProgress == false) && (mVolCmdAdjustInProgress == false)) {
+                    ALOGD(LOGTAG_AVRCP "Unsolicited response, ignored");
+                    break;
+                }
+                pA2dpSource->StopSetAbsVolTimer();
+                volAdj = mVolCmdAdjustInProgress;
+                mVolCmdSetInProgress = false;
+                mVolCmdAdjustInProgress = false;
+            }
+
+            volIndex = convertToAudioStreamVolume(absvol);
+            ALOGD(LOGTAG_AVRCP " Volume Index = %d", volIndex);
+
+            if (mInitialRemoteVolume == -1) {
+                mInitialRemoteVolume = absvol;
+            }
+
+            if (mLocalVolume != volIndex && (ctype == AVRC_RSP_ACCEPT ||
+                    ctype == AVRC_RSP_CHANGED || ctype == AVRC_RSP_INTERIM)) {
+                /* If the volume has successfully changed */
+                mLocalVolume = volIndex;
+                if (mLastLocalVolume != -1 && ctype == AVRC_RSP_ACCEPT) {
+                    if (mLastLocalVolume != volIndex) {
+                        /* remote volume changed more than requested due to
+                                      * local and remote has different volume steps */
+                        ALOGD(LOGTAG_AVRCP "Remote returned vol does not match desired volume %d",
+                        mLastLocalVolume, " vs %d", volIndex);
+                        mLastLocalVolume = mLocalVolume;
+                    }
+                }
+
+                // remember the remote volume value, as it's the one supported by remote
+                if (volAdj) {
+                    ALOGD(LOGTAG_AVRCP "TODO : remember the remote volume value,"
+                                             "as it's the one supported by remote");
+                }
+
+                mRemoteVolume = absvol;
+                pecentVolChanged = ((long)absvol * 100) / 0x7f;
+                ALOGD(LOGTAG_AVRCP " percent volume changed: %d", pecentVolChanged, "%");
+            }
+            else if (ctype == AVRC_RSP_REJ) {
+                ALOGD(LOGTAG_AVRCP "setAbsoluteVolume call rejected");
+            }
+            break;
+        case AVRCP_TARGET_SET_ABS_VOL:
+            ALOGD(LOGTAG_AVRCP "AVRCP_TARGET_SET_ABS_VOL, vol step = %d",
+                                               pEvent->avrcpTargetEvent.arg3);
+            if (!isAbsoluteVolumeSupported()) {
+                ALOGD(LOGTAG_AVRCP "ignore MESSAGE_SET_ABSOLUTE_VOLUME");
+                break;
+            }
+            if (pEvent->avrcpTargetEvent.arg3 < 0 ||
+                           pEvent->avrcpTargetEvent.arg3 > mAudioStreamMax) {
+                ALOGD(LOGTAG_AVRCP "wrong vol step input");
+                break;
+            }
+            if (mVolCmdSetInProgress || mVolCmdAdjustInProgress){
+                ALOGD(LOGTAG_AVRCP "There is already a volume command in progress.");
+                break;
+            }
+            if (mInitialRemoteVolume == -1) {
+                ALOGD(LOGTAG_AVRCP "remote never tell us initial volume, black list it.");
+                break;
+            }
+            avrcpVolume = std::min(AVRCP_MAX_VOL,
+                          std::max(0, convertToAvrcpVolume(pEvent->avrcpTargetEvent.arg3)));
+            isSetVol = sBtAvrcpTargetInterface->set_volume(avrcpVolume,
+                                                &pEvent->avrcpTargetEvent.bd_addr);
+            if (isSetVol == BT_STATUS_SUCCESS) {
+                pA2dpSource->StartSetAbsVolTimer();
+                mVolCmdSetInProgress = true;
+                mLastRemoteVolume = avrcpVolume;
+                mLastLocalVolume = pEvent->avrcpTargetEvent.arg3;
+            } else {
+                ALOGE(LOGTAG_AVRCP "setVolumeNative failed");
+            }
+            break;
+        case AVRCP_TARGET_TRACK_CHANGED:
+            ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_TRACK_CHANGED");
+            if (mTrackChangeNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                mCurrentTrackID = TRACK_IS_SELECTED;
+                TrackNumberRsp = mCurrentTrackID;
+                mTrackChangeNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                ALOGD(LOGTAG_AVRCP " TrackNumberRsp = %l", TrackNumberRsp);
+                for (int i = 0; i < 8; ++i) {
+                    param.track[i] = (uint8_t) (TrackNumberRsp >> (56 - 8 * i));
+                }
+                sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_TRACK_CHANGE,
+                        mTrackChangeNotiType,
+                        &param, &pEvent->avrcpTargetEvent.bd_addr);
+            }
+            break;
+        case AVRCP_TARGET_ADDR_PLAYER_CHANGED:
+            ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_ADDR_PLAYER_CHANGED %d",
+                                         pEvent->avrcpTargetEvent.arg3);
+            if (mCurrentAddrPlayerId != pEvent->avrcpTargetEvent.arg3) {
+                mPreviousAddrPlayerId = mCurrentAddrPlayerId;
+                mCurrentAddrPlayerId = pEvent->avrcpTargetEvent.arg3;
+                ALOGD(LOGTAG_AVRCP " mPreviousAddrPlayerId = %d mCurrentAddrPlayerId = %d",
+                                     mPreviousAddrPlayerId, mCurrentAddrPlayerId);
+                if (mAddrPlayerChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                    mAddrPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                    param.player_id = mCurrentAddrPlayerId;
+                    sBtAvrcpTargetInterface->register_notification_rsp(
+                            BTRC_EVT_ADDRESSED_PLAYER_CHANGED,
+                            mAddrPlayerChangedNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                    if (mPreviousAddrPlayerId != -1)
+                        resetAndSendPlayerStatusReject();
+                }
+            }
+            break;
+        case AVRCP_TARGET_AVAIL_PLAYER_CHANGED:
+            ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_AVAIL_PLAYER_CHANGED");
+            if (mAvailPlayerChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                mAvailPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                sBtAvrcpTargetInterface->register_notification_rsp(
+                        BTRC_EVT_AVAILABLE_PLAYERS_CHANGED,
+                        mAvailPlayerChangedNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+            }
+            break;
+        case AVRCP_TARGET_GET_ELE_ATTR:
+            num_attr = pEvent->avrcpTargetEvent.arg1;
+            if (pEvent->avrcpTargetEvent.buf_ptr == NULL) {
+                break;
+            }
+            ALOGD(LOGTAG_AVRCP " Send response for Get element attribute, num_attr %d", num_attr);
+            item = (ItemAttr*)osi_malloc(sizeof(ItemAttr));
+            memcpy(&item, pEvent->avrcpTargetEvent.buf_ptr, pEvent->avrcpTargetEvent.buf_size);
+            ALOGD(LOGTAG_AVRCP " Uid %d Size %d", item->mUid, item->mSize);
+            for (i = 0; i < num_attr; ++i) {
+                ALOGD(LOGTAG_AVRCP " attr[%d] %d", i, item->p_attr[i]);
+            }
+            pAttrs = (btrc_element_attr_val_t*)osi_malloc(num_attr*sizeof(btrc_element_attr_val_t));
+            for (int i = 0; i < num_attr; ++i) {
+                pAttrs[i].attr_id = item->p_attr[i];
+                memcpy(pAttrs[i].text, getString(pAttrs[i].attr_id),
+                                strlen(getString(pAttrs[i].attr_id))+1);
+                ALOGD(LOGTAG_AVRCP " %d %s", pAttrs[i].attr_id, pAttrs[i].text);
+            }
+            sBtAvrcpTargetInterface->get_element_attr_rsp((uint8_t)num_attr, pAttrs,
+                                                 &pEvent->avrcpTargetEvent.bd_addr);
+            osi_free(pEvent->avrcpTargetEvent.buf_ptr);
+            osi_free(item);
+            osi_free(pAttrs);
+            use_bigger_metadata = false;
+            break;
+        case AVRCP_TARGET_GET_PLAY_STATUS:
+            ALOGD(LOGTAG_AVRCP " Send response for Get play status");
+            pos = 10L;
+            song_len = 100L;
+            sBtAvrcpTargetInterface->get_play_status_rsp(playStatus,
+                    song_len, pos, &pEvent->avrcpTargetEvent.bd_addr);
+            break;
+        case AVRCP_TARGET_REG_NOTI:
+            switch(pEvent->avrcpTargetEvent.arg1) {
+                case BTRC_EVT_PLAY_STATUS_CHANGED :
+                    ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_REG_NOTI: BTRC_EVT_PLAY_STATUS_CHANGED");
+                    mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_INTERIM;
+                    param.play_status = playStatus;
+                    sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_STATUS_CHANGED,
+                            mPlayStatusNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                    break;
+                case BTRC_EVT_TRACK_CHANGE:
+                    ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_REG_NOTI: BTRC_EVT_TRACK_CHANGE");
+                    mTrackChangeNotiType = BTRC_NOTIFICATION_TYPE_INTERIM;
+                    TrackNumberRsp = mCurrentTrackID;
+                    ALOGD(LOGTAG_AVRCP " TrackNumberRsp = %l", TrackNumberRsp);
+                    for (int i = 0; i < 8; ++i) {
+                        param.track[i] = (uint8_t) (TrackNumberRsp >> (56 - 8 * i));
+                    }
+                    sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_TRACK_CHANGE,
+                            mTrackChangeNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                    break;
+                case BTRC_EVT_ADDRESSED_PLAYER_CHANGED:
+                    ALOGD(LOGTAG_AVRCP "AVRCP_TARGET_REG_NOTI: BTRC_EVT_ADDRESSED_PLAYER_CHANGED ");
+                    mAddrPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_INTERIM;
+                    param.player_id = (uint16_t)mCurrentAddrPlayerId;
+                    sBtAvrcpTargetInterface->register_notification_rsp(
+                            BTRC_EVT_ADDRESSED_PLAYER_CHANGED,
+                            mAddrPlayerChangedNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                    break;
+                case BTRC_EVT_AVAILABLE_PLAYERS_CHANGED:
+                    ALOGD(LOGTAG_AVRCP "AVRCP_TARGET_REG_NOTI: BTRC_EVT_AVAILABLE_PLAYERS_CHANGED ");
+                    mAvailPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_INTERIM;
+                    sBtAvrcpTargetInterface->register_notification_rsp(
+                            BTRC_EVT_AVAILABLE_PLAYERS_CHANGED,
+                            mAvailPlayerChangedNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                    break;
+                default:
+                    ALOGE(LOGTAG_AVRCP "AVRCP_TARGET_REG_NOTI: unhandled event ");
+                    break;
+            }
+            break;
+        case AVRCP_TARGET_CONNECTED_CB:
+            mAvrcpConnected = true;
+            memcpy(&mConnectedAvrcpDevice, &pEvent->avrcpTargetEvent.bd_addr, sizeof(bt_bdaddr_t));
+            break;
+        case AVRCP_TARGET_DISCONNECTED_CB:
+            mAvrcpConnected = false;
+            memset(&mConnectedAvrcpDevice, 0, sizeof(bt_bdaddr_t));
+            break;
+        case A2DP_SOURCE_AUDIO_CMD_REQ:
+            uint8_t key_id = pEvent->avrcpTargetEvent.key_id;
+            if (!mAvrcpConnected || (memcmp(&mConnectedAvrcpDevice, &mConnectedDevice,
+                           sizeof(bt_bdaddr_t)) != 0)) {
+                ALOGD(LOGTAG_AVRCP " No Active connection. Bail out!! ");
+                break;
+            }
+            switch(key_id) {
+                case CMD_ID_PLAY:
+                    if (media_playing)
+                        BtA2dpResumeStreaming();
+                    else
+                        BtA2dpStartStreaming();
+                    if (playStatus != BTRC_PLAYSTATE_PLAYING)
+                    {
+                        playStatus = BTRC_PLAYSTATE_PLAYING;
+                        if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                            param.play_status = playStatus;
+                            mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                            sBtAvrcpTargetInterface->register_notification_rsp(
+                                    BTRC_EVT_PLAY_STATUS_CHANGED,
+                                    mPlayStatusNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                        }
+                    }
+                    if (mTrackChangeNotiType == BTRC_NOTIFICATION_TYPE_INTERIM)
+                    {
+                        mCurrentTrackID = TRACK_IS_SELECTED;
+                        TrackNumberRsp = mCurrentTrackID;
+                        mTrackChangeNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                        ALOGD(LOGTAG_AVRCP " TrackNumberRsp = %l", TrackNumberRsp);
+                        for (int i = 0; i < 8; ++i) {
+                            param.track[i] = (uint8_t) (TrackNumberRsp >> (56 - 8 * i));
+                        }
+                        sBtAvrcpTargetInterface->register_notification_rsp(
+                                BTRC_EVT_TRACK_CHANGE,
+                                mTrackChangeNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                    }
+                    break;
+                case CMD_ID_PAUSE:
+                    /*Pause key id is mapped to A2dp suspend*/
+                    BtA2dpSuspendStreaming();
+                    if (playStatus != BTRC_PLAYSTATE_PAUSED)
+                    {
+                        playStatus = BTRC_PLAYSTATE_PAUSED;
+                        if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                            param.play_status = playStatus;
+                            mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                            sBtAvrcpTargetInterface->register_notification_rsp(
+                                    BTRC_EVT_PLAY_STATUS_CHANGED,
+                                    mPlayStatusNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                        }
+                    }
+                    break;
+                case CMD_ID_STOP:
+                    /*Pause and Stop passthrough commands are handled here*/
+                    media_playing = false;
+                    BtA2dpStopStreaming();
+                    if (playStatus != BTRC_PLAYSTATE_STOPPED)
+                    {
+                        playStatus = BTRC_PLAYSTATE_STOPPED;
+                        if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                            param.play_status = playStatus;
+                            mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                            sBtAvrcpTargetInterface->register_notification_rsp(
+                                    BTRC_EVT_PLAY_STATUS_CHANGED,
+                                    mPlayStatusNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                        }
+                    }
+                    break;
+                default:
+                   ALOGE(LOGTAG_AVRCP " Command not supported ");
+                   break;
+            }
+            break;
     }
 }
 
 void A2dp_Source::HandleEnableSource(void) {
     BtEvent *pEvent = new BtEvent;
+    char value[PROPERTY_VALUE_MAX] = {'\0'};
     if (bluetooth_interface != NULL)
     {
         sBtA2dpSourceInterface = (btav_interface_t *)bluetooth_interface->
@@ -510,8 +1262,14 @@ void A2dp_Source::HandleEnableSource(void) {
 #ifdef USE_LIBHW_AOSP
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks);
 #else
-        sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, 0, NULL);
+        sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, 0);
 #endif
+        property_get("persist.bt.a2dp_offload_cap", value, "false");
+        ALOGD(LOGTAG_A2DP "offload_cap:%s", value);
+        if (strcmp(value, "false") == 0)
+            sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
+        else
+            sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, value);
         sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SOURCE;
@@ -539,6 +1297,9 @@ void A2dp_Source::HandleEnableSource(void) {
         ALOGD(LOGTAG_A2DP "Calling BtA2dpLoadA2dpHal");
         BtA2dpLoadA2dpHal();
         media_playing = false;
+        playStatus = BTRC_PLAYSTATE_ERROR;
+        mCurrentTrackID = NO_TRACK_SELECTED;
+        registerMediaPlayers();
     }
 }
 
@@ -559,6 +1320,8 @@ void A2dp_Source::HandleDisableSource(void) {
    pEvent->profile_stop_event.status = true;
    PostMessage(THREAD_ID_GAP, pEvent);
    media_playing = false;
+   playStatus = BTRC_PLAYSTATE_ERROR;
+   mCurrentTrackID = NO_TRACK_SELECTED;
 }
 
 void A2dp_Source::ProcessEvent(BtEvent* pEvent) {
@@ -605,6 +1368,28 @@ char* A2dp_Source::dump_message(BluetoothEventId event_id) {
         return "AVRCP_TARGET_DISCONNECTED_CB";
     case A2DP_SOURCE_AUDIO_CMD_REQ:
         return "AUDIO_CMD_REQ";
+    case AVRCP_TARGET_GET_ELE_ATTR:
+        return "AVRCP_TARGET_GET_ELE_ATTR";
+    case AVRCP_TARGET_GET_PLAY_STATUS:
+        return "AVRCP_TARGET_GET_PLAY_STATUS";
+    case AVRCP_TARGET_REG_NOTI:
+        return "AVRCP_TARGET_REG_NOTI";
+    case AVRCP_TARGET_TRACK_CHANGED:
+        return "AVRCP_TARGET_TRACK_CHANGED";
+    case AVRCP_TARGET_VOLUME_CHANGED:
+        return "AVRCP_TARGET_VOLUME_CHANGED";
+    case AVRCP_TARGET_SET_ABS_VOL:
+        return "AVRCP_TARGET_SET_ABS_VOL";
+    case AVRCP_TARGET_ABS_VOL_TIMEOUT:
+        return "AVRCP_TARGET_ABS_VOL_TIMEOUT";
+    case AVRCP_TARGET_SEND_VOL_UP_DOWN:
+        return "AVRCP_TARGET_SEND_VOL_UP_DOWN";
+    case AVRCP_TARGET_GET_FOLDER_ITEMS_CB:
+        return "AVRCP_TARGET_GET_FOLDER_ITEMS_CB";
+    case AVRCP_TARGET_SET_ADDR_PLAYER_CB:
+        return "AVRCP_TARGET_SET_ADDR_PLAYER_CB";
+    case AVRCP_TARGET_USE_BIGGER_METADATA:
+        return "AVRCP_TARGET_USE_BIGGER_METADATA";
     case A2DP_SOURCE_CONNECTION_PRIORITY_REQ:
         return "CONNECTION_PRIORITY_REQ";
     }
@@ -667,6 +1452,9 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
         case A2DP_SOURCE_DISCONNECTED_CB:
             fprintf(stdout, "A2DP Source DisConnected \n");
             media_playing = false;
+            playStatus = BTRC_PLAYSTATE_ERROR;
+            mCurrentTrackID = NO_TRACK_SELECTED;
+            pA2dpSource->mAbsVolRemoteSupported = false;
             BtA2dpCloseOutputStream();
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
@@ -710,6 +1498,9 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             bdaddr_to_string(&mConnectedDevice, str, 18);
             fprintf(stdout, "A2DP Source DisConnecting: %s\n", str);
             media_playing = false;
+            playStatus = BTRC_PLAYSTATE_ERROR;
+            mCurrentTrackID = NO_TRACK_SELECTED;
+            pA2dpSource->mAbsVolRemoteSupported = false;
             if (sBtA2dpSourceInterface != NULL) {
                 sBtA2dpSourceInterface->disconnect(&pEvent->a2dpSourceEvent.bd_addr);
             }
@@ -722,6 +1513,9 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             break;
         case A2DP_SOURCE_DISCONNECTED_CB:
             media_playing = false;
+            playStatus = BTRC_PLAYSTATE_ERROR;
+            mCurrentTrackID = NO_TRACK_SELECTED;
+            pA2dpSource->mAbsVolRemoteSupported = false;
             BtA2dpCloseOutputStream();
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
@@ -759,6 +1553,18 @@ A2dp_Source :: A2dp_Source(const bt_interface_t *bt_interface, config_t *config)
     sBtAvrcpTargetInterface = NULL;
     mSourceState = STATE_A2DP_SOURCE_NOT_STARTED;
     mAvrcpConnected = false;
+    set_abs_volume_timer = alarm_new();
+    abs_vol_timer = false;
+    mVolCmdSetInProgress = false;
+    mVolCmdAdjustInProgress = false;
+    mInitialRemoteVolume = -1;
+    mLastRemoteVolume = -1;
+    mRemoteVolume = -1;
+    mLastLocalVolume = -1;
+    mLocalVolume = -1;
+    mPreviousAddrPlayerId = 0;
+    mCurrentAddrPlayerId = 0;
+    mAbsVolRemoteSupported = false;
     memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mConnectedAvrcpDevice, 0, sizeof(bt_bdaddr_t));
@@ -767,5 +1573,100 @@ A2dp_Source :: A2dp_Source(const bt_interface_t *bt_interface, config_t *config)
 
 A2dp_Source :: ~A2dp_Source() {
     mAvrcpConnected = false;
+    mVolCmdSetInProgress = false;
+    mVolCmdAdjustInProgress = false;
+    mInitialRemoteVolume = -1;
+    mLastRemoteVolume = -1;
+    mRemoteVolume = -1;
+    mLastLocalVolume = -1;
+    mLocalVolume = -1;
+    mPreviousAddrPlayerId = 0;
+    mCurrentAddrPlayerId = 0;
+    alarm_free(set_abs_volume_timer);
+    set_abs_volume_timer = NULL;
+    mAbsVolRemoteSupported = false;
     pthread_mutex_destroy(&lock);
+}
+
+MediaPlayerInfo :: MediaPlayerInfo(short playerId, char majorPlayerType, int playerSubType,
+                                      char playState, short charsetId, short displayableNameLength,
+                                      char* displayableName, char* playerPackageName,
+                                      bool isAvailable, bool isFocussed, char itemType,
+                                      bool isRemoteAddressable, short itemLength, short entryLength,
+                                      char featureMask[]) {
+    int i;
+    mPlayerId = playerId;
+    mMajorPlayerType = majorPlayerType;
+    mPlayerSubType = playerSubType;
+    mPlayState = playState;
+    mCharsetId = charsetId;
+    mDisplayableNameLength = displayableNameLength;
+    memcpy(&mDisplayableName, &displayableName, strlen(displayableName)+1);
+    memcpy(&mPlayerPackageName, &playerPackageName, strlen(playerPackageName)+1);
+    ALOGD(LOGTAG_AVRCP "  %s %s", mDisplayableName, mPlayerPackageName);
+
+    mIsAvailable = isAvailable;
+    mIsFocussed = isFocussed;
+    mItemType = itemType;
+    mIsRemoteAddressable = isRemoteAddressable;
+    mItemLength = (short)(mDisplayableNameLength + 2 + 1 + 4 + 1 + 2 + 2 + 16);
+    mEntryLength = (short)(mItemLength + /* ITEM_LENGTH_LENGTH +*/ 1);
+    memcpy(mFeatureMask, featureMask, 16);
+
+    for (i = 0; i < 16; i++)
+        ALOGD(LOGTAG_AVRCP " %d", mFeatureMask[i]);
+}
+
+int MediaPlayerInfo :: RetrievePlayerEntryLength() {
+    return mEntryLength;
+}
+
+char* MediaPlayerInfo :: RetrievePlayerItemEntry() {
+    int position = 0;
+    int count;
+    char* playerEntry1 = (char*)osi_malloc(mEntryLength * sizeof(char));
+
+    playerEntry1[position] = (char)mItemType;
+    ALOGD(LOGTAG_AVRCP "RetrievePlayerItemEntry type %d", playerEntry1[position]);
+    position++;
+
+    playerEntry1[position] = (char)(mPlayerId & 0xff);
+    ALOGD(LOGTAG_AVRCP "RetrievePlayerItemEntry playerid %d", playerEntry1[position]);
+    position++;
+
+    playerEntry1[position] = (char)((mPlayerId >> 8) & 0xff);
+    ALOGD(LOGTAG_AVRCP "RetrievePlayerItemEntry playerid %d", playerEntry1[position]);
+    position++;
+
+    playerEntry1[position] = (char)mMajorPlayerType;
+    ALOGD(LOGTAG_AVRCP "RetrievePlayerItemEntry MajorPlayerType %d", playerEntry1[position]);
+    position++;
+
+    for (count = 0; count < 4; count++) {
+        playerEntry1[position] = (char)((mPlayerSubType >> (8 * count)) & 0xff); position++;
+    }
+
+    playerEntry1[position] = (char)mPlayState; position++;
+    for (count = 0; count < 16; count++) {
+        playerEntry1[position] = (char)mFeatureMask[count];
+        ALOGD(LOGTAG_AVRCP "RetrievePlayerItemEntry playerEntry1[%d] position %d,  %d", count,
+                            position, playerEntry1[position]);
+        position++;
+    }
+    playerEntry1[position] = (char)(mCharsetId & 0xff); position++;
+    playerEntry1[position] = (char)((mCharsetId >> 8) & 0xff); position++;
+    playerEntry1[position] = (char)(mDisplayableNameLength & 0xff); position++;
+    playerEntry1[position] = (char)((mDisplayableNameLength >> 8) & 0xff); position++;
+
+    for (count = 0; count < mDisplayableNameLength; count++) {
+        playerEntry1[position] = (char)mDisplayableName[count]; position++;
+    }
+    if (position != mEntryLength) {
+        ALOGE(LOGTAG_AVRCP "ERROR populating PlayerItemEntry: position: %d mEntryLength: %d",
+                            position, mEntryLength);
+    }
+    return playerEntry1;
+}
+
+MediaPlayerInfo :: ~MediaPlayerInfo() {
 }

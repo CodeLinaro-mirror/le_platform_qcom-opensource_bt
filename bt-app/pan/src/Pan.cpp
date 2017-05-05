@@ -520,6 +520,12 @@ void Pan::HandlePanSetTetheringEvent(PanSetTetheringEvent *event)
                 }
             }
         }
+
+        if (pan_interface !=NULL) {
+            ALOGE(LOGTAG "%s: Notifying BT tethering UI status to BNEP layer", __FUNCTION__);
+            pan_interface->set_tethering(is_tethering_on);
+        }
+
         PAN_APP_UI_PRINT("\n*****TETHER MODE UI OPTION SUCCESSFULLY CHANGED*****\n");
     } else {
         ALOGW(LOGTAG "%s: LOCAL_NAP_ROLE not supported", __FUNCTION__);

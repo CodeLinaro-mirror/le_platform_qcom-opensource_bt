@@ -80,7 +80,9 @@ class A2dp_Device {
     uint16_t dev_codec_type;
     pthread_mutex_t lock;
     bool mAvrcpConnected;
-
+    int mNotificationLabel;
+    bool mAbsVolNotificationRequested;
+    bool mAbsoluteVolumeChangeInProgress;
   public:
     A2dp_Device(config_t *config, bt_bdaddr_t dev);
     ~A2dp_Device();

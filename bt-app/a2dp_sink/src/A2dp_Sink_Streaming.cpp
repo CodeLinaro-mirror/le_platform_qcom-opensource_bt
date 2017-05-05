@@ -141,6 +141,10 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             break;
         case A2DP_SINK_STREAMING_FETCH_PCM_DATA:
             ALOGD(LOGTAG " A2DP_SINK_STREAMING_FETCH_PCM_DATA");
+            if (!pA2dpSinkStream->pcm_timer) {
+                ALOGD(LOGTAG " pcm_timer already false, don't fetch data");
+                break;
+            }
             pA2dpSinkStream->pcm_timer = false;
             if ((pA2dpSinkStream->pcm_buf == NULL) || !memcmp(&pA2dpSinkStream->mStreamingDevice,
                     &bd_addr_null, sizeof(bt_bdaddr_t))) {
@@ -296,6 +300,19 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 pA2dpSinkStream->CloseInputStream();
             }
             pA2dpSinkStream->CloseAudioStream();
+            break;
+        case A2DP_SINK_STREAMING_FLUSH_AUDIO:
+            ALOGD(LOGTAG " A2DP_SINK_STREAMING_FLUSH_AUDIO");
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+            qahw_out_pause(pA2dpSinkStream->out_stream);
+            qahw_out_flush(pA2dpSinkStream->out_stream);
+#endif
+            pA2dpSinkStream->StopDataFetchTimer();
+            if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
+            {
+                pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                    update_flushing_device_vendor(&pEvent->a2dpSinkStreamingEvent.bd_addr);
+            }
             break;
         default:
             break;
@@ -504,7 +521,6 @@ void A2dp_Sink_Streaming::StopDataFetchTimer() {
     ALOGD(LOGTAG " StopDataFetchTimer ");
     if((codec_type == A2DP_SINK_AUDIO_CODEC_SBC) && (pcm_data_fetch_timer != NULL) && (pcm_timer)) {
         alarm_cancel(pcm_data_fetch_timer);
-        ALOGD(LOGTAG " StopDataFetchTimer -1");
         pcm_timer = false;
     } else {
         StopCompressAudioFeedTimer();
@@ -743,6 +759,8 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
             pcm_buf_size = qahw_out_get_buffer_size(out_stream);
             ALOGD(LOGTAG " pcm buf size %d", pcm_buf_size);
             pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
+            // Set initial volume level = 1 of output stream
+            SetStreamVol(current_vol_idx);
         }
         if (codec_type != A2DP_SINK_AUDIO_CODEC_SBC) {
             qahw_out_set_callback(out_stream, compressed_callback, NULL);
@@ -888,6 +906,21 @@ void A2dp_Sink_Streaming::SuspendInputStream()
 #endif
 }
 
+void A2dp_Sink_Streaming::SetStreamVol(int curr_audio_index)
+{
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    current_vol_idx = curr_audio_index;
+    ALOGD(LOGTAG " SetStreamVol current_vol_idx %d ", current_vol_idx);
+    if(!out_stream)
+    {
+        ALOGE(LOGTAG " Invalid output Stream. Bail out! ");
+        return;
+    }
+    qahw_out_set_volume(out_stream, (float)current_vol_idx/15, (float)current_vol_idx/15);
+    ALOGD(LOGTAG " SetStreamVol = %d successfully", current_vol_idx);
+#endif
+}
+
 uint32_t A2dp_Sink_Streaming::ReadInputStream(uint8_t* data, uint32_t size)
 {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
@@ -946,6 +979,7 @@ A2dp_Sink_Streaming :: A2dp_Sink_Streaming( config_t *config) {
     use_bt_a2dp_hal = false;
     channel_count = 0;
     sample_rate = 0;
+    current_vol_idx = 1;
     threadInfo.thread_handler = &BtA2dpSinkStreamingMsgHandler;
     threadInfo.thread_name = "A2dp_Sink_Streaming_Thread";
     mBtA2dpSinkStreamingVendorInterface = NULL;
@@ -978,6 +1012,7 @@ A2dp_Sink_Streaming :: ~A2dp_Sink_Streaming() {
     pthread_mutex_destroy(&lock);
     use_bt_a2dp_hal = false;
     controlStatus = STATUS_LOSS;
+    current_vol_idx = 1;
     threadInfo.thread_handler = &BtA2dpSinkStreamingMsgHandler;
     threadInfo.thread_name = "A2dp_Sink_Streaming_Thread";
     alarm_free(pcm_data_fetch_timer);
