@@ -58,7 +58,6 @@ extern Gap *g_gap;
 #endif
 
 //#define DUMP_COMPRESSED_DATA TRUE
-
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
 FILE *outputPcmSampleFile;
 char outputFilename [50] = "/etc/bluetooth/output_sample.pcm";
@@ -70,14 +69,13 @@ char outputFilename [50] = "/etc/bluetooth/output_sample.pcm";
 #endif
 
 static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
+extern void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type);
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define BE_STREAM_TO_UINT16(u16, p) {u16 = (uint16_t)(((uint16_t)(*(p)) << 8) + (uint16_t)(*((p) + 1))); (p) += 2;}
 #define BE_STREAM_TO_UINT32(u32, p) {u32 = ((uint32_t)(*((p) + 3)) + ((uint32_t)(*((p) + 2)) << 8) +((uint32_t)(*((p) + 1)) << 16) + ((uint32_t)(*(p)) << 24)); (p) += 4;}
-
 
 void BtA2dpSinkStreamingMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
@@ -86,7 +84,6 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     qahw_out_buffer_t out_buf;
 #endif
-
     if(!msg) {
         printf("Msg is NULL, return.\n");
         return;
@@ -164,17 +161,37 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 else
                 {
                     // fetch PCM data from fluoride
-                    pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
-                    get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_PCM,
-                    pA2dpSinkStream->pcm_buf, pA2dpSinkStream->pcm_buf_size);
+                    if(pA2dpSinkStream->sbc_decoding)
+                    {
+                        ALOGD(LOGTAG"sbc_decdoing is true, capture the pcm data");
+                        pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                        get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_PCM,
+                        pA2dpSinkStream->pcm_buf, pA2dpSinkStream->pcm_buf_size);
+                    }
+                    else
+                    {
+                        pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                        get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_SBC,
+                        pA2dpSinkStream->pcm_buf, (pA2dpSinkStream->pcm_buf_size)/4);
+                    }
                 }
-                ALOGD(LOGTAG " pcm_data_read = %d", pcm_data_read);
-            }
+                ALOGD(LOGTAG " fluoried stored_data_read = %d", pcm_data_read);
+             }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
             if ((pBTAM->GetAudioDevice() != NULL) && (pA2dpSinkStream->out_stream != NULL) &&
                     (pcm_data_read)) {
                 out_buf.buffer = pA2dpSinkStream->pcm_buf;
                 out_buf.bytes = pcm_data_read;
+                if (pA2dpSinkStream->relay_sink_data) {
+                    if(!pA2dpSinkStream->sbc_decoding)
+                    {
+                        enque_relay_data(pA2dpSinkStream->pcm_buf, pcm_data_read, A2DP_SINK_AUDIO_CODEC_SBC);//using sbc
+                    }
+                    else
+                    {
+                        enque_relay_data(pA2dpSinkStream->pcm_buf, pcm_data_read, A2DP_SINK_AUDIO_CODEC_PCM);
+                    }
+                }
                 qahw_out_write(pA2dpSinkStream->out_stream, &out_buf);
             }
 #endif
@@ -432,6 +449,10 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
            StartCompressAudioFeedTimer();
            break;
         }
+        if (pA2dpSinkStream->relay_sink_data) {
+            ALOGD(LOGTAG " Enquee the data codec type = %d size = %d ", codec_type,data_read_from_bt);
+            enque_relay_data(pcm_buf,data_read_from_bt, codec_type);
+        }
         if ((pBTAM->GetAudioDevice() != NULL) && (out_stream != NULL)) {
              if (fetch_rtp_info) {
                  out_buf.buffer = pcm_buf + rtp_offset;
@@ -537,6 +558,9 @@ void A2dp_Sink_Streaming::HandleEnableSinkStreaming(void) {
     if(use_bt_a2dp_hal) {
         LoadBtA2dpHAL();
     }
+    relay_sink_data = config_get_bool (config,
+            CONFIG_DEFAULT_SECTION, "BtRelaySinkDatatoSrc", false);
+    ALOGD(LOGTAG " Sink Relay ENabled %d", relay_sink_data);
 }
 
 void A2dp_Sink_Streaming::HandleDisableSinkStreaming(void) {
@@ -548,6 +572,9 @@ void A2dp_Sink_Streaming::HandleDisableSinkStreaming(void) {
    if(use_bt_a2dp_hal) {
        UnLoadBtA2dpHAL();
    }
+
+   ALOGD(LOGTAG " set the mStreamingDevice to zero");
+   memset(&mStreamingDevice, 0, sizeof(bt_bdaddr_t));
    pEvent->a2dpSinkEvent.event_id = A2DP_SINK_STREAMING_DISABLE_DONE;
    PostMessage(THREAD_ID_A2DP_SINK, pEvent);
 }
@@ -977,6 +1004,7 @@ A2dp_Sink_Streaming :: A2dp_Sink_Streaming( config_t *config) {
     this->config = config;
     controlStatus = STATUS_LOSS;
     use_bt_a2dp_hal = false;
+    //sbc_decoding = true;
     channel_count = 0;
     sample_rate = 0;
     current_vol_idx = 1;

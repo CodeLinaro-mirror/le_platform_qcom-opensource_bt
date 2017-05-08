@@ -123,6 +123,36 @@ list<A2dp_Device>::iterator FindDeviceByAddr(list<A2dp_Device>& pA2dpDev, bt_bda
     return p;
 }
 
+bool GetCodecInfoByAddr(bt_bdaddr_t* bd_addr, uint16_t *dev_codec_type, btav_codec_config_t* codec_config)
+{
+    ALOGD(LOGTAG "enter func GetCodecINfo ===>");
+    if(bd_addr == NULL)
+    {
+        bd_addr= &pA2dpSinkStream->mStreamingDevice;
+        ALOGD(LOGTAG " check the steramding device codec");
+        if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &bd_addr_null, sizeof(bt_bdaddr_t)))
+        {
+            ALOGD(LOGTAG " the steaming device is empty ");
+            return false;
+        }
+    }
+    list<A2dp_Device>::iterator iter = FindDeviceByAddr(pA2dpSink->pA2dpDeviceList, *bd_addr);
+    if(iter != pA2dpSink->pA2dpDeviceList.end())
+    {
+        ALOGD(LOGTAG " Audio Config CB: found matching device");
+        *dev_codec_type = iter->dev_codec_type;
+        memcpy((void*)codec_config,(void *) &iter->dev_codec_config, sizeof(iter->dev_codec_config));
+        //for(int i=0;i<7;i++)
+        ALOGE(LOGTAG "codec_type = %u", *dev_codec_type);
+        return true;
+    }
+    else
+    {
+        ALOGE(LOGTAG " ERROR: Audio Config CB: No matching device");
+        return false;
+    }
+}
+
 static void bta2dp_connection_state_callback(btav_connection_state_t state, bt_bdaddr_t* bd_addr) {
     ALOGD(LOGTAG " Connection State CB state = %d", state);
     BtEvent *pEvent = new BtEvent;
@@ -187,7 +217,7 @@ static void bta2dp_audio_focus_request_vendor_callback(bt_bdaddr_t *bd_addr) {
 
 static void bta2dp_audio_codec_config_vendor_callback(bt_bdaddr_t *bd_addr, uint16_t codec_type,
         btav_codec_config_t codec_config) {
-    ALOGD(LOGTAG " bta2dp_audio_codec_config_vendor_callback ");
+    ALOGD(LOGTAG " bta2dp_audio_codec_config_vendor_callback codec_type=%d",codec_type);
 
     BtEvent *pEvent = new BtEvent;
     pEvent->a2dpSinkEvent.event_id = A2DP_SINK_CODEC_CONFIG;
@@ -237,6 +267,8 @@ void A2dp_Sink::HandleEnableSink(void) {
         pA2dpSink->mSinkState = SINK_STATE_STARTED;
         pA2dpSinkStream->fetch_rtp_info = config_get_bool (config,
                          CONFIG_DEFAULT_SECTION, "BtFetchRTPForSink", false);
+        pA2dpSinkStream->sbc_decoding = config_get_bool (config,
+            CONFIG_DEFAULT_SECTION, "BtEnableSBCDecoding", true);
         ALOGD(LOGTAG " Fetch RTP Info %d", pA2dpSinkStream->fetch_rtp_info);
 #ifdef USE_LIBHW_AOSP
         sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks);
@@ -244,13 +276,23 @@ void A2dp_Sink::HandleEnableSink(void) {
         sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks, max_a2dp_conn, 0);
 #endif
         if (pA2dpSinkStream->fetch_rtp_info) {
-            sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
+            if(pA2dpSinkStream->sbc_decoding)
+               sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
                     max_a2dp_conn, 0,
                     A2DP_SINK_ENABLE_SBC_DECODING|A2DP_SINK_RETREIVE_RTP_HEADER);
+            else
+            sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
+                    max_a2dp_conn, 0,
+                    A2DP_SINK_RETREIVE_RTP_HEADER);
         } else {
+            if(pA2dpSinkStream->sbc_decoding)
             sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
                     max_a2dp_conn, 0,
                     A2DP_SINK_ENABLE_SBC_DECODING);
+            else
+            sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
+                    max_a2dp_conn, 0,
+                    0);
         }
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SINK;
@@ -637,6 +679,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
         case A2DP_SINK_FOCUS_REQUEST_CB:
             bdaddr_to_string(&pA2dpSinkStream->mStreamingDevice, str, 18);
             ALOGD(LOGTAG " current streaming device %s", str);
+
             if (memcmp(&pA2dpSinkStream->mStreamingDevice, &bd_addr_null, sizeof(bt_bdaddr_t)) &&
                     memcmp(&pA2dpSinkStream->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
             {

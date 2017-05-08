@@ -99,7 +99,9 @@ class A2dp_Sink_Streaming {
     uint32_t ReadInputStream(uint8_t* data, uint32_t size);
     uint32_t GetInputStreamBufferSize();
     bool use_bt_a2dp_hal;
+    bool sbc_decoding;
     bool fetch_rtp_info;
+    bool relay_sink_data; /* if this is enabled, we relay Sink data to Src */
     // apis for out_stream Audio HAL, to write data.
     void ConfigureAudioHal();
     void CloseAudioStream();
