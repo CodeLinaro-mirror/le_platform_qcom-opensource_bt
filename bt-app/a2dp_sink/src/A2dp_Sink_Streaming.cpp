@@ -58,7 +58,6 @@ extern Gap *g_gap;
 #endif
 
 //#define DUMP_COMPRESSED_DATA TRUE
-
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
 FILE *outputPcmSampleFile;
 char outputFilename [50] = "/etc/bluetooth/output_sample.pcm";
@@ -85,7 +84,6 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     qahw_out_buffer_t out_buf;
 #endif
-
     if(!msg) {
         printf("Msg is NULL, return.\n");
         return;
@@ -163,19 +161,36 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 else
                 {
                     // fetch PCM data from fluoride
-                    pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
-                    get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_PCM,
-                    pA2dpSinkStream->pcm_buf, pA2dpSinkStream->pcm_buf_size);
+                    if(pA2dpSinkStream->sbc_decoding)
+                    {
+                        ALOGD(LOGTAG"sbc_decdoing is true, capture the pcm data");
+                        pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                        get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_PCM,
+                        pA2dpSinkStream->pcm_buf, pA2dpSinkStream->pcm_buf_size);
+                    }
+                    else
+                    {
+                        pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                        get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_SBC,
+                        pA2dpSinkStream->pcm_buf, (pA2dpSinkStream->pcm_buf_size)/4);
+                    }
                 }
-                ALOGD(LOGTAG " pcm_data_read = %d", pcm_data_read);
-            }
+                ALOGD(LOGTAG " fluoried stored_data_read = %d", pcm_data_read);
+             }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
             if ((pBTAM->GetAudioDevice() != NULL) && (pA2dpSinkStream->out_stream != NULL) &&
                     (pcm_data_read)) {
                 out_buf.buffer = pA2dpSinkStream->pcm_buf;
                 out_buf.bytes = pcm_data_read;
                 if (pA2dpSinkStream->relay_sink_data) {
-                    enque_relay_data(pA2dpSinkStream->pcm_buf, pcm_data_read, 0);
+                    if(!pA2dpSinkStream->sbc_decoding)
+                    {
+                        enque_relay_data(pA2dpSinkStream->pcm_buf, pcm_data_read, A2DP_SINK_AUDIO_CODEC_SBC);//using sbc
+                    }
+                    else
+                    {
+                        enque_relay_data(pA2dpSinkStream->pcm_buf, pcm_data_read, A2DP_SINK_AUDIO_CODEC_PCM);
+                    }
                 }
                 qahw_out_write(pA2dpSinkStream->out_stream, &out_buf);
             }
@@ -433,6 +448,10 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
            ALOGD(LOGTAG " NO Data from BT , try after %d ms", A2DP_SINK_PCM_FETCH_TIMER_DURATION);
            StartCompressAudioFeedTimer();
            break;
+        }
+        if (pA2dpSinkStream->relay_sink_data) {
+            ALOGD(LOGTAG " Enquee the data codec type = %d size = %d ", codec_type,data_read_from_bt);
+            enque_relay_data(pcm_buf,data_read_from_bt, codec_type);
         }
         if ((pBTAM->GetAudioDevice() != NULL) && (out_stream != NULL)) {
              if (fetch_rtp_info) {
@@ -985,6 +1004,7 @@ A2dp_Sink_Streaming :: A2dp_Sink_Streaming( config_t *config) {
     this->config = config;
     controlStatus = STATUS_LOSS;
     use_bt_a2dp_hal = false;
+    //sbc_decoding = true;
     channel_count = 0;
     sample_rate = 0;
     current_vol_idx = 1;
