@@ -1527,6 +1527,8 @@ void A2dp_Source::HandleEnableSource(void) {
              PostMessage(THREAD_ID_GAP, pEvent);
              return;
         }
+        enable_delay_report = config_get_bool (config, CONFIG_DEFAULT_SECTION, "BtA2dpDelayReportEnable", false);
+        ALOGD(LOGTAG_A2DP " ~~ Try to get config , enable_delay_report %d", enable_delay_report);
         //TODO: check and update
 #ifdef USE_LIBHW_AOSP
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks);
@@ -1536,10 +1538,20 @@ void A2dp_Source::HandleEnableSource(void) {
         property_get("persist.bt.a2dp_offload_cap", value, "false");
         ALOGD(LOGTAG_A2DP "offload_cap:%s", value);
         if (strcmp(value, "false") == 0)
-            sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
+        {
+            if(enable_delay_report)
+                sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, A2DP_SRC_ENABLE_DELAY_REPORTING, NULL);
+            else
+                sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, 0, NULL);
+        }
         else
-            sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, value);
-        sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
+        {
+            if(enable_delay_report)
+                sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, A2DP_SRC_ENABLE_DELAY_REPORTING, value);
+            else
+                sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, 0, value);
+        }
+        //sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SOURCE;
         pEvent->profile_start_event.status = true;
