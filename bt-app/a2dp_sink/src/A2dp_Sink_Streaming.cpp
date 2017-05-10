@@ -449,8 +449,10 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
            StartCompressAudioFeedTimer();
            break;
         }
-        ALOGD(LOGTAG " Enquee the data codec type = %d size = %d ", codec_type,data_read_from_bt);
-        enque_relay_data(pcm_buf,data_read_from_bt, codec_type);
+        if (pA2dpSinkStream->relay_sink_data) {
+            ALOGD(LOGTAG " Enquee the data codec type = %d size = %d ", codec_type,data_read_from_bt);
+            enque_relay_data(pcm_buf,data_read_from_bt, codec_type);
+        }
         if ((pBTAM->GetAudioDevice() != NULL) && (out_stream != NULL)) {
              if (fetch_rtp_info) {
                  out_buf.buffer = pcm_buf + rtp_offset;
