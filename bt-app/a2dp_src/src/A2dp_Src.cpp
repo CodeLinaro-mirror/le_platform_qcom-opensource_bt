@@ -1371,9 +1371,14 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             use_bigger_metadata = false;
             break;
         case AVRCP_TARGET_GET_PLAY_STATUS:
-            ALOGD(LOGTAG_AVRCP " Send response for Get play status");
+            ALOGD(LOGTAG_AVRCP " Send response for Get play status = %d",playStatus);
             pos = 10L;
             song_len = 100L;
+            if(playStatus == BTRC_PLAYSTATE_ERROR)
+            {
+                playStatus = BTRC_PLAYSTATE_STOPPED;
+                ALOGD(LOGTAG_AVRCP " set  play status as stopped = %d",playStatus);
+            }
             sBtAvrcpTargetInterface->get_play_status_rsp(playStatus,
                     song_len, pos, &pEvent->avrcpTargetEvent.bd_addr);
             break;
