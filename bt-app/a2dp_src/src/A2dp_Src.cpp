@@ -276,7 +276,10 @@ static void BtA2dpCloseOutputStream()
     ALOGD(LOGTAG_A2DP "Close A2dp Output Stream");
     media_playing = false;
     if (playback_thread != NULL)
+    {
         pthread_join(playback_thread, NULL);
+        playback_thread = NULL;
+    }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     pthread_mutex_lock(&a2dp_hal_mutex);
     if(!a2dp_device)
@@ -554,7 +557,7 @@ static void *thread_func(void *in_param)
         }
     }
 
-    do {
+    while (media_playing) {
         if(is_sink_relay_enabled)
         {
             ALOGD(LOGTAG_A2DP "try to get the codec information of snk side");
@@ -651,7 +654,7 @@ static void *thread_func(void *in_param)
         pthread_mutex_unlock(&a2dp_hal_mutex);
 #endif
         ALOGD(LOGTAG_A2DP "codec_type %d Wrote %d bytes to A2dp Hal",codec_type, write_len);
-    } while (media_playing);
+    };
     media_playing = false;
     if (in_file) fclose(in_file);
     ALOGD(LOGTAG_A2DP "Streaming thread about to finish");
@@ -1797,11 +1800,11 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             change_state(STATE_A2DP_SOURCE_PENDING);
             break;
         case A2DP_SOURCE_AUDIO_STARTED:
-            cout << "A2DP Source Audio state changes to: " << pEvent->event_id << endl;
+            fprintf(stdout, "A2DP Source Audio state changes to: %d	\n",pEvent->event_id);
             break;
 
         case A2DP_SOURCE_AUDIO_SUSPENDED:
-            cout << "A2DP Source Audio state changes to: " << pEvent->event_id << endl;
+            fprintf(stdout, "A2DP Source Audio state changes to: %d	\n",pEvent->event_id);
             break;
         case A2DP_SOURCE_AUDIO_STOPPED:
             fprintf(stdout, "A2DP Source Audio state changes to: %d ", pEvent->event_id);
