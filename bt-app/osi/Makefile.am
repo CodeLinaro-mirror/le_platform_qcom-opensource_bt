@@ -28,6 +28,15 @@ c_sources = \
 requiredlibs = -lpthread
 library_includedir = $(pkgincludedir)\
 library_include_HEADERS = $(h_sources)
+if USE_GST
+lib_LTLIBRARIES = libgstbtapposi.la
+libgstbtapposi_la_CC = @CC@
+libgstbtapposi_la_SOURCES = $(c_sources)
+libgstbtapposi_la_CPPFLAGS =$(AM_CPPFLAGS)
+libgstbtapposi_la_LIBADD = $(requiredlibs)
+libgstbtapposi_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB
+libgstbtapposi_la_LDFLAGS = -static
+else
 lib_LTLIBRARIES = libbtapposi.la
 libbtapposi_la_CC = @CC@
 libbtapposi_la_SOURCES = $(c_sources)
@@ -35,3 +44,4 @@ libbtapposi_la_CPPFLAGS =$(AM_CPPFLAGS)
 libbtapposi_la_LIBADD = $(requiredlibs)
 libbtapposi_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB
 libbtapposi_la_LDFLAGS = -static
+endif

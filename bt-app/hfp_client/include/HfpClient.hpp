@@ -30,11 +30,18 @@
 #ifndef HFP_CLIENT_APP_H
 #define HFP_CLIENT_APP_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <map>
 #include <string>
 #include <hardware/bluetooth.h>
 #include <hardware/bt_hf_client.h>
 #include <pthread.h>
+
+#if defined(USE_GST)
+#include <gst/gst.h>
+#endif
 
 #if defined(BT_AUDIO_HAL_INTEGRATION)
 

@@ -42,6 +42,22 @@
 #include "hardware/bt_av_vendor.h"
 #include "Avrcp.hpp"
 
+#if (defined USE_GST)
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <gst/gstbthelper.h>
+#ifdef __cplusplus
+}
+#endif
+#endif
+
+#if (defined USE_GST)
+
+gstbt gstbtobj;
+
+#endif
+
 #define LOGTAG "A2DP_SINK_STREAMING"
 
 using namespace std;
@@ -143,6 +159,27 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 break;
             }
             pA2dpSinkStream->pcm_timer = false;
+#if (defined USE_GST)
+            uint8_t * data;
+            int size;
+            pA2dpSinkStream->StartPcmTimer();
+            size = allocate_gst_buffer(&gstbtobj, &data);
+            if ((pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL) &&
+                    (data != NULL)) {
+                if(pA2dpSinkStream->use_bt_a2dp_hal) {
+                    // read data from BT A2DP HAL
+                    pcm_data_read =  pA2dpSinkStream->ReadInputStream(data, size);
+                }
+                else
+                {
+                    // fetch PCM data from fluoride
+                    pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                    get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_PCM,data, size);
+                }
+                ALOGD(LOGTAG " pcm_data_read = %d", pcm_data_read);
+            }
+            send_gst_data(&gstbtobj, pcm_data_read);
+#else
             if ((pA2dpSinkStream->pcm_buf == NULL) || !memcmp(&pA2dpSinkStream->mStreamingDevice,
                     &bd_addr_null, sizeof(bt_bdaddr_t))) {
                 // pcm buffer is null, closeStream or streaming device null have been called earlier
@@ -200,6 +237,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             {
                 fwrite ((void*)pA2dpSinkStream->pcm_buf, 1, (size_t)(pcm_data_read), outputPcmSampleFile);
             }
+#endif
 #endif
             break;
         case A2DP_SINK_STREAMING_AM_RELEASE_CONTROL:
@@ -752,7 +790,9 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         break;
     }
     ALOGD(LOGTAG " sample_rate = %d, channel_count = %d", sample_rate, channel_count);
-
+#if (defined USE_GST)
+    init_gst_pipeline(&gstbtobj, config.offload_info.format, sample_rate, channel_count, flags, "bt_a2dp_sink");
+#else
     if (out_stream != NULL) {
         ALOGD(LOGTAG " HAL already configured ");
         return;
@@ -793,6 +833,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
             qahw_out_set_callback(out_stream, compressed_callback, NULL);
         }
     }
+#endif
 #endif
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
     if (!sample_rate || !channel_count) {
@@ -1026,6 +1067,9 @@ A2dp_Sink_Streaming :: A2dp_Sink_Streaming( config_t *config) {
     out_stream =  NULL;
     input_stream = NULL;
     a2dp_input_device = NULL;
+#if (defined USE_GST)
+    memset(&gstbtobj,0,sizeof(gstbt));
+#endif
 #endif
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
     outputPcmSampleFile =  NULL;
@@ -1051,7 +1095,11 @@ A2dp_Sink_Streaming :: ~A2dp_Sink_Streaming() {
     memset(&mResumingDevice, 0, sizeof(bt_bdaddr_t));
     mBtA2dpSinkStreamingVendorInterface = NULL;
 #if (defined BT_AUDIO_HAL_INTEGRATION)
+#if (defined USE_GST)
+    close_gst_pipeline(&gstbtobj);
+#else
     out_stream = NULL;
+#endif
     input_stream = NULL;
     a2dp_input_device = NULL;
 #endif

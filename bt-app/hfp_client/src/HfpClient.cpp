@@ -27,6 +27,16 @@
 #include "HfpClient.hpp"
 #include "hardware/bt_hf_client_vendor.h"
 
+#if (defined USE_GST)
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <gst/gstbthelper.h>
+#ifdef __cplusplus
+}
+#endif
+#endif
+
 #define LOGTAG "HFP_CLIENT"
 
 using namespace std;
@@ -36,6 +46,11 @@ using std::string;
 Hfp_Client *pHfpClient = NULL;
 extern BT_Audio_Manager *pBTAM;
 
+#if (defined USE_GST)
+
+gstbt gstbtringtoneobj;
+
+#endif
 
 char ring_tone[] =
 {
@@ -1217,10 +1232,13 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
 
 }
 
-
 void Hfp_Client::ConfigureRingTonePlayback() {
 
 #if defined(BT_AUDIO_HAL_INTEGRATION)
+#if defined(USE_GST)
+   init_gst_pipeline(&gstbtringtoneobj, AUDIO_FORMAT_PCM_16_BIT,
+           8000, 1, AUDIO_OUTPUT_FLAG_DIRECT_PCM, "bt_hfp_client");
+#else
    qahw_module_handle_t* audio_module;
    audio_config_t config;
    audio_io_handle_t handle = 0x7;
@@ -1253,6 +1271,7 @@ void Hfp_Client::ConfigureRingTonePlayback() {
       fprintf(stdout, "ConfigureRingTonePlayback: audio_device is NULL\n");
       ALOGD(LOGTAG " ConfigureRingTonePlayback: audio_device is NULL");
    }
+#endif // USE_GST
 #else
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
@@ -1265,6 +1284,9 @@ void Hfp_Client::PlayRingTone() {
 #if defined(BT_AUDIO_HAL_INTEGRATION)
   int i, j, ret = 0;
   qahw_out_buffer_t out_buf;
+#if defined(USE_GST)
+  play_gst_ringtone(&gstbtringtoneobj, ring_tone);
+#else
   // 40msec of 8kz 16-bit mono = 40*8*2 = 640 bytes
   uint8_t *buf = (uint8_t*)osi_malloc(640);
 
@@ -1297,6 +1319,7 @@ void Hfp_Client::PlayRingTone() {
   if (buf)
      osi_free(buf);
 
+#endif // USE_GST
 #else
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
@@ -1305,6 +1328,9 @@ void Hfp_Client::PlayRingTone() {
 
 void Hfp_Client::StopRingTone() {
 #if (defined BT_AUDIO_HAL_INTEGRATION)
+#if defined(USE_GST)
+    close_gst_pipeline(&gstbtringtoneobj);
+#else
     int ret = 0;
     qahw_module_handle_t* audio_module;
     if (pBTAM != NULL) {
@@ -1315,7 +1341,8 @@ void Hfp_Client::StopRingTone() {
             out_stream_ring_tone = NULL;
         }
     }
-#endif
+#endif // USE_GST
+#endif // BT_AUDIO_HAL_INTEGRATION
 }
 
 void Hfp_Client::ConfigureAudio(bool enable) {
@@ -1327,6 +1354,7 @@ void Hfp_Client::ConfigureAudio(bool enable) {
 
    ALOGD(LOGTAG "Configure Audio for enable/disable %d, wbs %d", enable, mAudioWbs);
    fprintf(stdout, "Configure Audio for enable/disable %d, wbs %d\n", enable, mAudioWbs);
+
 
    if (pBTAM == NULL) {
       ALOGD(LOGTAG "Audio Manager not initialized");
@@ -1374,6 +1402,7 @@ void Hfp_Client::ConfigureAudio(bool enable) {
       fprintf(stdout, "ConfigureAudio: audio_device is NULL\n");
       ALOGD(LOGTAG " ConfigureAudio: audio_device is NULL");
    }
+
 #else
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
@@ -1420,7 +1449,7 @@ void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bo
       //audio_module->set_mic_mute(audio_module, mute_mic);
    }
 
-#endif
+#endif // BT_AUDIO_HAL_INTEGRATION
 }
 
 void Hfp_Client::change_state(HfpClientState mState) {
@@ -1451,18 +1480,26 @@ Hfp_Client :: Hfp_Client(const bt_interface_t *bt_interface, config_t *config) {
     peer_feat = 0;
     chld_feat = 0;
 #if defined(BT_AUDIO_HAL_INTEGRATION)
-    this->config = config;
-    out_stream =  NULL;
+#if defined(USE_GST)
+    memset(&gstbtringtoneobj, 0 , sizeof(gstbtringtoneobj));
+#else
     out_stream_ring_tone = NULL;
 #endif
+    this->config = config;
+    out_stream =  NULL;
+#endif // BT_AUDIO_HAL_INTEGRATION
     pthread_mutex_init(&this->lock, NULL);
 }
 
 Hfp_Client :: ~Hfp_Client() {
     mcontrolStatus = STATUS_LOSS_TRANSIENT;
 #if defined(BT_AUDIO_HAL_INTEGRATION)
-    out_stream =  NULL;
+#if defined(USE_GST)
+    close_gst_pipeline(&gstbtringtoneobj);
+#else
     out_stream_ring_tone = NULL;
-#endif
+#endif // USE_GST
+    out_stream =  NULL;
+#endif // BT_AUDIO_HAL_INTEGRATION
     pthread_mutex_destroy(&lock);
 }
