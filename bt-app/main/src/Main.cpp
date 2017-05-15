@@ -2288,7 +2288,7 @@ BluetoothApp :: BluetoothApp () {
 
 BluetoothApp :: ~BluetoothApp () {
     if (config)
-        config_free(config);
+        config_remove(config);
 
     bonded_devices.clear();
     inquiry_list.clear();
