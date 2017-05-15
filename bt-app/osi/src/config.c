@@ -75,7 +75,7 @@ config_t *config_new_empty(void) {
   return config;
 
 error:;
-  config_free(config);
+  config_remove(config);
   return NULL;
 }
 
@@ -89,7 +89,7 @@ config_t *config_new(const char *filename) {
   FILE *fp = fopen(filename, "rt");
   if (!fp) {
     LOG_ERROR("%s unable to open file '%s': %s", __func__, filename, strerror(errno));
-    config_free(config);
+    config_remove(config);
     return NULL;
   }
   config_parse(fp, config);
@@ -97,7 +97,7 @@ config_t *config_new(const char *filename) {
   return config;
 }
 
-void config_free(config_t *config) {
+void config_remove(config_t *config) {
   if (!config)
     return;
 
