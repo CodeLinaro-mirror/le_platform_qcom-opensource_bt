@@ -178,7 +178,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 }
                 ALOGD(LOGTAG " pcm_data_read = %d", pcm_data_read);
             }
-            send_gst_data(&gstbtobj, pcm_data_read);
+            send_gst_data(&gstbtobj, pcm_data_read, 0);
 #else
             if ((pA2dpSinkStream->pcm_buf == NULL) || !memcmp(&pA2dpSinkStream->mStreamingDevice,
                     &bd_addr_null, sizeof(bt_bdaddr_t))) {
@@ -461,12 +461,37 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
     uint32_t data_read_from_bt = 0;
     uint32_t data_sent_to_audio = 0;
     uint8_t rtp_offset = 0;
+#if (!defined (USE_GST))
     if (pcm_buf == NULL) {
        // pcm buffer is null, closeStream have been called earlier
        ALOGE(LOGTAG " FillCOmpressBUffer, pcm buf null, bail out");
        return;
-    }
+	}
+#endif
     do {
+#if (defined USE_GST)
+        if (mBtA2dpSinkStreamingVendorInterface != NULL) {
+
+            if( residual_compress_data == 0) {
+            int size = 0;
+            uint8_t * tempbuf;
+
+            data_read_from_bt =  mBtA2dpSinkStreamingVendorInterface->
+                 get_a2dp_sink_streaming_data_vendor(codec_type, gbuff, A2DP_SINK_GBUF_MAX_SIZE);
+            gstbtobj.blocksize = data_read_from_bt;
+            allocate_gst_buffer(&gstbtobj, &tempbuf);
+            memcpy(tempbuf,gbuff,data_read_from_bt);
+
+            if (fetch_rtp_info && (data_read_from_bt > 12)) {
+                rtp_offset = get_rtp_offset(tempbuf, codec_type);
+                data_read_from_bt = data_read_from_bt - rtp_offset;
+                }
+            }
+            else {
+                data_read_from_bt =  residual_compress_data;
+            }
+        }
+#else
         if ((mBtA2dpSinkStreamingVendorInterface != NULL) && ( pcm_buf != NULL)) {
              // fetch PCM data from fluoride
             if( residual_compress_data == 0) {
@@ -481,12 +506,24 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
                 data_read_from_bt =  residual_compress_data;
             }
         }
+#endif
         if (data_read_from_bt <= 0) {
            // in this case, we don't have data from bt, but we try after some time
            ALOGD(LOGTAG " NO Data from BT , try after %d ms", A2DP_SINK_PCM_FETCH_TIMER_DURATION);
            StartCompressAudioFeedTimer();
            break;
         }
+#if (defined USE_GST)
+        if (pBTAM->GetAudioDevice() != NULL) {
+             if (fetch_rtp_info)
+                 send_gst_data(&gstbtobj, data_read_from_bt, rtp_offset);
+             else
+                 send_gst_data(&gstbtobj, data_read_from_bt, 0);
+             data_sent_to_audio = data_read_from_bt;
+             cuml_data_written_to_audio = cuml_data_written_to_audio + data_sent_to_audio;
+
+        }
+#else
         if (pA2dpSinkStream->relay_sink_data) {
             ALOGD(LOGTAG " Enquee the data codec type = %d size = %d ", codec_type,data_read_from_bt);
             enque_relay_data(pcm_buf,data_read_from_bt, codec_type);
@@ -509,6 +546,7 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
 #endif
              cuml_data_written_to_audio = cuml_data_written_to_audio + data_sent_to_audio;
         }
+#endif
         ALOGD(LOGTAG " data_read_from_bt = %d data_sent_to_audio = %d cuml_data = %d",
                  data_read_from_bt, data_sent_to_audio, cuml_data_written_to_audio);
         residual_compress_data = data_read_from_bt - data_sent_to_audio;
@@ -782,6 +820,9 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         flags |= AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD;
         break;
     case A2DP_SINK_AUDIO_CODEC_APTX:
+        #if (defined USE_GST)
+             gstbtobj.is_compressed = true;
+        #endif
         sample_rate = get_a2dp_aptx_sampling_rate(codec_config.aptx_config.sampling_freq);
         channel_count = get_a2dp_aptx_channel_mode(codec_config.aptx_config.channel_count);
         config.offload_info.format = AUDIO_FORMAT_APTX;
@@ -791,6 +832,14 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
     }
     ALOGD(LOGTAG " sample_rate = %d, channel_count = %d", sample_rate, channel_count);
 #if (defined USE_GST)
+    if (gstbtobj.is_compressed == true){
+        bt_bdaddr_t *bd_addr = g_gap->GetBtAddress();
+        bdaddr_to_string(bd_addr, &bd_str[0], sizeof(bd_str));
+        ALOGD (LOGTAG " Local bdaddr %s", bd_str);
+        memcpy(gstbtobj.bt_addr,&bd_str[0], sizeof(bd_str));
+        gstbtobj.bt_addr[sizeof(bd_str)+1]='\0';
+        ALOGD (LOGTAG " gstobj bt_addr %s \n", gstbtobj.bt_addr);
+    }
     init_gst_pipeline(&gstbtobj, config.offload_info.format, sample_rate, channel_count, flags, "bt_a2dp_sink");
 #else
     if (out_stream != NULL) {
@@ -834,7 +883,6 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         }
     }
 #endif
-#endif
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
     if (!sample_rate || !channel_count) {
         return;
@@ -854,6 +902,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
 #if (defined(DUMP_COMPRESSED_DATA) && (DUMP_COMPRESSED_DATA == TRUE))
     if (outputPcmSampleFile == NULL)
         outputPcmSampleFile = fopen(outputFilename, "ab");
+#endif
 #endif
 }
 
@@ -1068,7 +1117,7 @@ A2dp_Sink_Streaming :: A2dp_Sink_Streaming( config_t *config) {
     input_stream = NULL;
     a2dp_input_device = NULL;
 #if (defined USE_GST)
-    memset(&gstbtobj,0,sizeof(gstbt));
+    gbuff = (uint8_t *)malloc(A2DP_SINK_GBUF_MAX_SIZE);
 #endif
 #endif
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
@@ -1096,7 +1145,7 @@ A2dp_Sink_Streaming :: ~A2dp_Sink_Streaming() {
     mBtA2dpSinkStreamingVendorInterface = NULL;
 #if (defined BT_AUDIO_HAL_INTEGRATION)
 #if (defined USE_GST)
-    close_gst_pipeline(&gstbtobj);
+    free(gbuff);
 #else
     out_stream = NULL;
 #endif
