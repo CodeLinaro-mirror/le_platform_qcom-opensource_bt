@@ -531,11 +531,6 @@ void Gap::ProcessEvent(BtEvent* event) {
                 prop.len = sizeof(bt_scan_mode_t);
                 bluetooth_interface_->set_adapter_property(&prop);
 
-                bt_event = new BtEvent;
-                bt_event->event_id = MAIN_EVENT_DISABLED;
-                bt_event->state_event.status = event->state_event.status;
-                PostMessage(THREAD_ID_MAIN, bt_event);
-
                 adapter_properties_obj_->FlushBondedDeviceList();
                 remote_devices_obj_->FlushDiscoveredDeviceList();
                 // cleanup the stack
@@ -547,6 +542,11 @@ void Gap::ProcessEvent(BtEvent* event) {
                     sock_interface_ = NULL;
                 }
 #endif
+                bt_event = new BtEvent;
+                bt_event->event_id = MAIN_EVENT_DISABLED;
+                bt_event->state_event.status = event->state_event.status;
+                PostMessage(THREAD_ID_MAIN, bt_event);
+
             }
             break;
 
@@ -560,6 +560,12 @@ void Gap::ProcessEvent(BtEvent* event) {
                                 adapter_properties_obj_->GetState());
                 fprintf(stdout, "Ignoring GAP_API_ENABLE command state : %d\n",
                                 adapter_properties_obj_->GetState());
+
+                //Sending update to the Main thread
+                bt_event = new BtEvent;
+                bt_event->event_id = MAIN_EVENT_ENABLED;
+                bt_event->state_event.status = BT_STATE_ON;
+                PostMessage(THREAD_ID_MAIN, bt_event);
                 break;
             }
 
@@ -684,9 +690,15 @@ void Gap::ProcessEvent(BtEvent* event) {
                                             adapter_properties_obj_->GetState());
                 fprintf(stdout, "Ignoring GAP_API_DISABLE command state : %d\n",
                                             adapter_properties_obj_->GetState());
-                break;
-            }
 
+                //Sending update to the Main thread
+                bt_event = new BtEvent;
+                bt_event->event_id = MAIN_EVENT_DISABLED;
+                bt_event->state_event.status = BT_STATE_OFF;
+                PostMessage(THREAD_ID_MAIN, bt_event);
+                break;
+
+            }
             if (profile_config[PROFILE_ID_A2DP_SINK].is_enabled)
             {
                 bt_event = new BtEvent;
@@ -700,6 +712,8 @@ void Gap::ProcessEvent(BtEvent* event) {
             // check if there are profiles enabled
             if(!supported_profiles_count) {
                 HandleDisable();
+                ALOGV (LOGTAG "Stop QC BT Daemon");
+                system("killall -s SIGTERM qcbtdaemon");
                 break;
             }
 
