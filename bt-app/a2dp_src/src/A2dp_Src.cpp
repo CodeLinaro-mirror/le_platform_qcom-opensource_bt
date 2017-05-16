@@ -86,7 +86,7 @@ static pthread_mutex_t a2dp_hal_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define AUDIO_STREAM_OUTPUT_BUFFER_SZ      (20*512)
 #define INVALID_CODEC    -1
-
+#define NON_A2DP_MEDIA_CT    0xFF
 #define DEBUGPRINTBIT
 #ifdef DEBUGPRINTBIT
 #define PRINTBIT(s,num)   do{ ALOGD("IN Function %s The content of %s:",__func__,#s);\
@@ -637,9 +637,16 @@ static void *thread_func(void *in_param)
         //ALOGD(LOGTAG_A2DP"**QCOM** size wanna to write =%d, acctully = %d",len,write_len);
         if(len!=0)
         {
-            write_len = output_stream->write(output_stream, &codec_type, sizeof(codec_type));
-            write_len = output_stream->write(output_stream, &len, sizeof(len));
-            write_len = output_stream->write(output_stream, buffer, len);
+            if(src_codec_type == NON_A2DP_MEDIA_CT)
+            {
+                write_len = output_stream->write(output_stream, buffer, len);
+            }
+            else
+            {
+                write_len = output_stream->write(output_stream, &codec_type, sizeof(codec_type));
+                write_len = output_stream->write(output_stream, &len, sizeof(len));
+                write_len = output_stream->write(output_stream, buffer, len);
+            }
         }
         pthread_mutex_unlock(&a2dp_hal_mutex);
 #endif
@@ -1364,9 +1371,14 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             use_bigger_metadata = false;
             break;
         case AVRCP_TARGET_GET_PLAY_STATUS:
-            ALOGD(LOGTAG_AVRCP " Send response for Get play status");
+            ALOGD(LOGTAG_AVRCP " Send response for Get play status = %d",playStatus);
             pos = 10L;
             song_len = 100L;
+            if(playStatus == BTRC_PLAYSTATE_ERROR)
+            {
+                playStatus = BTRC_PLAYSTATE_STOPPED;
+                ALOGD(LOGTAG_AVRCP " set  play status as stopped = %d",playStatus);
+            }
             sBtAvrcpTargetInterface->get_play_status_rsp(playStatus,
                     song_len, pos, &pEvent->avrcpTargetEvent.bd_addr);
             break;
