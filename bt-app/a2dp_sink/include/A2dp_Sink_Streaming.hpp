@@ -65,6 +65,7 @@ typedef struct {
 
 #define A2DP_SINK_PCM_FETCH_TIMER_DURATION         35
 #define A2DP_SINK_COMPRESS_FEED_TIMER_DURATION     40
+#define A2DP_SINK_GBUF_MAX_SIZE 65535
 
 class A2dp_Sink_Streaming {
 
@@ -93,6 +94,9 @@ class A2dp_Sink_Streaming {
     // structures used for loading A2DP HAL
     qahw_module_handle_t *a2dp_input_device;
     qahw_stream_handle_t *input_stream;
+#endif
+#if (defined USE_GST)
+    uint8_t *gbuff;
 #endif
     //apis for in_stream bt a2dp HAL, to read data.
     void LoadBtA2dpHAL();
