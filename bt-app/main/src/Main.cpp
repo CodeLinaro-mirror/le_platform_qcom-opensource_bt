@@ -1763,7 +1763,9 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 // clearing bond_devices list and inquiry_list
                 bonded_devices.clear();
                 inquiry_list.clear();
-               fprintf(stdout, " BT State is OFF\n");
+                system("killall -KILL wcnssfilter");
+                usleep(200);
+                fprintf(stdout, " BT State is OFF\n");
             }
             status.disable_cmd = COMMAND_COMPLETE;
             break;
@@ -2288,7 +2290,7 @@ BluetoothApp :: BluetoothApp () {
 
 BluetoothApp :: ~BluetoothApp () {
     if (config)
-        config_free(config);
+        config_remove(config);
 
     bonded_devices.clear();
     inquiry_list.clear();

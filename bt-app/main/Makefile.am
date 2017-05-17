@@ -72,7 +72,12 @@ c_sources +=  ../pbap_client/src/PbapClient.cpp \
               ../opp/src/Opp.cpp
 endif
 
+if USE_GST
+requiredlibs = ../osi/libgstbtapposi.la -lpthread -lm -ldl -lrt -lhardware
+else
 requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware
+endif
+
 requiredlibs += $(SYS_LIB)/libgengatt.la
 if AUDIO_HAL_SUPPORTED
 requiredlibs += $(SYS_LIB)/libqahw.la
@@ -83,17 +88,44 @@ requiredlibs += $(SYS_LIB)/libbtobex.la
 endif
 
 if USE_GLIB
+
+if USE_GST
+ gstbtapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
+ gstbtapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
+ gstbtapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
+ gstbtapp_CPPFLAGS += $(GSTREAMER_CFLAGS) -DUSE_GST
+else
  btapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
  btapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
  btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
+endif
+
+else
+
+if USE_GST
+ gstbtapp_CFLAGS = $(AM_CFLAGS)
+ gstbtapp_LDFLAGS = $(requiredlibs)
 else
  btapp_CFLAGS = $(AM_CFLAGS)
  btapp_LDFLAGS = $(requiredlibs)
 endif
 
+endif
+
+if USE_GST
+gstbtapp_CFLAGS += $(GSTREAMER_CFLAGS)
+gstbtapp_LDFLAGS += $(GSTREAMER_LIBS) -lgstaudio-1.0 -lgstapp-1.0 -lgstbthelper
+endif
+
 AM_LDFLAGS = $(LDFLAFGS)
 
+if USE_GST
+bin_PROGRAMS = gstbtapp
+gstbtapp_CC = @CC@
+gstbtapp_SOURCES = $(c_sources)
+else
 bin_PROGRAMS = btapp
 btapp_CC = @CC@
 btapp_SOURCES = $(c_sources)
+endif
 pkgconfigdir = $(libdir)/pkgconfig

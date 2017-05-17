@@ -29,6 +29,20 @@ if (test "x${with_glib}" = "xyes"); then
 
        AC_SUBST(GLIB_CFLAGS)
        AC_SUBST(GLIB_LIBS)
+
+       AC_ARG_WITH([gstreamer],
+           AS_HELP_STRING([--with-gstreamer],[use gstreamer pipeline for audio playback]))
+       USE_GST=NO
+       if test "x$with_gstreamer" = "xyes"; then
+           PKG_CHECK_MODULES(GSTREAMER, [gstreamer-1.0 gstreamer-tag-1.0], USE_GST=yes, USE_GST=no)
+       fi
+       AC_SUBST(GSTREAMER_LIBS)
+       AC_SUBST(GSTREAMER_CFLAGS)
+       AC_SUBST(USE_GST)
+       AM_CONDITIONAL(USE_GST, test "x$USE_GST" = "xyes")
+       if test "x$USE_GST" = "xyes"; then
+           AC_DEFINE(USE_GST, 1, [Define if use GStreamer])
+       fi
 fi
 
 AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
