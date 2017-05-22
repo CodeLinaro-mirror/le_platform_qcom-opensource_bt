@@ -391,6 +391,7 @@ void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type)
     ALOGD(" enque_relay_data size %d list_len = %d codec=%d", size, list_length(a2dp_sink_relay_data_list),codec_type);
     pthread_mutex_lock(&a2dp_sink_relay_mutex);
     if (list_length(a2dp_sink_relay_data_list) > 10) {
+        ALOGE(LOGTAG_A2DP "%s:a2dp sink relay queue is full",__func__);
         pthread_mutex_unlock(&a2dp_sink_relay_mutex);
         return;
     }
@@ -405,6 +406,12 @@ void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type)
         ptr->offset = 0;
         ptr->len = size;
         ALOGD(" enque data codec = %d, size=%d",codec_type,size);
+    }
+    else
+    {
+        ALOGE(LOGTAG_A2DP "%s:can not alloc t_SINK_RELAY_DATA",__func__);
+        pthread_mutex_unlock(&a2dp_sink_relay_mutex);
+        return;
     }
     list_append(a2dp_sink_relay_data_list, ptr);
     pthread_mutex_unlock(&a2dp_sink_relay_mutex);
@@ -445,6 +452,7 @@ size_t get_sbc_data(uint8_t* buffer, size_t size)
             ptr->offset += (ptr->len - ptr->offset);
            //ALOGD("ptr->len=%d,ptr->offset=%d, end-stat=%d,data_len=%d",ptr->len,ptr->offset,end_buf_ptr - start_buf_ptr,data_len);
             list_remove(a2dp_sink_relay_data_list, ptr);
+            osi_free(ptr);
             if (!list_is_empty(a2dp_sink_relay_data_list)) {
                 ptr = (t_SINK_RELAY_DATA*)list_front(a2dp_sink_relay_data_list);
             }
@@ -473,6 +481,7 @@ size_t get_pcm_data(uint8_t* buffer, size_t size)
     if(ptr->codec_type != A2DP_SINK_AUDIO_CODEC_PCM)
     {
         list_remove(a2dp_sink_relay_data_list, ptr);
+        osi_free(ptr);
         pthread_mutex_unlock(&a2dp_sink_relay_mutex);
         return 0;
     }
@@ -493,6 +502,7 @@ size_t get_pcm_data(uint8_t* buffer, size_t size)
             start_buf_ptr += (ptr->len - ptr->offset);
             ptr->offset += (ptr->len - ptr->offset);
             list_remove(a2dp_sink_relay_data_list, ptr);
+            osi_free(ptr);
             if (!list_is_empty(a2dp_sink_relay_data_list)) {
                 ptr = (t_SINK_RELAY_DATA*)list_front(a2dp_sink_relay_data_list);
             }
@@ -1527,6 +1537,8 @@ void A2dp_Source::HandleEnableSource(void) {
              PostMessage(THREAD_ID_GAP, pEvent);
              return;
         }
+        enable_delay_report = config_get_bool (config, CONFIG_DEFAULT_SECTION, "BtA2dpDelayReportEnable", false);
+        ALOGD(LOGTAG_A2DP " ~~ Try to get config , enable_delay_report %d", enable_delay_report);
         //TODO: check and update
 #ifdef USE_LIBHW_AOSP
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks);
@@ -1536,10 +1548,20 @@ void A2dp_Source::HandleEnableSource(void) {
         property_get("persist.bt.a2dp_offload_cap", value, "false");
         ALOGD(LOGTAG_A2DP "offload_cap:%s", value);
         if (strcmp(value, "false") == 0)
-            sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
+        {
+            if(enable_delay_report)
+                sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, A2DP_SRC_ENABLE_DELAY_REPORTING, NULL);
+            else
+                sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, 0, NULL);
+        }
         else
-            sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, value);
-        sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
+        {
+            if(enable_delay_report)
+                sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, A2DP_SRC_ENABLE_DELAY_REPORTING, value);
+            else
+                sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, 0, value);
+        }
+        //sBtA2dpSourceVendorInterface->init_vendor(&sBluetoothA2dpSourceVendorCallbacks, 1, 0, NULL);
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SOURCE;
         pEvent->profile_start_event.status = true;
