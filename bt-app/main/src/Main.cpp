@@ -1251,6 +1251,7 @@ void BtSocketDataHandler (void *context) {
         if (len <= 0) {
             ALOGE("Not able to receive msg to remote dev: %s", strerror(errno));
             reactor_unregister (g_bt_app->accept_reactor_);
+            g_bt_app->accept_reactor_ = NULL;
             close(g_bt_app->client_socket_);
             g_bt_app->client_socket_ = -1;
         } else if(len == BT_IPC_MSG_LEN) {
@@ -1828,12 +1829,19 @@ void BluetoothApp :: InitHandler (void) {
 void BluetoothApp :: DeInitHandler (void) {
     UnLoadBtStack ();
 
+    ALOGV (LOGTAG "  %s:",__func__);
      // de-register reactors for socket
     if (is_socket_input_enabled_) {
         if(listen_reactor_)
+        {
             reactor_unregister ( listen_reactor_);
+            listen_reactor_ = NULL;
+        }
         if(accept_reactor_)
+        {
             reactor_unregister ( accept_reactor_);
+            accept_reactor_ = NULL;
+        }
     }
 
     if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
