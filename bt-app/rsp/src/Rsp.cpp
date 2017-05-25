@@ -41,7 +41,7 @@ class clientCallback : public BluetoothGattClientCallback
    public:
    void btgattc_client_register_app_cb(int status,int client_if,bt_uuid_t *uuid) {
 
-        fprintf(stdout,"gattServerRegisterAppCb\n ");
+        fprintf(stdout,"gattClinetRegisterAppCb\n ");
 
         GattcRegisterAppEvent event;
         event.event_id = RSP_ENABLE_EVENT;
@@ -425,6 +425,15 @@ Rsp::Rsp(btgatt_interface_t *gatt_itf, Gatt* gatt)
     fprintf(stdout,"rsp instantiated ");
     gatt_interface = gatt_itf;
     app_gatt = gatt;
+
+    GattsRegisterAppEvent* p_app_if = GetRSPAppData();
+    memset(p_app_if, 0, sizeof(GattsRegisterAppEvent));
+
+    GattsCharacteristicAddedEvent* p_char_data = GetRSPCharacteristicData();
+    memset(p_char_data, 0, sizeof(GattsCharacteristicAddedEvent));
+
+    GattsDescriptorAddedEvent* p_desc_data = GetRSPDescriptorData();
+    memset(p_desc_data, 0, sizeof(GattsDescriptorAddedEvent));
 }
 
 
@@ -432,6 +441,18 @@ Rsp::~Rsp()
 {
     fprintf(stdout, "(%s) RSP DeInitialized",__FUNCTION__);
     SetDeviceState(WLAN_INACTIVE);
+
+    GattsRegisterAppEvent* p_app_if = GetRSPAppData();
+    if(p_app_if->uuid != NULL)
+        osi_free(p_app_if->uuid);
+
+    GattsCharacteristicAddedEvent* p_char_data = GetRSPCharacteristicData();
+    if(p_char_data->char_id != NULL)
+        osi_free(p_char_data->char_id);
+
+    GattsDescriptorAddedEvent* p_desc_data = GetRSPDescriptorData();
+    if(p_desc_data->descr_id != NULL)
+        osi_free(p_desc_data->descr_id);
 }
 
 bool Rsp::CopyUUID(bt_uuid_t *uuid)
@@ -442,14 +463,122 @@ bool Rsp::CopyUUID(bt_uuid_t *uuid)
     }
     return true;
 }
+bool Rsp::CopyCharacteristicsUUID(bt_uuid_t *uuid)
+{
+    CHECK_PARAM(uuid);
+    uuid->uu[0] = 0xfb;
+    uuid->uu[1] = 0x34;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[4] = 0x80;
+    uuid->uu[5] = 0x00;
+    uuid->uu[6] = 0x00;
+    uuid->uu[7] = 0x80;
+    uuid->uu[8] = 0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[10] = 0x00;
+    uuid->uu[11] = 0x00;
 
+    uuid->uu[12] = 0x02;
+    uuid->uu[13] = 0xbb;
+
+    uuid->uu[14] = 0x00;
+    uuid->uu[15] = 0x00;
+
+    return true;
+}
+bool Rsp::CopyDescriptorUUID(bt_uuid_t *uuid)
+{
+    CHECK_PARAM(uuid);
+    uuid->uu[0] = 0xfb;
+    uuid->uu[1] = 0x34;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[4] = 0x80;
+    uuid->uu[5] = 0x00;
+    uuid->uu[6] = 0x00;
+    uuid->uu[7] = 0x80;
+    uuid->uu[8] = 0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[10] = 0x00;
+    uuid->uu[11] = 0x00;
+
+    uuid->uu[12] = 0x03;
+    uuid->uu[13] = 0xcc;
+
+    uuid->uu[14] = 0x00;
+    uuid->uu[15] = 0x00;
+
+    return true;
+}
+bool Rsp::CopyServerUUID(bt_uuid_t *uuid)
+{
+    CHECK_PARAM(uuid);
+    uuid->uu[0] = 0xfb;
+    uuid->uu[1] = 0x34;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[4] = 0x80;
+    uuid->uu[5] = 0x00;
+    uuid->uu[6] = 0x00;
+    uuid->uu[7] = 0x80;
+    uuid->uu[8] = 0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[10] = 0x00;
+    uuid->uu[11] = 0x00;
+
+    uuid->uu[12] = 0x06;
+    uuid->uu[13] = 0x00;
+
+    uuid->uu[14] = 0x00;
+    uuid->uu[15] = 0x00;
+
+    return true;
+}
+bool Rsp::CopyServiceUUID(bt_uuid_t *uuid)
+{
+    CHECK_PARAM(uuid);
+    uuid->uu[0] = 0xfb;
+    uuid->uu[1] = 0x34;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[4] = 0x80;
+    uuid->uu[5] = 0x00;
+    uuid->uu[6] = 0x00;
+    uuid->uu[7] = 0x80;
+    uuid->uu[8] = 0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[10] = 0x00;
+    uuid->uu[11] = 0x00;
+
+    uuid->uu[12] = 0x01;
+    uuid->uu[13] = 0xaa;
+
+    uuid->uu[14] = 0x00;
+    uuid->uu[15] = 0x00;
+    return true;
+}
 bool Rsp::CopyClientUUID(bt_uuid_t *uuid)
 {
     CHECK_PARAM(uuid)
     uuid->uu[0] = 0xff;
-    for (int i = 1; i < 16; i++) {
-        uuid->uu[i] = 0x30;
-    }
+    uuid->uu[1] = 0x34;
+    uuid->uu[2] = 0x9b;
+    uuid->uu[3] = 0x5f;
+    uuid->uu[4] = 0x80;
+    uuid->uu[5] = 0x00;
+    uuid->uu[6] = 0x00;
+    uuid->uu[7] = 0x80;
+    uuid->uu[8] = 0x00;
+    uuid->uu[9] = 0x10;
+    uuid->uu[10] = 0x00;
+    uuid->uu[11] = 0x00;
+
+    uuid->uu[12] = 0x05;
+    uuid->uu[13] = 0x00;
+
+    uuid->uu[14] = 0x00;
+    uuid->uu[15] = 0x00;
     return true;
 }
 
@@ -483,20 +612,21 @@ bool Rsp::EnableRSP()
 
     RspEnableEvent rev;
     rev.event_id = RSP_ENABLE_EVENT;// change it later
-    CopyUUID(&rev.characteristics_uuid);
-    CopyUUID(&rev.descriptor_uuid);
-    CopyUUID(&rev.server_uuid);
+    CopyCharacteristicsUUID(&rev.characteristics_uuid);
+    CopyDescriptorUUID(&rev.descriptor_uuid);
+    CopyServerUUID(&rev.server_uuid);
     CopyClientUUID(&rev.client_uuid);
-    CopyUUID(&rev.service_uuid);
+    CopyServiceUUID(&rev.service_uuid);
 
     fprintf(stdout," set rsp data \n");
     SetRSPAttrData(&rev);
     RegisterApp();
 }
 
-bool Rsp::DisableRSP(int server_if)
+bool Rsp::DisableRSP()
 {
     fprintf(stdout, "(%s) Disable RSP Initiated",__FUNCTION__);
+    StopService();
 }
 
 bool Rsp::RegisterApp()
@@ -603,6 +733,7 @@ bool Rsp::SendResponse(GattsRequestWriteEvent *event)
     if(event->value != NULL && !strncasecmp((const char *)(event->value), "on", 2)) {
         if (GetDeviceState() == WLAN_INACTIVE)
         {
+            fprintf(stdout, "(%s) Turn ON WLAN\n", __FUNCTION__);
             HandleWlanOn();
             SetDeviceState(WLAN_TRANSACTION_PENDING);
         }
@@ -692,7 +823,7 @@ bool Rsp::AddCharacteristics()
         return false;
     }
     bt_uuid_t char_uuid;
-    CopyParams(&char_uuid, &(GetRspSrvcData()->srvc_id->id.uuid));
+    char_uuid=GetRSPAttrData()->characteristics_uuid;
     int srvc_handle = GetRspSrvcData()->srvc_handle;
     int server_if = GetRspSrvcData()->server_if;
     fprintf(stdout,  "(%s) Adding Characteristics server_if (%d), srvc_handle (%d) \n",
