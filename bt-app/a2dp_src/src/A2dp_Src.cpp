@@ -933,14 +933,10 @@ const char* getString(int mAttrType) {
     const char* title1 = "Here, on the other hand, I've gone crazy \
         and really let the literal span several lines, \
         without bothering with quoting each line's \
-        content. This works, but you can't indent \
-        Here, on the other hand, I've gone crazy \
         and really let the literal span several lines";
     const char* artistName1 = "Here, on the other hand, I've gone crazy \
         and really let the literal span several lines, \
         without bothering with quoting each line's \
-        content. This works, but you can't indent \
-        Here, on the other hand, I've gone crazy \
         and really let the literal span several lines";
     const char* title = "abc1";
     const char* artistName = "abc2";
