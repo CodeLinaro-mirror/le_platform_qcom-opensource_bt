@@ -1834,6 +1834,17 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             break;
 
         case MAIN_EVENT_DEVICE_FOUND:
+           {
+           bdstr_t bd_str;
+            std::map<std::string, std::string>::iterator it;
+            bdaddr_to_string(&event->device_found_event.remoteDevice.address, &bd_str[0], sizeof(bd_str));
+            std::string deviceAddress(bd_str);
+
+            it = bonded_devices.find(deviceAddress);
+            if (it != bonded_devices.end())
+            {
+                break;
+            }
             fprintf(stdout, "Device Found details: \n");
             AddFoundedDevice(event->device_found_event.remoteDevice.name,
                                     event->device_found_event.remoteDevice.address);
@@ -1845,7 +1856,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             fprintf(stdout, "Device class is: %d\n", event->device_found_event.
                                         remoteDevice.bluetooth_class);
             break;
-
+        }
         case MAIN_EVENT_BOND_STATE: {
             std::string bd_name((const char*)event->bond_state_event.bd_name.name);
             HandleBondState(event->bond_state_event.state,
@@ -1914,15 +1925,21 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
 void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t
                                         bd_addr, std::string bd_name ) {
     std::map<std::string, std::string>::iterator it;
+    std::map<std::string, std::string>::iterator it_inquiry;
     bdstr_t bd_str;
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
     it = bonded_devices.find(deviceAddress);
-
+    it_inquiry= inquiry_list.find(deviceAddress);
     if(new_state == BT_BOND_STATE_BONDED) {
         if (it == bonded_devices.end()) {
             bonded_devices[deviceAddress] = bd_name;
         }
+       if(it_inquiry!=inquiry_list.end())
+        {
+            inquiry_list.erase(it_inquiry);
+        }
+
         fprintf(stdout, "\n*************************************************");
         fprintf(stdout, "\n Pairing state for %s is BONDED", bd_name.c_str());
         fprintf(stdout, "\n*************************************************\n");
