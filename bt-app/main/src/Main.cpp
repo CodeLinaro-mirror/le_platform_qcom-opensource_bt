@@ -62,6 +62,7 @@ extern Pan *g_pan;
 extern Gatt *g_gatt;
 extern BT_Audio_Manager *pBTAM;
 extern Rsp *rsp;
+
 extern SdpClient *g_sdpClient;
 #ifdef USE_BT_OBEX
 extern PbapClient *g_pbapClient;
@@ -84,7 +85,7 @@ extern "C"
 #endif
 
 thread_t *test_thread_id = NULL;
-
+static void SendDisableCmdToGap();
 /**
  * @brief main function
  *
@@ -305,10 +306,10 @@ static void ExitHandler(void) {
 
     // post the disable message to GAP incase BT is on
     if ( g_bt_app && g_bt_app->bt_state == BT_STATE_ON) {
-        BtEvent *event = new BtEvent;
-        event->event_id = GAP_API_DISABLE;
-        PostMessage (THREAD_ID_GAP, event);
-        sleep(1);
+        SendDisableCmdToGap();
+        sleep(3);
+        system("killall -KILL wcnssfilter");
+        usleep(200);
     }
 
     // TODO to wait for complete turn off before proceeding
@@ -833,16 +834,17 @@ void HandleOnOffTest (void *context) {
     int index = 0;
     long  num = (long) context;
     for( index = 0; index < (long)num; index++) {
+
         BtEvent *event_on = new BtEvent;
-        event_on->event_id = GAP_API_ENABLE;
+        event_on->event_id = MAIN_API_ENABLE;
         fprintf( stdout, "Iteration: %d : Posting enable\n", index + 1);
-        PostMessage (THREAD_ID_GAP, event_on);
-        sleep(3);
+        PostMessage (THREAD_ID_MAIN, event_on);
+        sleep(5);
         BtEvent *event_off = new BtEvent;
-        event_off->event_id = GAP_API_DISABLE;
+        event_off->event_id = MAIN_API_DISABLE;
         fprintf( stdout, "Iteration: %d : Posting disable\n", index + 1);
-        PostMessage (THREAD_ID_GAP, event_off);
-        sleep(3);
+        PostMessage (THREAD_ID_MAIN, event_off);
+        sleep(5);
     }
     reactor_stop(thread_get_reactor(test_thread_id));
     test_thread_id = NULL;
@@ -916,8 +918,12 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
         case RSP_START:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
-                fprintf( stdout, "(Re)start Advertisement \n");
-                if (rsp) rsp->StartAdvertisement();
+                if (rsp) {
+                    fprintf( stdout, "(Re)start Advertisement \n");
+                    rsp->StartAdvertisement();
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
             } else {
                 fprintf( stdout, "BT is in OFF State now \n");
             }
@@ -934,6 +940,53 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
+static void SendEnableCmdToGap() {
+
+    if ((g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->bt_state == BT_STATE_OFF)) {
+
+        g_bt_app->status.enable_cmd = COMMAND_INPROGRESS;
+        // Killing previous iteration filter if they still exists
+        system("killall -KILL wcnssfilter");
+        system("killall -KILL btsnoop");
+        system("killall -KILL qcbtdaemon");
+        usleep(200);
+
+        BtEvent *event = new BtEvent;
+        event->event_id = GAP_API_ENABLE;
+        ALOGV (LOGTAG " Posting BT enable to GAP thread");
+        PostMessage (THREAD_ID_GAP, event);
+    } else if ( g_bt_app->status.enable_cmd == COMMAND_INPROGRESS ) {
+        fprintf( stdout, "BT enable is already in process\n");
+    } else if ( g_bt_app->status.disable_cmd == COMMAND_INPROGRESS ) {
+        fprintf( stdout, "Previous BT disable is still in progress\n");
+    } else {
+        fprintf( stdout, "Currently BT is already ON\n");
+    }
+}
+
+static void SendDisableCmdToGap() {
+
+    if ((g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->bt_state == BT_STATE_ON)) {
+
+        g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
+
+        BtEvent *event = new BtEvent;
+        event->event_id = GAP_API_DISABLE;
+        ALOGV (LOGTAG " Posting disable to GAP thread");
+        PostMessage (THREAD_ID_GAP, event);
+    } else if (g_bt_app->status.disable_cmd == COMMAND_INPROGRESS) {
+        fprintf( stdout, " disable command is already in process\n");
+    } else if (g_bt_app->status.enable_cmd == COMMAND_INPROGRESS) {
+        fprintf( stdout, " Previous enable command is still in process\n");
+    } else {
+        fprintf( stdout, "Currently BT is already OFF\n");
+    }
+}
+
 static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *event = NULL;
 
@@ -944,37 +997,11 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
 
         case BT_ENABLE:
-            if ((g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
-                (g_bt_app->bt_state == BT_STATE_OFF)) {
-
-                g_bt_app->status.enable_cmd = COMMAND_INPROGRESS;
-                BtEvent *event = new BtEvent;
-
-                event->event_id = GAP_API_ENABLE;
-                ALOGV (LOGTAG " Posting BT enable to GAP thread");
-                PostMessage (THREAD_ID_GAP, event);
-            } else if ( g_bt_app->status.enable_cmd == COMMAND_INPROGRESS ) {
-                fprintf( stdout, "BT enable is already in process\n");
-            } else {
-                fprintf( stdout, "Currently BT is already ON\n");
-            }
+            SendEnableCmdToGap();
             break;
 
         case BT_DISABLE:
-
-            if ((g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
-                                (g_bt_app->bt_state == BT_STATE_ON)) {
-
-                g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
-                event = new BtEvent;
-                event->event_id = GAP_API_DISABLE;
-                ALOGV (LOGTAG " Posting disable to GAP thread");
-                PostMessage (THREAD_ID_GAP, event);
-            } else if (g_bt_app->status.disable_cmd == COMMAND_INPROGRESS) {
-                fprintf( stdout, " disable command is already in process\n");
-            } else {
-                fprintf( stdout, "Currently BT is already OFF\n");
-            }
+            SendDisableCmdToGap();
             break;
 
         case START_ENQUIRY:
@@ -1469,6 +1496,7 @@ void BtSocketDataHandler (void *context) {
         if (len <= 0) {
             ALOGE("Not able to receive msg to remote dev: %s", strerror(errno));
             reactor_unregister (g_bt_app->accept_reactor_);
+            g_bt_app->accept_reactor_ = NULL;
             close(g_bt_app->client_socket_);
             g_bt_app->client_socket_ = -1;
         } else if(len == BT_IPC_MSG_LEN) {
@@ -1739,6 +1767,14 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
 
         case MAIN_API_DEINIT:
             DeInitHandler();
+            break;
+
+        case MAIN_API_ENABLE:
+            SendEnableCmdToGap();
+            break;
+
+        case MAIN_API_DISABLE:
+            SendDisableCmdToGap();
             break;
 
         case MAIN_EVENT_ENABLED:
@@ -2144,12 +2180,19 @@ void BluetoothApp :: InitHandler (void) {
 void BluetoothApp :: DeInitHandler (void) {
     UnLoadBtStack ();
 
+    ALOGV (LOGTAG "  %s:",__func__);
      // de-register reactors for socket
     if (is_socket_input_enabled_) {
         if(listen_reactor_)
+        {
             reactor_unregister ( listen_reactor_);
+            listen_reactor_ = NULL;
+        }
         if(accept_reactor_)
+        {
             reactor_unregister ( accept_reactor_);
+            accept_reactor_ = NULL;
+        }
     }
 
     if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
