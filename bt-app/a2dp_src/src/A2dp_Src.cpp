@@ -847,16 +847,22 @@ static void btavrcp_target_getelemattr_vendor_callback(uint8_t num_attr,
     pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_ELE_ATTR;
 
     ItemAttr* itemAttr = (ItemAttr*)osi_malloc(sizeof(ItemAttr));
-    memcpy(&itemAttr->p_attr, &p_attrs, sizeof(p_attrs));
+    itemAttr->p_attr = (btrc_media_attr_t*)osi_malloc(num_attr * sizeof(btrc_media_attr_t));
+    memcpy(itemAttr->p_attr, p_attrs, num_attr * sizeof(btrc_media_attr_t));
     itemAttr->mUid = 0;
     itemAttr->mSize = 0;
 
     pEvent->avrcpTargetEvent.buf_size = sizeof(ItemAttr);
     pEvent->avrcpTargetEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->avrcpTargetEvent.buf_size);
-    memcpy(pEvent->avrcpTargetEvent.buf_ptr, &itemAttr, pEvent->avrcpTargetEvent.buf_size);
+    memcpy(pEvent->avrcpTargetEvent.buf_ptr, itemAttr, pEvent->avrcpTargetEvent.buf_size);
+    ItemAttr* pAttr = (ItemAttr*)pEvent->avrcpTargetEvent.buf_ptr;
+    pAttr->p_attr = (btrc_media_attr_t*)osi_malloc(num_attr * sizeof(btrc_media_attr_t));
+    memcpy(pAttr->p_attr, itemAttr->p_attr, num_attr * sizeof(btrc_media_attr_t));
     pEvent->avrcpTargetEvent.arg1 = (uint16_t)num_attr;
     memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+    osi_free(itemAttr->p_attr);
+    osi_free(itemAttr);
 }
 
 static void btavrcp_target_getplaystatus_vendor_callback(bt_bdaddr_t *bd_addr) {
@@ -1360,7 +1366,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             }
             ALOGD(LOGTAG_AVRCP " Send response for Get element attribute, num_attr %d", num_attr);
             item = (ItemAttr*)osi_malloc(sizeof(ItemAttr));
-            memcpy(&item, pEvent->avrcpTargetEvent.buf_ptr, pEvent->avrcpTargetEvent.buf_size);
+            memcpy(item, pEvent->avrcpTargetEvent.buf_ptr, pEvent->avrcpTargetEvent.buf_size);
             ALOGD(LOGTAG_AVRCP " Uid %d Size %d", item->mUid, item->mSize);
             for (i = 0; i < num_attr; ++i) {
                 ALOGD(LOGTAG_AVRCP " attr[%d] %d", i, item->p_attr[i]);
@@ -1375,6 +1381,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             sBtAvrcpTargetInterface->get_element_attr_rsp((uint8_t)num_attr, pAttrs,
                                                  &pEvent->avrcpTargetEvent.bd_addr);
             osi_free(pEvent->avrcpTargetEvent.buf_ptr);
+            osi_free(item->p_attr);
             osi_free(item);
             osi_free(pAttrs);
             use_bigger_metadata = false;
