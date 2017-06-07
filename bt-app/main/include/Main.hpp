@@ -57,7 +57,7 @@
 /**
  * Maximum argument length
  */
-#define COMMAND_ARG_SIZE     50
+#define COMMAND_ARG_SIZE     200
 
 /**
  * Maximum command length
@@ -153,6 +153,7 @@ typedef enum {
     BACKWARD,
     VOL_UP,
     VOL_DOWN,
+    CODEC_LIST,
     TRACK_CHANGE,
     SET_ABS_VOL,
     SEND_VOL_UP_DOWN,
@@ -388,6 +389,8 @@ UserMenuList A2dpSinkMenu[] = {
     {SET_BROWSED_PLAYER,  "setbrowsedplayer",  TWO_PARAM,  "setbrowsedplayer<space><bt_address><space><player_ID>"},
     {CHANGE_PATH,  "changepath",  THREE_PARAM,  "changepath<space><bt_address><space><direction><space><folder_uID>"},
     {GETFOLDERITEMS,  "getfolderitems",  SIX_PARAM,  "getfolderitems<space><bt_address><space><scopeID><space><startItem><space><endItem><space><num_attrb><space><attrib_IDs>"},
+    {CODEC_LIST,        "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"
+        "param2,codec2,param1,param2,....>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
@@ -409,6 +412,8 @@ UserMenuList A2dpSourceMenu[] = {
             "addrplayerchange<space><1/0>  eg: addrplayerchange 1 "},
     {AVAIL_PLAYER_CHANGE,   "availplayerchange",ZERO_PARAM,   "availplayerchange"},
     {BIGGER_METADATA,       "biggermetadata",   ZERO_PARAM,   "biggermetadata"},
+    {CODEC_LIST,            "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"
+        "param2,param3....,codec2,param1,param2,param3....>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 

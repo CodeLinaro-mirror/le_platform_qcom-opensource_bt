@@ -691,6 +691,15 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
+        case CODEC_LIST:
+            event = new BtEvent;
+            event->a2dpCodecListEvent.event_id = A2DP_SINK_CODEC_LIST;
+            memset( (void *) event->a2dpCodecListEvent.codec_list, '\0',
+                sizeof(event->a2dpCodecListEvent.codec_list));
+            strlcpy(event->a2dpCodecListEvent.codec_list, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_A2DP_SINK, event);
+            break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
@@ -771,6 +780,15 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
         case BIGGER_METADATA:
             event = new BtEvent;
             event->avrcpTargetEvent.event_id = AVRCP_TARGET_USE_BIGGER_METADATA;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case CODEC_LIST:
+            event = new BtEvent;
+            event->a2dpCodecListEvent.event_id = A2DP_SOURCE_CODEC_LIST;
+            memset( (void *) event->a2dpCodecListEvent.codec_list, '\0',
+                sizeof(event->a2dpCodecListEvent.codec_list));
+            strlcpy(event->a2dpCodecListEvent.codec_list, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
         case BACK_TO_MAIN:

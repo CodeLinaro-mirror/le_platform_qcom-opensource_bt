@@ -199,6 +199,7 @@ typedef enum {
     A2DP_SINK_STREAMING_AM_RELEASE_CONTROL,
     A2DP_SINK_STREAMING_DISCONNECTED,
     A2DP_SINK_STREAMING_DISABLE_DONE,
+    A2DP_SINK_CODEC_LIST,
 
     AVRCP_CTRL_CONNECTED_CB = AVRCP_MSG_BASE,
     AVRCP_CTRL_DISCONNECTED_CB,
@@ -333,9 +334,11 @@ typedef enum {
     A2DP_SOURCE_CONNECTING_CB,
     A2DP_SOURCE_CONNECTED_CB,
     A2DP_SOURCE_DISCONNECTING_CB,
+    A2DP_SOURCE_CODEC_CONFIG_CB,
     A2DP_SOURCE_AUDIO_SUSPENDED,
     A2DP_SOURCE_AUDIO_STOPPED,
     A2DP_SOURCE_AUDIO_STARTED,
+    A2DP_SOURCE_CODEC_LIST,
     AVRCP_TARGET_CONNECTED_CB,
     AVRCP_TARGET_DISCONNECTED_CB,
     AVRCP_TARGET_GET_ELE_ATTR,
@@ -726,6 +729,11 @@ typedef struct {
 
 typedef struct {
     BluetoothEventId   event_id;
+    char codec_list[200];
+} A2dpCodecListEvent;
+
+typedef struct {
+    BluetoothEventId   event_id;
     bt_bdaddr_t         bd_addr;
     ControlStatusType  status_type;
 } A2dpSinkStreamingEvent;
@@ -733,6 +741,10 @@ typedef struct {
 typedef struct {
     BluetoothEventId   event_id;
     bt_bdaddr_t         bd_addr;
+    uint8_t*           buf_ptr;
+    uint16_t           buf_size;
+    uint16_t           arg1;
+    uint16_t           arg2;
 } A2dpSourceEvent;
 
 typedef struct {
@@ -1364,6 +1376,7 @@ typedef union {
     A2dpSinkEvent                           a2dpSinkEvent;
     A2dpSinkStreamingEvent                  a2dpSinkStreamingEvent;
     AvrcpCtrlPassThruCmdReq                 avrcpCtrlPassThruEvent;
+    A2dpCodecListEvent                      a2dpCodecListEvent;
     A2dpSourceEvent                         a2dpSourceEvent;
     AvrcpCtrlEvent                          avrcpCtrlEvent;
     AvrcpTargetEvent                        avrcpTargetEvent;

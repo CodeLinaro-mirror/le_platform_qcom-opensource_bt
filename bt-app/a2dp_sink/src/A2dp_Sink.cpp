@@ -40,6 +40,7 @@
 #include "Gap.hpp"
 #include "hardware/bt_av_vendor.h"
 #include <algorithm>
+#include "oi_utils.h"
 
 #define LOGTAG "A2DP_SINK"
 
@@ -57,10 +58,391 @@ static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 extern "C" {
 #endif
 
+#ifndef _ARRAYSIZE
+#define _ARRAYSIZE(a) (sizeof(a)/sizeof(a[0]))
+#endif
+/**
+ * Maximum argument length
+ */
+#define COMMAND_ARG_SIZE     200
+#define SBC_PARAM_LEN 1
+#define APTX_PARAM_LEN 1
+#define MP3_PARAM_LEN 2
+#define AAC_PARAM_LEN 2
+
+static btav_codec_configuration_t a2dpSnkCodecList[MAX_NUM_CODEC_CONFIGS];
+
+static const char * valid_codecs[] = {
+    "aac",
+    "mp3",
+    "sbc",
+    "aptx"
+};
+
+static uint8_t valid_codec_values[] = {
+    A2DP_SINK_AUDIO_CODEC_AAC,
+    A2DP_SINK_AUDIO_CODEC_MP3,
+    A2DP_SINK_AUDIO_CODEC_SBC,
+    A2DP_SINK_AUDIO_CODEC_APTX,
+};
+
+static const char * valid_sbc_freq[] = {
+    "16",
+    "32",
+    "44.1",
+    "48",
+};
+
+static uint8_t valid_sbc_freq_values[] = {
+    SBC_SAMP_FREQ_16,
+    SBC_SAMP_FREQ_32,
+    SBC_SAMP_FREQ_44,
+    SBC_SAMP_FREQ_48,
+};
+
+static const char * valid_aac_freq[] = {
+    "8",
+    "11.025",
+    "12",
+    "16",
+    "22.05",
+    "24",
+    "32",
+    "44.1",
+    "48",
+    "64",
+    "88.2",
+    "96",
+};
+
+static uint16_t valid_aac_freq_values[] = {
+    AAC_SAMP_FREQ_8000,
+    AAC_SAMP_FREQ_11025,
+    AAC_SAMP_FREQ_12000,
+    AAC_SAMP_FREQ_16000,
+    AAC_SAMP_FREQ_22050,
+    AAC_SAMP_FREQ_24000,
+    AAC_SAMP_FREQ_32000,
+    AAC_SAMP_FREQ_44100,
+    AAC_SAMP_FREQ_48000,
+    AAC_SAMP_FREQ_64000,
+    AAC_SAMP_FREQ_88200,
+    AAC_SAMP_FREQ_96000,
+};
+
+static const char * valid_aac_obj_type[] = {
+    "MPEG-2-LC",
+    "MPEG-4-LC",
+    "MPEG-4-LTP",
+    "MPEG-4-SC"
+};
+
+static uint8_t valid_aac_obj_type_values[] = {
+    AAC_OBJ_TYPE_MPEG_2_AAC_LC,
+    AAC_OBJ_TYPE_MPEG_4_AAC_LC,
+    AAC_OBJ_TYPE_MPEG_4_AAC_LTP,
+    AAC_OBJ_TYPE_MPEG_4_AAC_SCA,
+};
+
+static const char * valid_mp3_freq[] = {
+    "16",
+    "22.05",
+    "24",
+    "32",
+    "44.1",
+    "48",
+};
+
+static uint8_t valid_mp3_freq_values[] = {
+    MP3_SAMP_FREQ_16000,
+    MP3_SAMP_FREQ_22050,
+    MP3_SAMP_FREQ_24000,
+    MP3_SAMP_FREQ_32000,
+    MP3_SAMP_FREQ_44100,
+    MP3_SAMP_FREQ_48000,
+};
+
+static const char * valid_mp3_layer[] = {
+    "LAYER1",
+    "LAYER2",
+    "LAYER3",
+};
+
+static uint8_t valid_mp3_layer_values[] = {
+    MP3_LAYER_1,
+    MP3_LAYER_2,
+    MP3_LAYER_3,
+};
+
+static const char * valid_aptx_freq[] = {
+    "44.1",
+    "48",
+};
+
+static uint8_t valid_aptx_freq_values[] = {
+    APTX_SAMPLERATE_44100,
+    APTX_SAMPLERATE_48000,
+};
+
+/******************************************************************************
+ * This structure defines the A2DP Sink variable.
+ */
+typedef struct {
+    const char *name;            /**< Run-time variable name */
+    const char *description;     /**< Run-time variable description */
+    const char **valid_options;  /**< List of valid variable values */
+    int valid_option_cnt;        /**< Size of valid value list */
+} A2DP_SINK_VARIABLE;
+
+/******************************************************************************
+ * List of A2DP Sink variables.
+ */
+const A2DP_SINK_VARIABLE variable_list[] = {
+    { "codec type", "Valid Codec Type to Use",
+      valid_codecs, _ARRAYSIZE(valid_codecs) },
+    { "sbc freq", "Valid SBC Freq to Use",
+      valid_sbc_freq, _ARRAYSIZE(valid_sbc_freq) },
+    { "aac freq", "Valid AAC Freq to Use",
+      valid_aac_freq, _ARRAYSIZE(valid_aac_freq) },
+    { "mp3 freq", "Valid MP3 Freq to Use",
+      valid_mp3_freq, _ARRAYSIZE(valid_mp3_freq) },
+    { "aptx freq", "Valid APTX Freq to Use",
+      valid_aptx_freq, _ARRAYSIZE(valid_aptx_freq) },
+    { "aac object type", "Valid AAC Object Type to Use",
+      valid_aac_obj_type, _ARRAYSIZE(valid_aac_obj_type) },
+    { "mp3 layer", "Valid MP3 Layer to Use",
+      valid_mp3_layer, _ARRAYSIZE(valid_mp3_layer) },
+};
+
+/******************************************************************************
+ *
+ * Basic utilities.
+ *
+ */
+
+#ifndef isdelimiter
+#define isdelimiter(c) ((c) == ' ' || (c) == ',' || (c) == '\f' || (c) == '\n' || \
+        (c) == '\r' || (c) == '\t' || (c) == '\v')
+#endif
+
+#ifndef ishyphon
+#define ishyphon(c) (c == '-')
+#endif
+
+static int find_str_in_list(const char *str, const char * const *list,
+                                   int list_size)
+{
+    int i;
+    int item = list_size;
+    int match_cnt = 0;
+
+    if (str == NULL || list == NULL || list_size <= 0)
+        return -1;
+
+    for (i = 0; i < list_size; i++) {
+        if (!OI_StrcmpInsensitive(list[i], str)) {
+            item = i;
+            match_cnt++;
+        }
+    }
+
+    if (match_cnt == 1) {
+        return item;
+    } else {
+        return list_size;
+    }
+}
+
+static void print_help(const A2DP_SINK_VARIABLE *var)
+{
+    int i;
+    if (var) {
+        printf("\n=====HELP=====\n%s:\t%s\n(valid options:", var->name, var->description);
+        for (i = 0; i < (uint8_t)var->valid_option_cnt; i++) {
+            printf(" %s", var->valid_options[i]);
+        }
+        printf(")\n");
+    }
+}
+
+static const char * skip_delimiter(const char *data)
+{
+    if (data == NULL)
+        return NULL;
+
+    while (*data && !ishyphon(*data)) {
+        data++;
+    }
+    return data;
+}
+
+static int ParseUserInput (char *input, char output[][COMMAND_ARG_SIZE]) {
+    char *temp_arg = NULL;
+    char delim[] = ",";
+    char *ptr1;
+    int param_count = 0;
+    bool status = false;
+
+    if (input == NULL || output == NULL)
+        return 0;
+
+    if ((temp_arg = strtok_r(input, delim, &ptr1)) != NULL ) {
+        strlcpy(output[param_count], temp_arg, COMMAND_ARG_SIZE);
+        output[param_count ++][COMMAND_ARG_SIZE - 1] = '\0';
+        ALOGE(LOGTAG " %s ", output[param_count -1]);
+    }
+
+    while ((temp_arg = strtok_r(NULL, delim, &ptr1))) {
+        if (param_count >= MAX_NUM_CODEC_CONFIGS) {
+            return param_count;
+        }
+        strlcpy(output[param_count], temp_arg, COMMAND_ARG_SIZE);
+        output[param_count ++][COMMAND_ARG_SIZE - 1] = '\0';
+        ALOGE(LOGTAG " %s ", output[param_count -1]);
+    }
+
+    ALOGE(LOGTAG " %s: returning %d \n", __func__, param_count);
+    return param_count;
+}
+
+
+/* This function is used for testing purpose. Parses string which represents codec list*/
+
+static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
+{
+    int i = 0, j = 0, k = 0;
+    char output_list[COMMAND_ARG_SIZE][COMMAND_ARG_SIZE];
+    int codec_params_list_size;
+
+    if (*codec_param_list == '\0') {
+        ALOGE(LOGTAG " codec list cannot be set to nothing \n");
+        fprintf(stdout, "codec list cannot be set to nothing \n");
+        print_help(&variable_list[0]);
+        return false;
+    }
+    fprintf(stdout, "Codec List: %s\n", codec_param_list);
+
+    codec_params_list_size = ParseUserInput(codec_param_list, output_list);
+
+    while (j < codec_params_list_size) {
+        i = find_str_in_list(output_list[j], valid_codecs, _ARRAYSIZE(valid_codecs));
+        if (i >= _ARRAYSIZE(valid_codecs)) {
+            fprintf(stdout, "Invalid codec type values: %s\n", output_list[j]);
+            print_help(&variable_list[0]);
+            return false;
+        }
+        j++;
+        a2dpSnkCodecList[k].codec_type = valid_codec_values[i];
+        switch (a2dpSnkCodecList[k].codec_type) {
+            case A2DP_SINK_AUDIO_CODEC_AAC:
+                /* check number of parameters passed are ok or not */
+                if (j + AAC_PARAM_LEN > codec_params_list_size) {
+                    fprintf(stdout, "Invalid AAC Parameters passed\n");
+                    return false;
+                }
+                i = find_str_in_list(output_list[j], valid_aac_freq,
+                    _ARRAYSIZE(valid_aac_freq));
+                if (i >= _ARRAYSIZE(valid_aac_freq)) {
+                    fprintf(stdout, "Invalid AAC Sampling Freq: %s\n", output_list[j]);
+                    print_help(&variable_list[2]);
+                    return false;
+                }
+                a2dpSnkCodecList[k].codec_config.aac_config.sampling_freq =
+                    valid_aac_freq_values[i];
+                j ++;
+                i = find_str_in_list(output_list[j], valid_aac_obj_type,
+                    _ARRAYSIZE(valid_aac_obj_type));
+                if (i >= _ARRAYSIZE(valid_aac_obj_type)) {
+                    fprintf(stdout, "Invalid AAC Object Type: %s\n", output_list[j]);
+                    print_help(&variable_list[5]);
+                    return false;
+                }
+                a2dpSnkCodecList[k].codec_config.aac_config.obj_type =
+                    valid_aac_obj_type_values[i];
+                j ++;
+                break;
+            case A2DP_SINK_AUDIO_CODEC_MP3:
+                /* check number of parameters passed are ok or not */
+                if (j + MP3_PARAM_LEN > codec_params_list_size) {
+                    fprintf(stdout, "Invalid MP3 Parameters passed\n");
+                    return false;
+                }
+                i = find_str_in_list(output_list[j], valid_mp3_freq,
+                    _ARRAYSIZE(valid_mp3_freq));
+                if (i >= _ARRAYSIZE(valid_mp3_freq)) {
+                    fprintf(stdout, "Invalid MP3 Sampling Freq: %s\n",
+                        output_list[j]);
+                    print_help(&variable_list[3]);
+                    return false;
+                }
+                a2dpSnkCodecList[k].codec_config.mp3_config.sampling_freq =
+                    valid_mp3_freq_values[i];
+                j ++;
+                i = find_str_in_list(output_list[j], valid_mp3_layer,
+                    _ARRAYSIZE(valid_mp3_layer));
+                if (i >= _ARRAYSIZE(valid_mp3_layer)) {
+                    fprintf(stdout, "Invalid MP3 Layer: %s\n", output_list[j]);
+                    print_help(&variable_list[6]);
+                    return false;
+                }
+                a2dpSnkCodecList[k].codec_config.mp3_config.layer =
+                    valid_mp3_layer_values[i];
+                j ++;
+                break;
+            case A2DP_SINK_AUDIO_CODEC_SBC:
+                /* check number of parameters passed are ok or not */
+                if (j + SBC_PARAM_LEN > codec_params_list_size) {
+                    fprintf(stdout, "Invalid SBC Parameters passed\n");
+                    return false;
+                }
+                i = find_str_in_list(output_list[j], valid_sbc_freq,
+                    _ARRAYSIZE(valid_sbc_freq));
+                if (i >= _ARRAYSIZE(valid_sbc_freq)) {
+                    fprintf(stdout, "Invalid SBC Sampling Freq: %s\n",
+                        output_list[j]);
+                    print_help(&variable_list[1]);
+                    return false;
+                }
+                a2dpSnkCodecList[k].codec_config.sbc_config.samp_freq =
+                    valid_sbc_freq_values[i];
+                j ++;
+                break;
+            case A2DP_SINK_AUDIO_CODEC_APTX:
+                /* check number of parameters passed are ok or not */
+                if (j + APTX_PARAM_LEN > codec_params_list_size) {
+                    fprintf(stdout, "Invalid APTX Parameters passed\n");
+                    return false;
+                }
+                i = find_str_in_list(output_list[j], valid_aptx_freq,
+                    _ARRAYSIZE(valid_aptx_freq));
+                if (i >= _ARRAYSIZE(valid_aptx_freq)) {
+                    fprintf(stdout, "Invalid APTX Sampling Freq: %s\n",
+                        output_list[j]);
+                    print_help(&variable_list[4]);
+                    return false;
+                }
+                a2dpSnkCodecList[k].codec_config.aptx_config.sampling_freq =
+                    valid_aptx_freq_values[i];
+                j ++;
+                break;
+        }
+        k++;
+        if (k > MAX_NUM_CODEC_CONFIGS) {
+            fprintf(stdout, "num_codec_configs  exceeds max number(%d) = %d\n",
+                k, MAX_NUM_CODEC_CONFIGS);
+            return false;
+        }
+    }
+    *num_codec_configs = k;
+    fprintf(stdout, "num_codec_configs  = %d\n", *num_codec_configs);
+    return true;
+}
+
 void BtA2dpSinkMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
     BtEvent* pCleanupEvent = NULL;
     BtEvent *pCleanupSinkStreaming = NULL;
+    int num_codec_configs = 0;
     if(!msg) {
         printf("Msg is NULL, return.\n");
         return;
@@ -98,6 +480,12 @@ void BtA2dpSinkMsgHandler(void *msg) {
             if (pA2dpSink) {
                 pA2dpSink->HandleSinkStreamingDisableDone();
             }
+            break;
+        case A2DP_SINK_CODEC_LIST:
+            A2dpCodecList(pEvent->a2dpCodecListEvent.codec_list,
+                &num_codec_configs);
+            if (num_codec_configs)
+                pA2dpSink->UpdateSupportedCodecs(num_codec_configs);
             break;
         default:
             if(pA2dpSink) {
@@ -503,6 +891,19 @@ void A2dp_Sink::EventManager(BtEvent* pEvent, bt_bdaddr_t dev) {
     }
 }
 
+void A2dp_Sink::UpdateSupportedCodecs(uint8_t num_codec_configs) {
+    bt_status_t status;
+    int i;
+    if (sBtA2dpSinkVendorInterface != NULL) {
+        status = sBtA2dpSinkVendorInterface->update_supported_codecs_param_vendor
+            (a2dpSnkCodecList, num_codec_configs);
+        if (BT_STATUS_SUCCESS != status) {
+            ALOGE(LOGTAG " UpdateSupportedCodecs: failed, status = %d", status);
+            fprintf(stdout, "UpdateSupportedCodecs: failed, status = %d\n", status);
+        }
+    }
+}
+
 bool A2dp_Sink::isConnectionEvent(BluetoothEventId event_id) {
     bool ret = false;
     if (event_id >= A2DP_SINK_API_CONNECT_REQ && event_id <= A2DP_SINK_DISCONNECTING_CB)
@@ -577,6 +978,7 @@ void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent, list<A2dp_Device>::i
 }
 void A2dp_Sink::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
     char str[18];
+    bool is_valid_codec = true;
     BtEvent *pOpenInputStream = NULL;
     ALOGD(LOGTAG " state_pending_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
@@ -598,7 +1000,7 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterat
             }
             break;
         case A2DP_SINK_DISCONNECTED_CB:
-            fprintf(stdout, "A2DP Sink DisConnected %s\n", str);
+            fprintf(stdout, "A2DP Sink DisConnected\n");
             memset(&iter->mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&iter->mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(iter, DEVICE_STATE_DISCONNECTED);
@@ -618,6 +1020,49 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterat
             memcpy(&iter->dev_codec_config, pEvent->a2dpSinkEvent.buf_ptr,
                     pEvent->a2dpSinkEvent.buf_size);
             osi_free(pEvent->a2dpSinkEvent.buf_ptr);
+            memcpy(&iter->mDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
+            bdaddr_to_string(&iter->mDevice, str, 18);
+            fprintf(stdout, "Codec Configuration for device %s\n", str);
+            switch (iter->dev_codec_type) {
+               case A2DP_SINK_AUDIO_CODEC_SBC:
+                   fprintf(stdout, "Codec type = SBC\n");
+                   iter->av_config.sample_rate = pA2dpSinkStream->
+                       get_a2dp_sbc_sampling_rate(iter->dev_codec_config.sbc_config.samp_freq);
+                   iter->av_config.channel_count = pA2dpSinkStream->
+                       get_a2dp_sbc_channel_mode(iter->dev_codec_config.sbc_config.ch_mode);
+                   break;
+               case A2DP_SINK_AUDIO_CODEC_MP3:
+                   fprintf(stdout, "Codec type = MP3\n");
+                   iter->av_config.sample_rate = pA2dpSinkStream->
+                       get_a2dp_mp3_sampling_rate(iter->dev_codec_config.mp3_config.sampling_freq);
+                   iter->av_config.channel_count = pA2dpSinkStream->
+                       get_a2dp_mp3_channel_mode(iter->dev_codec_config.mp3_config.channel_count);
+                   break;
+               case A2DP_SINK_AUDIO_CODEC_AAC:
+                   fprintf(stdout, "Codec type = AAC\n");
+                   iter->av_config.sample_rate = pA2dpSinkStream->
+                       get_a2dp_aac_sampling_rate(iter->dev_codec_config.aac_config.sampling_freq);
+                   iter->av_config.channel_count = pA2dpSinkStream->
+                       get_a2dp_aac_channel_mode(iter->dev_codec_config.aac_config.channel_count);
+                   break;
+               case A2DP_SINK_AUDIO_CODEC_APTX:
+                   fprintf(stdout, "Codec type = APTX\n");
+                   iter->av_config.sample_rate = pA2dpSinkStream->
+                       get_a2dp_aptx_sampling_rate(iter->dev_codec_config
+                       .aptx_config.sampling_freq);
+                   iter->av_config.channel_count = pA2dpSinkStream->
+                       get_a2dp_aptx_channel_mode(iter->dev_codec_config
+                       .aptx_config.channel_count);
+                   break;
+               default:
+                   is_valid_codec = false;
+                   ALOGE(LOGTAG " Invalid codec type %d ", iter->dev_codec_type);
+                   break;
+            }
+            if (is_valid_codec) {
+                fprintf(stdout, "Sample Rate = %d\n", iter->av_config.sample_rate);
+                fprintf(stdout, "Channel Mode = %d\n", iter->av_config.channel_count);
+            }
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
@@ -627,6 +1072,7 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterat
 
 void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
     char str[18];
+    bool is_valid_codec = true;
     uint32_t pcm_data_read = 0;
     BtEvent *pAMReleaseControl = NULL, *pCloseAudioStream = NULL, *pAMRequestControl = NULL;
     ALOGD(LOGTAG " state_connected_handler Processing event %s", dump_message(pEvent->event_id));
@@ -694,11 +1140,48 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
              memcpy(&iter->dev_codec_config, pEvent->a2dpSinkEvent.buf_ptr,
                      pEvent->a2dpSinkEvent.buf_size);
              osi_free(pEvent->a2dpSinkEvent.buf_ptr);
-             if (iter->dev_codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
-                 iter->av_config.sample_rate = pA2dpSinkStream->
-                     get_a2dp_sbc_sampling_rate(iter->dev_codec_config.sbc_config.samp_freq);
-                 iter->av_config.channel_count = pA2dpSinkStream->
-                     get_a2dp_sbc_channel_mode(iter->dev_codec_config.sbc_config.ch_mode);
+             memcpy(&iter->mDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
+             bdaddr_to_string(&iter->mDevice, str, 18);
+             fprintf(stdout, "Codec Configuration for device %s\n", str);
+             switch (iter->dev_codec_type) {
+                case A2DP_SINK_AUDIO_CODEC_SBC:
+                    fprintf(stdout, "Codec type = SBC\n");
+                    iter->av_config.sample_rate = pA2dpSinkStream->
+                        get_a2dp_sbc_sampling_rate(iter->dev_codec_config.sbc_config.samp_freq);
+                    iter->av_config.channel_count = pA2dpSinkStream->
+                        get_a2dp_sbc_channel_mode(iter->dev_codec_config.sbc_config.ch_mode);
+                    break;
+                case A2DP_SINK_AUDIO_CODEC_MP3:
+                    fprintf(stdout, "Codec type = MP3\n");
+                    iter->av_config.sample_rate = pA2dpSinkStream->
+                        get_a2dp_mp3_sampling_rate(iter->dev_codec_config.mp3_config.sampling_freq);
+                    iter->av_config.channel_count = pA2dpSinkStream->
+                        get_a2dp_mp3_channel_mode(iter->dev_codec_config.mp3_config.channel_count);
+                    break;
+                case A2DP_SINK_AUDIO_CODEC_AAC:
+                    fprintf(stdout, "Codec type = AAC\n");
+                    iter->av_config.sample_rate = pA2dpSinkStream->
+                        get_a2dp_aac_sampling_rate(iter->dev_codec_config.aac_config.sampling_freq);
+                    iter->av_config.channel_count = pA2dpSinkStream->
+                        get_a2dp_aac_channel_mode(iter->dev_codec_config.aac_config.channel_count);
+                    break;
+                case A2DP_SINK_AUDIO_CODEC_APTX:
+                    fprintf(stdout, "Codec type = APTX\n");
+                    iter->av_config.sample_rate = pA2dpSinkStream->
+                        get_a2dp_aptx_sampling_rate(iter->dev_codec_config
+                        .aptx_config.sampling_freq);
+                    iter->av_config.channel_count = pA2dpSinkStream->
+                        get_a2dp_aptx_channel_mode(iter->dev_codec_config
+                        .aptx_config.channel_count);
+                    break;
+                default:
+                    is_valid_codec = false;
+                    ALOGE(LOGTAG " Invalid codec type %d ", iter->dev_codec_type);
+                    break;
+             }
+             if (is_valid_codec) {
+                 fprintf(stdout, "Sample Rate = %d\n", iter->av_config.sample_rate);
+                 fprintf(stdout, "Channel Mode = %d\n", iter->av_config.channel_count);
              }
              break;
         case A2DP_SINK_AUDIO_STARTED:

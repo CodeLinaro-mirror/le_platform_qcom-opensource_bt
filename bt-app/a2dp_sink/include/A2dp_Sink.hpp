@@ -113,6 +113,7 @@ class A2dp_Sink {
     void ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev);
     void EventManager(BtEvent* pEvent, bt_bdaddr_t dev);
     bool isConnectionEvent(BluetoothEventId event_id);
+    void UpdateSupportedCodecs(uint8_t num_codecs);
     list<A2dp_Device> pA2dpDeviceList;
 };
 
