@@ -93,10 +93,12 @@ extern "C" {
 #define BE_STREAM_TO_UINT16(u16, p) {u16 = (uint16_t)(((uint16_t)(*(p)) << 8) + (uint16_t)(*((p) + 1))); (p) += 2;}
 #define BE_STREAM_TO_UINT32(u32, p) {u32 = ((uint32_t)(*((p) + 3)) + ((uint32_t)(*((p) + 2)) << 8) +((uint32_t)(*((p) + 1)) << 16) + ((uint32_t)(*(p)) << 24)); (p) += 4;}
 
+ uint8_t get_rtp_offset(uint8_t* p_start, uint16_t codec_type);
 void BtA2dpSinkStreamingMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
     BtEvent* pCleanupEvent = NULL, *pControlRequest = NULL, *pReleaseControlReq = NULL;
     uint32_t pcm_data_read = 0;
+    uint8_t rtp_offset = 0;
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     qahw_out_buffer_t out_buf;
 #endif
@@ -212,6 +214,13 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         pA2dpSinkStream->pcm_buf, (pA2dpSinkStream->pcm_buf_size)/4);
                     }
                 }
+
+                if (pA2dpSinkStream->fetch_rtp_info && ( pcm_data_read > 12)) {
+                     if(!pA2dpSinkStream->sbc_decoding)
+                     {
+                         rtp_offset = get_rtp_offset( pA2dpSinkStream->pcm_buf, A2DP_SINK_AUDIO_CODEC_SBC);
+                     }
+                 }
                 ALOGD(LOGTAG " fluoried stored_data_read = %d", pcm_data_read);
              }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
@@ -229,7 +238,8 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         enque_relay_data(pA2dpSinkStream->pcm_buf, pcm_data_read, A2DP_SINK_AUDIO_CODEC_PCM);
                     }
                 }
-                qahw_out_write(pA2dpSinkStream->out_stream, &out_buf);
+                if(pA2dpSinkStream->sbc_decoding)
+                    qahw_out_write(pA2dpSinkStream->out_stream, &out_buf);
             }
 #endif
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
