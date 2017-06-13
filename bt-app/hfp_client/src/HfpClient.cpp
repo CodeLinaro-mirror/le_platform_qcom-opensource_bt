@@ -1447,6 +1447,8 @@ void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bo
    }
    else if (vol_type == BTHF_CLIENT_VOLUME_TYPE_MIC) {
       //audio_module->set_mic_mute(audio_module, mute_mic);
+      fprintf(stdout, "Mute mic\n");
+      qahw_set_mic_mute(audio_module, mute_mic);
    }
 
 #endif // BT_AUDIO_HAL_INTEGRATION
