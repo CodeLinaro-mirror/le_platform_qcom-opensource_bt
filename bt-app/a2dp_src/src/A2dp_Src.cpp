@@ -69,7 +69,7 @@ btrc_notification_type_t mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
 btrc_notification_type_t mTrackChangeNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
 btrc_notification_type_t mAddrPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
 btrc_notification_type_t mAvailPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
-
+static uint32_t a2dp_playstatus = A2DP_SOURCE_AUDIO_STOPPED;
 long NO_TRACK_SELECTED = -1L;
 long TRACK_IS_SELECTED = 0L;
 long mCurrentTrackID = NO_TRACK_SELECTED;
@@ -83,6 +83,12 @@ audio_hw_device_t *a2dp_device = NULL;
 struct audio_stream_out *output_stream = NULL;
 static pthread_mutex_t a2dp_hal_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
+
+typedef enum
+{
+    SRC_STREAMING,
+    SRC_NO_STREAMING,
+}SrcStreamStatus;
 
 #define AUDIO_STREAM_OUTPUT_BUFFER_SZ      (20*512)
 #define INVALID_CODEC    -1
@@ -517,6 +523,7 @@ size_t get_pcm_data(uint8_t* buffer, size_t size)
 
 static void *thread_func(void *in_param)
 {
+    SrcStreamStatus srcStream = SRC_NO_STREAMING;
     size_t len = 0;
     ssize_t write_len = 0;
     FILE *in_file = (FILE *)in_param;
@@ -573,6 +580,12 @@ static void *thread_func(void *in_param)
             ALOGD(LOGTAG_A2DP "try to get the codec information of snk side");
             if( GetCodecInfoByAddr(NULL,&snk_codec_type,&snk_codec_cfg))
             {
+                if((a2dp_playstatus == A2DP_SOURCE_AUDIO_SUSPENDED) &&(srcStream != SRC_STREAMING))
+                {
+                    ALOGD(LOGTAG_A2DP" resume: playStatus = %d  srcStreamStatus=%d",playStatus,srcStream);
+                    BtA2dpResumeStreaming();
+                }
+                srcStream = SRC_STREAMING;
                 if (snk_codec_type != A2DP_SINK_AUDIO_CODEC_SBC)
                     use_file_stream = 1;
                 else
@@ -615,7 +628,13 @@ static void *thread_func(void *in_param)
             else
             {
                 use_file_stream = 0;
-                ALOGD(LOGTAG_A2DP "cannot get the snk info, may be no streaming");
+                ALOGD(LOGTAG_A2DP "cannot get the snk info, may be no streaming ");
+                if((a2dp_playstatus == A2DP_SOURCE_AUDIO_STARTED) &&( srcStream != SRC_NO_STREAMING))
+                {
+                    ALOGD(LOGTAG_A2DP" suspend: playStatus = %d  srcStreamStatus=%d",playStatus,srcStream);
+                    BtA2dpSuspendStreaming();
+                }
+                srcStream= SRC_NO_STREAMING;
                 len =0;
             }
             if (len == 0 && (use_file_stream ==0)) {
@@ -638,7 +657,7 @@ static void *thread_func(void *in_param)
              codec_type = A2DP_SINK_AUDIO_CODEC_PCM;
              len = out_buffer_size;
         }
-        ALOGD(LOGTAG_A2DP "Read %d bytes from file   ==%d", len,sizeof(len));
+        ALOGD(LOGTAG_A2DP "Read %d bytes from file   ==%d ", len,sizeof(len));
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
         pthread_mutex_lock(&a2dp_hal_mutex);
         if (!output_stream) {
@@ -721,14 +740,18 @@ static void bta2dp_audio_state_callback(btav_audio_state_t state, bt_bdaddr_t* b
     switch( state ) {
         case BTAV_AUDIO_STATE_REMOTE_SUSPEND:
             pEvent->a2dpSourceEvent.event_id = A2DP_SOURCE_AUDIO_SUSPENDED;
+            a2dp_playstatus = A2DP_SOURCE_AUDIO_SUSPENDED;
         break;
         case BTAV_AUDIO_STATE_STOPPED:
             pEvent->a2dpSourceEvent.event_id = A2DP_SOURCE_AUDIO_STOPPED;
+            a2dp_playstatus = A2DP_SOURCE_AUDIO_STOPPED;
         break;
         case BTAV_AUDIO_STATE_STARTED:
             pEvent->a2dpSourceEvent.event_id = A2DP_SOURCE_AUDIO_STARTED;
+            a2dp_playstatus = A2DP_SOURCE_AUDIO_STARTED;
         break;
     }
+    ALOGD(LOGTAG_A2DP " Audio State = %d",a2dp_playstatus);
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
 }
 
@@ -847,16 +870,22 @@ static void btavrcp_target_getelemattr_vendor_callback(uint8_t num_attr,
     pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_ELE_ATTR;
 
     ItemAttr* itemAttr = (ItemAttr*)osi_malloc(sizeof(ItemAttr));
-    memcpy(&itemAttr->p_attr, &p_attrs, sizeof(p_attrs));
+    itemAttr->p_attr = (btrc_media_attr_t*)osi_malloc(num_attr * sizeof(btrc_media_attr_t));
+    memcpy(itemAttr->p_attr, p_attrs, num_attr * sizeof(btrc_media_attr_t));
     itemAttr->mUid = 0;
     itemAttr->mSize = 0;
 
     pEvent->avrcpTargetEvent.buf_size = sizeof(ItemAttr);
     pEvent->avrcpTargetEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->avrcpTargetEvent.buf_size);
-    memcpy(pEvent->avrcpTargetEvent.buf_ptr, &itemAttr, pEvent->avrcpTargetEvent.buf_size);
+    memcpy(pEvent->avrcpTargetEvent.buf_ptr, itemAttr, pEvent->avrcpTargetEvent.buf_size);
+    ItemAttr* pAttr = (ItemAttr*)pEvent->avrcpTargetEvent.buf_ptr;
+    pAttr->p_attr = (btrc_media_attr_t*)osi_malloc(num_attr * sizeof(btrc_media_attr_t));
+    memcpy(pAttr->p_attr, itemAttr->p_attr, num_attr * sizeof(btrc_media_attr_t));
     pEvent->avrcpTargetEvent.arg1 = (uint16_t)num_attr;
     memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+    osi_free(itemAttr->p_attr);
+    osi_free(itemAttr);
 }
 
 static void btavrcp_target_getplaystatus_vendor_callback(bt_bdaddr_t *bd_addr) {
@@ -1360,7 +1389,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             }
             ALOGD(LOGTAG_AVRCP " Send response for Get element attribute, num_attr %d", num_attr);
             item = (ItemAttr*)osi_malloc(sizeof(ItemAttr));
-            memcpy(&item, pEvent->avrcpTargetEvent.buf_ptr, pEvent->avrcpTargetEvent.buf_size);
+            memcpy(item, pEvent->avrcpTargetEvent.buf_ptr, pEvent->avrcpTargetEvent.buf_size);
             ALOGD(LOGTAG_AVRCP " Uid %d Size %d", item->mUid, item->mSize);
             for (i = 0; i < num_attr; ++i) {
                 ALOGD(LOGTAG_AVRCP " attr[%d] %d", i, item->p_attr[i]);
@@ -1375,6 +1404,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             sBtAvrcpTargetInterface->get_element_attr_rsp((uint8_t)num_attr, pAttrs,
                                                  &pEvent->avrcpTargetEvent.bd_addr);
             osi_free(pEvent->avrcpTargetEvent.buf_ptr);
+            osi_free(item->p_attr);
             osi_free(item);
             osi_free(pAttrs);
             use_bigger_metadata = false;
@@ -1394,7 +1424,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
         case AVRCP_TARGET_REG_NOTI:
             switch(pEvent->avrcpTargetEvent.arg1) {
                 case BTRC_EVT_PLAY_STATUS_CHANGED :
-                    ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_REG_NOTI: BTRC_EVT_PLAY_STATUS_CHANGED");
+                    ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_REG_NOTI: BTRC_EVT_PLAY_STATUS_CHANGED %d",playStatus);
                     mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_INTERIM;
                     param.play_status = playStatus;
                     sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_STATUS_CHANGED,
