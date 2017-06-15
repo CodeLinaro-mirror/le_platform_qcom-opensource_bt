@@ -804,7 +804,7 @@ static void DeferredPushOpenCfm(OI_OPP_HANDLE handle,
 {
     OPP_CLIENT *client = LookupClient(oppContext);
     OI_UINT16 len;
-    OI_OBEX_HEADER hdrs[3];
+    OI_OBEX_HEADER hdrs[4];
     OI_OBEX_HEADER_LIST hdrList;
 
     OI_DBGTRACE(("DeferredPushOpenCfm %d", status));
