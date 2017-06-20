@@ -63,7 +63,8 @@ void btgattc_register_app_cb(int status, int clientIf, bt_uuid_t *app_uuid)
     event->event_id = BTGATTC_REGISTER_APP_EVENT;
     event->gattc_register_app_event.status = status;
     event->gattc_register_app_event.clientIf = clientIf;
-    event->gattc_register_app_event.app_uuid = app_uuid;
+    event->gattc_register_app_event.app_uuid = (bt_uuid_t *) osi_malloc (sizeof(bt_uuid_t));;
+    memcpy(event->gattc_register_app_event.app_uuid, app_uuid, sizeof(bt_uuid_t));
 
     PostMessage(THREAD_ID_GATT, event);
 }
@@ -582,7 +583,9 @@ void btgatts_register_app_cb(int status, int server_if, bt_uuid_t *uuid)
     event->event_id = BTGATTS_REGISTER_APP_EVENT;
     event->gatts_register_app_event.status = status;
     event->gatts_register_app_event.server_if = server_if;
-    event->gatts_register_app_event.uuid = uuid;
+    event->gatts_register_app_event.uuid = (bt_uuid_t *) osi_malloc (sizeof(bt_uuid_t));
+    memcpy(event->gatts_register_app_event.uuid, uuid, sizeof(bt_uuid_t));
+    
     PostMessage(THREAD_ID_GATT, event);
     ALOGD(LOGTAG "exiting btgatts_register_app_cb \n");
 }
@@ -657,7 +660,8 @@ void btgatts_characteristic_added_cb(int status, int server_if, bt_uuid_t *char_
     event->event_id = BTGATTS_CHARACTERISTIC_ADDED_EVENT;
     event->gatts_characteristic_added_event.status = status;
     event->gatts_characteristic_added_event.server_if = server_if;
-    event->gatts_characteristic_added_event.char_id = char_id;
+    event->gatts_characteristic_added_event.char_id = (bt_uuid_t *) osi_malloc (sizeof(bt_uuid_t));;
+    memcpy(event->gatts_characteristic_added_event.char_id, char_id, sizeof(bt_uuid_t));
     event->gatts_characteristic_added_event.srvc_handle = srvc_handle ;
     event->gatts_characteristic_added_event.char_handle = char_handle ;
 
@@ -675,7 +679,8 @@ void btgatts_descriptor_added_cb(int status, int server_if, bt_uuid_t *descr_id,
     event->event_id = BTGATTS_DESCRIPTOR_ADDED_EVENT;
     event->gatts_descriptor_added_event.status = status;
     event->gatts_descriptor_added_event.server_if = server_if;
-    event->gatts_descriptor_added_event.descr_id  = descr_id ;
+    event->gatts_descriptor_added_event.descr_id = (bt_uuid_t *) osi_malloc (sizeof(bt_uuid_t));;
+    memcpy(event->gatts_descriptor_added_event.descr_id, descr_id, sizeof(bt_uuid_t));
     event->gatts_descriptor_added_event.srvc_handle = srvc_handle ;
     event->gatts_descriptor_added_event.descr_handle = descr_handle ;
 
@@ -1902,8 +1907,10 @@ void Gatt::UnRegisterServerCallback( int serverif)
          }
      }
      it2 = serverCbSifMap.find(serverif);
+     if (it2 != serverCbSifMap.end())
      serverCbSifMap.erase (it2);
      it3 = ConnidServerifMap.find(serverif);
+     if (it3 != ConnidServerifMap.end())
      ConnidServerifMap.erase(it3);
 }
 
@@ -1925,8 +1932,10 @@ void Gatt::UnRegisterClientCallback( int clientif)
           }
      }
      it2 = clientCbCifMap.find(clientif);
+     if (it2 != clientCbCifMap.end())
      clientCbCifMap.erase (it2);
      it3 = ConnidClientifMap.find(clientif);
+     if (it3 != ConnidClientifMap.end())
      ConnidClientifMap.erase(it3);
 }
 
@@ -1966,6 +1975,7 @@ bool Gatt::HandleDisableGatt()
 {
     bool status = true;
     ALOGD(LOGTAG  "(%s) Closing Gatt Instance",__FUNCTION__);
+    GattInterfaceCleanup();
     return status;
 }
 

@@ -1496,6 +1496,7 @@ void BtSocketDataHandler (void *context) {
         if (len <= 0) {
             ALOGE("Not able to receive msg to remote dev: %s", strerror(errno));
             reactor_unregister (g_bt_app->accept_reactor_);
+            g_bt_app->accept_reactor_ = NULL;
             close(g_bt_app->client_socket_);
             g_bt_app->client_socket_ = -1;
         } else if(len == BT_IPC_MSG_LEN) {
@@ -1834,6 +1835,17 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             break;
 
         case MAIN_EVENT_DEVICE_FOUND:
+           {
+           bdstr_t bd_str;
+            std::map<std::string, std::string>::iterator it;
+            bdaddr_to_string(&event->device_found_event.remoteDevice.address, &bd_str[0], sizeof(bd_str));
+            std::string deviceAddress(bd_str);
+
+            it = bonded_devices.find(deviceAddress);
+            if (it != bonded_devices.end())
+            {
+                break;
+            }
             fprintf(stdout, "Device Found details: \n");
             AddFoundedDevice(event->device_found_event.remoteDevice.name,
                                     event->device_found_event.remoteDevice.address);
@@ -1845,7 +1857,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             fprintf(stdout, "Device class is: %d\n", event->device_found_event.
                                         remoteDevice.bluetooth_class);
             break;
-
+        }
         case MAIN_EVENT_BOND_STATE: {
             std::string bd_name((const char*)event->bond_state_event.bd_name.name);
             HandleBondState(event->bond_state_event.state,
@@ -1914,15 +1926,21 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
 void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t
                                         bd_addr, std::string bd_name ) {
     std::map<std::string, std::string>::iterator it;
+    std::map<std::string, std::string>::iterator it_inquiry;
     bdstr_t bd_str;
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
     it = bonded_devices.find(deviceAddress);
-
+    it_inquiry= inquiry_list.find(deviceAddress);
     if(new_state == BT_BOND_STATE_BONDED) {
         if (it == bonded_devices.end()) {
             bonded_devices[deviceAddress] = bd_name;
         }
+       if(it_inquiry!=inquiry_list.end())
+        {
+            inquiry_list.erase(it_inquiry);
+        }
+
         fprintf(stdout, "\n*************************************************");
         fprintf(stdout, "\n Pairing state for %s is BONDED", bd_name.c_str());
         fprintf(stdout, "\n*************************************************\n");
@@ -2179,12 +2197,19 @@ void BluetoothApp :: InitHandler (void) {
 void BluetoothApp :: DeInitHandler (void) {
     UnLoadBtStack ();
 
+    ALOGV (LOGTAG "  %s:",__func__);
      // de-register reactors for socket
     if (is_socket_input_enabled_) {
         if(listen_reactor_)
+        {
             reactor_unregister ( listen_reactor_);
+            listen_reactor_ = NULL;
+        }
         if(accept_reactor_)
+        {
             reactor_unregister ( accept_reactor_);
+            accept_reactor_ = NULL;
+        }
     }
 
     if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
