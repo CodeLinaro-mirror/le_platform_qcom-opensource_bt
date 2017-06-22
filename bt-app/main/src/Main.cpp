@@ -54,6 +54,8 @@
 
 #define LOGTAG  "MAIN "
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
+#define SOCKETNAME  "/data/misc/bluetooth/btprop"
+static int bt_prop_socket;
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
@@ -86,6 +88,74 @@ extern "C"
 
 thread_t *test_thread_id = NULL;
 static void SendDisableCmdToGap();
+void opensocket()
+{
+     int len;    /* length of sockaddr */
+      struct sockaddr_un name;
+      if( (bt_prop_socket = socket(AF_UNIX, SOCK_STREAM, 0) ) < 0) {
+        perror("socket");
+        exit(1);
+      }
+      /*Create the address of the server.*/
+      memset(&name, 0, sizeof(struct sockaddr_un));
+      name.sun_family = AF_UNIX;
+      strlcpy(name.sun_path, SOCKETNAME, sizeof(name.sun_path));
+      len = sizeof(name.sun_family) + strlen(name.sun_path);
+      /*Connect to the server.*/
+     if (connect(bt_prop_socket, (struct sockaddr *) &name, len) < 0){
+        perror("connect");
+        exit(1);
+      }
+}
+void closesocket()
+{
+    shutdown(bt_prop_socket, SHUT_RDWR);
+    close(bt_prop_socket);
+}
+
+int property_get_bt(const char *key, char *value, const char *default_value)
+{
+    char prop_string[200] = {'\0'};
+    int ret, bytes_read = 0, i = 0;
+
+    snprintf(prop_string, sizeof(prop_string), "get_property %s,", key);
+    ret = send(bt_prop_socket, prop_string, strlen(prop_string), 0);
+    memset(value, 0, sizeof(value));
+    do
+    {
+        bytes_read = recv(bt_prop_socket, &value[i], 1, 0);
+        if (bytes_read == 1)
+        {
+            if (value[i] == ',')
+            {
+                value[i] = '\0';
+                break;
+            }
+            i++;
+        }
+    } while(1);
+    ALOGD("property_get_bt: key(%s) has value: %s", key, value);
+    if (!i && default_value)
+    {
+        ALOGD("property_get_bt: Copied default =%s", default_value);
+        strlcpy(value, default_value, strlen(default_value)+1);
+        return 1;
+    }
+    return 0;
+}
+
+/* property_set_bt: returns 0 on success, < 0 on failure
+*/
+int property_set_bt(const char *key, const char *value)
+{
+    char prop_string[200] = {'\0'};
+    int ret;
+    snprintf(prop_string, sizeof(prop_string), "set_property %s %s,", key, value);
+    ALOGD("property_set_bt: setting key(%s) to value: %s\n", key, value);
+    ret = send(bt_prop_socket, prop_string, strlen(prop_string), 0);
+    return 0;
+}
+
 /**
  * @brief main function
  *
@@ -110,11 +180,13 @@ int main (int argc, char *argv[]) {
         BtEvent *event = new BtEvent;
         event->event_id = MAIN_API_INIT;
         ALOGV (LOGTAG " Posting init to Main thread\n");
+        opensocket();
         PostMessage (THREAD_ID_MAIN, event);
 
         // wait for Main thread to exit
         thread_join (main_thread->thread_id);
         thread_free (main_thread->thread_id);
+        closesocket();
     }
 #ifndef USE_ANDROID_LOGGING
     closelog ();
@@ -2056,7 +2128,6 @@ void BluetoothApp :: InitHandler (void) {
 
     if (!LoadBtStack())
         return;
-
     // Starting GAP Thread
     threadInfo[THREAD_ID_GAP].thread_id = thread_new (
             threadInfo[THREAD_ID_GAP].thread_name);
@@ -2385,12 +2456,19 @@ int BluetoothApp:: LocalSocketCreate(void) {
 
 bool BluetoothApp::LoadConfigParameters (const char *configpath) {
 
+    bool is_bt_ext_ldo;
     config = config_new (configpath);
     if (!config) {
         ALOGE (LOGTAG " Unable to open config file");
         return false;
     }
-
+   is_bt_ext_ldo = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_ENABLE_EXT_POWER, false);
+   if(is_bt_ext_ldo){
+      property_set_bt("wc_transport.extldo", "enabled");
+   }else{
+     property_set_bt("wc_transport.extldo", "disabled");
+    }
     // checking for the BT Enable option in config file
     is_bt_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_DEFAULT, false);
