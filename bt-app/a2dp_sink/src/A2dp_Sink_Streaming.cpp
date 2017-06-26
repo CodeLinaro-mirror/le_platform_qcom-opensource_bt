@@ -231,7 +231,15 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 if (pA2dpSinkStream->relay_sink_data) {
                     if(!pA2dpSinkStream->sbc_decoding)
                     {
-                        enque_relay_data(pA2dpSinkStream->pcm_buf, pcm_data_read, A2DP_SINK_AUDIO_CODEC_SBC);//using sbc
+                        ALOGD(LOGTAG " total frames = %d", *(pA2dpSinkStream->pcm_buf));
+                        if(!pA2dpSinkStream->fetch_rtp_info)
+                            enque_relay_data(pA2dpSinkStream->pcm_buf+1,
+                                             pcm_data_read-1,
+                                             A2DP_SINK_AUDIO_CODEC_SBC);//using sbc
+                        else
+                            enque_relay_data(pA2dpSinkStream->pcm_buf,
+                                             pcm_data_read,
+                                             A2DP_SINK_AUDIO_CODEC_SBC);//using sbc
                     }
                     else
                     {
