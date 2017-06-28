@@ -43,7 +43,7 @@
 #include "ipc.h"
 #include "utils.h"
 #include "hardware/bt_rc_vendor.h"
-
+#include <list>
 
 class Avrcp {
 
@@ -58,6 +58,7 @@ class Avrcp {
     ~Avrcp();
     char* dump_message(BluetoothEventId event_id);
     pthread_mutex_t lock;
+    std::list <std::string> rc_only_devices;
     bt_bdaddr_t mConnectedAvrcpDevice;
     uint32_t max_avrcp_conn;
     void HandleAvrcpEvents(BtEvent* pEvent);

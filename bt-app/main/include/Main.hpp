@@ -154,7 +154,7 @@ typedef enum {
     RSP_OPTION,
     RSP_INIT,
     RSP_START,
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     PBAP_CLIENT_OPTION,
     PBAP_REGISTER,
     PBAP_GET_PHONEBOOK_SIZE,
@@ -184,6 +184,7 @@ typedef enum {
     OPP_REGISTER,
     OPP_SEND,
     OPP_ABORT,
+#endif
     GATTCTEST_OPTION,
     GATTCTEST_INIT,
     GATTCTEST_START_SCAN,
@@ -194,7 +195,6 @@ typedef enum {
     GATTSTEST_OPTION,
     GATTSTEST_INIT,
     GATTSTEST_START,
-#endif
     HFP_CLIENT,
     CREATE_SCO_CONN,
     DESTROY_SCO_CONN,
@@ -250,7 +250,7 @@ typedef enum {
     RSP_MENU,
     GATTCTEST_MENU,
     GATTSTEST_MENU,
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     PBAP_CLIENT_MENU,
     OPP_MENU,
 #endif
@@ -307,7 +307,7 @@ UserMenuList MainMenu[] = {
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     {PBAP_CLIENT_OPTION,    "pbap_client_menu", ZERO_PARAM,   "pbap_client_menu"},
     {OPP_OPTION,            "opp_menu",         ZERO_PARAM,   "opp_menu"},
 #endif
@@ -442,7 +442,7 @@ UserMenuList HfpClientMenu[] = {
     {BACK_TO_MAIN,          "main_menu",     ZERO_PARAM,   "main_menu"},
 };
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
 /**
  * list of supported commands for PBAP_CLIENT Menu
  */
@@ -674,7 +674,7 @@ class BluetoothApp {
     bool is_hfp_ag_enabled_;
     bool is_pan_enable_default_;
     bool is_gatt_enable_default_;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     bool is_obex_enabled_;
     bool is_pbap_client_enabled_;
     bool is_opp_enabled_;
@@ -694,7 +694,7 @@ class BluetoothApp {
     int client_socket_;
     bool ssp_notification;
     bool pin_notification;
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     bool incoming_file_notification;
 #endif
 
@@ -805,7 +805,7 @@ class BluetoothApp {
      */
     bool HandlePinInput(char user_cmd[][COMMAND_ARG_SIZE]);
 
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     /**
      * @brief HandleIncomingFile
      *

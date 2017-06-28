@@ -32,7 +32,7 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     { NULL ,    THREAD_ID_GATT,        &BtGattMsgHandler,        "Gatt_Thread" } ,
     { NULL ,    THREAD_ID_BT_AM,       &BtAudioManagerHandler,   "BT_AUDIO_MANAGER_Thread" } ,
     { NULL ,    THREAD_ID_SDP_CLIENT,  &BtSdpClientMsgHandler,   "Sdp_Client_Thread" } ,
-#ifdef USE_BT_OBEX
+#if (defined USE_OBEX && USE_OBEX == 1)
     { NULL ,    THREAD_ID_PBAP_CLIENT, &BtPbapClientMsgHandler,  "Pbap_Client_Thread" } ,
     { NULL ,    THREAD_ID_OPP,         &BtOppMsgHandler,         "Opp_Thread" } ,
 #endif

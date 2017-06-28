@@ -71,10 +71,6 @@ typedef struct{
 } ServiceData;
 
 
-
-
-
-
 class Gatt;
 class GattcTest {
     private:
@@ -94,15 +90,12 @@ class GattcTest {
         Gatt *app_gatt;
 /***************************/
 
-
-
-
     public:
         GattcTest(btgatt_interface_t *, Gatt *);
         ~GattcTest();
 
         bool EnableGATTCTEST();
-        bool DisableGATTCTEST(int server_if);
+        bool DisableGATTCTEST();
         inline btgatt_interface_t* GetGattInterface()
         {
             return gatt_interface;
