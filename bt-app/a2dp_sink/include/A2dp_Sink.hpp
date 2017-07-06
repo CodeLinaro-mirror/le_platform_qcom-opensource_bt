@@ -82,7 +82,6 @@ class A2dp_Device {
     bool mAvrcpConnected;
     int mNotificationLabel;
     bool mAbsVolNotificationRequested;
-    bool mAbsoluteVolumeChangeInProgress;
   public:
     A2dp_Device(config_t *config, bt_bdaddr_t dev);
     ~A2dp_Device();
