@@ -808,7 +808,6 @@ A2dp_Device :: A2dp_Device(config_t *config, bt_bdaddr_t dev) {
     mAvrcpConnected = false;
     mNotificationLabel = -1;
     mAbsVolNotificationRequested = false;
-    mAbsoluteVolumeChangeInProgress = false;
 }
 
 A2dp_Device :: ~A2dp_Device() {

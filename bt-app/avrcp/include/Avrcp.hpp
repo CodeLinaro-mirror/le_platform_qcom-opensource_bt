@@ -68,6 +68,8 @@ class Avrcp {
     void SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct);
     void OnDisconnected();
     void setAbsVolume(bt_bdaddr_t* dev, int absVol, int label);
+    bool is_abs_vol_supported(bt_bdaddr_t bd_addr);
+    int get_current_audio_index();
 };
 
 #endif
