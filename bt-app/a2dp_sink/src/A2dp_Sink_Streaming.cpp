@@ -156,11 +156,13 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             break;
         case A2DP_SINK_STREAMING_FETCH_PCM_DATA:
             ALOGD(LOGTAG " A2DP_SINK_STREAMING_FETCH_PCM_DATA");
-            if (!pA2dpSinkStream->pcm_timer) {
-                ALOGD(LOGTAG " pcm_timer already false, don't fetch data");
-                break;
+            if (!pA2dpSinkStream->enable_notification_cb) {
+                if (!pA2dpSinkStream->pcm_timer) {
+                    ALOGD(LOGTAG " pcm_timer already false, don't fetch data");
+                    break;
+                }
+                pA2dpSinkStream->pcm_timer = false;
             }
-            pA2dpSinkStream->pcm_timer = false;
 #if (defined USE_GST)
             uint8_t * data;
             int size;
@@ -174,6 +176,8 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 }
                 else
                 {
+                    /* TODO: When callback mechnism is enabled, handle size before invoking
+                             following api to fetch data from data queue in stack*/
                     // fetch PCM data from fluoride
                     pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
                     get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_PCM,data, size);
@@ -199,6 +203,10 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 }
                 else
                 {
+                    if (pA2dpSinkStream->enable_notification_cb) {
+                        pA2dpSinkStream->pcm_buf_size = pEvent->a2dpSinkEvent.arg1
+                                + (pA2dpSinkStream->enable_notification_cb ? sizeof(uint64_t) : 0);
+                    }
                     // fetch PCM data from fluoride
                     if(pA2dpSinkStream->sbc_decoding)
                     {
@@ -211,7 +219,20 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     {
                         pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
                         get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_SBC,
-                        pA2dpSinkStream->pcm_buf, (pA2dpSinkStream->pcm_buf_size)/4);
+                        pA2dpSinkStream->pcm_buf,
+                        (pA2dpSinkStream->enable_notification_cb ? pA2dpSinkStream->pcm_buf_size :
+                        (pA2dpSinkStream->pcm_buf_size)/4));
+                    }
+                    /* when callback mechanism is used, remove timestamp before sending data
+                     * to Audio Hal */
+                    if (pA2dpSinkStream->enable_notification_cb) {
+                        uint64_t tStamp = *((uint64_t *)pA2dpSinkStream->pcm_buf);
+                        pA2dpSinkStream->pcm_buf += sizeof(uint64_t);
+                        pcm_data_read -= sizeof(uint64_t); // decrement timestamp data read size
+                        // fetch current timestamp and check latency
+                        uint64_t cur_time = pA2dpSinkStream->get_cur_time();
+                        ALOGD(LOGTAG" media packet timestamp = %llu, latency to receive data = %llu"
+                                " micro sec", tStamp, (cur_time - tStamp));
                     }
                 }
 
@@ -228,7 +249,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     (pcm_data_read)) {
                 out_buf.buffer = pA2dpSinkStream->pcm_buf;
                 out_buf.bytes = pcm_data_read;
-                if (pA2dpSinkStream->relay_sink_data) {
+                if (pA2dpSinkStream->relay_sink_data && !pA2dpSinkStream->enable_notification_cb) {
                     if(!pA2dpSinkStream->sbc_decoding)
                     {
                         ALOGD(LOGTAG " total frames = %d", *(pA2dpSinkStream->pcm_buf));
@@ -257,6 +278,10 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             }
 #endif
 #endif
+            /* when callback mechanism is used, reposition pcm_buf to starting address
+             * before reading next media data */
+            if (pA2dpSinkStream->enable_notification_cb)
+                pA2dpSinkStream->pcm_buf -= sizeof(uint64_t);
             break;
         case A2DP_SINK_STREAMING_AM_RELEASE_CONTROL:
             ALOGD(LOGTAG " A2DP_SINK_STREAMING_AM_RELEASE_CONTROL");
@@ -323,14 +348,17 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         audio_focus_state_vendor(3, &pA2dpSinkStream->mStreamingDevice);
                     }
                     pA2dpSinkStream->ConfigureAudioHal();
-                    if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
-                        pA2dpSinkStream->StartPcmTimer();
-                    else {
-                        BtEvent *pEvent = new BtEvent;
-                        pEvent->a2dpSinkStreamingEvent.event_id = A2DP_SINK_FILL_COMPRESS_BUFFER;
-                        if (pA2dpSinkStream) {
-                            thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                            pA2dpSinkStream->threadInfo.thread_handler, (void*)pEvent);
+                    if (!pA2dpSinkStream->enable_notification_cb) {
+                        if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
+                            pA2dpSinkStream->StartPcmTimer();
+                        else {
+                            BtEvent *pEvent = new BtEvent;
+                            pEvent->a2dpSinkStreamingEvent.event_id =
+                                    A2DP_SINK_FILL_COMPRESS_BUFFER;
+                            if (pA2dpSinkStream) {
+                                thread_post(pA2dpSinkStream->threadInfo.thread_id,
+                                pA2dpSinkStream->threadInfo.thread_handler, (void*)pEvent);
+                            }
                         }
                     }
                     break;
@@ -342,14 +370,17 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         audio_focus_state_vendor(3, &pA2dpSinkStream->mStreamingDevice);
                     }
                     pA2dpSinkStream->ConfigureAudioHal();
-                    if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
-                        pA2dpSinkStream->StartPcmTimer();
-                    else {
-                        BtEvent *pEvent = new BtEvent;
-                        pEvent->a2dpSinkStreamingEvent.event_id = A2DP_SINK_FILL_COMPRESS_BUFFER;
-                        if (pA2dpSinkStream) {
-                            thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                            pA2dpSinkStream->threadInfo.thread_handler, (void*)pEvent);
+                    if (!pA2dpSinkStream->enable_notification_cb) {
+                        if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
+                            pA2dpSinkStream->StartPcmTimer();
+                        else {
+                            BtEvent *pEvent = new BtEvent;
+                            pEvent->a2dpSinkStreamingEvent.event_id =
+                                    A2DP_SINK_FILL_COMPRESS_BUFFER;
+                            if (pA2dpSinkStream) {
+                                thread_post(pA2dpSinkStream->threadInfo.thread_id,
+                                pA2dpSinkStream->threadInfo.thread_handler, (void*)pEvent);
+                            }
                         }
                     }
                     // send play to remote
@@ -364,6 +395,9 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             }
             break;
         case A2DP_SINK_FILL_COMPRESS_BUFFER:
+            if (pA2dpSinkStream->enable_notification_cb) {
+                pA2dpSinkStream->pcm_buf_size = pEvent->a2dpSinkEvent.arg1 + sizeof(uint64_t);
+            }
             pA2dpSinkStream->FillCompressBuffertoAudioOutHal();
             break;
         case A2DP_SINK_STREAMING_DISCONNECTED:
@@ -473,12 +507,22 @@ uint8_t get_rtp_offset(uint8_t* p_start, uint16_t codec_type)
     return offset;
 }
 
+uint64_t A2dp_Sink_Streaming::get_cur_time() {
+    struct timespec ts_now;
+    memset(&ts_now, 0, sizeof(ts_now));
+    clock_gettime(CLOCK_REALTIME, &ts_now);
+    // convert current time in micro second
+    uint64_t cur_ts = (uint64_t)ts_now.tv_sec * 1000000 + ts_now.tv_nsec/1000;
+    return cur_ts;
+}
+
 void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     qahw_out_buffer_t out_buf;
     uint32_t data_read_from_bt = 0;
     uint32_t data_sent_to_audio = 0;
     uint8_t rtp_offset = 0;
+    uint64_t timestamp;
 #if (!defined (USE_GST))
     if (pcm_buf == NULL) {
        // pcm buffer is null, closeStream have been called earlier
@@ -493,7 +537,8 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
             if( residual_compress_data == 0) {
             int size = 0;
             uint8_t * tempbuf;
-
+            /* TODO: When callback mechnism is enabled, handle size before invoking
+                     following api to fetch data from data queue. */
             data_read_from_bt =  mBtA2dpSinkStreamingVendorInterface->
                  get_a2dp_sink_streaming_data_vendor(codec_type, gbuff, A2DP_SINK_GBUF_MAX_SIZE);
             gstbtobj.blocksize = data_read_from_bt;
@@ -515,6 +560,16 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
             if( residual_compress_data == 0) {
             data_read_from_bt =  mBtA2dpSinkStreamingVendorInterface->
                  get_a2dp_sink_streaming_data_vendor(codec_type, pcm_buf, pcm_buf_size);
+            // when callback mechanism is used, remove timestamp before sending data to Audio Hal
+            if (pA2dpSinkStream->enable_notification_cb) {
+                uint64_t tStamp = *((uint64_t *)pcm_buf);
+                pcm_buf += sizeof(uint64_t);
+                data_read_from_bt -= sizeof(uint64_t); // timestamp data read
+                // fetch current timestamp and check latency
+                uint64_t cur_time = get_cur_time();
+                ALOGD(LOGTAG" media packet timestamp = %llu, latency to receive data = %llu"
+                        " micro sec", tStamp, (cur_time - tStamp));
+            }
             if (fetch_rtp_info && (data_read_from_bt > 12)) {
                 rtp_offset = get_rtp_offset(pcm_buf, codec_type);
                 data_read_from_bt = data_read_from_bt - rtp_offset;
@@ -527,7 +582,7 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
 #endif
         if (data_read_from_bt <= 0) {
            // in this case, we don't have data from bt, but we try after some time
-           ALOGD(LOGTAG " NO Data from BT , try after %d ms", A2DP_SINK_PCM_FETCH_TIMER_DURATION);
+           ALOGD(LOGTAG " NO Data from BT , try after data is queued in Stack");
            StartCompressAudioFeedTimer();
            break;
         }
@@ -542,7 +597,8 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
 
         }
 #else
-        if (pA2dpSinkStream->relay_sink_data) {
+        // if callback mechanism is enabled, relay mechanism will be disabled
+        if (pA2dpSinkStream->relay_sink_data && !pA2dpSinkStream->enable_notification_cb) {
             ALOGD(LOGTAG " Enquee the data codec type = %d size = %d ", codec_type,data_read_from_bt);
             enque_relay_data(pcm_buf,data_read_from_bt, codec_type);
         }
@@ -575,10 +631,19 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
            memcpy(pcm_buf, pcm_buf + data_sent_to_audio, data_read_from_bt - data_sent_to_audio);
            break;
         }
+        if (enable_notification_cb) {
+            /* if callback mechanism is enabled, BTAPP fetches 1 packet at a time. So wait for
+             * next callback, break */
+            break;
+        }
     }while(1);
     ALOGD(LOGTAG " FillCompressBuffertoAudioOutHal - cum_data = %d", cuml_data_written_to_audio);
     if(cuml_data_written_to_audio >= pcm_buf_size)//reset for next iteration.
         cuml_data_written_to_audio = 0;
+    /* when callback mechanism is used, reposition pcm_buf to starting address
+     * before reading next media data */
+    if (pA2dpSinkStream->enable_notification_cb)
+        pA2dpSinkStream->pcm_buf -= sizeof(uint64_t);
 #endif
 }
 
@@ -595,6 +660,11 @@ void compress_audio_feed_handler(void *context) {
 }
 
 void A2dp_Sink_Streaming::StartCompressAudioFeedTimer() {
+    if (pA2dpSinkStream->enable_notification_cb) {
+        ALOGD(LOGTAG " Compress Audio feed timer is disabled in Streaming with Callback"
+                " Mechanism, return");
+        return;
+    }
     if(compress_offload_timer) {
         ALOGV(LOGTAG " compressed timer already running, return ");
         return;
@@ -605,6 +675,11 @@ void A2dp_Sink_Streaming::StartCompressAudioFeedTimer() {
 }
 
 void A2dp_Sink_Streaming::StopCompressAudioFeedTimer() {
+    if (pA2dpSinkStream->enable_notification_cb) {
+        ALOGD(LOGTAG " Compress Audio feed timer is disabled in Streaming with"
+                " callback mechanism, return");
+        return;
+    }
     if((compress_audio_feed_timer != NULL) && (compress_offload_timer)) {
         alarm_cancel(compress_audio_feed_timer);
         compress_offload_timer = false;
@@ -623,6 +698,11 @@ void pcm_fetch_timer_handler(void *context) {
 }
 
 void A2dp_Sink_Streaming::StartPcmTimer() {
+    if (pA2dpSinkStream->enable_notification_cb) {
+        ALOGD(LOGTAG " Pcm Timer is disabled in Streaming with Callback Mechanism, return");
+        return;
+    }
+
     if(pcm_timer) {
         ALOGD(LOGTAG " PCM Timer still running + ");
         return;
@@ -634,6 +714,10 @@ void A2dp_Sink_Streaming::StartPcmTimer() {
 
 void A2dp_Sink_Streaming::StopDataFetchTimer() {
     ALOGD(LOGTAG " StopDataFetchTimer ");
+    if (pA2dpSinkStream->enable_notification_cb) {
+        ALOGD(LOGTAG " Pcm Timer is disabled in Streaming with Callback Mechanism, return");
+        return;
+    }
     if((codec_type == A2DP_SINK_AUDIO_CODEC_SBC) && (pcm_data_fetch_timer != NULL) && (pcm_timer)) {
         alarm_cancel(pcm_data_fetch_timer);
         pcm_timer = false;
