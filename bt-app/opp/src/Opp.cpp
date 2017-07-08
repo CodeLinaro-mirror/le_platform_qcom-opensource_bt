@@ -329,7 +329,7 @@ static OI_STATUS OFS_OpenRead(const OI_OBEX_UNICODE *name,
     static OI_CHAR fileName[MAX_NAME_LEN + 1];
     int read = 0;
     int remaining;
-    OI_STATUS status;
+    OI_STATUS status = OI_OK;
 
     /*
      * Clear object.
@@ -1385,7 +1385,7 @@ bool Opp :: Disconnect()
 bool Opp :: Abort()
 {
     bool ret = true;
-    OI_STATUS status;
+    OI_STATUS status = OI_STATUS_SUCCESS;
     ALOGV(LOGTAG "%s", __FUNCTION__);
     if (getOppState() != STATE_SENDING && getOppState() != STATE_RECEIVING) {
         ALOGE(LOGTAG "%s: Data transfer not ongoing, can't abort", __FUNCTION__);
@@ -1410,7 +1410,6 @@ bool Opp :: Abort()
 bool Opp :: IncomingFileRsp(bool accept)
 {
     bool ret = true;
-    OI_STATUS status;
     ALOGV(LOGTAG "%s", __FUNCTION__);
     if (getOppState() != STATE_RECEIVING) {
         ALOGE(LOGTAG "%s: File not being received", __FUNCTION__);
