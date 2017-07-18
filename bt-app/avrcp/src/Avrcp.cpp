@@ -366,7 +366,7 @@ void Avrcp::setAbsVolume(bt_bdaddr_t* dev, int absVol, int label) {
 
 void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
     list<A2dp_Device>::iterator iter;
-    int perVol;
+    int perVol = 0;
     bdstr_t bd_str;
     std::list<std::string>::iterator bdstring;
     ALOGD(LOGTAG_CTRL " HandleAvrcpEvents event = %s",
