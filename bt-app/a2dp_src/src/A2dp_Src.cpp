@@ -391,6 +391,22 @@ int get_codec_relay_data(void)
     pthread_mutex_unlock(&a2dp_sink_relay_mutex);
     return ptr->codec_type;
 }
+void flush_relay_data(void)
+{
+    if(!a2dp_sink_relay_data_list)
+        return;
+    ALOGD("flush relay data, list_length = %d",list_length(a2dp_sink_relay_data_list));
+    t_SINK_RELAY_DATA* ptr;
+    pthread_mutex_lock(&a2dp_sink_relay_mutex);
+    while (!list_is_empty(a2dp_sink_relay_data_list))
+    {
+        ptr = (t_SINK_RELAY_DATA*)list_front(a2dp_sink_relay_data_list);
+        list_remove(a2dp_sink_relay_data_list, ptr);
+        osi_free(ptr);
+    }
+    pthread_mutex_unlock(&a2dp_sink_relay_mutex);
+    return;
+}
 
 void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type)
 {

@@ -50,7 +50,7 @@ using std::string;
 A2dp_Sink *pA2dpSink = NULL;
 A2dp_Sink_Streaming *pA2dpSinkStream;
 extern Avrcp *pAvrcp;
-
+extern void flush_relay_data(void);
 static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 #ifdef __cplusplus
@@ -439,6 +439,10 @@ void A2dp_Sink::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
                 else
                 {
                     ALOGE(LOGTAG " found a match, disconnect this device iter = %x", iter);
+                    if (pA2dpSinkStream->relay_sink_data)
+                    {
+                        flush_relay_data();
+                    }
                 }
             }
             break;
