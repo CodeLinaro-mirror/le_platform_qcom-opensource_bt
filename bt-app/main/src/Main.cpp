@@ -404,11 +404,19 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
+        {
+            bt_bdaddr_t address;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &address);
+            if (!g_gap->IsDeviceBonded(address)) {
+                fprintf( stdout, " Please pair with the device before A2DPSink connection\n");
+                break;
+            }
             event = new BtEvent;
             event->a2dpSinkEvent.event_id = A2DP_SINK_API_CONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
             PostMessage (THREAD_ID_A2DP_SINK, event);
             break;
+        }
         case DISCONNECT:
             event = new BtEvent;
             event->a2dpSinkEvent.event_id = A2DP_SINK_API_DISCONNECT_REQ;
@@ -496,11 +504,19 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
+        {
+            bt_bdaddr_t address;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &address);
+            if (!g_gap->IsDeviceBonded(address)){
+                fprintf( stdout, " Please pair with the device before A2DPSource connection\n");
+                break;
+            }
             event = new BtEvent;
             event->a2dpSourceEvent.event_id = A2DP_SOURCE_API_CONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSourceEvent.bd_addr);
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
+        }
         case DISCONNECT:
             event = new BtEvent;
             event->a2dpSourceEvent.event_id = A2DP_SOURCE_API_DISCONNECT_REQ;
