@@ -311,6 +311,21 @@ list<A2dp_Device>::iterator FindAvDeviceByAddr(list<A2dp_Device>& pA2dpDev, bt_b
     return p;
 }
 
+bool Avrcp::is_abs_vol_supported(bt_bdaddr_t bd_addr){
+    list<A2dp_Device>::iterator iter;
+    iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, bd_addr);
+    if (iter != pA2dpSink->pA2dpDeviceList.end()) {
+        return iter->mAbsVolNotificationRequested;
+    }
+    else {
+        return false;
+    }
+}
+
+int Avrcp::get_current_audio_index(){
+    return curr_audio_index;
+}
+
 int getVolumePercentage() {
     int maxVolume = AUDIO_MAX_VOL_LEVEL;
                   //mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
@@ -351,7 +366,7 @@ void Avrcp::setAbsVolume(bt_bdaddr_t* dev, int absVol, int label) {
 
 void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
     list<A2dp_Device>::iterator iter;
-    int perVol;
+    int perVol = 0;
     bdstr_t bd_str;
     std::list<std::string>::iterator bdstring;
     ALOGD(LOGTAG_CTRL " HandleAvrcpEvents event = %s",
@@ -423,7 +438,6 @@ void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
         if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL " setabsvol cmd cb for AV & RC connected device, send to stack");
-            iter->mAbsoluteVolumeChangeInProgress = true;
             setAbsVolume(&iter->mDevice, (int)pEvent->avrcpCtrlEvent.arg2,
                                          (int)pEvent->avrcpCtrlEvent.arg1);
         }
@@ -455,12 +469,6 @@ void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
                                                  pEvent->avrcpCtrlEvent.arg1);
         iter = pA2dpSink->pA2dpDeviceList.begin();
         while(iter != pA2dpSink->pA2dpDeviceList.end()) {
-            if (iter->mAbsoluteVolumeChangeInProgress)
-            {
-                iter->mAbsoluteVolumeChangeInProgress = false;
-            }
-            else
-            {
                 ALOGD(LOGTAG_CTRL " iter->mAvrcpConnected %d ", iter->mAvrcpConnected);
                 ALOGD(LOGTAG_CTRL " iter->mAbsVolNotificationRequested %d",
                                     iter->mAbsVolNotificationRequested);
@@ -479,8 +487,7 @@ void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
                 }
                 else
                     ALOGD(LOGTAG_CTRL " iter %x !conn to RC or !reg for Abs vol change noti", iter);
-            }
-            iter++;
+                iter++;
         }
         mPreviousPercentageVol = perVol;
         pA2dpSinkStream->SetStreamVol(curr_audio_index);

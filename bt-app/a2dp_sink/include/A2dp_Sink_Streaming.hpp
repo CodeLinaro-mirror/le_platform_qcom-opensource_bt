@@ -120,7 +120,6 @@ class A2dp_Sink_Streaming {
     uint8_t* pcm_buf;
     bool pcm_timer;
     bool compress_offload_timer;
-    int current_vol_idx;
     void StartPcmTimer();
     void StopDataFetchTimer();
     void OnDisconnected();
