@@ -180,13 +180,11 @@ int main (int argc, char *argv[]) {
         BtEvent *event = new BtEvent;
         event->event_id = MAIN_API_INIT;
         ALOGV (LOGTAG " Posting init to Main thread\n");
-        opensocket();
         PostMessage (THREAD_ID_MAIN, event);
 
         // wait for Main thread to exit
         thread_join (main_thread->thread_id);
         thread_free (main_thread->thread_id);
-        closesocket();
     }
 #ifndef USE_ANDROID_LOGGING
     closelog ();
@@ -2478,13 +2476,15 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
         ALOGE (LOGTAG " Unable to open config file");
         return false;
     }
-   is_bt_ext_ldo = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+    opensocket();
+    is_bt_ext_ldo = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_EXT_POWER, false);
-   if(is_bt_ext_ldo){
-      property_set_bt("wc_transport.extldo", "enabled");
-   }else{
-     property_set_bt("wc_transport.extldo", "disabled");
+    if(is_bt_ext_ldo){
+        property_set_bt("wc_transport.extldo", "enabled");
+    }else{
+        property_set_bt("wc_transport.extldo", "disabled");
     }
+    closesocket();
     // checking for the BT Enable option in config file
     is_bt_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_DEFAULT, false);
