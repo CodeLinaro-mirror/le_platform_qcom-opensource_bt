@@ -561,6 +561,7 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
              }
 #else
              data_sent_to_audio = qahw_out_write(out_stream, &out_buf);
+
 #endif
              cuml_data_written_to_audio = cuml_data_written_to_audio + data_sent_to_audio;
         }
@@ -901,6 +902,13 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         }
         if (codec_type != A2DP_SINK_AUDIO_CODEC_SBC) {
             qahw_out_set_callback(out_stream, compressed_callback, NULL);
+            if (mBtA2dpSinkStreamingVendorInterface != NULL)
+            {
+                uint16_t delay = qahw_out_get_latency(out_stream);
+                ALOGD(LOGTAG " ConfigureAudioHal : qahw_get_out_latency %d !", delay);
+
+                mBtA2dpSinkStreamingVendorInterface->update_qahw_delay_vendor(delay);
+            }
         }
     }
 #endif
