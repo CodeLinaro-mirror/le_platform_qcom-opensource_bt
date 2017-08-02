@@ -397,9 +397,90 @@ static void ExitHandler(void) {
     reactor_stop (thread_get_reactor (threadInfo[THREAD_ID_MAIN].thread_id));
 }
 
+static int GetArgsFromString(char cmdString[COMMAND_ARG_SIZE], uint8_t* nArgs){
+    int     i;
+    char    *p;
+    char    *p_s;
+    bool     cont= false;
+
+    p_s = cmdString; i = 0;
+    while(p_s)
+    {
+        /* skip to comma delimiter */
+        for(p = p_s; *p != ',' && *p != 0; p++);
+
+        /* get integre value */
+        if (*p != 0)
+        {
+            *p = 0;
+            cont = true;
+        }
+        else
+            cont = false;
+
+        nArgs[i] = atoi(p_s);
+
+        if (cont && i < MAX_SUB_ARGUMENTS-1)
+        {
+            p_s = p + 1;
+            i++;
+        }
+        else
+            break;
+    }
+    ++i;
+
+    for(int n=0; n < i; n++)
+        ALOGV (LOGTAG " GetArgsFromString Arg%d: %d\n",n, nArgs[n]);
+    ALOGV (LOGTAG " GetArgsFromString return %d\n", i);
+    return i;
+}
+
+static int Get32ArgsFromString(char cmdString[COMMAND_ARG_SIZE], uint32_t* nArgs){
+    int     i;
+    char    *p;
+    char    *p_s;
+    bool     cont= false;
+
+    p_s = cmdString; i = 0;
+    while(p_s)
+    {
+        /* skip to comma delimiter */
+        for(p = p_s; *p != ',' && *p != 0; p++);
+
+        /* get integre value */
+        if (*p != 0)
+        {
+            *p = 0;
+            cont = true;
+        }
+        else
+            cont = false;
+
+        nArgs[i] = atoi(p_s);
+
+        if (cont && i < MAX_SUB_ARGUMENTS-1)
+        {
+            p_s = p + 1;
+            i++;
+        }
+        else
+            break;
+    }
+    ++i;
+
+    for(int n=0; n < i; n++)
+        ALOGV (LOGTAG " GetArgsFromString Arg%d: %d\n",n, nArgs[n]);
+    ALOGV (LOGTAG " GetArgsFromString return %d\n", i);
+    return i;
+}
+
 static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     ALOGD(LOGTAG "HandleA2DPSinkCommand cmd_id = %d", cmd_id);
     BtEvent *event = NULL;
+    uint8_t* pAttr = NULL;
+    uint32_t* pAttr32 = NULL;
+    uint8_t  num_Attr = 0;
     switch (cmd_id) {
         case CONNECT:
         {
@@ -410,6 +491,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                 break;
             }
             event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
             event->a2dpSinkEvent.event_id = A2DP_SINK_API_CONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
             PostMessage (THREAD_ID_A2DP_SINK, event);
@@ -417,77 +499,154 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
         }
         case DISCONNECT:
             event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
             event->a2dpSinkEvent.event_id = A2DP_SINK_API_DISCONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
             PostMessage (THREAD_ID_A2DP_SINK, event);
             break;
         case PLAY:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_PLAY;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_PLAY;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case PAUSE:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_PAUSE;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_PAUSE;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case STOP:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_STOP;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_STOP;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case FASTFORWARD:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_FF;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_FF;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case REWIND:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_REWIND;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_REWIND;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case FORWARD:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_FORWARD;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_FORWARD;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case BACKWARD:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_BACKWARD;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_BACKWARD;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case VOL_UP:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_VOL_UP;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_VOL_UP;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case VOL_DOWN:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_VOL_DOWN;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_VOL_DOWN;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case VOL_CHANGED_NOTI:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_VOL_CHANGED_NOTI_REQ;
-            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[ONE_PARAM]);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_VOL_CHANGED_NOTI_REQ;
+            event->avrcpCtrlPassThruEvent.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case GET_CAP:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_CAP_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case LIST_PLAYER_SETTING_ATTR:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_LIST_PALYER_SETTING_ATTR_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case LIST_PALYER_SETTING_VALUE:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_LIST_PALYER_SETTING_VALUE_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case GET_PALYER_APP_SETTING:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            pAttr = new uint8_t[MAX_SUB_ARGUMENTS];
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_PALYER_APP_SETTING_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            num_Attr = GetArgsFromString(user_cmd[TWO_PARAM],pAttr);
+            if(num_Attr)
+            {
+                event->avrcpCtrlEvent.num_attrb = num_Attr;
+                event->avrcpCtrlEvent.buf_ptr = pAttr;
+                PostMessage (THREAD_ID_AVRCP, event);
+            }
+            break;
+        case GET_ELEMENT_ATTR:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            pAttr32 = new uint32_t[MAX_SUB_ARGUMENTS];
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_ELEMENT_ATTR_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            num_Attr = Get32ArgsFromString(user_cmd[TWO_PARAM],pAttr32);
+            if(num_Attr)
+            {
+                event->avrcpCtrlEvent.num_attrb = num_Attr;
+                event->avrcpCtrlEvent.buf_ptr32 = pAttr32;
+                PostMessage (THREAD_ID_AVRCP, event);
+            }
+            break;
+        case GET_PLAY_STATUS:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_PLAY_STATUS_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case REG_NOTIFICATION:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_REG_NOTIFICATION_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case BACK_TO_MAIN:
