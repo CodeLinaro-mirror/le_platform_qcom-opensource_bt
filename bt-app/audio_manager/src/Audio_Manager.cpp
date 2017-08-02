@@ -276,7 +276,7 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
             switch(audio_control_stack[top].control_status) {
                 case REQUEST_TYPE_TRANSIENT:
                     // request is from another profile, it should be denied
-                    SendControlStatusMessage(STATUS_LOSS, pEvent->btamControlReq.profile_id);
+                    SendControlStatusMessage(STATUS_LOSS_TRANSIENT, pEvent->btamControlReq.profile_id);
                     break;
                 case REQUEST_TYPE_PERMANENT:
                     if (pEvent->btamControlReq.request_type == REQUEST_TYPE_TRANSIENT) {
