@@ -50,7 +50,7 @@ using std::string;
 A2dp_Sink *pA2dpSink = NULL;
 A2dp_Sink_Streaming *pA2dpSinkStream;
 extern Avrcp *pAvrcp;
-
+extern void flush_relay_data(void);
 static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 #ifdef __cplusplus
@@ -207,6 +207,27 @@ static void bta2dp_audio_config_callback(bt_bdaddr_t *bd_addr, uint32_t sample_r
         ALOGE(LOGTAG " ERROR: Audio Config CB: No matching device");
     }
 }
+
+static void bta2dp_audio_data_read_callback(bt_bdaddr_t *bd_addr, uint16_t size) {
+    ALOGD(LOGTAG " Audio Data Read Callback, size = %d", size);
+    BtEvent *pA2dpDataRead = new BtEvent;
+    pA2dpDataRead->a2dpSinkEvent.arg1 = size;
+    memcpy(&pA2dpDataRead->a2dpSinkEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    if (pA2dpSinkStream && pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
+        pA2dpDataRead->a2dpSinkStreamingEvent.event_id =
+                A2DP_SINK_STREAMING_FETCH_PCM_DATA;
+        if (pA2dpSinkStream) {
+            thread_post(pA2dpSinkStream->threadInfo.thread_id,
+                    pA2dpSinkStream->threadInfo.thread_handler, (void*)pA2dpDataRead);
+        }
+    } else {
+        pA2dpDataRead->a2dpSinkStreamingEvent.event_id = A2DP_SINK_FILL_COMPRESS_BUFFER;
+        if (pA2dpSinkStream) {
+            thread_post(pA2dpSinkStream->threadInfo.thread_id
+                    , pA2dpSinkStream->threadInfo.thread_handler, (void*)pA2dpDataRead);
+        }
+    }
+}
 static void bta2dp_audio_focus_request_vendor_callback(bt_bdaddr_t *bd_addr) {
     ALOGD(LOGTAG " bta2dp_audio_focus_request_vendor_callback ");
     BtEvent *pEvent = new BtEvent;
@@ -240,6 +261,7 @@ static btav_sink_vendor_callbacks_t sBluetoothA2dpSinkVendorCallbacks = {
     sizeof(sBluetoothA2dpSinkVendorCallbacks),
     bta2dp_audio_focus_request_vendor_callback,
     bta2dp_audio_codec_config_vendor_callback,
+    bta2dp_audio_data_read_callback,
 };
 
 void A2dp_Sink::HandleEnableSink(void) {
@@ -270,7 +292,10 @@ void A2dp_Sink::HandleEnableSink(void) {
                          CONFIG_DEFAULT_SECTION, "BtFetchRTPForSink", false);
         pA2dpSinkStream->sbc_decoding = config_get_bool (config,
             CONFIG_DEFAULT_SECTION, "BtEnableSBCDecoding", true);
-        ALOGD(LOGTAG " Fetch RTP Info %d", pA2dpSinkStream->fetch_rtp_info);
+        pA2dpSinkStream->enable_notification_cb = config_get_bool (config,
+                         CONFIG_DEFAULT_SECTION, "BtMediaNotificationCb", false);
+        ALOGD(LOGTAG " Fetch RTP Info %d, enable_notification_cb: %d",
+                pA2dpSinkStream->fetch_rtp_info, pA2dpSinkStream->enable_notification_cb);
 
         pA2dpSinkStream->enable_delay_report = config_get_bool (config,CONFIG_DEFAULT_SECTION, "BtA2dpDelayReportEnable", false);
         ALOGD(LOGTAG " ~~ enable_delay_report  %d ", pA2dpSinkStream->enable_delay_report);
@@ -285,6 +310,8 @@ void A2dp_Sink::HandleEnableSink(void) {
             streaming_prarm |= A2DP_SINK_ENABLE_SBC_DECODING;
         if (pA2dpSinkStream->enable_delay_report)
             streaming_prarm |= A2DP_SINK_ENABLE_DELAY_REPORTING;
+        if (pA2dpSinkStream->enable_notification_cb)
+            streaming_prarm |= A2DP_SINK_ENABLE_NOTIFICATION_CB;
 
         sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
                     max_a2dp_conn, 0,
@@ -439,6 +466,10 @@ void A2dp_Sink::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
                 else
                 {
                     ALOGE(LOGTAG " found a match, disconnect this device iter = %x", iter);
+                    if (pA2dpSinkStream->relay_sink_data)
+                    {
+                        flush_relay_data();
+                    }
                 }
             }
             break;
