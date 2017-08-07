@@ -88,7 +88,7 @@ const char *BT_A2DP_SOURCE_ENABLED = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED  = "BtHfClientEnable";
 const char *BT_HFP_AG_ENABLED      = "BtHfpAGEnable";
 const char *BT_AVRCP_ENABLED       = "BtAvrcpEnable";
-
+const char *BT_ENABLE_EXT_POWER   = "BtEnableExtPower";
 /**
  * The Configuration file path
  */
