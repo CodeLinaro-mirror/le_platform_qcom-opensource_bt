@@ -206,11 +206,35 @@ static void btavrcpctrl_connection_state_callback(bool state, bt_bdaddr_t* bd_ad
     BtEvent *pEvent = new BtEvent;
     memcpy(&pEvent->avrcpCtrlPassThruEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     if (state == true)
+    {
+        fprintf(stdout, "     AVRCP_CTRL_CONNECTED_CB\n");
         pEvent->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_CONNECTED_CB;
+    }
     else
+    {
+        fprintf(stdout, "     AVRCP_CTRL_DISCONNECTED_CB\n");
         pEvent->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_DISCONNECTED_CB;
+    }
     PostMessage(THREAD_ID_AVRCP, pEvent);
 }
+
+static bt_status_t btavrcpctrl_br_connection_state_vendor_callback(bool state, bt_bdaddr_t* bd_addr) {
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_br_connection_state_vendor_callback state = %d", state);
+    BtEvent *pEvent = new BtEvent;
+    memcpy(&pEvent->avrcpCtrlPassThruEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    if (state == true)
+    {
+        fprintf(stdout, "     AVRCP_CTRL_BR_CONNECTED_CB\n");
+    }
+    else
+    {
+        fprintf(stdout, "     AVRCP_CTRL_BR_DISCONNECTED_CB\n");
+
+    }
+//    PostMessage(THREAD_ID_AVRCP, pEvent);
+}
+
+
 
 static void btavrcpctrl_getrcfeatures_callback( bt_bdaddr_t* bd_addr, int features) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_rcfeatures_vendor_callback features = %d", features);
@@ -372,6 +396,7 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
    btavrcpctrl_getelementattrib_rsp_vendor_callback,
    btavrcpctrl_getplaystatus_rsp_vendor_callback,
    btavrcpctrl_passthru_rsp_vendor_callback,
+   btavrcpctrl_br_connection_state_vendor_callback,
 };
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {
