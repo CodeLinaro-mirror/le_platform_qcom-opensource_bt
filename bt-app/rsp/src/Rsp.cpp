@@ -742,11 +742,12 @@ bool Rsp::SendResponse(GattsRequestWriteEvent *event)
         response = -1;
     }
 
-    fprintf(stdout, "(%s) Sending RSP response to write (%d) value (%s) State (%d)",__FUNCTION__,
-            GetRSPAppData()->server_if, event->value,GetDeviceState());
-    if(event->value != NULL)
+    if (event->value != NULL) {
+        fprintf(stdout, "(%s) Sending RSP response to write (%d) value (%s) "
+            "State (%d)",__FUNCTION__, GetRSPAppData()->server_if, event->value,
+            GetDeviceState());
         osi_free(event->value);
-
+    }
     rsp->SetDeviceState(WLAN_ACTIVE);;
     return app_gatt->send_response(event->conn_id, event->trans_id,
                                                          response, &att_resp);

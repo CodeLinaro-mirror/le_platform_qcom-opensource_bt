@@ -62,7 +62,8 @@ class Avrcp {
     std::list <std::string> rc_only_devices;
     bt_bdaddr_t mConnectedAvrcpDevice;
     uint32_t max_avrcp_conn;
-    void HandleAvrcpEvents(BtEvent* pEvent);
+    void HandleAvrcpCTEvents(BtEvent* pEvent);
+    void HandleAvrcpCTPassThruEvents(BtEvent* pEvent);
     void HandleEnableAvrcp();
     void HandleDisableAvrcp();
     void SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct);
