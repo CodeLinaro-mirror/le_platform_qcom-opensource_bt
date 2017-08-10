@@ -226,6 +226,10 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     /* when callback mechanism is used, remove timestamp before sending data
                      * to Audio Hal */
                     if (pA2dpSinkStream->enable_notification_cb) {
+                        if (pcm_data_read <= 0) {
+                            ALOGD(LOGTAG" No Data available in Data queue, break");
+                            break;
+                        }
                         uint64_t tStamp = *((uint64_t *)pA2dpSinkStream->pcm_buf);
                         pA2dpSinkStream->pcm_buf += sizeof(uint64_t);
                         pcm_data_read -= sizeof(uint64_t); // decrement timestamp data read size
@@ -562,6 +566,10 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
                  get_a2dp_sink_streaming_data_vendor(codec_type, pcm_buf, pcm_buf_size);
             // when callback mechanism is used, remove timestamp before sending data to Audio Hal
             if (pA2dpSinkStream->enable_notification_cb) {
+                if (data_read_from_bt <= 0) {
+                    ALOGD(LOGTAG" No Data available in Data queue, break");
+                    break;
+                }
                 uint64_t tStamp = *((uint64_t *)pcm_buf);
                 pcm_buf += sizeof(uint64_t);
                 data_read_from_bt -= sizeof(uint64_t); // timestamp data read
@@ -643,7 +651,7 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
         cuml_data_written_to_audio = 0;
     /* when callback mechanism is used, reposition pcm_buf to starting address
      * before reading next media data */
-    if (pA2dpSinkStream->enable_notification_cb)
+    if (pA2dpSinkStream->enable_notification_cb && !(data_read_from_bt <= 0))
         pA2dpSinkStream->pcm_buf -= sizeof(uint64_t);
 #endif
 }
