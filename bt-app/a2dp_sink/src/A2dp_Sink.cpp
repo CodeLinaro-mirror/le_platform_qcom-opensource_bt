@@ -208,10 +208,9 @@ static void bta2dp_audio_config_callback(bt_bdaddr_t *bd_addr, uint32_t sample_r
     }
 }
 
-static void bta2dp_audio_data_read_callback(bt_bdaddr_t *bd_addr, uint16_t size) {
-    ALOGD(LOGTAG " Audio Data Read Callback, size = %d", size);
+static void bta2dp_audio_data_read_callback(bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG " Audio Data Read Callback");
     BtEvent *pA2dpDataRead = new BtEvent;
-    pA2dpDataRead->a2dpSinkEvent.arg1 = size;
     memcpy(&pA2dpDataRead->a2dpSinkEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     if (pA2dpSinkStream && pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
         pA2dpDataRead->a2dpSinkStreamingEvent.event_id =
