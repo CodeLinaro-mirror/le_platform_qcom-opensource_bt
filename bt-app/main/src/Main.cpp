@@ -641,6 +641,14 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
+        case SET_ADDRESSED_PLAYER:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg3 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
         case REG_NOTIFICATION:
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));

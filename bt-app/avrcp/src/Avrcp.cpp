@@ -130,6 +130,7 @@ void BtAvrcpMsgHandler(void *msg) {
         case AVRCP_CTRL_GET_ELEMENT_ATTR_REQ:
         case AVRCP_CTRL_GET_PLAY_STATUS_REQ:
         case AVRCP_CTRL_REG_NOTIFICATION_REQ:
+        case AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ:
             ALOGD( LOGTAG_CTRL " handle avrcp ctrl events ");
             if (pAvrcp) {
                 pAvrcp->HandleAvrcpCTEvents(( BtEvent *) msg);
@@ -206,11 +207,35 @@ static void btavrcpctrl_connection_state_callback(bool state, bt_bdaddr_t* bd_ad
     BtEvent *pEvent = new BtEvent;
     memcpy(&pEvent->avrcpCtrlPassThruEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     if (state == true)
+    {
+        fprintf(stdout, "     AVRCP_CTRL_CONNECTED_CB\n");
         pEvent->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_CONNECTED_CB;
+    }
     else
+    {
+        fprintf(stdout, "     AVRCP_CTRL_DISCONNECTED_CB\n");
         pEvent->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_DISCONNECTED_CB;
+    }
     PostMessage(THREAD_ID_AVRCP, pEvent);
 }
+
+static bt_status_t btavrcpctrl_br_connection_state_vendor_callback(bool state, bt_bdaddr_t* bd_addr) {
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_br_connection_state_vendor_callback state = %d", state);
+    BtEvent *pEvent = new BtEvent;
+    memcpy(&pEvent->avrcpCtrlPassThruEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    if (state == true)
+    {
+        fprintf(stdout, "     AVRCP_CTRL_BR_CONNECTED_CB\n");
+    }
+    else
+    {
+        fprintf(stdout, "     AVRCP_CTRL_BR_DISCONNECTED_CB\n");
+
+    }
+//    PostMessage(THREAD_ID_AVRCP, pEvent);
+}
+
+
 
 static void btavrcpctrl_getrcfeatures_callback( bt_bdaddr_t* bd_addr, int features) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_rcfeatures_vendor_callback features = %d", features);
@@ -327,6 +352,14 @@ static bt_status_t btavrcpctrl_getplaystatus_rsp_vendor_callback( bt_bdaddr_t *b
 
 }
 
+static bt_status_t btavrcpctrl_setaddressedplayer_rsp_vendor_callback(bt_bdaddr_t *bd_addr, btrc_status_t rsp_status)
+{
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_setaddressedplayer_rsp_vendor_callback");
+	fprintf(stdout, "<-- setaddressedplayer rsp message received! \n" );
+	fprintf(stdout, "     responsed status: 0x%02x %d  \n", rsp_status,rsp_status);
+
+}
+
 static void btavrcpctrl_setabsvol_cmd_callback(bt_bdaddr_t *bd_addr, uint8_t abs_vol, uint8_t label) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_setabsvol_cmd_vendor_callback");
     BtEvent *pEvent = new BtEvent;
@@ -372,6 +405,8 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
    btavrcpctrl_getelementattrib_rsp_vendor_callback,
    btavrcpctrl_getplaystatus_rsp_vendor_callback,
    btavrcpctrl_passthru_rsp_vendor_callback,
+   btavrcpctrl_br_connection_state_vendor_callback,
+   btavrcpctrl_setaddressedplayer_rsp_vendor_callback,
 };
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {
@@ -719,6 +754,24 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_GET_PLAY_STATUS_REQ : list_player_app_setting_attrib_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
                 if(BT_STATUS_SUCCESS == sBtAvrcpCtrlVendorInterface->get_play_status_command_vendor(&pEvent->avrcpCtrlEvent.bd_addr))
+                    fprintf(stdout, "--> command has been successfully sent.\n" );
+                else
+                    fprintf(stdout, "error: command not be accepted!.\n" );
+            }
+        }
+        else
+        {
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+        }
+        break;
+        case AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ:
+        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
+        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        {
+            ALOGD(LOGTAG_CTRL "AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ : set_addressed_player_command_vendor called!~");
+            if (sBtAvrcpCtrlVendorInterface != NULL) {
+                if(BT_STATUS_SUCCESS == sBtAvrcpCtrlVendorInterface->set_addressed_player_command_vendor(&pEvent->avrcpCtrlEvent.bd_addr,
+                    pEvent->avrcpCtrlEvent.arg3))
                     fprintf(stdout, "--> command has been successfully sent.\n" );
                 else
                     fprintf(stdout, "error: command not be accepted!.\n" );

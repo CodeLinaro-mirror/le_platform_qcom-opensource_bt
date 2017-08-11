@@ -162,6 +162,7 @@ typedef enum {
     GET_PALYER_APP_SETTING,
     GET_ELEMENT_ATTR,
     GET_PLAY_STATUS,
+    SET_ADDRESSED_PLAYER,
     REG_NOTIFICATION,
     ADDR_PLAYER_CHANGE,
     AVAIL_PLAYER_CHANGE,
@@ -375,6 +376,7 @@ UserMenuList A2dpSinkMenu[] = {
     {GET_ELEMENT_ATTR,  "getelementattr",  TWO_PARAM,  "getelementattr<space><bt_address><space><attribute_IDs>"},
     {GET_PLAY_STATUS,   "getplayerstatus",  ONE_PARAM,  "getplayerstatus<space><bt_address>"},
     {REG_NOTIFICATION,  "regnotification",  TWO_PARAM,  "regnotification<space><bt_address><space><event_ID>"},
+    {SET_ADDRESSED_PLAYER,  "setaddressedplayer",  TWO_PARAM,  "setaddressedplayer<space><bt_address><space><player_ID>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
