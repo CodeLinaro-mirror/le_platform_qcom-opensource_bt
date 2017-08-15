@@ -131,6 +131,8 @@ void BtAvrcpMsgHandler(void *msg) {
         case AVRCP_CTRL_GET_PLAY_STATUS_REQ:
         case AVRCP_CTRL_REG_NOTIFICATION_REQ:
         case AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ:
+        case AVRCP_CTRL_SET_BROWSED_PLAYER_REQ:
+
             ALOGD( LOGTAG_CTRL " handle avrcp ctrl events ");
             if (pAvrcp) {
                 pAvrcp->HandleAvrcpCTEvents(( BtEvent *) msg);
@@ -355,10 +357,24 @@ static bt_status_t btavrcpctrl_getplaystatus_rsp_vendor_callback( bt_bdaddr_t *b
 static bt_status_t btavrcpctrl_setaddressedplayer_rsp_vendor_callback(bt_bdaddr_t *bd_addr, btrc_status_t rsp_status)
 {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_setaddressedplayer_rsp_vendor_callback");
-	fprintf(stdout, "<-- setaddressedplayer rsp message received! \n" );
-	fprintf(stdout, "     responsed status: 0x%02x %d  \n", rsp_status,rsp_status);
+    fprintf(stdout, "<-- setaddressedplayer rsp message received! \n" );
+    fprintf(stdout, "     responsed status: 0x%02x  \n", rsp_status);
 
 }
+
+static bt_status_t btavrcpctrl_setbrowsedplayer_rsp_vendor_callback(bt_bdaddr_t *bd_addr,
+    btrc_status_t rsp_status, uint32_t num_items, uint16_t charset_id , uint8_t folder_depth, btrc_folder_name_t *p_folders)
+
+{
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_setbrowsedplayer_rsp_vendor_callback");
+    fprintf(stdout, "<-- setaddressedplayer rsp message received! \n" );
+    fprintf(stdout, "     responsed status: 0x%02x  num_items:%d charset_id:%d folder_depth:%d \n", rsp_status,
+        num_items, charset_id, folder_depth);
+    for(int i=0; i < folder_depth; i++)
+        fprintf(stdout, "     Folder name%d: %s\n", i, p_folders[i].p_str);
+
+}
+
 
 static void btavrcpctrl_setabsvol_cmd_callback(bt_bdaddr_t *bd_addr, uint8_t abs_vol, uint8_t label) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_setabsvol_cmd_vendor_callback");
@@ -407,6 +423,7 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
    btavrcpctrl_passthru_rsp_vendor_callback,
    btavrcpctrl_br_connection_state_vendor_callback,
    btavrcpctrl_setaddressedplayer_rsp_vendor_callback,
+   btavrcpctrl_setbrowsedplayer_rsp_vendor_callback,
 };
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {
@@ -782,6 +799,25 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
         }
         break;
+        case AVRCP_CTRL_SET_BROWSED_PLAYER_REQ:
+        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
+        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        {
+            ALOGD(LOGTAG_CTRL "AVRCP_CTRL_SET_BROWSED_PLAYER_REQ : set_addressed_player_command_vendor called!~");
+            if (sBtAvrcpCtrlVendorInterface != NULL) {
+                if(BT_STATUS_SUCCESS == sBtAvrcpCtrlVendorInterface->set_browsed_player_command_vendor(&pEvent->avrcpCtrlEvent.bd_addr,
+                    pEvent->avrcpCtrlEvent.arg3))
+                    fprintf(stdout, "--> command has been successfully sent.\n" );
+                else
+                    fprintf(stdout, "error: command not be accepted!.\n" );
+            }
+        }
+        else
+        {
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+        }
+        break;
+
         case AVRCP_CTRL_REG_NOTIFICATION_REQ:
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
         if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
