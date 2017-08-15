@@ -657,6 +657,16 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event->avrcpCtrlEvent.arg3 = atoi(user_cmd[TWO_PARAM]);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
+        case CHANGE_PATH:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_CHANGE_PATH_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg2 = atoi(user_cmd[THREE_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+
         case REG_NOTIFICATION:
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));

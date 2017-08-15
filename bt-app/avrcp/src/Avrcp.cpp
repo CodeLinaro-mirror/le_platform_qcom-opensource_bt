@@ -132,6 +132,7 @@ void BtAvrcpMsgHandler(void *msg) {
         case AVRCP_CTRL_REG_NOTIFICATION_REQ:
         case AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ:
         case AVRCP_CTRL_SET_BROWSED_PLAYER_REQ:
+        case AVRCP_CTRL_CHANGE_PATH_REQ:
 
             ALOGD( LOGTAG_CTRL " handle avrcp ctrl events ");
             if (pAvrcp) {
@@ -375,6 +376,16 @@ static bt_status_t btavrcpctrl_setbrowsedplayer_rsp_vendor_callback(bt_bdaddr_t 
 
 }
 
+static bt_status_t btavrcpctrl_changepath_rsp_vendor_callback(bt_bdaddr_t *bd_addr, btrc_status_t rsp_status, uint32_t num_items)
+{
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_changepath_rsp_vendor_callback");
+    fprintf(stdout, "<-- changepath rsp message received! \n" );
+    fprintf(stdout, "     responsed status: 0x%02x  \n", rsp_status);
+    if(BTRC_STS_NO_ERROR == rsp_status)
+        fprintf(stdout, "     number of items: %d  \n", num_items);
+
+}
+
 
 static void btavrcpctrl_setabsvol_cmd_callback(bt_bdaddr_t *bd_addr, uint8_t abs_vol, uint8_t label) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_setabsvol_cmd_vendor_callback");
@@ -424,6 +435,8 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
    btavrcpctrl_br_connection_state_vendor_callback,
    btavrcpctrl_setaddressedplayer_rsp_vendor_callback,
    btavrcpctrl_setbrowsedplayer_rsp_vendor_callback,
+   btavrcpctrl_changepath_rsp_vendor_callback,
+
 };
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {
@@ -807,6 +820,25 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
             if (sBtAvrcpCtrlVendorInterface != NULL) {
                 if(BT_STATUS_SUCCESS == sBtAvrcpCtrlVendorInterface->set_browsed_player_command_vendor(&pEvent->avrcpCtrlEvent.bd_addr,
                     pEvent->avrcpCtrlEvent.arg3))
+                    fprintf(stdout, "--> command has been successfully sent.\n" );
+                else
+                    fprintf(stdout, "error: command not be accepted!.\n" );
+            }
+        }
+        else
+        {
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+        }
+        break;
+        case AVRCP_CTRL_CHANGE_PATH_REQ:
+        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
+        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        {
+            ALOGD(LOGTAG_CTRL "AVRCP_CTRL_CHANGE_PATH_REQ : change_path_command_vendor called!~");
+            if (sBtAvrcpCtrlVendorInterface != NULL) {
+                uint64_t uid = pEvent->avrcpCtrlEvent.arg2;
+                if(BT_STATUS_SUCCESS == sBtAvrcpCtrlVendorInterface->change_folder_path_command_vendor(&pEvent->avrcpCtrlEvent.bd_addr,
+                    pEvent->avrcpCtrlEvent.arg1, (uint8_t*)(&uid)))
                     fprintf(stdout, "--> command has been successfully sent.\n" );
                 else
                     fprintf(stdout, "error: command not be accepted!.\n" );

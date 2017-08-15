@@ -164,6 +164,7 @@ typedef enum {
     GET_PLAY_STATUS,
     SET_ADDRESSED_PLAYER,
     SET_BROWSED_PLAYER,
+    CHANGE_PATH,
     REG_NOTIFICATION,
     ADDR_PLAYER_CHANGE,
     AVAIL_PLAYER_CHANGE,
@@ -249,6 +250,10 @@ typedef enum {
     ZERO_PARAM,
     ONE_PARAM,
     TWO_PARAM,
+    THREE_PARAM,
+    FOUR_PARAM,
+    FIVE_PARAM,
+    SIX_PARAM,
 } MaxParamCount;
 
 typedef enum {
@@ -379,6 +384,7 @@ UserMenuList A2dpSinkMenu[] = {
     {REG_NOTIFICATION,  "regnotification",  TWO_PARAM,  "regnotification<space><bt_address><space><event_ID>"},
     {SET_ADDRESSED_PLAYER,  "setaddressedplayer",  TWO_PARAM,  "setaddressedplayer<space><bt_address><space><player_ID>"},
     {SET_BROWSED_PLAYER,  "setbrowsedplayer",  TWO_PARAM,  "setbrowsedplayer<space><bt_address><space><player_ID>"},
+    {CHANGE_PATH,  "changepath",  THREE_PARAM,  "changepath<space><bt_address><space><direction><space><folder_uID>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
