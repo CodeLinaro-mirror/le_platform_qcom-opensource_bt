@@ -391,6 +391,22 @@ int get_codec_relay_data(void)
     pthread_mutex_unlock(&a2dp_sink_relay_mutex);
     return ptr->codec_type;
 }
+void flush_relay_data(void)
+{
+    if(!a2dp_sink_relay_data_list)
+        return;
+    ALOGD("flush relay data, list_length = %d",list_length(a2dp_sink_relay_data_list));
+    t_SINK_RELAY_DATA* ptr;
+    pthread_mutex_lock(&a2dp_sink_relay_mutex);
+    while (!list_is_empty(a2dp_sink_relay_data_list))
+    {
+        ptr = (t_SINK_RELAY_DATA*)list_front(a2dp_sink_relay_data_list);
+        list_remove(a2dp_sink_relay_data_list, ptr);
+        osi_free(ptr);
+    }
+    pthread_mutex_unlock(&a2dp_sink_relay_mutex);
+    return;
+}
 
 void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type)
 {
@@ -598,8 +614,18 @@ static void *thread_func(void *in_param)
                         }
                         else if(codec_type == A2DP_SINK_AUDIO_CODEC_PCM)
                         {
-                             use_file_stream = 0;
-                             len = get_pcm_data((uint8_t*)buffer, out_buffer_size);
+                            if((src_codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
+                               &&(memcmp(&src_codec_cfg,&snk_codec_cfg,5)))
+                            {
+                                use_file_stream = 0;
+                                len = get_pcm_data((uint8_t*)buffer, out_buffer_size);
+                            }
+                            else
+                            {
+                                ALOGD(LOGTAG_A2DP "audio parameter not mach, using file");
+                                len=0;
+                                use_file_stream = 1;
+                            }
                         }
                         else if(codec_type == A2DP_SINK_AUDIO_CODEC_SBC)//pcm data
                         {

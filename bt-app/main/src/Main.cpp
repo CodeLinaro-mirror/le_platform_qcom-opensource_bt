@@ -54,6 +54,8 @@
 
 #define LOGTAG  "MAIN "
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
+#define SOCKETNAME  "/data/misc/bluetooth/btprop"
+static int bt_prop_socket;
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
@@ -86,6 +88,74 @@ extern "C"
 
 thread_t *test_thread_id = NULL;
 static void SendDisableCmdToGap();
+void opensocket()
+{
+     int len;    /* length of sockaddr */
+      struct sockaddr_un name;
+      if( (bt_prop_socket = socket(AF_UNIX, SOCK_STREAM, 0) ) < 0) {
+        perror("socket");
+        exit(1);
+      }
+      /*Create the address of the server.*/
+      memset(&name, 0, sizeof(struct sockaddr_un));
+      name.sun_family = AF_UNIX;
+      strlcpy(name.sun_path, SOCKETNAME, sizeof(name.sun_path));
+      len = sizeof(name.sun_family) + strlen(name.sun_path);
+      /*Connect to the server.*/
+     if (connect(bt_prop_socket, (struct sockaddr *) &name, len) < 0){
+        perror("connect");
+        exit(1);
+      }
+}
+void closesocket()
+{
+    shutdown(bt_prop_socket, SHUT_RDWR);
+    close(bt_prop_socket);
+}
+
+int property_get_bt(const char *key, char *value, const char *default_value)
+{
+    char prop_string[200] = {'\0'};
+    int ret, bytes_read = 0, i = 0;
+
+    snprintf(prop_string, sizeof(prop_string), "get_property %s,", key);
+    ret = send(bt_prop_socket, prop_string, strlen(prop_string), 0);
+    memset(value, 0, sizeof(value));
+    do
+    {
+        bytes_read = recv(bt_prop_socket, &value[i], 1, 0);
+        if (bytes_read == 1)
+        {
+            if (value[i] == ',')
+            {
+                value[i] = '\0';
+                break;
+            }
+            i++;
+        }
+    } while(1);
+    ALOGD("property_get_bt: key(%s) has value: %s", key, value);
+    if (!i && default_value)
+    {
+        ALOGD("property_get_bt: Copied default =%s", default_value);
+        strlcpy(value, default_value, strlen(default_value)+1);
+        return 1;
+    }
+    return 0;
+}
+
+/* property_set_bt: returns 0 on success, < 0 on failure
+*/
+int property_set_bt(const char *key, const char *value)
+{
+    char prop_string[200] = {'\0'};
+    int ret;
+    snprintf(prop_string, sizeof(prop_string), "set_property %s %s,", key, value);
+    ALOGD("property_set_bt: setting key(%s) to value: %s\n", key, value);
+    ret = send(bt_prop_socket, prop_string, strlen(prop_string), 0);
+    return 0;
+}
+
 /**
  * @brief main function
  *
@@ -327,89 +397,256 @@ static void ExitHandler(void) {
     reactor_stop (thread_get_reactor (threadInfo[THREAD_ID_MAIN].thread_id));
 }
 
+static int GetArgsFromString(char cmdString[COMMAND_ARG_SIZE], uint8_t* nArgs){
+    int     i;
+    char    *p;
+    char    *p_s;
+    bool     cont= false;
+
+    p_s = cmdString; i = 0;
+    while(p_s)
+    {
+        /* skip to comma delimiter */
+        for(p = p_s; *p != ',' && *p != 0; p++);
+
+        /* get integre value */
+        if (*p != 0)
+        {
+            *p = 0;
+            cont = true;
+        }
+        else
+            cont = false;
+
+        nArgs[i] = atoi(p_s);
+
+        if (cont && i < MAX_SUB_ARGUMENTS-1)
+        {
+            p_s = p + 1;
+            i++;
+        }
+        else
+            break;
+    }
+    ++i;
+
+    for(int n=0; n < i; n++)
+        ALOGV (LOGTAG " GetArgsFromString Arg%d: %d\n",n, nArgs[n]);
+    ALOGV (LOGTAG " GetArgsFromString return %d\n", i);
+    return i;
+}
+
+static int Get32ArgsFromString(char cmdString[COMMAND_ARG_SIZE], uint32_t* nArgs){
+    int     i;
+    char    *p;
+    char    *p_s;
+    bool     cont= false;
+
+    p_s = cmdString; i = 0;
+    while(p_s)
+    {
+        /* skip to comma delimiter */
+        for(p = p_s; *p != ',' && *p != 0; p++);
+
+        /* get integre value */
+        if (*p != 0)
+        {
+            *p = 0;
+            cont = true;
+        }
+        else
+            cont = false;
+
+        nArgs[i] = atoi(p_s);
+
+        if (cont && i < MAX_SUB_ARGUMENTS-1)
+        {
+            p_s = p + 1;
+            i++;
+        }
+        else
+            break;
+    }
+    ++i;
+
+    for(int n=0; n < i; n++)
+        ALOGV (LOGTAG " GetArgsFromString Arg%d: %d\n",n, nArgs[n]);
+    ALOGV (LOGTAG " GetArgsFromString return %d\n", i);
+    return i;
+}
+
 static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     ALOGD(LOGTAG "HandleA2DPSinkCommand cmd_id = %d", cmd_id);
     BtEvent *event = NULL;
+    uint8_t* pAttr = NULL;
+    uint32_t* pAttr32 = NULL;
+    uint8_t  num_Attr = 0;
     switch (cmd_id) {
         case CONNECT:
+        {
+            bt_bdaddr_t address;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &address);
+            if (!g_gap->IsDeviceBonded(address)) {
+                fprintf( stdout, " Please pair with the device before A2DPSink connection\n");
+                break;
+            }
             event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
             event->a2dpSinkEvent.event_id = A2DP_SINK_API_CONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
             PostMessage (THREAD_ID_A2DP_SINK, event);
             break;
+        }
         case DISCONNECT:
             event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
             event->a2dpSinkEvent.event_id = A2DP_SINK_API_DISCONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
             PostMessage (THREAD_ID_A2DP_SINK, event);
             break;
         case PLAY:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_PLAY;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_PLAY;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case PAUSE:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_PAUSE;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_PAUSE;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case STOP:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_STOP;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_STOP;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case FASTFORWARD:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_FF;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_FF;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case REWIND:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_REWIND;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_REWIND;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case FORWARD:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_FORWARD;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_FORWARD;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case BACKWARD:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_BACKWARD;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_BACKWARD;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case VOL_UP:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_VOL_UP;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_VOL_UP;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case VOL_DOWN:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlEvent.key_id = CMD_ID_VOL_DOWN;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_VOL_DOWN;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case VOL_CHANGED_NOTI:
             event = new BtEvent;
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_VOL_CHANGED_NOTI_REQ;
-            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[ONE_PARAM]);
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_VOL_CHANGED_NOTI_REQ;
+            event->avrcpCtrlPassThruEvent.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case GET_CAP:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_CAP_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case LIST_PLAYER_SETTING_ATTR:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_LIST_PALYER_SETTING_ATTR_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case LIST_PALYER_SETTING_VALUE:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_LIST_PALYER_SETTING_VALUE_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case GET_PALYER_APP_SETTING:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            pAttr = new uint8_t[MAX_SUB_ARGUMENTS];
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_PALYER_APP_SETTING_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            num_Attr = GetArgsFromString(user_cmd[TWO_PARAM],pAttr);
+            if(num_Attr)
+            {
+                event->avrcpCtrlEvent.num_attrb = num_Attr;
+                event->avrcpCtrlEvent.buf_ptr = pAttr;
+                PostMessage (THREAD_ID_AVRCP, event);
+            }
+            break;
+        case GET_ELEMENT_ATTR:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            pAttr32 = new uint32_t[MAX_SUB_ARGUMENTS];
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_ELEMENT_ATTR_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            num_Attr = Get32ArgsFromString(user_cmd[TWO_PARAM],pAttr32);
+            if(num_Attr)
+            {
+                event->avrcpCtrlEvent.num_attrb = num_Attr;
+                event->avrcpCtrlEvent.buf_ptr32 = pAttr32;
+                PostMessage (THREAD_ID_AVRCP, event);
+            }
+            break;
+        case GET_PLAY_STATUS:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_PLAY_STATUS_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case REG_NOTIFICATION:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_REG_NOTIFICATION_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case BACK_TO_MAIN:
@@ -424,11 +661,19 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
+        {
+            bt_bdaddr_t address;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &address);
+            if (!g_gap->IsDeviceBonded(address)){
+                fprintf( stdout, " Please pair with the device before A2DPSource connection\n");
+                break;
+            }
             event = new BtEvent;
             event->a2dpSourceEvent.event_id = A2DP_SOURCE_API_CONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSourceEvent.bd_addr);
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
+        }
         case DISCONNECT:
             event = new BtEvent;
             event->a2dpSourceEvent.event_id = A2DP_SOURCE_API_DISCONNECT_REQ;
@@ -1129,7 +1374,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     event = new BtEvent;
                     event->event_id = GAP_API_SET_BDNAME;
                     event->set_device_name_event.prop.type = BT_PROPERTY_BDNAME;
-                    strcpy((char*)&bd_name.name[0],user_cmd[ONE_PARAM]);
+                    strlcpy((char*)&bd_name.name[0],user_cmd[ONE_PARAM],COMMAND_SIZE);
                     event->set_device_name_event.prop.val = &bd_name;
                     event->set_device_name_event.prop.len = strlen((char*)bd_name.name);
                     PostMessage (THREAD_ID_GAP, event);
@@ -2056,7 +2301,6 @@ void BluetoothApp :: InitHandler (void) {
 
     if (!LoadBtStack())
         return;
-
     // Starting GAP Thread
     threadInfo[THREAD_ID_GAP].thread_id = thread_new (
             threadInfo[THREAD_ID_GAP].thread_name);
@@ -2385,12 +2629,21 @@ int BluetoothApp:: LocalSocketCreate(void) {
 
 bool BluetoothApp::LoadConfigParameters (const char *configpath) {
 
+    bool is_bt_ext_ldo;
     config = config_new (configpath);
     if (!config) {
         ALOGE (LOGTAG " Unable to open config file");
         return false;
     }
-
+    opensocket();
+    is_bt_ext_ldo = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_ENABLE_EXT_POWER, false);
+    if(is_bt_ext_ldo){
+        property_set_bt("wc_transport.extldo", "enabled");
+    }else{
+        property_set_bt("wc_transport.extldo", "disabled");
+    }
+    closesocket();
     // checking for the BT Enable option in config file
     is_bt_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_DEFAULT, false);
