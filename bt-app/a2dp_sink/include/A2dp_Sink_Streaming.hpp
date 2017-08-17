@@ -111,6 +111,9 @@ class A2dp_Sink_Streaming {
     bool fetch_rtp_info;
     bool enable_delay_report;
     bool relay_sink_data; /* if this is enabled, we relay Sink data to Src */
+    bool enable_notification_cb; /* if enabled, notification is received from stack
+                                    on incoming media data instrad of polling from
+                                    BT-APP*/
     // apis for out_stream Audio HAL, to write data.
     void ConfigureAudioHal();
     void CloseAudioStream();
@@ -120,7 +123,6 @@ class A2dp_Sink_Streaming {
     uint8_t* pcm_buf;
     bool pcm_timer;
     bool compress_offload_timer;
-    int current_vol_idx;
     void StartPcmTimer();
     void StopDataFetchTimer();
     void OnDisconnected();
@@ -139,6 +141,7 @@ class A2dp_Sink_Streaming {
     void StartCompressAudioFeedTimer();
     void StopCompressAudioFeedTimer();
     void SetStreamVol(int curr_audio_index);
+    uint64_t get_cur_time();
 };
 
 #endif

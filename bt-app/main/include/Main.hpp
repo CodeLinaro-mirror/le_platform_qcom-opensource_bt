@@ -69,6 +69,11 @@
  */
 #define MAX_ARGUMENTS        20 //TODO
 
+/**
+ * Maximum sub-arguments count
+ */
+#define MAX_SUB_ARGUMENTS    10
+
 
 #define BTM_MAX_LOC_BD_NAME_LEN     248
 
@@ -88,7 +93,7 @@ const char *BT_A2DP_SOURCE_ENABLED = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED  = "BtHfClientEnable";
 const char *BT_HFP_AG_ENABLED      = "BtHfpAGEnable";
 const char *BT_AVRCP_ENABLED       = "BtAvrcpEnable";
-
+const char *BT_ENABLE_EXT_POWER   = "BtEnableExtPower";
 /**
  * The Configuration file path
  */
@@ -151,6 +156,13 @@ typedef enum {
     SET_ABS_VOL,
     SEND_VOL_UP_DOWN,
     VOL_CHANGED_NOTI,
+    GET_CAP,
+    LIST_PLAYER_SETTING_ATTR,
+    LIST_PALYER_SETTING_VALUE,
+    GET_PALYER_APP_SETTING,
+    GET_ELEMENT_ATTR,
+    GET_PLAY_STATUS,
+    REG_NOTIFICATION,
     ADDR_PLAYER_CHANGE,
     AVAIL_PLAYER_CHANGE,
     BIGGER_METADATA,
@@ -356,6 +368,13 @@ UserMenuList A2dpSinkMenu[] = {
     {VOL_UP,                "volup",            ONE_PARAM,    "volup<space><bt_address>"},
     {VOL_DOWN,              "voldown",          ONE_PARAM,    "voldown<space><bt_address>"},
     {VOL_CHANGED_NOTI,      "volchangednoti",   ONE_PARAM,    "volchangednoti<space><vol level>"},
+    {GET_CAP,               "getcap",           TWO_PARAM,    "getcap<space><bt_address><space><cap_ID>"},
+    {LIST_PLAYER_SETTING_ATTR,      "listplayersettingattr",   ONE_PARAM,    "listplayersettingattr<space><bt_address>"},
+    {LIST_PALYER_SETTING_VALUE,     "listplayersettingvalue",  TWO_PARAM,    "listplayersettingvalue<space><bt_address><space><attri_ID>"},
+    {GET_PALYER_APP_SETTING,    "getplayersetting",  TWO_PARAM,  "getplayersetting<space><bt_address><space><attri_IDs>"},
+    {GET_ELEMENT_ATTR,  "getelementattr",  TWO_PARAM,  "getelementattr<space><bt_address><space><attribute_IDs>"},
+    {GET_PLAY_STATUS,   "getplayerstatus",  ONE_PARAM,  "getplayerstatus<space><bt_address>"},
+    {REG_NOTIFICATION,  "regnotification",  TWO_PARAM,  "regnotification<space><bt_address><space><event_ID>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
