@@ -615,7 +615,7 @@ static void *thread_func(void *in_param)
                         else if(codec_type == A2DP_SINK_AUDIO_CODEC_PCM)
                         {
                             if((src_codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
-                               &&(memcmp(&src_codec_cfg,&snk_codec_cfg,5)))
+                               &&(!memcmp(&src_codec_cfg,&snk_codec_cfg,5)))
                             {
                                 use_file_stream = 0;
                                 len = get_pcm_data((uint8_t*)buffer, out_buffer_size);
