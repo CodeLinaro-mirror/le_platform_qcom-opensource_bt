@@ -218,6 +218,7 @@ typedef enum {
     AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ,
     AVRCP_CTRL_SET_BROWSED_PLAYER_REQ,
     AVRCP_CTRL_CHANGE_PATH_REQ,
+    AVRCP_CTRL_GET_FOLDER_ITEMS_REQ,
 
     HFP_CLIENT_API_ENABLE = HFP_CLIENT_MSG_BASE,
     HFP_CLIENT_API_DISABLE,
@@ -757,6 +758,7 @@ typedef struct {
     uint16_t           arg3;
     uint32_t           arg4;
     uint32_t           arg5;
+    uint64_t           arg6;
 } AvrcpCtrlEvent;
 
 

@@ -481,6 +481,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
     uint8_t* pAttr = NULL;
     uint32_t* pAttr32 = NULL;
     uint8_t  num_Attr = 0;
+    uint64_t* pData = NULL;
     switch (cmd_id) {
         case CONNECT:
         {
@@ -657,13 +658,28 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event->avrcpCtrlEvent.arg3 = atoi(user_cmd[TWO_PARAM]);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
-        case CHANGE_PATH:
+        case CHANGE_PATH:{
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_CHANGE_PATH_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
             event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
-            event->avrcpCtrlEvent.arg2 = atoi(user_cmd[THREE_PARAM]);
+            event->avrcpCtrlEvent.arg6 = strtoull(user_cmd[THREE_PARAM],NULL,10);
+
+            PostMessage (THREAD_ID_AVRCP, event);
+            }
+            break;
+        case GETFOLDERITEMS:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_FOLDER_ITEMS_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg4 = atoi(user_cmd[THREE_PARAM]);
+            event->avrcpCtrlEvent.arg5 = atoi(user_cmd[FOUR_PARAM]);
+            event->avrcpCtrlEvent.arg2 = atoi(user_cmd[FIVE_PARAM]);
+            event->avrcpCtrlEvent.buf_ptr32 = new uint32_t[MAX_SUB_ARGUMENTS];
+            num_Attr = Get32ArgsFromString(user_cmd[SIX_PARAM],event->avrcpCtrlEvent.buf_ptr32);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
 
