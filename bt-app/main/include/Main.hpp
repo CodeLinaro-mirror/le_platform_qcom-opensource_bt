@@ -168,6 +168,7 @@ typedef enum {
     SET_BROWSED_PLAYER,
     CHANGE_PATH,
     GETFOLDERITEMS,
+    GETITEMATTRIBUTES,
     REG_NOTIFICATION,
     ADDR_PLAYER_CHANGE,
     AVAIL_PLAYER_CHANGE,
@@ -378,6 +379,8 @@ UserMenuList A2dpSinkMenu[] = {
     {VOL_UP,                "volup",            ONE_PARAM,    "volup<space><bt_address>"},
     {VOL_DOWN,              "voldown",          ONE_PARAM,    "voldown<space><bt_address>"},
     {VOL_CHANGED_NOTI,      "volchangednoti",   ONE_PARAM,    "volchangednoti<space><vol level>"},
+    {CODEC_LIST,        "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"
+        "param2,codec2,param1,param2,....>"},
     {GET_CAP,               "getcap",           TWO_PARAM,    "getcap<space><bt_address><space><cap_ID>"},
     {LIST_PLAYER_SETTING_ATTR,      "listplayersettingattr",   ONE_PARAM,    "listplayersettingattr<space><bt_address>"},
     {LIST_PALYER_SETTING_VALUE,     "listplayersettingvalue",  TWO_PARAM,    "listplayersettingvalue<space><bt_address><space><attri_ID>"},
@@ -389,8 +392,6 @@ UserMenuList A2dpSinkMenu[] = {
     {SET_BROWSED_PLAYER,  "setbrowsedplayer",  TWO_PARAM,  "setbrowsedplayer<space><bt_address><space><player_ID>"},
     {CHANGE_PATH,  "changepath",  THREE_PARAM,  "changepath<space><bt_address><space><direction><space><folder_uID>"},
     {GETFOLDERITEMS,  "getfolderitems",  SIX_PARAM,  "getfolderitems<space><bt_address><space><scopeID><space><startItem><space><endItem><space><num_attrb><space><attrib_IDs>"},
-    {CODEC_LIST,        "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"
-        "param2,codec2,param1,param2,....>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
