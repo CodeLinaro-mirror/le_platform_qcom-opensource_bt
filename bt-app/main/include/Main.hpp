@@ -171,6 +171,7 @@ typedef enum {
     GETITEMATTRIBUTES,
     PLAYITEM,
     ADDTONOWPLAYING,
+    SEARCH,
     REG_NOTIFICATION,
     ADDR_PLAYER_CHANGE,
     AVAIL_PLAYER_CHANGE,
@@ -397,6 +398,7 @@ UserMenuList A2dpSinkMenu[] = {
     {GETITEMATTRIBUTES,  "getitemattributes",  SIX_PARAM,  "getitemattributes<space><bt_address><space><scopeID><space><uID><space><uID_Counter><space><num_attrb><space><attrib_IDs>"},
     {PLAYITEM,  "playitem",  FOUR_PARAM,  "playitem<space><bt_address><space><scopeID><space><uID><space><uID_Counter>"},
     {ADDTONOWPLAYING,  "addtonowplaying",  FOUR_PARAM,  "addtonowplaying<space><bt_address><space><scopeID><space><uID><space><uID_Counter>"},
+    {SEARCH,  "search",  THREE_PARAM,  "search<space><bt_address><space><length><space><string>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 

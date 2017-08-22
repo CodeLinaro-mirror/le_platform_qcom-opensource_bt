@@ -715,7 +715,19 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event->avrcpCtrlEvent.arg3 = atoi(user_cmd[FOUR_PARAM]);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
-
+        case SEARCH:{
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_SEARCH_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            int length = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg3 = length;
+            event->avrcpCtrlEvent.buf_ptr = new uint8_t(length+1);
+            memset(event->avrcpCtrlEvent.buf_ptr, 0, length+1);
+            strncpy((char*)event->avrcpCtrlEvent.buf_ptr,user_cmd[THREE_PARAM],length);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+            }
         case REG_NOTIFICATION:
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));
