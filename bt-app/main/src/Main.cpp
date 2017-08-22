@@ -695,6 +695,26 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             num_Attr = Get32ArgsFromString(user_cmd[SIX_PARAM],event->avrcpCtrlEvent.buf_ptr32);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
+        case PLAYITEM:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PLAY_ITEMS_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg6 = strtoull(user_cmd[THREE_PARAM],NULL,10);
+            event->avrcpCtrlEvent.arg3 = atoi(user_cmd[FOUR_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case ADDTONOWPLAYING:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_ADDTO_NOW_PLAYING_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg6 = strtoull(user_cmd[THREE_PARAM],NULL,10);
+            event->avrcpCtrlEvent.arg3 = atoi(user_cmd[FOUR_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
 
         case REG_NOTIFICATION:
             event = new BtEvent;

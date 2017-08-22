@@ -169,6 +169,8 @@ typedef enum {
     CHANGE_PATH,
     GETFOLDERITEMS,
     GETITEMATTRIBUTES,
+    PLAYITEM,
+    ADDTONOWPLAYING,
     REG_NOTIFICATION,
     ADDR_PLAYER_CHANGE,
     AVAIL_PLAYER_CHANGE,
@@ -392,6 +394,9 @@ UserMenuList A2dpSinkMenu[] = {
     {SET_BROWSED_PLAYER,  "setbrowsedplayer",  TWO_PARAM,  "setbrowsedplayer<space><bt_address><space><player_ID>"},
     {CHANGE_PATH,  "changepath",  THREE_PARAM,  "changepath<space><bt_address><space><direction><space><folder_uID>"},
     {GETFOLDERITEMS,  "getfolderitems",  SIX_PARAM,  "getfolderitems<space><bt_address><space><scopeID><space><startItem><space><endItem><space><num_attrb><space><attrib_IDs>"},
+    {GETITEMATTRIBUTES,  "getitemattributes",  SIX_PARAM,  "getitemattributes<space><bt_address><space><scopeID><space><uID><space><uID_Counter><space><num_attrb><space><attrib_IDs>"},
+    {PLAYITEM,  "playitem",  FOUR_PARAM,  "playitem<space><bt_address><space><scopeID><space><uID><space><uID_Counter>"},
+    {ADDTONOWPLAYING,  "addtonowplaying",  FOUR_PARAM,  "addtonowplaying<space><bt_address><space><scopeID><space><uID><space><uID_Counter>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
