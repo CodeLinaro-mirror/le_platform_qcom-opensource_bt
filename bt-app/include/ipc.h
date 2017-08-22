@@ -208,6 +208,13 @@ typedef enum {
     AVRCP_CTRL_REG_NOTI_ABS_VOL_CB,
     AVRCP_CTRL_VOL_CHANGED_NOTI_REQ,
     AVRCP_CTRL_SET_ABS_VOL_CMD_CB,
+    AVRCP_CTRL_GET_CAP_REQ,
+    AVRCP_CTRL_LIST_PALYER_SETTING_ATTR_REQ,
+    AVRCP_CTRL_LIST_PALYER_SETTING_VALUE_REQ,
+    AVRCP_CTRL_GET_PALYER_APP_SETTING_REQ,
+    AVRCP_CTRL_GET_ELEMENT_ATTR_REQ,
+    AVRCP_CTRL_GET_PLAY_STATUS_REQ,
+    AVRCP_CTRL_REG_NOTIFICATION_REQ,
 
     HFP_CLIENT_API_ENABLE = HFP_CLIENT_MSG_BASE,
     HFP_CLIENT_API_DISABLE,
@@ -735,6 +742,20 @@ typedef struct {
     uint8_t            arg3;
     uint8_t            arg4;
 } AvrcpTargetEvent;
+
+typedef struct {
+    BluetoothEventId   event_id;
+    bt_bdaddr_t        bd_addr;
+    uint8_t*           buf_ptr;
+    uint32_t*          buf_ptr32;
+    uint8_t            num_attrb;
+    uint8_t            arg1;
+    uint8_t            arg2;
+    uint16_t           arg3;
+    uint32_t           arg4;
+    uint32_t           arg5;
+} AvrcpCtrlEvent;
+
 
 typedef struct {
     BluetoothEventId    event_id;
@@ -1337,8 +1358,9 @@ typedef union {
     ProfileStopEvent                        profile_stop_event;
     A2dpSinkEvent                           a2dpSinkEvent;
     A2dpSinkStreamingEvent                  a2dpSinkStreamingEvent;
-    AvrcpCtrlPassThruCmdReq                 avrcpCtrlEvent;
+    AvrcpCtrlPassThruCmdReq                 avrcpCtrlPassThruEvent;
     A2dpSourceEvent                         a2dpSourceEvent;
+    AvrcpCtrlEvent                          avrcpCtrlEvent;
     AvrcpTargetEvent                        avrcpTargetEvent;
     HfpClientEvent                          hfp_client_event;
     HfpAGEvent                              hfp_ag_event;
