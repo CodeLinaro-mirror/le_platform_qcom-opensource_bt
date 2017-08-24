@@ -171,12 +171,20 @@ class A2dp_Source {
     bool abs_vol_timer;
     uint16_t mPreviousAddrPlayerId;
     uint16_t mCurrentAddrPlayerId;
+    uint32_t get_a2dp_sbc_sampling_rate(uint8_t frequency);
+    char * get_a2dp_sbc_channel_mode(uint8_t channel_count);
+    uint8_t get_a2dp_sbc_block_len(uint8_t blocklen);
+    uint8_t get_a2dp_sbc_sub_band(uint8_t subband);
+    char * get_a2dp_sbc_allocation_mth(uint8_t allocation);
+    uint32_t get_a2dp_aptx_sampling_rate(uint8_t frequency);
+    char * get_a2dp_aptx_channel_mode(uint8_t channel_count);
     void HandleAvrcpEvents(BtEvent* pEvent);
     void HandleEnableSource();
     void HandleDisableSource();
     void StartSetAbsVolTimer();
     void StopSetAbsVolTimer();
     void updateResetNotification(btrc_event_id_t noti);
+    void UpdateSupportedCodecs(uint8_t num_codecs);
     list<MediaPlayerInfo> pMediaPlayerList;
 };
 
