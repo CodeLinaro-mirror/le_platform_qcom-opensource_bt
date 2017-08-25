@@ -621,6 +621,26 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                 PostMessage (THREAD_ID_AVRCP, event);
             }
             break;
+        case SET_PALYER_APP_SETTING:
+            {
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                pAttr = new uint8_t[MAX_SUB_ARGUMENTS];
+                uint8_t* pValue = new uint8_t[MAX_SUB_ARGUMENTS];
+                event->avrcpCtrlEvent.event_id = AVRCP_CTRL_SET_PALYER_APP_SETTING_VALUE_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+                num_Attr = GetArgsFromString(user_cmd[TWO_PARAM],pAttr);
+                GetArgsFromString(user_cmd[THREE_PARAM],pValue);
+                if(num_Attr)
+                {
+                    event->avrcpCtrlEvent.num_attrb = num_Attr;
+                    event->avrcpCtrlEvent.buf_ptr = pAttr;
+                    event->avrcpCtrlEvent.arg6 = (uint64_t)pValue;
+                    PostMessage (THREAD_ID_AVRCP, event);
+                }
+                break;
+            }
+
         case GET_ELEMENT_ATTR:
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));

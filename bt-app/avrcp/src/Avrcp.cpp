@@ -137,6 +137,7 @@ void BtAvrcpMsgHandler(void *msg) {
         case AVRCP_CTRL_LIST_PALYER_SETTING_ATTR_REQ:
         case AVRCP_CTRL_LIST_PALYER_SETTING_VALUE_REQ:
         case AVRCP_CTRL_GET_PALYER_APP_SETTING_REQ:
+        case AVRCP_CTRL_SET_PALYER_APP_SETTING_VALUE_REQ:
         case AVRCP_CTRL_GET_ELEMENT_ATTR_REQ:
         case AVRCP_CTRL_GET_PLAY_STATUS_REQ:
         case AVRCP_CTRL_REG_NOTIFICATION_REQ:
@@ -155,6 +156,8 @@ void BtAvrcpMsgHandler(void *msg) {
             }
             if(pEvent->avrcpCtrlEvent.buf_ptr != NULL)
                 delete pEvent->avrcpCtrlEvent.buf_ptr;
+            if(pEvent->avrcpCtrlEvent.buf_ptr32 != NULL)
+                delete pEvent->avrcpCtrlEvent.buf_ptr32;
             break;
         default:
             break;
@@ -194,6 +197,9 @@ static void btavrcpctrl_groupnavigation_rsp_callback(int id, int key_state) {
 
 static void btavrcpctrl_setplayerapplicationsetting_rsp_callback(bt_bdaddr_t *bd_addr, uint8_t accepted) {
     ALOGD(LOGTAG_CTRL " btavrcctrl_setplayerapplicationsetting_rsp_callback accepted = %d", accepted);
+    fprintf(stdout, "<-- setplayerapplicationsetting rsp message received! \n" );
+    fprintf(stdout, "     accepted : 0x%02x   \n", accepted);
+
 }
 
 static void btavrcpctrl_playerapplicationsetting_callback(bt_bdaddr_t *bd_addr, uint8_t num_attr,
@@ -866,8 +872,34 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
         }
-        delete pEvent->avrcpCtrlEvent.buf_ptr;
         break;
+
+        case AVRCP_CTRL_SET_PALYER_APP_SETTING_VALUE_REQ:
+        {
+            uint8_t* pValue = NULL;
+            iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
+            if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+            {
+                ALOGD(LOGTAG_CTRL "AVRCP_CTRL_SET_PALYER_APP_SETTING_VALUE_REQ : set_player_app_setting_cmd called!~");
+                pValue = (uint8_t*)pEvent->avrcpCtrlEvent.arg6;
+                if (sBtAvrcpCtrlVendorInterface != NULL) {
+                    if(BT_STATUS_SUCCESS == sBtAvrcpCtrlInterface->set_player_app_setting_cmd(&pEvent->avrcpCtrlEvent.bd_addr,
+                        pEvent->avrcpCtrlEvent.num_attrb,
+                        pEvent->avrcpCtrlEvent.buf_ptr,
+                        pValue))
+                        fprintf(stdout, "--> command has been successfully sent.\n" );
+                    else
+                        fprintf(stdout, "error: command not be accepted!.\n" );
+                }
+            }
+            else
+            {
+                ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            }
+            if(pValue != NULL)
+                delete pValue;
+            break;
+        }
         case AVRCP_CTRL_GET_ELEMENT_ATTR_REQ:
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
         if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
@@ -886,7 +918,6 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
         }
-        delete pEvent->avrcpCtrlEvent.buf_ptr32;
         break;
         case AVRCP_CTRL_GET_PLAY_STATUS_REQ:
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
@@ -977,7 +1008,6 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
         }
-        delete pEvent->avrcpCtrlEvent.buf_ptr32;
         break;
         case AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ:
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
@@ -997,7 +1027,6 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
         }
-        delete pEvent->avrcpCtrlEvent.buf_ptr32;
         break;
         case AVRCP_CTRL_PLAY_ITEMS_REQ:
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
