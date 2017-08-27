@@ -144,6 +144,10 @@ void BtAvrcpMsgHandler(void *msg) {
         case AVRCP_CTRL_SET_BROWSED_PLAYER_REQ:
         case AVRCP_CTRL_CHANGE_PATH_REQ:
         case AVRCP_CTRL_GET_FOLDER_ITEMS_REQ:
+        case AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ:
+        case AVRCP_CTRL_PLAY_ITEMS_REQ:
+        case AVRCP_CTRL_ADDTO_NOW_PLAYING_REQ:
+        case AVRCP_CTRL_SEARCH_REQ:
 
             ALOGD( LOGTAG_CTRL " handle avrcp ctrl events ");
             if (pAvrcp) {
@@ -397,10 +401,10 @@ static bt_status_t btavrcpctrl_changepath_rsp_vendor_callback(bt_bdaddr_t *bd_ad
 
 }
 
-static bt_status_t btavrcctrl_getfolderitems_rsp_vendor_callback(bt_bdaddr_t *bd_addr, uint32_t start_item,
+static bt_status_t btavrcpctrl_getfolderitems_rsp_vendor_callback(bt_bdaddr_t *bd_addr, uint32_t start_item,
     uint32_t end_item, btrc_status_t rsp_status, uint16_t num_items, btrc_folder_items_t *p_items)
 {
-    ALOGD(LOGTAG_CTRL " btavrcctrl_getfolderitems_rsp_vendor_callback");
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_getfolderitems_rsp_vendor_callback");
     fprintf(stdout, "<-- getfolderitems rsp message received! \n" );
     fprintf(stdout, "     responsed status: 0x%02x  \n", rsp_status);
     if(BTRC_STS_NO_ERROR == rsp_status)
@@ -452,7 +456,40 @@ static bt_status_t btavrcctrl_getfolderitems_rsp_vendor_callback(bt_bdaddr_t *bd
     }
 }
 
+static bt_status_t btavrcpctrl_getitemattributes_rsp_vendor_callback(bt_bdaddr_t *bd_addr,
+    btrc_status_t rsp_status, uint8_t num_attr, btrc_element_attr_val_t *p_attrs)
+{
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_getitemattributes_rsp_vendor_callback");
+    fprintf(stdout, "<-- getitemattributes rsp message received! \n" );
+    fprintf(stdout, "     responsed status: 0x%02x  num_attr:%d \n", rsp_status, num_attr);
+    for(int i=0; i < num_attr; i++)
+        fprintf(stdout, "     Attribute%d ID:0x%02x name: %s\n", i, p_attrs[i].attr_id, p_attrs[i].text);
 
+}
+
+static bt_status_t btavrcpctrl_playitem_rsp_vendor_callback(bt_bdaddr_t *bd_addr, btrc_status_t rsp_status )
+{
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_playitem_rsp_vendor_callback");
+    fprintf(stdout, "<-- playitem rsp message received! \n" );
+    fprintf(stdout, "     responsed status: 0x%02x  \n", rsp_status);
+
+}
+
+static bt_status_t btavrcpctrl_addtonowplaying_rsp_vendor_callback(bt_bdaddr_t *bd_addr, btrc_status_t rsp_status )
+{
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_addtonowplaying_rsp_vendor_callback");
+    fprintf(stdout, "<-- addtonowplaying rsp message received! \n" );
+    fprintf(stdout, "     responsed status: 0x%02x  \n", rsp_status);
+
+}
+
+static bt_status_t btavrcpctrl_search_rsp_vendor_callback(bt_bdaddr_t *bd_addr, btrc_status_t rsp_status,uint16_t uid_counter, uint32_t num_item )
+{
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_search_rsp_vendor_callback");
+    fprintf(stdout, "<-- search rsp message received! \n" );
+    fprintf(stdout, "     responsed status: 0x%02x  uid_counter: 0x%02x num_item: %d \n", rsp_status, uid_counter, num_item);
+
+}
 
 static void btavrcpctrl_setabsvol_cmd_callback(bt_bdaddr_t *bd_addr, uint8_t abs_vol, uint8_t label) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_setabsvol_cmd_vendor_callback");
@@ -503,7 +540,11 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
    btavrcpctrl_setaddressedplayer_rsp_vendor_callback,
    btavrcpctrl_setbrowsedplayer_rsp_vendor_callback,
    btavrcpctrl_changepath_rsp_vendor_callback,
-   btavrcctrl_getfolderitems_rsp_vendor_callback,
+   btavrcpctrl_getfolderitems_rsp_vendor_callback,
+   btavrcpctrl_getitemattributes_rsp_vendor_callback,
+   btavrcpctrl_playitem_rsp_vendor_callback,
+   btavrcpctrl_addtonowplaying_rsp_vendor_callback,
+   btavrcpctrl_search_rsp_vendor_callback,
 
 };
 
@@ -825,6 +866,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
         }
+        delete pEvent->avrcpCtrlEvent.buf_ptr;
         break;
         case AVRCP_CTRL_GET_ELEMENT_ATTR_REQ:
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
@@ -844,6 +886,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
         }
+        delete pEvent->avrcpCtrlEvent.buf_ptr32;
         break;
         case AVRCP_CTRL_GET_PLAY_STATUS_REQ:
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
@@ -934,7 +977,85 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
         }
+        delete pEvent->avrcpCtrlEvent.buf_ptr32;
         break;
+        case AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ:
+        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
+        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        {
+            ALOGD(LOGTAG_CTRL "AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ : get_item_attributes_command_vendor called!~");
+            if (sBtAvrcpCtrlVendorInterface != NULL) {
+                if(BT_STATUS_SUCCESS == sBtAvrcpCtrlVendorInterface->get_item_attributes_command_vendor(&pEvent->avrcpCtrlEvent.bd_addr,
+                    pEvent->avrcpCtrlEvent.arg1,pEvent->avrcpCtrlEvent.arg6,pEvent->avrcpCtrlEvent.arg3,
+                    pEvent->avrcpCtrlEvent.arg2,(btrc_media_attr_t*)pEvent->avrcpCtrlEvent.buf_ptr32))
+                    fprintf(stdout, "--> command has been successfully sent.\n" );
+                else
+                    fprintf(stdout, "error: command not be accepted!.\n" );
+            }
+        }
+        else
+        {
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+        }
+        delete pEvent->avrcpCtrlEvent.buf_ptr32;
+        break;
+        case AVRCP_CTRL_PLAY_ITEMS_REQ:
+        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
+        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        {
+            ALOGD(LOGTAG_CTRL "AVRCP_CTRL_PLAY_ITEMS_REQ : play_item_command_vendor called!~");
+            if (sBtAvrcpCtrlVendorInterface != NULL) {
+                if(BT_STATUS_SUCCESS == sBtAvrcpCtrlVendorInterface->play_item_command_vendor(&pEvent->avrcpCtrlEvent.bd_addr,
+                    pEvent->avrcpCtrlEvent.arg1,(uint8_t*)&pEvent->avrcpCtrlEvent.arg6,pEvent->avrcpCtrlEvent.arg3))
+                    fprintf(stdout, "--> command has been successfully sent.\n" );
+                else
+                    fprintf(stdout, "error: command not be accepted!.\n" );
+            }
+        }
+        else
+        {
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+        }
+        break;
+
+        case AVRCP_CTRL_ADDTO_NOW_PLAYING_REQ:
+        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
+        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        {
+            ALOGD(LOGTAG_CTRL "AVRCP_CTRL_ADDTO_NOW_PLAYING_REQ : addto_now_playing_command_vendor called!~");
+            if (sBtAvrcpCtrlVendorInterface != NULL) {
+                if(BT_STATUS_SUCCESS == sBtAvrcpCtrlVendorInterface->addto_now_playing_command_vendor(&pEvent->avrcpCtrlEvent.bd_addr,
+                    pEvent->avrcpCtrlEvent.arg1,pEvent->avrcpCtrlEvent.arg6,pEvent->avrcpCtrlEvent.arg3))
+                    fprintf(stdout, "--> command has been successfully sent.\n" );
+                else
+                    fprintf(stdout, "error: command not be accepted!.\n" );
+            }
+        }
+        else
+        {
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+        }
+        break;
+
+        case AVRCP_CTRL_SEARCH_REQ:
+        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
+        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        {
+            ALOGD(LOGTAG_CTRL "AVRCP_CTRL_SEARCH_REQ : search_command_vendor called!~");
+            if (sBtAvrcpCtrlVendorInterface != NULL) {
+                if(BT_STATUS_SUCCESS == sBtAvrcpCtrlVendorInterface->search_command_vendor(&pEvent->avrcpCtrlEvent.bd_addr,
+                    pEvent->avrcpCtrlEvent.arg3,pEvent->avrcpCtrlEvent.buf_ptr))
+                    fprintf(stdout, "--> command has been successfully sent.\n" );
+                else
+                    fprintf(stdout, "error: command not be accepted!.\n" );
+            }
+        }
+        else
+        {
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+        }
+        break;
+
 
         case AVRCP_CTRL_REG_NOTIFICATION_REQ:
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
