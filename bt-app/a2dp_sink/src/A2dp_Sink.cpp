@@ -427,7 +427,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
                 break;
         }
         k++;
-        if (k > MAX_NUM_CODEC_CONFIGS) {
+        if (k >= MAX_NUM_CODEC_CONFIGS) {
             fprintf(stdout, "num_codec_configs  exceeds max number(%d) = %d\n",
                 k, MAX_NUM_CODEC_CONFIGS);
             return false;
