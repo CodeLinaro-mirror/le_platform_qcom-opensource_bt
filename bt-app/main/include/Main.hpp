@@ -176,6 +176,10 @@ typedef enum {
     REG_NOTIFICATION,
     ADDR_PLAYER_CHANGE,
     AVAIL_PLAYER_CHANGE,
+    SET_EQUALIZER_VAL,
+    SET_REPEAT_VAL,
+    SET_SHUFFLE_VAL,
+    SET_SCAN_VAL,
     BIGGER_METADATA,
     PAN_OPTION,
     CONNECTED_LIST,
@@ -424,6 +428,10 @@ UserMenuList A2dpSourceMenu[] = {
     {BIGGER_METADATA,       "biggermetadata",   ZERO_PARAM,   "biggermetadata"},
     {CODEC_LIST,            "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"
         "param2,param3....,codec2,param1,param2,param3....>"},
+    {SET_EQUALIZER_VAL,     "setequalizerval",  ONE_PARAM,     "setequalizerval<space><val> (1/2)"},
+    {SET_REPEAT_VAL,     "setrepeatval",  ONE_PARAM,     "setrepeatval<space><val> (1 to 4)"},
+    {SET_SHUFFLE_VAL,     "setshuffleval",  ONE_PARAM,     "setshuffleval<space><val>(1 to 3)"},
+    {SET_SCAN_VAL,     "setscanval",  ONE_PARAM,     "setscanval<space><val> (1 to 3)"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
