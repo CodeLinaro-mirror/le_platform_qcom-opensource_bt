@@ -69,14 +69,39 @@ btrc_notification_type_t mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
 btrc_notification_type_t mTrackChangeNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
 btrc_notification_type_t mAddrPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
 btrc_notification_type_t mAvailPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+btrc_notification_type_t mPlayPosChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+btrc_notification_type_t mAppSettingChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+
+
+static int ATTRIBUTE_NOTSUPPORTED = -1;
+
+static int ATTRIBUTE_EQUALIZER = 1;
+static int ATTRIBUTE_REPEATMODE = 2;
+static int ATTRIBUTE_SHUFFLEMODE = 3;
+static int ATTRIBUTE_SCANMODE = 4;
+static int NUMPLAYER_ATTRIBUTE = 4;
+
+uint8_t default_eq_value = BTRC_PLAYER_VAL_OFF_EQUALIZER;
+uint8_t default_repeat_value = BTRC_PLAYER_VAL_OFF_REPEAT;
+uint8_t default_shuffle_value = BTRC_PLAYER_VAL_OFF_SHUFFLE;
+uint8_t default_scan_value = BTRC_PLAYER_VAL_OFF_SCAN;
+
+uint32_t a2dp_play_position = 10;
 static uint32_t a2dp_playstatus = A2DP_SOURCE_AUDIO_STOPPED;
 long NO_TRACK_SELECTED = -1L;
 long TRACK_IS_SELECTED = 0L;
 long mCurrentTrackID = NO_TRACK_SELECTED;
 
+int mCurrentEqualizer = default_eq_value;
+int mCurrentRepeat = default_repeat_value;
+int mCurrentShuffle = default_shuffle_value;
+int mCurrentScan = default_scan_value;
+
+
 #define AVRCP_MAX_VOL 127
 int mAudioStreamMax = 15;
 bool is_sink_relay_enabled = false;
+
 
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
 audio_hw_device_t *a2dp_device = NULL;
@@ -558,6 +583,13 @@ void A2dp_Source:: updateResetNotification(btrc_event_id_t noti) {
                         mTrackChangeNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
             }
             break;
+        case BTRC_EVT_PLAY_POS_CHANGED:
+            if (mPlayPosChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                mPlayPosChangedNotiType = BTRC_NOTIFICATION_TYPE_REJECT;
+                param.song_pos = -1;
+                sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_POS_CHANGED,
+                                mPlayPosChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+            }
         default:
             ALOGD(LOGTAG_AVRCP "Invalid Noti");
             break;
@@ -568,6 +600,7 @@ void resetAndSendPlayerStatusReject() {
     ALOGD(LOGTAG_A2DP "resetAndSendPlayerStatusReject");
     pA2dpSource->updateResetNotification(BTRC_EVT_PLAY_STATUS_CHANGED);
     pA2dpSource->updateResetNotification(BTRC_EVT_TRACK_CHANGE);
+    pA2dpSource->updateResetNotification(BTRC_EVT_PLAY_POS_CHANGED);
 }
 
 void BtA2dpSourceMsgHandler(void *msg) {
@@ -608,6 +641,15 @@ void BtA2dpSourceMsgHandler(void *msg) {
         case AVRCP_TARGET_GET_FOLDER_ITEMS_CB:
         case AVRCP_TARGET_SET_ADDR_PLAYER_CB:
         case AVRCP_TARGET_USE_BIGGER_METADATA:
+        case AVRCP_TARGET_LIST_PLAYER_APP_ATTR:
+        case AVRCP_TARGET_LIST_PLAYER_APP_VALUES:
+        case AVRCP_TARGET_GET_PLAYER_APP_VALUE:
+        case AVRCP_TARGET_SET_PLAYER_APP_VALUE:
+        case AVRCP_SET_EQUALIZER_VAL:
+        case AVRCP_SET_REPEAT_VAL:
+        case AVRCP_SET_SHUFFLE_VAL:
+        case AVRCP_SET_SCAN_VAL:
+        case AVRCP_TARGET_PLAY_POSITION_TIMEOUT:
             if (pA2dpSource) {
                 pA2dpSource->HandleAvrcpEvents(( BtEvent *) msg);
             }
@@ -1321,6 +1363,55 @@ static void btavrcp_target_getplaystatus_vendor_callback(bt_bdaddr_t *bd_addr) {
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
 }
 
+static void btavrcp_target_listplayerapp_attr_vendor_callback(bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_AVRCP " btavrcp_target_listplayerapp_attr_vendor_callback ");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_LIST_PLAYER_APP_ATTR;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
+static void    btavrcp_target_listplayerapp_values_vendor_callback(btrc_player_attr_t attr_id, bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_AVRCP "btavrcp_target_listplayerapp_values_vendor_callback");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_LIST_PLAYER_APP_VALUES;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->avrcpTargetEvent.attr_id = attr_id;
+    ALOGD(LOGTAG_AVRCP "attr_id:%d", attr_id);
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
+static void  btavrcp_target_getplayerapp_value_vendor_callback(uint8_t num_attr,
+                                                    btrc_player_attr_t *p_attrs, bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_AVRCP "btavrcp_target_getplayerapp_value_vendor_callback");
+    BtEvent *pEvent = new BtEvent;
+    int i;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_PLAYER_APP_VALUE;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->avrcpTargetEvent.arg3 = num_attr;
+    ALOGD(LOGTAG_AVRCP "num_attr:%d",num_attr);
+    for (i = 0; i < num_attr; i++)
+        pEvent->avrcpTargetEvent.attr_ids[i] = p_attrs[i];
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
+static void btavrcp_target_setplayerapp_value_vendor_cb(btrc_player_settings_t *p_vals, bt_bdaddr_t *bd_addr) {
+    ALOGD(LOGTAG_AVRCP "btavrcp_target_setplayerapp_value_vendor_cb");
+    BtEvent *pEvent = new BtEvent;
+    uint8_t i;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_SET_PLAYER_APP_VALUE;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->avrcpTargetEvent.arg3 = p_vals->num_attr;
+    ALOGD(LOGTAG_AVRCP "num_attr:%d", p_vals->num_attr);
+    for (i = 0; i < p_vals->num_attr; i++) {
+        pEvent->avrcpTargetEvent.attr_ids[i] = p_vals->attr_ids[i];
+        pEvent->avrcpTargetEvent.attr_values[i] = p_vals->attr_values[i];
+        ALOGD(LOGTAG_AVRCP "attr_ids:%d", p_vals->attr_ids[i]);
+        ALOGD(LOGTAG_AVRCP "attr_values:%d", p_vals->attr_values[i]);
+    }
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
 static void btavrcp_target_regnoti_vendor_callback(btrc_vendor_event_id_t event_id, uint32_t param,
         bt_bdaddr_t *bd_addr) {
     ALOGD(LOGTAG_AVRCP " btavrcp_target_regnoti_vendor_callback ");
@@ -1362,12 +1453,12 @@ static btrc_callbacks_t sBluetoothAvrcpTargetCallbacks = {
 static btrc_vendor_callbacks_t sBluetoothAvrcpTargetVendorCallbacks = {
    sizeof(sBluetoothAvrcpTargetVendorCallbacks),
    btavrcp_target_getplaystatus_vendor_callback,
+   btavrcp_target_listplayerapp_attr_vendor_callback,
+   btavrcp_target_listplayerapp_values_vendor_callback,
+   btavrcp_target_getplayerapp_value_vendor_callback,
    NULL,
    NULL,
-   NULL,
-   NULL,
-   NULL,
-   NULL,
+   btavrcp_target_setplayerapp_value_vendor_cb,
    btavrcp_target_getelemattr_vendor_callback,
    btavrcp_target_regnoti_vendor_callback,
    btavrcp_target_volchanged_vendor_callback,
@@ -1469,13 +1560,41 @@ bool isAbsoluteVolumeSupported() {
     return pA2dpSource->mAbsVolRemoteSupported;
 }
 
+void PlayPosTimehandler(void *context) {
+    ALOGD(LOGTAG_AVRCP "PlayPosTimehandler ");
+    BtEvent *pEvent = new BtEvent;
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_PLAY_POSITION_TIMEOUT;
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
+void A2dp_Source::StartPlayPostionTimer() {
+    ALOGD(LOGTAG_AVRCP "%s:Entered",__func__);
+    if(play_pos_timer) {
+        ALOGD(LOGTAG_AVRCP "Play postion Timer still running + ");
+        return;
+    }
+    ALOGD(LOGTAG_AVRCP "play_position_interval:%d",play_position_interval);
+    alarm_set(set_play_postion_timer, play_position_interval * 1000,
+                                    PlayPosTimehandler, NULL);
+    play_pos_timer = true;
+}
+
+void A2dp_Source::StopPlayPostionTimer() {
+    ALOGD(LOGTAG_AVRCP " StopPlayPostionTimer ");
+    if((set_play_postion_timer != NULL) && (play_pos_timer)) {
+        alarm_cancel(set_play_postion_timer);
+        ALOGD(LOGTAG_AVRCP " StopPlayPostionTimer -1");
+        play_pos_timer = false;
+    }
+}
+
 void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
     ALOGD(LOGTAG_AVRCP " HandleAvrcpEvents event = %s",
             dump_message(pEvent->avrcpTargetEvent.event_id));
     uint8_t absvol, avrcpVolume;
     long TrackNumberRsp = -1L, pecentVolChanged;
     char *folderItems, *playerEntry;
-    uint16_t num_attr, scope, set_addr_player_id = 0;
+    uint16_t num_attr, num_val, scope, set_addr_player_id = 0;
     bool isSetVol, volAdj = false, player_found = false;
     int i, pos = 0, song_len = 0, volIndex, start = 0, count = 0, countElementLength = 0;
     int countTotalBytes = 0, countTemp = 0, checkLength = 0, folderItemLengths[32];
@@ -1487,6 +1606,8 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
     btrc_element_attr_val_t *pAttrs = NULL;
     btrc_register_notification_t param;
     btrc_vendor_folder_list_entries_t *p_param;
+    btrc_player_attr_t p_attr[BTRC_MAX_APP_SETTINGS];
+    uint8_t *attr_values;
 
     switch(pEvent->avrcpTargetEvent.event_id) {
         case AVRCP_TARGET_USE_BIGGER_METADATA:
@@ -1834,6 +1955,81 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             osi_free(pAttrs);
             use_bigger_metadata = false;
             break;
+        case AVRCP_SET_EQUALIZER_VAL:
+            if (mAppSettingChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                mCurrentEqualizer = (AvrcKeyDir)pEvent->avrcpTargetEvent.arg3;
+                mAppSettingChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                param.player_setting.num_attr = NUMPLAYER_ATTRIBUTE;
+                param.player_setting.attr_ids[0] = ATTRIBUTE_EQUALIZER;
+                param.player_setting.attr_values[0]= mCurrentEqualizer;
+                param.player_setting.attr_ids[1] = ATTRIBUTE_REPEATMODE;
+                param.player_setting.attr_values[1] = mCurrentRepeat;
+                param.player_setting.attr_ids[2] = ATTRIBUTE_SHUFFLEMODE;
+                param.player_setting.attr_values[2] = mCurrentShuffle;
+                param.player_setting.attr_ids[3] = ATTRIBUTE_SCANMODE;
+                param.player_setting.attr_values[3] = mCurrentScan;
+                sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_APP_SETTINGS_CHANGED,
+                            mAppSettingChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+            }
+            break;
+        case AVRCP_SET_REPEAT_VAL:
+            if (mAppSettingChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                mCurrentRepeat = (AvrcKeyDir)pEvent->avrcpTargetEvent.arg3;
+                mAppSettingChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                param.player_setting.num_attr = NUMPLAYER_ATTRIBUTE;
+                param.player_setting.attr_ids[0] = ATTRIBUTE_EQUALIZER;
+                param.player_setting.attr_values[0]= mCurrentEqualizer;
+                param.player_setting.attr_ids[1] = ATTRIBUTE_REPEATMODE;
+                param.player_setting.attr_values[1] = mCurrentRepeat;
+                param.player_setting.attr_ids[2] = ATTRIBUTE_SHUFFLEMODE;
+                param.player_setting.attr_values[2] = mCurrentShuffle;
+                param.player_setting.attr_ids[3] = ATTRIBUTE_SCANMODE;
+                param.player_setting.attr_values[3] = mCurrentScan;
+                sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_APP_SETTINGS_CHANGED,
+                     mAppSettingChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+            }
+            break;
+        case AVRCP_SET_SHUFFLE_VAL:
+            if (mAppSettingChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                mCurrentShuffle = (AvrcKeyDir)pEvent->avrcpTargetEvent.arg3;
+                mAppSettingChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                param.player_setting.num_attr = NUMPLAYER_ATTRIBUTE;
+                param.player_setting.attr_ids[0] = ATTRIBUTE_EQUALIZER;
+                param.player_setting.attr_values[0]= mCurrentEqualizer;
+                param.player_setting.attr_ids[1] = ATTRIBUTE_REPEATMODE;
+                param.player_setting.attr_values[1] = mCurrentRepeat;
+                param.player_setting.attr_ids[2] = ATTRIBUTE_SHUFFLEMODE;
+                param.player_setting.attr_values[2] = mCurrentShuffle;
+                param.player_setting.attr_ids[3] = ATTRIBUTE_SCANMODE;
+                param.player_setting.attr_values[3] = mCurrentScan;
+                sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_APP_SETTINGS_CHANGED,
+                       mAppSettingChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+            }
+            break;
+        case AVRCP_SET_SCAN_VAL:
+            if (mAppSettingChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                mCurrentScan = (AvrcKeyDir)pEvent->avrcpTargetEvent.arg3;
+                mAppSettingChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                param.player_setting.num_attr = NUMPLAYER_ATTRIBUTE;
+                param.player_setting.attr_ids[0] = ATTRIBUTE_EQUALIZER;
+                param.player_setting.attr_values[0]= mCurrentEqualizer;
+                param.player_setting.attr_ids[1] = ATTRIBUTE_REPEATMODE;
+                param.player_setting.attr_values[1] = mCurrentRepeat;
+                param.player_setting.attr_ids[2] = ATTRIBUTE_SHUFFLEMODE;
+                param.player_setting.attr_values[2] = mCurrentShuffle;
+                param.player_setting.attr_ids[3] = ATTRIBUTE_SCANMODE;
+                param.player_setting.attr_values[3] = mCurrentScan;
+                sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_APP_SETTINGS_CHANGED,
+                        mAppSettingChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+            }
+            break;
+        case AVRCP_TARGET_PLAY_POSITION_TIMEOUT:
+            param.song_pos = a2dp_play_position;
+            pA2dpSource->StopPlayPostionTimer();
+            mPlayPosChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+            sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_POS_CHANGED,
+                                  mPlayPosChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+            break;
         case AVRCP_TARGET_GET_PLAY_STATUS:
             ALOGD(LOGTAG_AVRCP " Send response for Get play status = %d",playStatus);
             pos = 10L;
@@ -1845,6 +2041,87 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             }
             sBtAvrcpTargetInterface->get_play_status_rsp(playStatus,
                     song_len, pos, &pEvent->avrcpTargetEvent.bd_addr);
+            break;
+        case AVRCP_TARGET_LIST_PLAYER_APP_ATTR:
+            ALOGD(LOGTAG_AVRCP " Send response for list player app attr");
+            num_attr =  4;
+            p_attr[0] = BTRC_PLAYER_ATTR_EQUALIZER;
+            p_attr[1] = BTRC_PLAYER_ATTR_REPEAT;
+            p_attr[2] = BTRC_PLAYER_ATTR_SHUFFLE;
+            p_attr[3] = BTRC_PLAYER_ATTR_SCAN;
+            sBtAvrcpTargetInterface->list_player_app_attr_rsp(num_attr, p_attr,
+                                               &pEvent->avrcpTargetEvent.bd_addr);
+            break;
+        case AVRCP_TARGET_LIST_PLAYER_APP_VALUES:
+            ALOGD(LOGTAG_AVRCP "attr_id:%d", pEvent->avrcpTargetEvent.attr_id);
+            switch(pEvent->avrcpTargetEvent.attr_id) {
+                case BTRC_PLAYER_ATTR_EQUALIZER:
+                    num_val = 2;
+                    attr_values = (uint8_t *)osi_malloc(sizeof(uint8_t) * num_val);
+                    attr_values[0] = BTRC_PLAYER_VAL_OFF_EQUALIZER;
+                    attr_values[1] = BTRC_PLAYER_VAL_ON_EQUALIZER;
+                    break;
+                case BTRC_PLAYER_ATTR_REPEAT:
+                    num_val = 4;
+                    attr_values = (uint8_t *)osi_malloc(sizeof(uint8_t) * num_val);
+                    attr_values[0] = BTRC_PLAYER_VAL_OFF_REPEAT;
+                    attr_values[1] = BTRC_PLAYER_VAL_SINGLE_REPEAT;
+                    attr_values[2] = BTRC_PLAYER_VAL_ALL_REPEAT;
+                    attr_values[3] = BTRC_PLAYER_VAL_GROUP_REPEAT;
+                    break;
+                case BTRC_PLAYER_ATTR_SHUFFLE:
+                    num_val = 3;
+                    attr_values = (uint8_t *)osi_malloc(sizeof(uint8_t) * num_val);
+                    attr_values[0] = BTRC_PLAYER_VAL_OFF_SHUFFLE;
+                    attr_values[1] = BTRC_PLAYER_VAL_ALL_SHUFFLE;
+                    attr_values[2] = BTRC_PLAYER_VAL_GROUP_SHUFFLE;
+                    break;
+                case BTRC_PLAYER_ATTR_SCAN:
+                    num_val = 3;
+                    attr_values = (uint8_t *)osi_malloc(sizeof(uint8_t) * num_val);
+                    attr_values[0] = BTRC_PLAYER_VAL_OFF_SCAN;
+                    attr_values[1] = BTRC_PLAYER_VAL_ON_SCAN;
+                    attr_values[2] = BTRC_PLAYER_VAL_GRP_SCAN;
+                    break;
+            }
+            sBtAvrcpTargetInterface->list_player_app_value_rsp(num_val, attr_values,
+                                         &pEvent->avrcpTargetEvent.bd_addr);
+            if (attr_values)
+                osi_free(attr_values);
+            break;
+        case AVRCP_TARGET_GET_PLAYER_APP_VALUE:
+            ALOGD(LOGTAG_AVRCP "No of attr:%d", pEvent->avrcpTargetEvent.arg3);
+            btrc_player_settings_t get_app_rsp;
+            memset(&get_app_rsp, 0, sizeof(btrc_player_settings_t));
+            get_app_rsp.num_attr = pEvent->avrcpTargetEvent.arg3;
+            for(i = 0; i < pEvent->avrcpTargetEvent.arg3; i++) {
+                get_app_rsp.attr_ids[i] = pEvent->avrcpTargetEvent.attr_ids[i];
+                if (pEvent->avrcpTargetEvent.attr_ids[i] == BTRC_PLAYER_ATTR_EQUALIZER) {
+                    get_app_rsp.attr_values[i] = mCurrentEqualizer;
+                } else if (pEvent->avrcpTargetEvent.attr_ids[i] == BTRC_PLAYER_ATTR_REPEAT) {
+                    get_app_rsp.attr_values[i] = mCurrentRepeat;
+                } else if (pEvent->avrcpTargetEvent.attr_ids[i] == BTRC_PLAYER_ATTR_SHUFFLE) {
+                    get_app_rsp.attr_values[i] = mCurrentShuffle;
+                } else if (pEvent->avrcpTargetEvent.attr_ids[i] == BTRC_PLAYER_ATTR_SCAN) {
+                    get_app_rsp.attr_values[i] = mCurrentScan;
+                }
+            }
+            sBtAvrcpTargetInterface->get_player_app_value_rsp(&get_app_rsp, &pEvent->avrcpTargetEvent.bd_addr);
+            break;
+        case AVRCP_TARGET_SET_PLAYER_APP_VALUE:
+            for (i = 0; i < pEvent->avrcpTargetEvent.arg3; i++) {
+                ALOGD(LOGTAG_AVRCP "attr_ids:%d", pEvent->avrcpTargetEvent.attr_ids[i]);
+                ALOGD(LOGTAG_AVRCP "attr_values:%d", pEvent->avrcpTargetEvent.attr_values[i]);
+                if (pEvent->avrcpTargetEvent.attr_ids[i] == BTRC_PLAYER_ATTR_EQUALIZER)
+                    mCurrentEqualizer = pEvent->avrcpTargetEvent.attr_values[i];
+                else if (pEvent->avrcpTargetEvent.attr_ids[i] == BTRC_PLAYER_ATTR_REPEAT)
+                    mCurrentRepeat = pEvent->avrcpTargetEvent.attr_values[i];
+                else if (pEvent->avrcpTargetEvent.attr_ids[i] == BTRC_PLAYER_ATTR_SHUFFLE)
+                    mCurrentShuffle = pEvent->avrcpTargetEvent.attr_values[i];
+                else if (pEvent->avrcpTargetEvent.attr_ids[i] == BTRC_PLAYER_ATTR_SCAN)
+                    mCurrentScan = pEvent->avrcpTargetEvent.attr_values[i];
+            }
+            sBtAvrcpTargetInterface->set_player_app_value_rsp(BTRC_STS_NO_ERROR, &pEvent->avrcpTargetEvent.bd_addr);
             break;
         case AVRCP_TARGET_REG_NOTI:
             switch(pEvent->avrcpTargetEvent.arg1) {
@@ -1865,6 +2142,32 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     }
                     sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_TRACK_CHANGE,
                             mTrackChangeNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
+                    break;
+                case BTRC_EVT_PLAY_POS_CHANGED:
+                    ALOGD(LOGTAG_AVRCP "AVRCP_TARGET_REG_NOTI: BTRC_EVT_PLAY_POS_CHANGED");
+                    ALOGD(LOGTAG_AVRCP "play_position_interval:%d", pEvent->avrcpTargetEvent.arg2);
+                    param.song_pos = a2dp_play_position;
+                    mPlayPosChangedNotiType = BTRC_NOTIFICATION_TYPE_INTERIM;
+                    play_position_interval = pEvent->avrcpTargetEvent.arg2;  //Interval sec
+                    sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_POS_CHANGED,
+                                    mPlayPosChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+                    if (playStatus == BTRC_PLAYSTATE_PLAYING)
+                        pA2dpSource->StartPlayPostionTimer();
+                    break;
+                case BTRC_EVT_APP_SETTINGS_CHANGED:
+                    ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_REG_NOTI: BTRC_EVT_APP_SETTINGS_CHANGED");
+                    mAppSettingChangedNotiType = BTRC_NOTIFICATION_TYPE_INTERIM;
+                    param.player_setting.num_attr = NUMPLAYER_ATTRIBUTE;
+                    param.player_setting.attr_ids[0] = ATTRIBUTE_EQUALIZER;
+                    param.player_setting.attr_values[0]= mCurrentEqualizer;
+                    param.player_setting.attr_ids[1] = ATTRIBUTE_REPEATMODE;
+                    param.player_setting.attr_values[1] = mCurrentRepeat;
+                    param.player_setting.attr_ids[2] = ATTRIBUTE_SHUFFLEMODE;
+                    param.player_setting.attr_values[2] = mCurrentShuffle;
+                    param.player_setting.attr_ids[3] = ATTRIBUTE_SCANMODE;
+                    param.player_setting.attr_values[3] = mCurrentScan;
+                    sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_APP_SETTINGS_CHANGED,
+                                           mAppSettingChangedNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
                     break;
                 case BTRC_EVT_ADDRESSED_PLAYER_CHANGED:
                     ALOGD(LOGTAG_AVRCP "AVRCP_TARGET_REG_NOTI: BTRC_EVT_ADDRESSED_PLAYER_CHANGED ");
@@ -1931,10 +2234,14 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                                 BTRC_EVT_TRACK_CHANGE,
                                 mTrackChangeNotiType, &param, &pEvent->avrcpTargetEvent.bd_addr);
                     }
+                    if (mPlayPosChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM)
+                        pA2dpSource->StartPlayPostionTimer();
+
                     break;
                 case CMD_ID_PAUSE:
                     /*Pause key id is mapped to A2dp suspend*/
                     BtA2dpSuspendStreaming();
+                    pA2dpSource->StopPlayPostionTimer();
                     if (playStatus != BTRC_PLAYSTATE_PAUSED)
                     {
                         playStatus = BTRC_PLAYSTATE_PAUSED;
@@ -1951,6 +2258,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     /*Pause and Stop passthrough commands are handled here*/
                     media_playing = false;
                     BtA2dpStopStreaming();
+                    pA2dpSource->StopPlayPostionTimer();
                     if (playStatus != BTRC_PLAYSTATE_STOPPED)
                     {
                         playStatus = BTRC_PLAYSTATE_STOPPED;
@@ -2139,6 +2447,16 @@ char* A2dp_Source::dump_message(BluetoothEventId event_id) {
         return "CONNECTION_PRIORITY_REQ";
     case A2DP_SOURCE_CODEC_CONFIG_CB:
         return "CODEC_CONFIG_CB";
+    case AVRCP_TARGET_LIST_PLAYER_APP_ATTR:
+        return "AVRCP_TARGET_LIST_PLAYER_APP_ATTR";
+    case AVRCP_TARGET_LIST_PLAYER_APP_VALUES:
+        return " AVRCP_TARGET_LIST_PLAYER_APP_VALUES";
+    case AVRCP_TARGET_GET_PLAYER_APP_VALUE:
+        return "AVRCP_TARGET_GET_PLAYER_APP_VALUE";
+    case AVRCP_TARGET_SET_PLAYER_APP_VALUE:
+        return "AVRCP_TARGET_SET_PLAYER_APP_VALUE";
+    case AVRCP_TARGET_PLAY_POSITION_TIMEOUT:
+        return "AVRCP_TARGET_PLAY_POSITION_TIMEOUT";
     }
     return "UNKNOWN";
 }
@@ -2527,6 +2845,7 @@ A2dp_Source :: A2dp_Source(const bt_interface_t *bt_interface, config_t *config)
     mSourceState = STATE_A2DP_SOURCE_NOT_STARTED;
     mAvrcpConnected = false;
     set_abs_volume_timer = alarm_new();
+    set_play_postion_timer = alarm_new();
     abs_vol_timer = false;
     mVolCmdSetInProgress = false;
     mVolCmdAdjustInProgress = false;
@@ -2559,6 +2878,7 @@ A2dp_Source :: ~A2dp_Source() {
     mPreviousAddrPlayerId = 0;
     mCurrentAddrPlayerId = 0;
     alarm_free(set_abs_volume_timer);
+    alarm_free(set_play_postion_timer);
     set_abs_volume_timer = NULL;
     mAbsVolRemoteSupported = false;
     pthread_mutex_destroy(&lock);

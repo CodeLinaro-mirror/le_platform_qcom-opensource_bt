@@ -167,8 +167,11 @@ class A2dp_Source {
     int mRemoteVolume;
     int mLastLocalVolume;
     int mLocalVolume;
+    alarm_t *set_play_postion_timer;
     alarm_t *set_abs_volume_timer;
     bool abs_vol_timer;
+    bool play_pos_timer;
+    uint32_t play_position_interval;
     uint16_t mPreviousAddrPlayerId;
     uint16_t mCurrentAddrPlayerId;
     uint32_t get_a2dp_sbc_sampling_rate(uint8_t frequency);
@@ -183,6 +186,9 @@ class A2dp_Source {
     void HandleDisableSource();
     void StartSetAbsVolTimer();
     void StopSetAbsVolTimer();
+    void StartPlayPostionTimer();
+    void StopPlayPostionTimer();
+    void SendAppSettingChange();
     void updateResetNotification(btrc_event_id_t noti);
     void UpdateSupportedCodecs(uint8_t num_codecs);
     list<MediaPlayerInfo> pMediaPlayerList;
