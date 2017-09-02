@@ -57,7 +57,7 @@
 /**
  * Maximum argument length
  */
-#define COMMAND_ARG_SIZE     50
+#define COMMAND_ARG_SIZE     200
 
 /**
  * Maximum command length
@@ -93,7 +93,8 @@ const char *BT_A2DP_SOURCE_ENABLED = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED  = "BtHfClientEnable";
 const char *BT_HFP_AG_ENABLED      = "BtHfpAGEnable";
 const char *BT_AVRCP_ENABLED       = "BtAvrcpEnable";
-const char *BT_ENABLE_EXT_POWER   = "BtEnableExtPower";
+const char *BT_ENABLE_EXT_POWER    = "BtEnableExtPower";
+const char *BT_ENABLE_FW_SNOOP     = "BtEnableFWSnoop";
 /**
  * The Configuration file path
  */
@@ -152,6 +153,7 @@ typedef enum {
     BACKWARD,
     VOL_UP,
     VOL_DOWN,
+    CODEC_LIST,
     TRACK_CHANGE,
     SET_ABS_VOL,
     SEND_VOL_UP_DOWN,
@@ -160,8 +162,17 @@ typedef enum {
     LIST_PLAYER_SETTING_ATTR,
     LIST_PALYER_SETTING_VALUE,
     GET_PALYER_APP_SETTING,
+    SET_PALYER_APP_SETTING,
     GET_ELEMENT_ATTR,
     GET_PLAY_STATUS,
+    SET_ADDRESSED_PLAYER,
+    SET_BROWSED_PLAYER,
+    CHANGE_PATH,
+    GETFOLDERITEMS,
+    GETITEMATTRIBUTES,
+    PLAYITEM,
+    ADDTONOWPLAYING,
+    SEARCH,
     REG_NOTIFICATION,
     ADDR_PLAYER_CHANGE,
     AVAIL_PLAYER_CHANGE,
@@ -247,6 +258,10 @@ typedef enum {
     ZERO_PARAM,
     ONE_PARAM,
     TWO_PARAM,
+    THREE_PARAM,
+    FOUR_PARAM,
+    FIVE_PARAM,
+    SIX_PARAM,
 } MaxParamCount;
 
 typedef enum {
@@ -368,13 +383,24 @@ UserMenuList A2dpSinkMenu[] = {
     {VOL_UP,                "volup",            ONE_PARAM,    "volup<space><bt_address>"},
     {VOL_DOWN,              "voldown",          ONE_PARAM,    "voldown<space><bt_address>"},
     {VOL_CHANGED_NOTI,      "volchangednoti",   ONE_PARAM,    "volchangednoti<space><vol level>"},
+    {CODEC_LIST,        "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"
+        "param2,codec2,param1,param2,....>"},
     {GET_CAP,               "getcap",           TWO_PARAM,    "getcap<space><bt_address><space><cap_ID>"},
     {LIST_PLAYER_SETTING_ATTR,      "listplayersettingattr",   ONE_PARAM,    "listplayersettingattr<space><bt_address>"},
     {LIST_PALYER_SETTING_VALUE,     "listplayersettingvalue",  TWO_PARAM,    "listplayersettingvalue<space><bt_address><space><attri_ID>"},
     {GET_PALYER_APP_SETTING,    "getplayersetting",  TWO_PARAM,  "getplayersetting<space><bt_address><space><attri_IDs>"},
+    {SET_PALYER_APP_SETTING,    "setplayersetting",  THREE_PARAM,  "setplayersetting<space><bt_address><space><attri_IDs><space><attri_Values>"},
     {GET_ELEMENT_ATTR,  "getelementattr",  TWO_PARAM,  "getelementattr<space><bt_address><space><attribute_IDs>"},
     {GET_PLAY_STATUS,   "getplayerstatus",  ONE_PARAM,  "getplayerstatus<space><bt_address>"},
     {REG_NOTIFICATION,  "regnotification",  TWO_PARAM,  "regnotification<space><bt_address><space><event_ID>"},
+    {SET_ADDRESSED_PLAYER,  "setaddressedplayer",  TWO_PARAM,  "setaddressedplayer<space><bt_address><space><player_ID>"},
+    {SET_BROWSED_PLAYER,  "setbrowsedplayer",  TWO_PARAM,  "setbrowsedplayer<space><bt_address><space><player_ID>"},
+    {CHANGE_PATH,  "changepath",  THREE_PARAM,  "changepath<space><bt_address><space><direction><space><folder_uID>"},
+    {GETFOLDERITEMS,  "getfolderitems",  SIX_PARAM,  "getfolderitems<space><bt_address><space><scopeID><space><startItem><space><endItem><space><num_attrb><space><attrib_IDs>"},
+    {GETITEMATTRIBUTES,  "getitemattributes",  SIX_PARAM,  "getitemattributes<space><bt_address><space><scopeID><space><uID><space><uID_Counter><space><num_attrb><space><attrib_IDs>"},
+    {PLAYITEM,  "playitem",  FOUR_PARAM,  "playitem<space><bt_address><space><scopeID><space><uID><space><uID_Counter>"},
+    {ADDTONOWPLAYING,  "addtonowplaying",  FOUR_PARAM,  "addtonowplaying<space><bt_address><space><scopeID><space><uID><space><uID_Counter>"},
+    {SEARCH,  "search",  THREE_PARAM,  "search<space><bt_address><space><length><space><string>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
@@ -396,6 +422,8 @@ UserMenuList A2dpSourceMenu[] = {
             "addrplayerchange<space><1/0>  eg: addrplayerchange 1 "},
     {AVAIL_PLAYER_CHANGE,   "availplayerchange",ZERO_PARAM,   "availplayerchange"},
     {BIGGER_METADATA,       "biggermetadata",   ZERO_PARAM,   "biggermetadata"},
+    {CODEC_LIST,            "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"
+        "param2,param3....,codec2,param1,param2,param3....>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
