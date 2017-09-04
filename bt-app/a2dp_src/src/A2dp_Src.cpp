@@ -489,7 +489,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
                 break;
         }
         k++;
-        if (k > MAX_NUM_CODEC_CONFIGS) {
+        if (k >= MAX_NUM_CODEC_CONFIGS) {
             fprintf(stdout, "num_codec_configs  exceeds max number(%d) = %d\n",
                 k, MAX_NUM_CODEC_CONFIGS);
             return false;
@@ -2460,6 +2460,7 @@ char * A2dp_Source::get_a2dp_sbc_channel_mode(uint8_t channeltype) {
         case SBC_CH_JOINT:
             return "joint";
     }
+    return "NULL";
 }
 
 uint8_t A2dp_Source::get_a2dp_sbc_block_len(uint8_t blocklen) {
@@ -2491,6 +2492,7 @@ char * A2dp_Source::get_a2dp_sbc_allocation_mth(uint8_t allocation) {
         case SBC_ALLOC_LOUDNESS:
             return "loudness";
     }
+    return "NULL";
 }
 
 uint32_t A2dp_Source::get_a2dp_aptx_sampling_rate(uint8_t frequency) {
@@ -2513,6 +2515,7 @@ char * A2dp_Source::get_a2dp_aptx_channel_mode(uint8_t channel_count) {
         case APTX_CHANNELS_STEREO:
             return "stereo";
     }
+    return "NULL";
 }
 
 
