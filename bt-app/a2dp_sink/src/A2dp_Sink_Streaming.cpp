@@ -803,11 +803,41 @@ uint8_t A2dp_Sink_Streaming::get_a2dp_sbc_channel_mode(uint8_t channeltype) {
 uint32_t A2dp_Sink_Streaming::get_a2dp_aac_sampling_rate(uint16_t frequency) {
     uint32_t freq = 0;
     switch (frequency) {
+        case AAC_SAMP_FREQ_8000:
+            freq = 8000;
+            break;
+        case AAC_SAMP_FREQ_11025:
+            freq = 11025;
+            break;
+        case AAC_SAMP_FREQ_12000:
+            freq = 12000;
+            break;
+        case AAC_SAMP_FREQ_16000:
+            freq = 16000;
+            break;
+        case AAC_SAMP_FREQ_22050:
+            freq = 22050;
+            break;
+        case AAC_SAMP_FREQ_24000:
+            freq = 24000;
+            break;
+        case AAC_SAMP_FREQ_32000:
+            freq = 32000;
+            break;
         case AAC_SAMP_FREQ_44100:
             freq = 44100;
             break;
         case AAC_SAMP_FREQ_48000:
             freq = 48000;
+            break;
+        case AAC_SAMP_FREQ_64000:
+            freq = 64000;
+            break;
+        case AAC_SAMP_FREQ_88200:
+            freq = 88200;
+            break;
+        case AAC_SAMP_FREQ_96000:
+            freq = 96000;
             break;
     }
     return freq;
@@ -829,6 +859,18 @@ uint8_t A2dp_Sink_Streaming::get_a2dp_aac_channel_mode(uint8_t channel_count) {
 uint32_t A2dp_Sink_Streaming::get_a2dp_mp3_sampling_rate(uint16_t frequency) {
     uint32_t freq = 0;
     switch (frequency) {
+        case MP3_SAMP_FREQ_16000:
+            freq = 16000;
+            break;
+        case MP3_SAMP_FREQ_22050:
+            freq = 22050;
+            break;
+        case MP3_SAMP_FREQ_24000:
+            freq = 24000;
+            break;
+        case MP3_SAMP_FREQ_32000:
+            freq = 32000;
+            break;
         case MP3_SAMP_FREQ_44100:
             freq = 44100;
             break;

@@ -773,7 +773,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
 }
 
 static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
-    ALOGD(LOGTAG, "HandleA2DPSourceCommand cmd_id = %d", cmd_id);
+    ALOGV(LOGTAG, "HandleA2DPSourceCommand cmd_id = %d", cmd_id);
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
@@ -854,6 +854,28 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
                 sizeof(event->a2dpCodecListEvent.codec_list));
             strlcpy(event->a2dpCodecListEvent.codec_list, user_cmd[ONE_PARAM],
                 COMMAND_SIZE);
+        case SET_EQUALIZER_VAL:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_SET_EQUALIZER_VAL;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case SET_REPEAT_VAL:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_SET_REPEAT_VAL;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case SET_SHUFFLE_VAL:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_SET_SHUFFLE_VAL;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case SET_SCAN_VAL:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_SET_SCAN_VAL;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
         case BACK_TO_MAIN:
@@ -1928,6 +1950,7 @@ static void BtCmdHandler (void *context) {
     memset( (void *) user_cmd, '\0', sizeof(user_cmd));
 
     if (HandleUserInput (&cmd_id, user_cmd, menu_type)) {
+        ALOGI (LOGTAG "BtCmdHandler menu_type:%d cmd_id:%d", menu_type, cmd_id);
         switch(menu_type) {
             case GAP_MENU:
                 HandleGapCommand(cmd_id,user_cmd);
