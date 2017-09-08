@@ -25,6 +25,8 @@
 #include <hardware/bt_gatt.h>
 #include <hardware/bt_gatt_types.h>
 #include <hardware/bt_sdp.h>
+#include <hardware/bt_rc.h>
+
 
 extern thread_t *g_gap_thread;
 extern thread_t *g_main_thread;
@@ -199,6 +201,7 @@ typedef enum {
     A2DP_SINK_STREAMING_AM_RELEASE_CONTROL,
     A2DP_SINK_STREAMING_DISCONNECTED,
     A2DP_SINK_STREAMING_DISABLE_DONE,
+    A2DP_SINK_CODEC_LIST,
 
     AVRCP_CTRL_CONNECTED_CB = AVRCP_MSG_BASE,
     AVRCP_CTRL_DISCONNECTED_CB,
@@ -208,6 +211,22 @@ typedef enum {
     AVRCP_CTRL_REG_NOTI_ABS_VOL_CB,
     AVRCP_CTRL_VOL_CHANGED_NOTI_REQ,
     AVRCP_CTRL_SET_ABS_VOL_CMD_CB,
+    AVRCP_CTRL_GET_CAP_REQ,
+    AVRCP_CTRL_LIST_PALYER_SETTING_ATTR_REQ,
+    AVRCP_CTRL_LIST_PALYER_SETTING_VALUE_REQ,
+    AVRCP_CTRL_GET_PALYER_APP_SETTING_REQ,
+    AVRCP_CTRL_SET_PALYER_APP_SETTING_VALUE_REQ,
+    AVRCP_CTRL_GET_ELEMENT_ATTR_REQ,
+    AVRCP_CTRL_GET_PLAY_STATUS_REQ,
+    AVRCP_CTRL_REG_NOTIFICATION_REQ,
+    AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ,
+    AVRCP_CTRL_SET_BROWSED_PLAYER_REQ,
+    AVRCP_CTRL_CHANGE_PATH_REQ,
+    AVRCP_CTRL_GET_FOLDER_ITEMS_REQ,
+    AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ,
+    AVRCP_CTRL_PLAY_ITEMS_REQ,
+    AVRCP_CTRL_ADDTO_NOW_PLAYING_REQ,
+    AVRCP_CTRL_SEARCH_REQ,
 
     HFP_CLIENT_API_ENABLE = HFP_CLIENT_MSG_BASE,
     HFP_CLIENT_API_DISABLE,
@@ -322,24 +341,35 @@ typedef enum {
     A2DP_SOURCE_CONNECTING_CB,
     A2DP_SOURCE_CONNECTED_CB,
     A2DP_SOURCE_DISCONNECTING_CB,
+    A2DP_SOURCE_CODEC_CONFIG_CB,
     A2DP_SOURCE_AUDIO_SUSPENDED,
     A2DP_SOURCE_AUDIO_STOPPED,
     A2DP_SOURCE_AUDIO_STARTED,
+    A2DP_SOURCE_CODEC_LIST,
     AVRCP_TARGET_CONNECTED_CB,
     AVRCP_TARGET_DISCONNECTED_CB,
     AVRCP_TARGET_GET_ELE_ATTR,
     AVRCP_TARGET_GET_PLAY_STATUS,
+    AVRCP_TARGET_LIST_PLAYER_APP_ATTR,
+    AVRCP_TARGET_LIST_PLAYER_APP_VALUES,
+    AVRCP_TARGET_GET_PLAYER_APP_VALUE,
+    AVRCP_TARGET_SET_PLAYER_APP_VALUE,
     AVRCP_TARGET_REG_NOTI,
     AVRCP_TARGET_TRACK_CHANGED,
     AVRCP_TARGET_VOLUME_CHANGED,
     AVRCP_TARGET_SET_ABS_VOL,
     AVRCP_TARGET_ABS_VOL_TIMEOUT,
     AVRCP_TARGET_SEND_VOL_UP_DOWN,
+    AVRCP_TARGET_PLAY_POSITION_TIMEOUT,
     AVRCP_TARGET_GET_FOLDER_ITEMS_CB,
     AVRCP_TARGET_SET_ADDR_PLAYER_CB,
     AVRCP_TARGET_ADDR_PLAYER_CHANGED,
     AVRCP_TARGET_AVAIL_PLAYER_CHANGED,
     AVRCP_TARGET_USE_BIGGER_METADATA,
+    AVRCP_SET_EQUALIZER_VAL,
+    AVRCP_SET_REPEAT_VAL,
+    AVRCP_SET_SHUFFLE_VAL,
+    AVRCP_SET_SCAN_VAL,
 
     GAP_API_ENABLE = GAP_MSG_BASE,
     GAP_API_DISABLE,
@@ -715,6 +745,11 @@ typedef struct {
 
 typedef struct {
     BluetoothEventId   event_id;
+    char codec_list[200];
+} A2dpCodecListEvent;
+
+typedef struct {
+    BluetoothEventId   event_id;
     bt_bdaddr_t         bd_addr;
     ControlStatusType  status_type;
 } A2dpSinkStreamingEvent;
@@ -722,6 +757,10 @@ typedef struct {
 typedef struct {
     BluetoothEventId   event_id;
     bt_bdaddr_t         bd_addr;
+    uint8_t*           buf_ptr;
+    uint16_t           buf_size;
+    uint16_t           arg1;
+    uint16_t           arg2;
 } A2dpSourceEvent;
 
 typedef struct {
@@ -730,11 +769,29 @@ typedef struct {
     bt_bdaddr_t        bd_addr;
     uint8_t*           buf_ptr;
     uint16_t           buf_size;
+    btrc_player_attr_t attr_id;
+    uint8_t attr_ids[BTRC_MAX_APP_SETTINGS];
+    uint8_t attr_values[BTRC_MAX_APP_SETTINGS];
     uint16_t           arg1;
     uint32_t           arg2;
     uint8_t            arg3;
     uint8_t            arg4;
 } AvrcpTargetEvent;
+
+typedef struct {
+    BluetoothEventId   event_id;
+    bt_bdaddr_t        bd_addr;
+    uint8_t*           buf_ptr;
+    uint32_t*          buf_ptr32;
+    uint8_t            num_attrb;
+    uint8_t            arg1;
+    uint8_t            arg2;
+    uint16_t           arg3;
+    uint32_t           arg4;
+    uint32_t           arg5;
+    uint64_t           arg6;
+} AvrcpCtrlEvent;
+
 
 typedef struct {
     BluetoothEventId    event_id;
@@ -1337,8 +1394,10 @@ typedef union {
     ProfileStopEvent                        profile_stop_event;
     A2dpSinkEvent                           a2dpSinkEvent;
     A2dpSinkStreamingEvent                  a2dpSinkStreamingEvent;
-    AvrcpCtrlPassThruCmdReq                 avrcpCtrlEvent;
+    AvrcpCtrlPassThruCmdReq                 avrcpCtrlPassThruEvent;
+    A2dpCodecListEvent                      a2dpCodecListEvent;
     A2dpSourceEvent                         a2dpSourceEvent;
+    AvrcpCtrlEvent                          avrcpCtrlEvent;
     AvrcpTargetEvent                        avrcpTargetEvent;
     HfpClientEvent                          hfp_client_event;
     HfpAGEvent                              hfp_ag_event;
