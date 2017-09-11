@@ -481,6 +481,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
     uint8_t* pAttr = NULL;
     uint32_t* pAttr32 = NULL;
     uint8_t  num_Attr = 0;
+    uint64_t* pData = NULL;
     switch (cmd_id) {
         case CONNECT:
         {
@@ -620,6 +621,26 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                 PostMessage (THREAD_ID_AVRCP, event);
             }
             break;
+        case SET_PALYER_APP_SETTING:
+            {
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                pAttr = new uint8_t[MAX_SUB_ARGUMENTS];
+                uint8_t* pValue = new uint8_t[MAX_SUB_ARGUMENTS];
+                event->avrcpCtrlEvent.event_id = AVRCP_CTRL_SET_PALYER_APP_SETTING_VALUE_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+                num_Attr = GetArgsFromString(user_cmd[TWO_PARAM],pAttr);
+                GetArgsFromString(user_cmd[THREE_PARAM],pValue);
+                if(num_Attr)
+                {
+                    event->avrcpCtrlEvent.num_attrb = num_Attr;
+                    event->avrcpCtrlEvent.buf_ptr = pAttr;
+                    event->avrcpCtrlEvent.arg6 = (uint64_t)pValue;
+                    PostMessage (THREAD_ID_AVRCP, event);
+                }
+                break;
+            }
+
         case GET_ELEMENT_ATTR:
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));
@@ -641,6 +662,92 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
+        case SET_ADDRESSED_PLAYER:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg3 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case SET_BROWSED_PLAYER:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_SET_BROWSED_PLAYER_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg3 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case CHANGE_PATH:{
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_CHANGE_PATH_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg6 = strtoull(user_cmd[THREE_PARAM],NULL,10);
+
+            PostMessage (THREAD_ID_AVRCP, event);
+            }
+            break;
+        case GETFOLDERITEMS:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_FOLDER_ITEMS_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg4 = atoi(user_cmd[THREE_PARAM]);
+            event->avrcpCtrlEvent.arg5 = atoi(user_cmd[FOUR_PARAM]);
+            event->avrcpCtrlEvent.arg2 = atoi(user_cmd[FIVE_PARAM]);
+            event->avrcpCtrlEvent.buf_ptr32 = new uint32_t[MAX_SUB_ARGUMENTS];
+            num_Attr = Get32ArgsFromString(user_cmd[SIX_PARAM],event->avrcpCtrlEvent.buf_ptr32);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case GETITEMATTRIBUTES:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg6 = strtoull(user_cmd[THREE_PARAM],NULL,10);
+            event->avrcpCtrlEvent.arg3 = atoi(user_cmd[FOUR_PARAM]);
+            event->avrcpCtrlEvent.arg2 = atoi(user_cmd[FIVE_PARAM]);
+            event->avrcpCtrlEvent.buf_ptr32 = new uint32_t[MAX_SUB_ARGUMENTS];
+            num_Attr = Get32ArgsFromString(user_cmd[SIX_PARAM],event->avrcpCtrlEvent.buf_ptr32);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case PLAYITEM:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_PLAY_ITEMS_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg6 = strtoull(user_cmd[THREE_PARAM],NULL,10);
+            event->avrcpCtrlEvent.arg3 = atoi(user_cmd[FOUR_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case ADDTONOWPLAYING:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_ADDTO_NOW_PLAYING_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg6 = strtoull(user_cmd[THREE_PARAM],NULL,10);
+            event->avrcpCtrlEvent.arg3 = atoi(user_cmd[FOUR_PARAM]);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case SEARCH:{
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_SEARCH_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+            int length = atoi(user_cmd[TWO_PARAM]);
+            event->avrcpCtrlEvent.arg3 = length;
+            event->avrcpCtrlEvent.buf_ptr = new uint8_t(length+1);
+            memset(event->avrcpCtrlEvent.buf_ptr, 0, length+1);
+            strncpy((char*)event->avrcpCtrlEvent.buf_ptr,user_cmd[THREE_PARAM],length);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+            }
         case REG_NOTIFICATION:
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));
@@ -648,6 +755,15 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
             event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
             PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case CODEC_LIST:
+            event = new BtEvent;
+            event->a2dpCodecListEvent.event_id = A2DP_SINK_CODEC_LIST;
+            memset( (void *) event->a2dpCodecListEvent.codec_list, '\0',
+                sizeof(event->a2dpCodecListEvent.codec_list));
+            strlcpy(event->a2dpCodecListEvent.codec_list, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_A2DP_SINK, event);
             break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
@@ -657,7 +773,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
 }
 
 static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
-    ALOGD(LOGTAG, "HandleA2DPSourceCommand cmd_id = %d", cmd_id);
+    ALOGV(LOGTAG, "HandleA2DPSourceCommand cmd_id = %d", cmd_id);
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
@@ -729,6 +845,37 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
         case BIGGER_METADATA:
             event = new BtEvent;
             event->avrcpTargetEvent.event_id = AVRCP_TARGET_USE_BIGGER_METADATA;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case CODEC_LIST:
+            event = new BtEvent;
+            event->a2dpCodecListEvent.event_id = A2DP_SOURCE_CODEC_LIST;
+            memset( (void *) event->a2dpCodecListEvent.codec_list, '\0',
+                sizeof(event->a2dpCodecListEvent.codec_list));
+            strlcpy(event->a2dpCodecListEvent.codec_list, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+        case SET_EQUALIZER_VAL:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_SET_EQUALIZER_VAL;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case SET_REPEAT_VAL:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_SET_REPEAT_VAL;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case SET_SHUFFLE_VAL:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_SET_SHUFFLE_VAL;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case SET_SCAN_VAL:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_SET_SCAN_VAL;
+            event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
         case BACK_TO_MAIN:
@@ -1803,6 +1950,7 @@ static void BtCmdHandler (void *context) {
     memset( (void *) user_cmd, '\0', sizeof(user_cmd));
 
     if (HandleUserInput (&cmd_id, user_cmd, menu_type)) {
+        ALOGI (LOGTAG "BtCmdHandler menu_type:%d cmd_id:%d", menu_type, cmd_id);
         switch(menu_type) {
             case GAP_MENU:
                 HandleGapCommand(cmd_id,user_cmd);
@@ -2629,7 +2777,7 @@ int BluetoothApp:: LocalSocketCreate(void) {
 
 bool BluetoothApp::LoadConfigParameters (const char *configpath) {
 
-    bool is_bt_ext_ldo;
+    bool is_bt_ext_ldo, fw_snoop_enable;
     config = config_new (configpath);
     if (!config) {
         ALOGE (LOGTAG " Unable to open config file");
@@ -2643,6 +2791,15 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     }else{
         property_set_bt("wc_transport.extldo", "disabled");
     }
+
+    fw_snoop_enable = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_ENABLE_FW_SNOOP, false);
+    if(fw_snoop_enable){
+        property_set_bt("persist.service.bdroid.fwsnoop", "true");
+    }else{
+        property_set_bt("persist.service.bdroid.fwsnoop", "false");
+    }
+
     closesocket();
     // checking for the BT Enable option in config file
     is_bt_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,

@@ -99,6 +99,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
     BtEvent* pCleanupEvent = NULL, *pControlRequest = NULL, *pReleaseControlReq = NULL;
     uint32_t pcm_data_read = 0;
     uint8_t rtp_offset = 0;
+    uint32_t timestamp_len = (pA2dpSinkStream->enable_notification_cb ? sizeof(uint64_t) : 0);
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     qahw_out_buffer_t out_buf;
 #endif
@@ -203,10 +204,6 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 }
                 else
                 {
-                    if (pA2dpSinkStream->enable_notification_cb) {
-                        pA2dpSinkStream->pcm_buf_size = pEvent->a2dpSinkEvent.arg1
-                                + (pA2dpSinkStream->enable_notification_cb ? sizeof(uint64_t) : 0);
-                    }
                     // fetch PCM data from fluoride
                     if(pA2dpSinkStream->sbc_decoding)
                     {
@@ -231,7 +228,6 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                             break;
                         }
                         uint64_t tStamp = *((uint64_t *)pA2dpSinkStream->pcm_buf);
-                        pA2dpSinkStream->pcm_buf += sizeof(uint64_t);
                         pcm_data_read -= sizeof(uint64_t); // decrement timestamp data read size
                         // fetch current timestamp and check latency
                         uint64_t cur_time = pA2dpSinkStream->get_cur_time();
@@ -251,7 +247,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
             if ((pBTAM->GetAudioDevice() != NULL) && (pA2dpSinkStream->out_stream != NULL) &&
                     (pcm_data_read)) {
-                out_buf.buffer = pA2dpSinkStream->pcm_buf;
+                out_buf.buffer = pA2dpSinkStream->pcm_buf + timestamp_len;
                 out_buf.bytes = pcm_data_read;
                 if (pA2dpSinkStream->relay_sink_data && !pA2dpSinkStream->enable_notification_cb) {
                     if(!pA2dpSinkStream->sbc_decoding)
@@ -282,10 +278,6 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             }
 #endif
 #endif
-            /* when callback mechanism is used, reposition pcm_buf to starting address
-             * before reading next media data */
-            if (pA2dpSinkStream->enable_notification_cb)
-                pA2dpSinkStream->pcm_buf -= sizeof(uint64_t);
             break;
         case A2DP_SINK_STREAMING_AM_RELEASE_CONTROL:
             ALOGD(LOGTAG " A2DP_SINK_STREAMING_AM_RELEASE_CONTROL");
@@ -399,9 +391,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             }
             break;
         case A2DP_SINK_FILL_COMPRESS_BUFFER:
-            if (pA2dpSinkStream->enable_notification_cb) {
-                pA2dpSinkStream->pcm_buf_size = pEvent->a2dpSinkEvent.arg1 + sizeof(uint64_t);
-            }
+            ALOGD(LOGTAG " A2DP_SINK_FILL_COMPRESS_BUFFER");
             pA2dpSinkStream->FillCompressBuffertoAudioOutHal();
             break;
         case A2DP_SINK_STREAMING_DISCONNECTED:
@@ -527,6 +517,7 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
     uint32_t data_sent_to_audio = 0;
     uint8_t rtp_offset = 0;
     uint64_t timestamp;
+    uint32_t timestamp_len = (pA2dpSinkStream->enable_notification_cb ? sizeof(uint64_t) : 0);
 #if (!defined (USE_GST))
     if (pcm_buf == NULL) {
        // pcm buffer is null, closeStream have been called earlier
@@ -571,7 +562,6 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
                     break;
                 }
                 uint64_t tStamp = *((uint64_t *)pcm_buf);
-                pcm_buf += sizeof(uint64_t);
                 data_read_from_bt -= sizeof(uint64_t); // timestamp data read
                 // fetch current timestamp and check latency
                 uint64_t cur_time = get_cur_time();
@@ -579,7 +569,7 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
                         " micro sec", tStamp, (cur_time - tStamp));
             }
             if (fetch_rtp_info && (data_read_from_bt > 12)) {
-                rtp_offset = get_rtp_offset(pcm_buf, codec_type);
+                rtp_offset = get_rtp_offset((pcm_buf + timestamp_len), codec_type);
                 data_read_from_bt = data_read_from_bt - rtp_offset;
                 }
             }
@@ -612,9 +602,9 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
         }
         if ((pBTAM->GetAudioDevice() != NULL) && (out_stream != NULL)) {
              if (fetch_rtp_info) {
-                 out_buf.buffer = pcm_buf + rtp_offset;
+                 out_buf.buffer = pcm_buf + rtp_offset + timestamp_len;
              } else {
-                 out_buf.buffer = pcm_buf;
+                 out_buf.buffer = pcm_buf + timestamp_len;
              }
              out_buf.bytes = data_read_from_bt;
 #if (defined(DUMP_COMPRESSED_DATA) && (DUMP_COMPRESSED_DATA == TRUE))
@@ -649,10 +639,6 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
     ALOGD(LOGTAG " FillCompressBuffertoAudioOutHal - cum_data = %d", cuml_data_written_to_audio);
     if(cuml_data_written_to_audio >= pcm_buf_size)//reset for next iteration.
         cuml_data_written_to_audio = 0;
-    /* when callback mechanism is used, reposition pcm_buf to starting address
-     * before reading next media data */
-    if (pA2dpSinkStream->enable_notification_cb && !(data_read_from_bt <= 0))
-        pA2dpSinkStream->pcm_buf -= sizeof(uint64_t);
 #endif
 }
 
@@ -817,11 +803,41 @@ uint8_t A2dp_Sink_Streaming::get_a2dp_sbc_channel_mode(uint8_t channeltype) {
 uint32_t A2dp_Sink_Streaming::get_a2dp_aac_sampling_rate(uint16_t frequency) {
     uint32_t freq = 0;
     switch (frequency) {
+        case AAC_SAMP_FREQ_8000:
+            freq = 8000;
+            break;
+        case AAC_SAMP_FREQ_11025:
+            freq = 11025;
+            break;
+        case AAC_SAMP_FREQ_12000:
+            freq = 12000;
+            break;
+        case AAC_SAMP_FREQ_16000:
+            freq = 16000;
+            break;
+        case AAC_SAMP_FREQ_22050:
+            freq = 22050;
+            break;
+        case AAC_SAMP_FREQ_24000:
+            freq = 24000;
+            break;
+        case AAC_SAMP_FREQ_32000:
+            freq = 32000;
+            break;
         case AAC_SAMP_FREQ_44100:
             freq = 44100;
             break;
         case AAC_SAMP_FREQ_48000:
             freq = 48000;
+            break;
+        case AAC_SAMP_FREQ_64000:
+            freq = 64000;
+            break;
+        case AAC_SAMP_FREQ_88200:
+            freq = 88200;
+            break;
+        case AAC_SAMP_FREQ_96000:
+            freq = 96000;
             break;
     }
     return freq;
@@ -843,6 +859,18 @@ uint8_t A2dp_Sink_Streaming::get_a2dp_aac_channel_mode(uint8_t channel_count) {
 uint32_t A2dp_Sink_Streaming::get_a2dp_mp3_sampling_rate(uint16_t frequency) {
     uint32_t freq = 0;
     switch (frequency) {
+        case MP3_SAMP_FREQ_16000:
+            freq = 16000;
+            break;
+        case MP3_SAMP_FREQ_22050:
+            freq = 22050;
+            break;
+        case MP3_SAMP_FREQ_24000:
+            freq = 24000;
+            break;
+        case MP3_SAMP_FREQ_32000:
+            freq = 32000;
+            break;
         case MP3_SAMP_FREQ_44100:
             freq = 44100;
             break;
