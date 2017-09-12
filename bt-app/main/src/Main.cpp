@@ -854,6 +854,8 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
                 sizeof(event->a2dpCodecListEvent.codec_list));
             strlcpy(event->a2dpCodecListEvent.codec_list, user_cmd[ONE_PARAM],
                 COMMAND_SIZE);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
         case SET_EQUALIZER_VAL:
             event = new BtEvent;
             event->avrcpTargetEvent.event_id = AVRCP_SET_EQUALIZER_VAL;
