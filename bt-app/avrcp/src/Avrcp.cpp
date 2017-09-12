@@ -256,6 +256,7 @@ static bt_status_t btavrcpctrl_br_connection_state_vendor_callback(bool state, b
         fprintf(stdout, "     AVRCP_CTRL_BR_DISCONNECTED_CB\n");
 
     }
+    return BT_STATUS_SUCCESS;
 //    PostMessage(THREAD_ID_AVRCP, pEvent);
 }
 
