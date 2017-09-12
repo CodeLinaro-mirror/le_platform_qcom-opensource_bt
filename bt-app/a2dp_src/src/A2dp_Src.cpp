@@ -2026,9 +2026,14 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
         case AVRCP_TARGET_PLAY_POSITION_TIMEOUT:
             param.song_pos = a2dp_play_position;
             pA2dpSource->StopPlayPostionTimer();
-            mPlayPosChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
-            sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_POS_CHANGED,
+            if(sBtAvrcpTargetInterface != NULL)
+            {
+                mPlayPosChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_POS_CHANGED,
                                   mPlayPosChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+            }
+            else
+                ALOGD(LOGTAG_AVRCP " sBtAvrcpTargetInterface == NULL, ignore calling the register_notification_rsp!");
             break;
         case AVRCP_TARGET_GET_PLAY_STATUS:
             ALOGD(LOGTAG_AVRCP " Send response for Get play status = %d",playStatus);
