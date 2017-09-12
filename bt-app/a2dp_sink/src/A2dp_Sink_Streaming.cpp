@@ -99,7 +99,10 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
     BtEvent* pCleanupEvent = NULL, *pControlRequest = NULL, *pReleaseControlReq = NULL;
     uint32_t pcm_data_read = 0;
     uint8_t rtp_offset = 0;
-    uint32_t timestamp_len = (pA2dpSinkStream->enable_notification_cb ? sizeof(uint64_t) : 0);
+    uint32_t timestamp_len = 0;
+    if (pA2dpSinkStream) {
+        timestamp_len = (pA2dpSinkStream->enable_notification_cb ? sizeof(uint64_t) : 0);
+    }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     qahw_out_buffer_t out_buf;
 #endif
