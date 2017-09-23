@@ -822,6 +822,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
 
@@ -840,6 +841,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
 
@@ -859,6 +861,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
 
@@ -879,6 +882,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
 
@@ -903,6 +907,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
             else
             {
                 ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+                fprintf(stdout, "Avrcp not connected or AV not connected. \n");
             }
             if(pValue != NULL)
                 delete pValue;
@@ -925,6 +930,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
         case AVRCP_CTRL_GET_PLAY_STATUS_REQ:
@@ -942,6 +948,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
         case AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ:
@@ -960,6 +967,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
         case AVRCP_CTRL_SET_BROWSED_PLAYER_REQ:
@@ -978,6 +986,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
         case AVRCP_CTRL_CHANGE_PATH_REQ:
@@ -996,6 +1005,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
         case AVRCP_CTRL_GET_FOLDER_ITEMS_REQ:
@@ -1015,6 +1025,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
         case AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ:
@@ -1034,6 +1045,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
         case AVRCP_CTRL_PLAY_ITEMS_REQ:
@@ -1052,6 +1064,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
 
@@ -1071,6 +1084,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
 
@@ -1090,6 +1104,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
 
@@ -1110,6 +1125,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         else
         {
             ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+            fprintf(stdout, "Avrcp not connected or AV not connected. \n");
         }
         break;
 
