@@ -670,6 +670,7 @@ void A2dp_Source:: updateResetNotification(btrc_event_id_t noti) {
                 sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_POS_CHANGED,
                                 mPlayPosChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
             }
+            break;
         default:
             ALOGD(LOGTAG_AVRCP "Invalid Noti");
             break;
