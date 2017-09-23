@@ -429,7 +429,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
         switch (a2dpSrcCodecList[k].codec_type) {
             case A2DP_SOURCE_AUDIO_CODEC_SBC:
                 /* check number of parameters passed are ok or not */
-                if (j + SBC_PARAM_LEN > codec_params_list_size) {
+                if (j + SBC_PARAM_LEN > codec_params_list_size + 1) {
                     fprintf(stdout, "Invalid SBC Parameters passed\n");
                     return false;
                 }
@@ -513,7 +513,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
                 break;
             case A2DP_SOURCE_AUDIO_CODEC_APTX:
                 /* check number of parameters passed are ok or not */
-                if (j + APTX_PARAM_LEN > codec_params_list_size) {
+                if (j + APTX_PARAM_LEN > codec_params_list_size + 1) {
                     fprintf(stdout, "Invalid APTX Parameters passed\n");
                     return false;
                 }

@@ -293,9 +293,6 @@ static int ParseUserInput (char *input, char output[][COMMAND_ARG_SIZE]) {
     }
 
     while ((temp_arg = strtok_r(NULL, delim, &ptr1))) {
-        if (param_count >= MAX_NUM_CODEC_CONFIGS) {
-            return param_count;
-        }
         strlcpy(output[param_count], temp_arg, COMMAND_ARG_SIZE);
         output[param_count ++][COMMAND_ARG_SIZE - 1] = '\0';
         ALOGE(LOGTAG " %s ", output[param_count -1]);
@@ -336,7 +333,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
         switch (a2dpSnkCodecList[k].codec_type) {
             case A2DP_SINK_AUDIO_CODEC_AAC:
                 /* check number of parameters passed are ok or not */
-                if (j + AAC_PARAM_LEN > codec_params_list_size) {
+                if (j + AAC_PARAM_LEN > codec_params_list_size + 1) {
                     fprintf(stdout, "Invalid AAC Parameters passed\n");
                     return false;
                 }
@@ -363,7 +360,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
                 break;
             case A2DP_SINK_AUDIO_CODEC_MP3:
                 /* check number of parameters passed are ok or not */
-                if (j + MP3_PARAM_LEN > codec_params_list_size) {
+                if (j + MP3_PARAM_LEN > codec_params_list_size + 1) {
                     fprintf(stdout, "Invalid MP3 Parameters passed\n");
                     return false;
                 }
@@ -391,7 +388,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
                 break;
             case A2DP_SINK_AUDIO_CODEC_SBC:
                 /* check number of parameters passed are ok or not */
-                if (j + SBC_PARAM_LEN > codec_params_list_size) {
+                if (j + SBC_PARAM_LEN > codec_params_list_size + 1) {
                     fprintf(stdout, "Invalid SBC Parameters passed\n");
                     return false;
                 }
@@ -409,7 +406,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
                 break;
             case A2DP_SINK_AUDIO_CODEC_APTX:
                 /* check number of parameters passed are ok or not */
-                if (j + APTX_PARAM_LEN > codec_params_list_size) {
+                if (j + APTX_PARAM_LEN > codec_params_list_size + 1) {
                     fprintf(stdout, "Invalid APTX Parameters passed\n");
                     return false;
                 }
