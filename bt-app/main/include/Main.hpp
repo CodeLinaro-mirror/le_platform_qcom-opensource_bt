@@ -95,6 +95,7 @@ const char *BT_HFP_AG_ENABLED      = "BtHfpAGEnable";
 const char *BT_AVRCP_ENABLED       = "BtAvrcpEnable";
 const char *BT_ENABLE_EXT_POWER    = "BtEnableExtPower";
 const char *BT_ENABLE_FW_SNOOP     = "BtEnableFWSnoop";
+const char *BT_ENABLE_SOC_LOG      = "BtEnableSocLog";
 /**
  * The Configuration file path
  */
