@@ -2777,7 +2777,7 @@ int BluetoothApp:: LocalSocketCreate(void) {
 
 bool BluetoothApp::LoadConfigParameters (const char *configpath) {
 
-    bool is_bt_ext_ldo, fw_snoop_enable;
+    bool is_bt_ext_ldo, fw_snoop_enable,soc_log_enable;
     config = config_new (configpath);
     if (!config) {
         ALOGE (LOGTAG " Unable to open config file");
@@ -2798,6 +2798,14 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
         property_set_bt("persist.service.bdroid.fwsnoop", "true");
     }else{
         property_set_bt("persist.service.bdroid.fwsnoop", "false");
+    }
+
+    soc_log_enable = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_ENABLE_SOC_LOG, false);
+    if(soc_log_enable){
+        property_set_bt("persist.service.bdroid.soclog", "true");
+    }else{
+        property_set_bt("persist.service.bdroid.soclog", "false");
     }
 
     closesocket();
