@@ -641,20 +641,27 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                 break;
             }
 
-        case GET_ELEMENT_ATTR:
-            event = new BtEvent;
-            memset(event, 0, sizeof(BtEvent));
-            pAttr32 = new uint32_t[MAX_SUB_ARGUMENTS];
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_ELEMENT_ATTR_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
-            num_Attr = Get32ArgsFromString(user_cmd[TWO_PARAM],pAttr32);
-            if(num_Attr)
-            {
-                event->avrcpCtrlEvent.num_attrb = num_Attr;
-                event->avrcpCtrlEvent.buf_ptr32 = pAttr32;
-                PostMessage (THREAD_ID_AVRCP, event);
+        case GET_ELEMENT_ATTR:{
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                pAttr32 = new uint32_t[MAX_SUB_ARGUMENTS];
+                event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_ELEMENT_ATTR_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+                int nCount = atoi(user_cmd[TWO_PARAM]);
+                if(nCount == 0)
+                    event->avrcpCtrlEvent.num_attrb = nCount;
+                else
+                {
+                    num_Attr = Get32ArgsFromString(user_cmd[THREE_PARAM],pAttr32);
+                    if(num_Attr)
+                    {
+                        event->avrcpCtrlEvent.num_attrb = num_Attr;
+                        event->avrcpCtrlEvent.buf_ptr32 = pAttr32;
+                        PostMessage (THREAD_ID_AVRCP, event);
+                    }
+                }
+                break;
             }
-            break;
         case GET_PLAY_STATUS:
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));
@@ -689,32 +696,46 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             PostMessage (THREAD_ID_AVRCP, event);
             }
             break;
-        case GETFOLDERITEMS:
-            event = new BtEvent;
-            memset(event, 0, sizeof(BtEvent));
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_FOLDER_ITEMS_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
-            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
-            event->avrcpCtrlEvent.arg4 = atoi(user_cmd[THREE_PARAM]);
-            event->avrcpCtrlEvent.arg5 = atoi(user_cmd[FOUR_PARAM]);
-            event->avrcpCtrlEvent.arg2 = atoi(user_cmd[FIVE_PARAM]);
-            event->avrcpCtrlEvent.buf_ptr32 = new uint32_t[MAX_SUB_ARGUMENTS];
-            num_Attr = Get32ArgsFromString(user_cmd[SIX_PARAM],event->avrcpCtrlEvent.buf_ptr32);
-            PostMessage (THREAD_ID_AVRCP, event);
-            break;
-        case GETITEMATTRIBUTES:
-            event = new BtEvent;
-            memset(event, 0, sizeof(BtEvent));
-            event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
-            event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
-            event->avrcpCtrlEvent.arg6 = strtoull(user_cmd[THREE_PARAM],NULL,10);
-            event->avrcpCtrlEvent.arg3 = atoi(user_cmd[FOUR_PARAM]);
-            event->avrcpCtrlEvent.arg2 = atoi(user_cmd[FIVE_PARAM]);
-            event->avrcpCtrlEvent.buf_ptr32 = new uint32_t[MAX_SUB_ARGUMENTS];
-            num_Attr = Get32ArgsFromString(user_cmd[SIX_PARAM],event->avrcpCtrlEvent.buf_ptr32);
-            PostMessage (THREAD_ID_AVRCP, event);
-            break;
+        case GETFOLDERITEMS:{
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_FOLDER_ITEMS_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+                event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+                event->avrcpCtrlEvent.arg4 = atoi(user_cmd[THREE_PARAM]);
+                event->avrcpCtrlEvent.arg5 = atoi(user_cmd[FOUR_PARAM]);
+                int nCount = atoi(user_cmd[FIVE_PARAM]);
+                if(nCount == 255 || nCount == 0)
+                    event->avrcpCtrlEvent.arg2 = nCount;
+                else
+                {
+                    event->avrcpCtrlEvent.buf_ptr32 = new uint32_t[MAX_SUB_ARGUMENTS];
+                    num_Attr = Get32ArgsFromString(user_cmd[SIX_PARAM],event->avrcpCtrlEvent.buf_ptr32);
+                    event->avrcpCtrlEvent.arg2 = num_Attr;
+                }
+                PostMessage (THREAD_ID_AVRCP, event);
+                break;
+            }
+        case GETITEMATTRIBUTES:{
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
+                event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+                event->avrcpCtrlEvent.arg6 = strtoull(user_cmd[THREE_PARAM],NULL,10);
+                event->avrcpCtrlEvent.arg3 = atoi(user_cmd[FOUR_PARAM]);
+                int nCount = atoi(user_cmd[FIVE_PARAM]);
+                if(nCount == 255 || nCount == 0)
+                    event->avrcpCtrlEvent.arg2 = nCount;
+                else
+                {
+                    event->avrcpCtrlEvent.buf_ptr32 = new uint32_t[MAX_SUB_ARGUMENTS];
+                    num_Attr = Get32ArgsFromString(user_cmd[SIX_PARAM],event->avrcpCtrlEvent.buf_ptr32);
+                    event->avrcpCtrlEvent.arg2 = num_Attr;
+                    PostMessage (THREAD_ID_AVRCP, event);
+                }
+                break;
+            }
         case PLAYITEM:
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));
@@ -742,9 +763,9 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
             int length = atoi(user_cmd[TWO_PARAM]);
             event->avrcpCtrlEvent.arg3 = length;
-            event->avrcpCtrlEvent.buf_ptr = new uint8_t(length+1);
+            event->avrcpCtrlEvent.buf_ptr = new uint8_t[length+1];
             memset(event->avrcpCtrlEvent.buf_ptr, 0, length+1);
-            strncpy((char*)event->avrcpCtrlEvent.buf_ptr,user_cmd[THREE_PARAM],length);
+            strlcpy((char*)event->avrcpCtrlEvent.buf_ptr,user_cmd[THREE_PARAM],length);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
             }
@@ -854,6 +875,8 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
                 sizeof(event->a2dpCodecListEvent.codec_list));
             strlcpy(event->a2dpCodecListEvent.codec_list, user_cmd[ONE_PARAM],
                 COMMAND_SIZE);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
         case SET_EQUALIZER_VAL:
             event = new BtEvent;
             event->avrcpTargetEvent.event_id = AVRCP_SET_EQUALIZER_VAL;

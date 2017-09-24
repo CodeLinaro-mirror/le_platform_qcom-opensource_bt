@@ -429,7 +429,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
         switch (a2dpSrcCodecList[k].codec_type) {
             case A2DP_SOURCE_AUDIO_CODEC_SBC:
                 /* check number of parameters passed are ok or not */
-                if (j + SBC_PARAM_LEN > codec_params_list_size) {
+                if (j + SBC_PARAM_LEN > codec_params_list_size + 1) {
                     fprintf(stdout, "Invalid SBC Parameters passed\n");
                     return false;
                 }
@@ -513,7 +513,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
                 break;
             case A2DP_SOURCE_AUDIO_CODEC_APTX:
                 /* check number of parameters passed are ok or not */
-                if (j + APTX_PARAM_LEN > codec_params_list_size) {
+                if (j + APTX_PARAM_LEN > codec_params_list_size + 1) {
                     fprintf(stdout, "Invalid APTX Parameters passed\n");
                     return false;
                 }
@@ -670,6 +670,7 @@ void A2dp_Source:: updateResetNotification(btrc_event_id_t noti) {
                 sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_POS_CHANGED,
                                 mPlayPosChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
             }
+            break;
         default:
             ALOGD(LOGTAG_AVRCP "Invalid Noti");
             break;
@@ -2142,9 +2143,14 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
         case AVRCP_TARGET_PLAY_POSITION_TIMEOUT:
             param.song_pos = a2dp_play_position;
             pA2dpSource->StopPlayPostionTimer();
-            mPlayPosChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
-            sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_POS_CHANGED,
+            if(sBtAvrcpTargetInterface != NULL)
+            {
+                mPlayPosChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_POS_CHANGED,
                                   mPlayPosChangedNotiType, &param, &pA2dpSource->mConnectedAvrcpDevice);
+            }
+            else
+                ALOGD(LOGTAG_AVRCP " sBtAvrcpTargetInterface == NULL, ignore calling the register_notification_rsp!");
             break;
         case AVRCP_TARGET_GET_PLAY_STATUS:
             ALOGD(LOGTAG_AVRCP " Send response for Get play status = %d",playStatus);
