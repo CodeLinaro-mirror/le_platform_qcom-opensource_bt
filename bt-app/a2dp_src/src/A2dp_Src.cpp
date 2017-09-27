@@ -64,7 +64,7 @@ static pthread_t playback_thread = NULL;
 AttrType mAttrType;
 bool media_playing = false;
 bool use_bigger_metadata = false;
-btrc_play_status_t playStatus = BTRC_PLAYSTATE_ERROR;
+btrc_play_status_t playStatus = BTRC_PLAYSTATE_STOPPED;
 btrc_notification_type_t mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
 btrc_notification_type_t mTrackChangeNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
 btrc_notification_type_t mAddrPlayerChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
@@ -1724,7 +1724,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
     btrc_register_notification_t param;
     btrc_vendor_folder_list_entries_t *p_param;
     btrc_player_attr_t p_attr[BTRC_MAX_APP_SETTINGS];
-    uint8_t *attr_values;
+    uint8_t *attr_values = NULL;
 
     switch(pEvent->avrcpTargetEvent.event_id) {
         case AVRCP_TARGET_USE_BIGGER_METADATA:
@@ -2491,7 +2491,7 @@ void A2dp_Source::HandleEnableSource(void) {
         ALOGD(LOGTAG_A2DP "Calling BtA2dpLoadA2dpHal");
         BtA2dpLoadA2dpHal();
         media_playing = false;
-        playStatus = BTRC_PLAYSTATE_ERROR;
+        playStatus = BTRC_PLAYSTATE_STOPPED;
         mCurrentTrackID = NO_TRACK_SELECTED;
         registerMediaPlayers();
     }
@@ -2515,7 +2515,7 @@ void A2dp_Source::HandleDisableSource(void) {
    pEvent->profile_stop_event.status = true;
    PostMessage(THREAD_ID_GAP, pEvent);
    media_playing = false;
-   playStatus = BTRC_PLAYSTATE_ERROR;
+   playStatus = BTRC_PLAYSTATE_STOPPED;
    mCurrentTrackID = NO_TRACK_SELECTED;
    if(a2dp_sink_relay_data_list != NULL)
    list_free(a2dp_sink_relay_data_list);
@@ -2665,7 +2665,7 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
         case A2DP_SOURCE_DISCONNECTED_CB:
             fprintf(stdout, "A2DP Source DisConnected \n");
             media_playing = false;
-            playStatus = BTRC_PLAYSTATE_ERROR;
+            playStatus = BTRC_PLAYSTATE_STOPPED;
             mCurrentTrackID = NO_TRACK_SELECTED;
             pA2dpSource->mAbsVolRemoteSupported = false;
             BtA2dpCloseOutputStream();
@@ -2843,7 +2843,7 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             bdaddr_to_string(&mConnectedDevice, str, 18);
             fprintf(stdout, "A2DP Source DisConnecting: %s\n", str);
             media_playing = false;
-            playStatus = BTRC_PLAYSTATE_ERROR;
+            playStatus = BTRC_PLAYSTATE_STOPPED;
             mCurrentTrackID = NO_TRACK_SELECTED;
             pA2dpSource->mAbsVolRemoteSupported = false;
             if (sBtA2dpSourceInterface != NULL) {
@@ -2858,7 +2858,7 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             break;
         case A2DP_SOURCE_DISCONNECTED_CB:
             media_playing = false;
-            playStatus = BTRC_PLAYSTATE_ERROR;
+            playStatus = BTRC_PLAYSTATE_STOPPED;
             mCurrentTrackID = NO_TRACK_SELECTED;
             pA2dpSource->mAbsVolRemoteSupported = false;
             BtA2dpCloseOutputStream();
