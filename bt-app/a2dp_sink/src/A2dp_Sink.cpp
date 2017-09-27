@@ -360,7 +360,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
                 break;
             case A2DP_SINK_AUDIO_CODEC_MP3:
                 /* check number of parameters passed are ok or not */
-                if (j + MP3_PARAM_LEN < codec_params_list_size + 1) {
+                if (j + MP3_PARAM_LEN > codec_params_list_size + 1) {
                     fprintf(stdout, "Invalid MP3 Parameters passed\n");
                     return false;
                 }
