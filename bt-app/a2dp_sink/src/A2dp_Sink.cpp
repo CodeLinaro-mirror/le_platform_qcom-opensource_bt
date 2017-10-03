@@ -612,6 +612,7 @@ static void bta2dp_audio_data_read_callback(bt_bdaddr_t *bd_addr) {
         }
     }
 }
+
 static void bta2dp_audio_focus_request_vendor_callback(bt_bdaddr_t *bd_addr) {
     ALOGD(LOGTAG " bta2dp_audio_focus_request_vendor_callback ");
     BtEvent *pEvent = new BtEvent;
@@ -634,6 +635,10 @@ static void bta2dp_audio_codec_config_vendor_callback(bt_bdaddr_t *bd_addr, uint
     PostMessage(THREAD_ID_A2DP_SINK, pEvent);
 }
 
+static void bta2dp_audio_registration_callback(bool state) {
+    ALOGD(LOGTAG " Audio Registration Callback: state = %d", state);
+}
+
 static btav_callbacks_t sBluetoothA2dpSinkCallbacks = {
     sizeof(sBluetoothA2dpSinkCallbacks),
     bta2dp_connection_state_callback,
@@ -646,6 +651,7 @@ static btav_sink_vendor_callbacks_t sBluetoothA2dpSinkVendorCallbacks = {
     bta2dp_audio_focus_request_vendor_callback,
     bta2dp_audio_codec_config_vendor_callback,
     bta2dp_audio_data_read_callback,
+    bta2dp_audio_registration_callback,
 };
 
 void A2dp_Sink::HandleEnableSink(void) {
