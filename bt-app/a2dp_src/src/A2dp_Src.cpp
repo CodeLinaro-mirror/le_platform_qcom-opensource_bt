@@ -1354,6 +1354,10 @@ static void bta2dp_audio_codec_config_vendor_callback(bt_bdaddr_t *bd_addr, uint
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
 }
 
+static void bta2dp_audio_registration_callback(bool state) {
+    ALOGD(LOGTAG_A2DP " Audio Registration Callback: state = %d", state);
+}
+
 static btav_callbacks_t sBluetoothA2dpSourceCallbacks = {
     sizeof(sBluetoothA2dpSourceCallbacks),
     bta2dp_connection_state_callback,
@@ -1370,6 +1374,7 @@ static btav_vendor_callbacks_t sBluetoothA2dpSourceVendorCallbacks = {
     bta2dp_delay_report_vendor_callback,
     bta2dp_audio_codec_config_vendor_callback,
     mtu_packettype_vendor_callback,
+    bta2dp_audio_registration_callback,
 };
 
 static void btavrc_target_passthrough_cmd_vendor_callback(int id, int key_state, bt_bdaddr_t* bd_addr) {
