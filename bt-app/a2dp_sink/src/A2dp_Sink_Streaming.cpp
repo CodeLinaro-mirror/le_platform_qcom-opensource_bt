@@ -419,7 +419,6 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             qahw_out_flush(pA2dpSinkStream->out_stream);
 #endif
             if (pA2dpSinkStream) {
-                pA2dpSinkStream->StopDataFetchTimer();
                 if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
                 {
                     pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
