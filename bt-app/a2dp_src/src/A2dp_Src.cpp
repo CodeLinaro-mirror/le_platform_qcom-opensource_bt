@@ -866,6 +866,10 @@ static void BtA2dpOpenOutputStream()
 static void BtA2dpSuspendStreaming()
 {
     ALOGD(LOGTAG_A2DP "Suspend A2dp Stream");
+    if(pA2dpSource->pump_encoded_data)
+    {
+        pA2dpSource->SendSuspendStreamReq();
+    }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     pthread_mutex_lock(&a2dp_hal_mutex);
     if(!output_stream)
@@ -882,6 +886,10 @@ static void BtA2dpSuspendStreaming()
 static void BtA2dpResumeStreaming()
 {
     ALOGD(LOGTAG_A2DP "Resume A2dp Stream");
+    if(pA2dpSource->pump_encoded_data)
+    {
+        pA2dpSource->SendStartStreamReq();
+    }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     pthread_mutex_lock(&a2dp_hal_mutex);
     if(!output_stream)
@@ -1298,14 +1306,13 @@ static void bta2dp_audio_state_callback(btav_audio_state_t state, bt_bdaddr_t* b
         case BTAV_AUDIO_STATE_STARTED:
             if(!pA2dpSource->pump_encoded_data){
                 pEvent->a2dpSourceEvent.event_id = A2DP_SOURCE_AUDIO_STARTED;
-                a2dp_playstatus = A2DP_SOURCE_AUDIO_STARTED;
             }
             else {
                 pEvent->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
                 pEvent->avrcpTargetEvent.key_id = CMD_ID_PLAY;
-                a2dp_playstatus = A2DP_SOURCE_AUDIO_STARTED;
                 fprintf(stdout, "A2DP Source Audio state changes to: %d \n",A2DP_SOURCE_AUDIO_STARTED);
             }
+            a2dp_playstatus = A2DP_SOURCE_AUDIO_STARTED;
         break;
     }
     ALOGD(LOGTAG_A2DP " Audio State = %d",a2dp_playstatus);
@@ -2666,6 +2673,7 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             fprintf(stdout, "A2DP Source DisConnected \n");
             media_playing = false;
             playStatus = BTRC_PLAYSTATE_STOPPED;
+            a2dp_playstatus = A2DP_SOURCE_AUDIO_STOPPED;
             mCurrentTrackID = NO_TRACK_SELECTED;
             pA2dpSource->mAbsVolRemoteSupported = false;
             BtA2dpCloseOutputStream();
@@ -2740,6 +2748,14 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             ALOGE(LOGTAG_A2DP " event not handled %d ", pEvent->event_id);
             break;
     }
+}
+
+void A2dp_Source::SendStartStreamReq(){
+    sBtA2dpSourceVendorInterface->start_stream(&mConnectedDevice);
+}
+
+void A2dp_Source::SendSuspendStreamReq(){
+    sBtA2dpSourceVendorInterface->suspend_stream(&mConnectedDevice);
 }
 
 void A2dp_Source::SendEncodedData(){
@@ -2859,6 +2875,7 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
         case A2DP_SOURCE_DISCONNECTED_CB:
             media_playing = false;
             playStatus = BTRC_PLAYSTATE_STOPPED;
+            a2dp_playstatus = A2DP_SOURCE_AUDIO_STOPPED;
             mCurrentTrackID = NO_TRACK_SELECTED;
             pA2dpSource->mAbsVolRemoteSupported = false;
             BtA2dpCloseOutputStream();
