@@ -14,12 +14,12 @@ AM_CFLAGS = -Wall \
         -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include/ \
         -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
         -I${WORKSPACE}/system/core/include/ \
-        -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include \
-        -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include/profiles \
-        -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/include \
-        -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/include/profiles \
-        -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/oem \
-        -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/platform/linux/include
+        -I$(srcdir)/include \
+        -I$(srcdir)/include/profiles \
+        -I$(srcdir)/sdk/include \
+        -I$(srcdir)/sdk/include/profiles \
+        -I$(srcdir)/sdk/oem \
+        -I$(srcdir)/platform/linux/include
 
 ACLOCAL_AMFLAGS = -I m4
 
