@@ -699,6 +699,12 @@ void Gap::ProcessEvent(BtEvent* event) {
                 break;
 
             }
+            if(profile_config[PROFILE_ID_PAN].is_enabled)
+            {
+                bt_event = new BtEvent;
+                bt_event->event_id = PAN_EVENT_API_DISABLE;
+                PostMessage(profile_config[PROFILE_ID_PAN].thread_id, bt_event);
+            }
             if (profile_config[PROFILE_ID_A2DP_SINK].is_enabled)
             {
                 bt_event = new BtEvent;
