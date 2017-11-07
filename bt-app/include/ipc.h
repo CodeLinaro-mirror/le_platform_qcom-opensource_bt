@@ -1309,6 +1309,15 @@ typedef struct
     int mtu;
 } GattsMTUchangedEvent;
 
+typedef struct{
+    BluetoothEventId event_id;
+    int conn_id;
+    int status;
+    int clientIf;
+    bt_bdaddr_t* bda;
+} GattsOpenEvent;
+
+
 /* Remote start profile support */
 typedef struct {
     BluetoothEventId event_id;
