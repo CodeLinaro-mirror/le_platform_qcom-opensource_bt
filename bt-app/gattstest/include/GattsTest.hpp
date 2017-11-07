@@ -104,6 +104,7 @@ class GattsTest {
         GattsCharacteristicAddedEvent char_data;
         GattsDescriptorAddedEvent desc_data;
         GattsConnectionEvent conn_data;
+        GattsOpenEvent client_conn_data;
         btgatt_interface_t *gatt_interface;
         Gatt *app_gatt;
         bool isClientRegistered;
@@ -194,6 +195,16 @@ class GattsTest {
         {
             return &conn_data;
         }
+        inline void SetGATTSTESTClientConnectionData(GattsOpenEvent *event)
+        {
+            memset(&client_conn_data, 0, sizeof(GattsOpenEvent));
+            memcpy(&client_conn_data, event, sizeof(GattsOpenEvent));
+        }
+        inline GattsOpenEvent* GetGATTSTESTClientConnectionData()
+        {
+            return &client_conn_data;
+        }
+
         bool SendResponse(GattsRequestWriteEvent *);
         bool CopyUUID(bt_uuid_t *);
         bool CopyClientUUID(bt_uuid_t *);
