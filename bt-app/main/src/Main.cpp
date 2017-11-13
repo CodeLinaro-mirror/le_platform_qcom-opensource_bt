@@ -42,6 +42,7 @@
 #include "Audio_Manager.hpp"
 #include "SdpClient.hpp"
 #include "Rsp.hpp"
+#include "Hid.hpp"
 #include "GattcTest.hpp"
 #include "GattsTest.hpp"
 #ifdef USE_BT_OBEX
@@ -60,6 +61,7 @@
 static int bt_prop_socket;
 
 extern Gap *g_gap;
+extern HidH *pHid;
 extern A2dp_Sink *pA2dpSink;
 extern A2dp_Source *pA2dpSource;
 extern Pan *g_pan;
@@ -269,6 +271,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &HfpAGMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
             break;
+        case HIDH_MENU:
+            menu = &HidMenu[0];
+            num_cmds  = NO_OF_COMMANDS(HidMenu);
+            break;
         case MAIN_MENU:
         // fallback to default main menu
         default:
@@ -380,6 +386,10 @@ static void DisplayMenu(MenuType menu_type) {
         case HFP_AG_MENU:
             menu = &HfpAGMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
+            break;
+        case HIDH_MENU:
+            menu = &HidMenu[0];
+            num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
     }
     fprintf (stdout, " \n***************** Menu *******************\n");
@@ -1262,6 +1272,16 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = HFP_AG_MENU;
             DisplayMenu(menu_type);
             break;
+        case HID_HOST:
+            if(! (g_bt_app->is_hid_enabled)){
+                menu_type = MAIN_MENU;
+                ALOGE(LOGTAG "HID not supported. Enable it in bt_app.conf.");
+                fprintf(stdout,"HID not supported. Enable it in bt_app.conf.\n");
+            }
+            else
+                menu_type = HIDH_MENU;
+            DisplayMenu(menu_type);
+            break;
         case MAIN_EXIT:
             ALOGV (LOGTAG " Self exit of Main thread");
             ExitHandler();
@@ -1384,6 +1404,79 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
+static void HandleHIDCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+    ALOGD(LOGTAG "HandleHIDCommand cmd_id = %d", cmd_id);
+    BtEvent *event = NULL;
+    switch (cmd_id) {
+        case CONNECT:
+            event = new BtEvent;
+            event->hid_profile_event.event_id = HID_API_CONNECT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hid_profile_event.bd_addr);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
+        case DISCONNECT:
+            event = new BtEvent;
+            event->hid_profile_event.event_id = HID_API_DISCONNECT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hid_profile_event.bd_addr);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
+        case VIRTUAL_UNPLUG:
+            event = new BtEvent;
+            event->hid_profile_event.event_id = HID_API_VIRTUAL_UNPLUG_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hid_profile_event.bd_addr);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
+        case GET_PROTOCOL:
+            event = new BtEvent;
+            event->hid_profile_event.event_id = HID_API_GET_PROTOCOL_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hid_profile_event.bd_addr);
+            event->hid_profile_event.protocolMode = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
+        case SET_PROTOCOL:
+            event = new BtEvent;
+            event->hid_profile_event.event_id = HID_API_SET_PROTOCOL_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hid_profile_event.bd_addr);
+            event->hid_profile_event.protocolMode = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
+        case GET_REPORT:
+            event = new BtEvent;
+            event->hid_profile_event.event_id = HID_API_GET_REPORT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hid_profile_event.bd_addr);
+            event->hid_profile_event.reportType= atoi(user_cmd[TWO_PARAM]);
+            event->hid_profile_event.reportID  = atoi(user_cmd[THREE_PARAM]);
+            event->hid_profile_event.bufSize   = atoi(user_cmd[FOUR_PARAM]);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
+        case SET_REPORT:
+            event = new BtEvent;
+            event->hid_profile_event.event_id = HID_API_SET_REPORT_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hid_profile_event.bd_addr);
+            event->hid_profile_event.reportType= atoi(user_cmd[TWO_PARAM]);
+            event->hid_profile_event.bufSize   = atoi(user_cmd[FOUR_PARAM]);
+            strncpy(event->hid_profile_event.report , user_cmd[THREE_PARAM], 20);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
+        case HID_BONDED_LIST:
+            event = new BtEvent;
+            event->hid_profile_event.event_id = HID_API_BONDED_LIST_REQ;
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+    }
+}
 
 static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
@@ -2257,8 +2350,11 @@ static void BtCmdHandler (void *context) {
             case HFP_AG_MENU:
                 HandleHfpAGCommand(cmd_id, user_cmd );
                 break;
+            case HIDH_MENU:
+                HandleHIDCommand(cmd_id,user_cmd );
+                break;
         }
-    } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
+   } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
                         (!strcasecmp (user_cmd[ZERO_PARAM], "yes") ||
                         !strcasecmp (user_cmd[ZERO_PARAM], "no"))
                         && g_bt_app->HandleSspInput(user_cmd)) {
@@ -2521,7 +2617,8 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                                         remoteDevice.bluetooth_class);
             break;
         }
-        case MAIN_EVENT_BOND_STATE: {
+        case MAIN_EVENT_BOND_STATE:{
+            char str[18];
             std::string bd_name((const char*)event->bond_state_event.bd_name.name);
             HandleBondState(event->bond_state_event.state,
                                     event->bond_state_event.bd_addr, bd_name);
@@ -2853,6 +2950,16 @@ void BluetoothApp :: InitHandler (void) {
                         (threadInfo[THREAD_ID_MAIN].thread_id),
                         STDIN_FILENO, NULL, BtCmdHandler, NULL);
     }
+
+    if (is_hid_enable_default_) {
+        ALOGV (LOGTAG "  Starting HID thread");
+        threadInfo[THREAD_ID_HID].thread_id = thread_new (
+            threadInfo[THREAD_ID_HID].thread_name);
+
+        if (threadInfo[THREAD_ID_HID].thread_id)
+            pHid = new HidH(bt_interface, config);
+    }
+    is_hid_enabled = is_hid_enable_default_ ;
 }
 
 
@@ -2860,6 +2967,14 @@ void BluetoothApp :: DeInitHandler (void) {
     UnLoadBtStack ();
 
     ALOGV (LOGTAG "  %s:",__func__);
+    if (is_hid_enable_default_) {
+        if (threadInfo[THREAD_ID_HID].thread_id != NULL){
+            thread_free(threadInfo[THREAD_ID_HID].thread_id);
+            if (pHid != NULL)
+                delete pHid;
+        }
+    }
+
      // de-register reactors for socket
     if (is_socket_input_enabled_) {
         if(listen_reactor_)
@@ -3108,6 +3223,9 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_hfp_ag_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_HFP_AG_ENABLED, false);
 
+    //checking for hid
+    is_hid_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_HID_ENABLED, false);
     if (is_hfp_client_enabled_ == true && is_hfp_ag_enabled_ == true) {
         ALOGE (LOGTAG " Both HFP AG and Client are enabled, disabling AG. Set \
            BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \

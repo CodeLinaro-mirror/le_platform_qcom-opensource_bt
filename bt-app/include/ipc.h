@@ -52,6 +52,7 @@ extern thread_t *g_pbapc_thread;
 #define SDP_CLIENT_MSG_BASE     (5000)
 #define PBAP_CLIENT_MSG_BASE    (6000)
 #define OPP_MSG_BASE            (7000)
+#define HID_API_MSG_BASE        (9000)
 
 #define AUDIO_MANAGER_MSG_BASE  (250)
 #define A2DP_SINK_MSG_BASE      (300)
@@ -94,6 +95,7 @@ typedef enum {
     THREAD_ID_HFP_AG,
     THREAD_ID_A2DP_SOURCE,
     THREAD_ID_AVRCP,
+    THREAD_ID_HID,
     THREAD_ID_MAX,
 } ThreadIdType;
 
@@ -114,6 +116,7 @@ typedef enum {
     PROFILE_ID_HFP_AG,
     PROFILE_ID_A2DP_SOURCE,
     PROFILE_ID_AVRCP,
+    PROFILE_ID_HID,
     PROFILE_ID_MAX
 } ProfileIdType;
 
@@ -514,6 +517,20 @@ typedef enum {
     OPP_INTERNAL_DISCONNECTION,
     OPP_INCOMING_FILE_RESPONSE,
     OPP_CONNECT_TIMEOUT,
+
+    HID_API_CONNECT_REQ = HID_API_MSG_BASE,
+    HID_API_DISCONNECT_REQ,
+    HID_API_DISCONNECTED_CB,
+    HID_API_CONNECTING_CB,
+    HID_API_CONNECTED_CB,
+    HID_API_DISCONNECTING_CB,
+    HID_API_SET_REPORT_REQ,
+    HID_API_GET_REPORT_REQ,
+    HID_API_SET_PROTOCOL_REQ,
+    HID_API_GET_PROTOCOL_REQ,
+    HID_API_VIRTUAL_UNPLUG_REQ,
+    HID_API_BONDED_HID_LIST,
+    HID_API_BONDED_LIST_REQ
 } BluetoothEventId;
 
 typedef struct {
@@ -1372,6 +1389,17 @@ typedef struct {
     ProfileIdType      profile_id;
 } BTAMControlRelease;
 
+typedef struct {
+    BluetoothEventId   event_id;
+    bt_bdaddr_t        bd_addr;
+    char               report[20];
+    int                reportType;
+    int                reportID;
+    int                bufSize;
+    int                protocolMode;
+    int                idleTime;
+} HIDProfileEvent;
+
 typedef union {
     BluetoothEventId                        event_id;
     GapAppEvent                             state_event;
@@ -1474,6 +1502,7 @@ typedef union {
     PbapClientEvent                         pbap_client_event;
     OppEvent                                opp_event;
 #endif
+    HIDProfileEvent                         hid_profile_event;
     BtIpcMsgEvent                           bt_ipc_msg_event;
 } BtEvent;
 
@@ -1537,6 +1566,7 @@ void BtPbapClientMsgHandler(void *context);
 void BtOppMsgHandler(void *context);
 #endif
 void BtA2dpSourceMsgHandler(void *msg);
+void BtHidMsgHandler(void *msg);
 #ifdef __cplusplus
 }
 #endif

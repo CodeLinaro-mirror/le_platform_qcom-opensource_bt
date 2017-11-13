@@ -21,6 +21,7 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/osi/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gap/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/pan/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/hid/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/rsp/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattctest/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattstest/include \
@@ -66,6 +67,7 @@ c_sources = ../utils/src/utils.c \
             ../hfp_client/src/HfpClient.cpp \
             ../hfp_ag/src/HfpAG.cpp \
             ../pan/src/Pan.cpp \
+            ../hid/src/Hid.cpp \
             ../sdp_client/src/SdpClient.cpp\
             ../rsp/src/Rsp.cpp \
             ../gattctest/src/GattcTest.cpp \
