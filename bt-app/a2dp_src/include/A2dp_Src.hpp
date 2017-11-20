@@ -193,6 +193,8 @@ class A2dp_Source {
     void updateResetNotification(btrc_event_id_t noti);
     void UpdateSupportedCodecs(uint8_t num_codecs);
     void SendEncodedData();
+    void SendStartStreamReq();
+    void SendSuspendStreamReq();
     list<MediaPlayerInfo> pMediaPlayerList;
 };
 

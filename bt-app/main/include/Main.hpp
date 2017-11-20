@@ -395,7 +395,7 @@ UserMenuList A2dpSinkMenu[] = {
     {LIST_PALYER_SETTING_VALUE,     "listplayersettingvalue",  TWO_PARAM,    "listplayersettingvalue<space><bt_address><space><attri_ID>"},
     {GET_PALYER_APP_SETTING,    "getplayersetting",  TWO_PARAM,  "getplayersetting<space><bt_address><space><attri_IDs>"},
     {SET_PALYER_APP_SETTING,    "setplayersetting",  THREE_PARAM,  "setplayersetting<space><bt_address><space><attri_IDs><space><attri_Values>"},
-    {GET_ELEMENT_ATTR,  "getelementattr",  TWO_PARAM,  "getelementattr<space><bt_address><space><attribute_IDs>"},
+    {GET_ELEMENT_ATTR,  "getelementattr",  THREE_PARAM,  "getelementattr<space><bt_address><space><num_attrb><space><attribute_IDs>"},
     {GET_PLAY_STATUS,   "getplayerstatus",  ONE_PARAM,  "getplayerstatus<space><bt_address>"},
     {REG_NOTIFICATION,  "regnotification",  TWO_PARAM,  "regnotification<space><bt_address><space><event_ID>"},
     {SET_ADDRESSED_PLAYER,  "setaddressedplayer",  TWO_PARAM,  "setaddressedplayer<space><bt_address><space><player_ID>"},
