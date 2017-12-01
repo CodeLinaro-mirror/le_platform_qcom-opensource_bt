@@ -46,6 +46,7 @@
 #include "hardware/bt_rc_vendor.h"
 #include "hardware/bt_hh.h"
 #include <list>
+#include "hardware/bt_hh_vendor.h"
 
 using namespace std;
 using std::list;
@@ -70,6 +71,8 @@ class HidH {
     config_t *config;
     const bt_interface_t * bluetooth_interface;
     const bthh_interface_t *sBluetoothHidInterface;
+    /***  structure object for hh Vendor interface*/
+    const bthh_vendor_interface_t *sBtHhVendorInterface;
     HIDConnectiontState mConnectionState;
     bt_bdaddr_t mConnectingDevice;
     bt_bdaddr_t mConnectedDevice;

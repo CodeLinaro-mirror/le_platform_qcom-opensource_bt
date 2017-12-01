@@ -39,6 +39,7 @@
 #include "Hid.hpp"
 #include "Gap.hpp"
 #include "hardware/bt_rc_vendor.h"
+#include "hardware/bt_hh_vendor.h"
 using namespace std;
 using std::list;
 using std::string;
@@ -228,6 +229,78 @@ static bthh_callbacks_t sBluetoothHidCallbacks = {
     handshake_cb
 };
 
+static void raw_hid_data_cb(uint8_t* rpt, uint16_t len,bool rpt_id_flag){
+    ALOGD(LOGTAG " raw_hid_data_cb ");
+    uint8_t *rpt_data;
+    uint8_t rpt_id;
+    uint8_t rpt_len;
+
+    static bool toggle_play_pause = false;
+    static bool toggle_mute = false;
+    if (rpt_id_flag) {
+        ALOGD(LOGTAG " raw_hid_data_cb : report contains report_id.");
+        rpt_id = *(rpt);
+        rpt_len = len-1;
+        rpt_data = (uint8_t *)malloc((rpt_len)*sizeof(uint8_t));
+        memcpy(rpt_data,&rpt[1],(rpt_len)*sizeof(uint8_t));
+        for (int i=0;i<rpt_len;i++)
+            ALOGD(LOGTAG "raw_hid_data_cb : data at idx %d is %d",i,*(rpt_data+i));
+    }
+    else{
+        rpt_len = len;
+        ALOGD(LOGTAG "Apurva raw_hid_data_cb :report does not contain report_id.");
+        rpt_data = (uint8_t *)malloc((rpt_len)*sizeof(uint8_t));
+        memcpy(rpt_data,&rpt[1],rpt_len*sizeof(uint8_t));
+        for (int i=0;i<rpt_len;i++)
+            ALOGD(LOGTAG "raw_hid_data_cb : data at idx %d is %d",i,*(rpt_data+i));
+    }
+
+    if(*(rpt_data) == 0 && *(rpt_data+1) == 0 && *(rpt_data+2) == 0){
+        ALOGD(LOGTAG " raw_hid_data_cb : KEYPRESS RELEASE");
+        fprintf(stdout,"KEYPRESS RELEASE");
+    }
+    else if (*(rpt_data) == 16 && *(rpt_data+1) == 0 && *(rpt_data+2) == 0){
+        if(!toggle_play_pause){
+            toggle_play_pause = true;
+            ALOGD(LOGTAG " raw_hid_data_cb : PLAY");
+            fprintf(stdout,"PLAY");
+        }else{
+            toggle_play_pause = false;
+            ALOGD(LOGTAG " raw_hid_data_cb : PAUSE");
+            fprintf(stdout,"PAUSE");
+        }
+    }
+    else if(*(rpt_data) == 32 && *(rpt_data+1) == 0 && *(rpt_data+2) == 0){
+        if(!toggle_mute){
+            ALOGD(LOGTAG " raw_hid_data_cb : MUTE");
+            fprintf(stdout,"MUTE");
+            toggle_mute = true;
+        }
+        else{
+            ALOGD(LOGTAG " raw_hid_data_cb : UNMUTE");
+            fprintf(stdout,"UNMUTE");
+            toggle_mute = false;
+        }
+    }
+    else if(*(rpt_data) == 128 && *(rpt_data+1) == 0 && *(rpt_data+2) == 0){
+        ALOGD(LOGTAG " raw_hid_data_cb : VOL DOWN");
+        fprintf(stdout,"VOL DOWN");
+    }
+    else if(*(rpt_data) == 64 && *(rpt_data+1) == 0 && *(rpt_data+2) == 0){
+        ALOGD(LOGTAG " raw_hid_data_cb : VOL UP");
+        fprintf(stdout,"VOL UP");
+    }
+    else{
+        ALOGD(LOGTAG " raw_hid_data_cb : Unknown Cmd");
+    }
+}
+
+
+static bthh_vendor_callbacks_t sBtHhVendorCallbacks = {
+    sizeof(sBtHhVendorCallbacks),
+    raw_hid_data_cb,
+};
+
 /*Constructor and Destructor Structure of the Class*/
 HidH::HidH(const bt_interface_t *bt_interface, config_t *config)
 {
@@ -261,6 +334,18 @@ void HidH::HandleEnableHID(void) {
         if (sBluetoothHidInterface != NULL) {
             sBluetoothHidInterface->init(&sBluetoothHidCallbacks);
         }
+
+        // Vendor interface
+        sBtHhVendorInterface = (bthh_vendor_interface_t *)bluetooth_interface->
+                                get_profile_interface(BT_PROFILE_HID_VENDOR_ID);
+        if (sBtHhVendorInterface != NULL) {
+            ALOGD(LOGTAG" Added vendor inteface in HidH");
+            sBtHhVendorInterface->init_vendor(&sBtHhVendorCallbacks);
+        }
+        else{
+            ALOGD(LOGTAG " vendor interface NULL");
+        }
+
         ALOGD(LOGTAG "%s Enable HID  ",__func__);
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_HID;
@@ -274,6 +359,10 @@ void HidH::HandleDisableHID(void) {
    if (sBluetoothHidInterface != NULL) {
        sBluetoothHidInterface->cleanup();
        sBluetoothHidInterface = NULL;
+   }
+   if (sBtHhVendorInterface != NULL) {
+        sBtHhVendorInterface->cleanup_vendor();
+         sBtHhVendorInterface = NULL;
    }
    BtEvent *pEvent = new BtEvent;
    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
