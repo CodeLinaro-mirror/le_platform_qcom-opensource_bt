@@ -162,10 +162,12 @@ const void* OI_ConfigTable_GetConfig(OI_MODULE module)
 
 void  OI_ConfigTable_SetConfig(const void *configPtr, OI_MODULE module)
 {
+    OI_INIT_FLAG retVal;
     OI_ASSERT(module < OI_NUM_STACK_MODULES);
     OI_LOG_ERROR(("OI_ConfigTable_SetConfig fail: module %d is already initialized", module)) ;
     // can't set config if module is already initialized
-    OI_ASSERT((OI_INIT_FLAG_UNINITIALIZED_VALUE == OI_InitFlags_GetFlag(module))) ;
+    retVal = OI_InitFlags_GetFlag(module);
+    OI_ASSERT((OI_INIT_FLAG_UNINITIALIZED_VALUE == retVal));
     if (OI_INIT_FLAG_UNINITIALIZED_VALUE != OI_InitFlags_GetFlag(module)) {
         OI_LOG_ERROR(("OI_ConfigTable_SetConfig fail: module %d is already initialized", module)) ;
         return ;
