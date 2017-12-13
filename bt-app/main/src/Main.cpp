@@ -1617,6 +1617,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 if (gattstest) {
                     fprintf( stdout, "(Re)start Advertisement \n");
+                    gattstest->ClientSetAdvData("Remote Start Profile");
                     gattstest->StartAdvertisement();
                 } else {
                     fprintf(stdout , "Do Init first\n");
@@ -1884,6 +1885,30 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     PostMessage (THREAD_ID_GAP, event);
                 } else {
                  fprintf( stdout, " BD Name is NULL/more than required legnth\n");
+                }
+            } else {
+                fprintf( stdout, " Currently BT is OFF\n");
+            }
+            break;
+
+        case SET_LE_BT_NAME:
+            if ( g_bt_app->GetState() == BT_STATE_ON ) {
+                if (strlen(user_cmd[ONE_PARAM]) < BTM_MAX_LOC_BD_NAME_LEN &&
+                    (user_cmd[ONE_PARAM] != NULL) ) {
+                    bt_lename_t le_name;
+                    event = new BtEvent;
+                    event->event_id = GAP_API_SET_LE_BDNAME;
+                    strlcpy((char *) &le_name.name[0], user_cmd[ONE_PARAM], COMMAND_SIZE);
+                    event->set_device_le_name_event.name.val = &le_name;
+                    event->set_device_le_name_event.name.len = strlen((char*)le_name.name);
+                    if (gattsEnabled) {
+                        event->set_device_le_name_event.gattsEnabled = true;
+                    } else {
+                        event->set_device_le_name_event.gattsEnabled = false;
+                    }
+                    PostMessage (THREAD_ID_GAP, event);
+                } else {
+                    fprintf( stdout, " LE BT Name is NULL/more than required legnth\n");
                 }
             } else {
                 fprintf( stdout, " Currently BT is OFF\n");

@@ -50,7 +50,9 @@ class gattstestClientCallback : public BluetoothGattClientCallback
         gattstest->SetGATTSTESTClientAppData(&event);
 
         gattstest->ClientSetAdvData("Remote Start Profile");
-        gattstest->StartAdvertisement();
+        if (!gattstest->StartAdvertisement())
+             gattstest->setIsAdvertising(1);
+        ALOGD(LOGTAG, "isAdvertising %d",gattstest->getIsAdvertising() );
    }
 
    void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data) {
@@ -265,9 +267,11 @@ class gattstestServerCallback :public BluetoothGattServerCallback
         if (gattstest) {
             gattstest->SetGATTSTESTConnectionData(&event);
             if (connected) {
-                gattstest->StopAdvertisement();
+                if(!gattstest->StopAdvertisement())
+                    gattstest->setIsAdvertising(0);
             }
         }
+        ALOGD(LOGTAG, "isAdvertising %d connected %d",gattstest->getIsAdvertising(),connected);
     }
 
     void btgatts_service_added_cb(int status, int server_if,
@@ -424,6 +428,7 @@ GattsTest::GattsTest(btgatt_interface_t *gatt_itf, Gatt* gatt)
     gattstestServerCb = new gattstestServerCallback;
     isClientRegistered = false;
     isServerRegistered = false;
+    isAdvertising = false;
 }
 
 
@@ -434,6 +439,7 @@ GattsTest::~GattsTest()
     ALOGD(LOGTAG "(%s) GATTSTEST DeInitialized\n",__FUNCTION__);
     isClientRegistered = false;
     isServerRegistered = false;
+    isAdvertising = false;
 }
 
 bool GattsTest::CopyUUID(bt_uuid_t *uuid)
@@ -804,4 +810,14 @@ bool GattsTest::StopService()
     int srvc_handle = GetGattsTestSrvcData()->srvc_handle;
     return app_gatt->stop_service(GetGATTSTESTAppData()->server_if,
                                                         srvc_handle) == BT_STATUS_SUCCESS;
+}
+
+bool GattsTest::getIsAdvertising()
+{
+    return isAdvertising;
+}
+
+bool GattsTest::setIsAdvertising(bool value){
+    ALOGD(LOGTAG "setIsAdvertising %d ", value);
+    isAdvertising = value;
 }
