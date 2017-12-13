@@ -95,6 +95,7 @@ class GattsTest {
     private:
         config_t *config;
         int wlan_state;
+        bool isAdvertising;
 
         GattsTestEnableEvent attr;
         GattcRegisterAppEvent app_client_if;
@@ -217,6 +218,8 @@ class GattsTest {
         bool DeleteService(void);
         bool HandleWlanOn(void);
         void CleanUp(int);
+        bool getIsAdvertising();
+        bool setIsAdvertising(bool);
 };
 #endif
 
