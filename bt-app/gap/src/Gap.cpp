@@ -269,10 +269,19 @@ static void SsrCleanupCb() {
     PostMessage(THREAD_ID_GAP, event);
 }
 
+static void VendorAclStateChangedCb(bt_status_t status,
+                                       bt_bdaddr_t *remote_bd_addr,
+                                       bt_acl_state_t state,
+                                       uint8_t reason) {
+
+    ALOGV (LOGTAG " VendorAclStateChangedCb :");
+}
+
 static btvendor_callbacks_t sVendorCallbacks = {
     sizeof(sVendorCallbacks),
     NULL,
     SsrCleanupCb,
+    VendorAclStateChangedCb,
 };
 
 void BtGapMsgHandler(void *msg) {
