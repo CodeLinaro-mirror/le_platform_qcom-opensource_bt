@@ -272,7 +272,8 @@ static void SsrCleanupCb() {
 static void VendorAclStateChangedCb(bt_status_t status,
                                        bt_bdaddr_t *remote_bd_addr,
                                        bt_acl_state_t state,
-                                       uint8_t reason) {
+                                       uint8_t reason,
+                                       uint8_t transport_type) {
 
     ALOGV (LOGTAG " VendorAclStateChangedCb :");
 }
