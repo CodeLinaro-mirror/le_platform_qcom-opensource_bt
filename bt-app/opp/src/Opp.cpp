@@ -66,7 +66,7 @@ static  uint32_t profileVersion = 0x0102;
 static char profile_name[] = "OPP Profile";
 static char storageDir[] = "/data/misc/bluetooth/";
 static char noNameFileStoreLocation[] = "/data/misc/bluetooth/NoName";
-static char configFileName[] = "/data/misc/bluetooth/ext_to_mimetype.conf";
+static char configFileName[] = "/etc/bluetooth/ext_to_mimetype.conf";
 Opp *g_opp = NULL;;
 
 #define UUID_MAX_LENGTH 16

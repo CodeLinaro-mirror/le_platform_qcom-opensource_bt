@@ -102,7 +102,7 @@ const char *BT_HID_ENABLED         = "BtHidEnable";
 /**
  * The Configuration file path
  */
-const char *CONFIG_FILE_PATH       = "/data/misc/bluetooth/bt_app.conf";
+const char *CONFIG_FILE_PATH       = "/etc/bluetooth/bt_app.conf";
 
 /**
  * To track user command status
