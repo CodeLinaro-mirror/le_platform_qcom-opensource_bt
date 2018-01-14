@@ -84,13 +84,13 @@ else
 requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware
 endif
 
-requiredlibs += $(SYS_LIB)/libgengatt.la
+requiredlibs += -lgengatt -lcutils
 if AUDIO_HAL_SUPPORTED
-requiredlibs += $(SYS_LIB)/libqahw.la
+requiredlibs += -lqahw
 endif
 
 if USE_BT_OBEX
-requiredlibs += $(SYS_LIB)/libbtobex.la
+requiredlibs += -lbtobex
 endif
 
 if USE_GLIB
