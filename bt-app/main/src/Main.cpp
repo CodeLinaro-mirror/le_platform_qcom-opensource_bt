@@ -1314,6 +1314,75 @@ void HandleOnOffTest (void *context) {
     test_thread_id = NULL;
 }
 
+static int send_hci_cmd_parse_args(char *args, unsigned char **cmd)
+{
+    int i;
+    int nr_cmd;
+    uint8_t *cmd_buff;
+    char *p;
+    unsigned long c;
+
+    nr_cmd = strlen(args) + 1;
+    if ((nr_cmd % 3))
+        return -1;
+    nr_cmd /= 3;
+    cmd_buff = (uint8_t *)osi_malloc(nr_cmd);
+    if (NULL == cmd_buff)
+        return -2;
+
+    p = args;
+    for (i = 0; i <  nr_cmd; i++) {
+        if ('\0' == *args)
+            break;
+        c = strtol(args, &p, 16);
+        if (p == args)
+            break;
+        if ((*p != ',') && (*p != '\0'))
+            break;
+        cmd_buff[i] = (uint8_t)c;
+        if (*p == '\0') {
+            i++;
+            break;
+        }
+        p ++;
+        args = p;
+    }
+
+    if ((i == nr_cmd) && ('\0' == *p)) {
+        *cmd = cmd_buff;
+        return nr_cmd;
+    }
+
+    osi_free(cmd_buff);
+    return -3;
+}
+
+static void handle_send_hci_cmd(void *cmd_ptr) {
+    int i;
+    int cmd_size;
+    uint8_t *cmd =(uint8_t *)cmd_ptr;
+
+    fprintf(stdout, "**** send hci cmd ****\n");
+    cmd_size = cmd[2] + 3;
+
+    i = 0;
+    while (i < cmd_size) {
+        fprintf(stdout, "%02x ", cmd[i]);
+        i++;
+        if (i % 16 == 0)
+            fprintf(stdout, "\n");
+    }
+    fprintf(stdout, "\n**** end ****\n");
+
+    g_bt_app->bt_interface->hci_cmd_send(*(uint16_t *)cmd, &cmd[3], cmd[2]);
+    osi_free(cmd_ptr);
+
+    reactor_stop(thread_get_reactor(test_thread_id));
+    test_thread_id = NULL;
+
+    return;
+}
+
 static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num = 0;
@@ -1337,7 +1406,46 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 fprintf( stdout, "Test is ongoing, please wait until it finishes\n");
             }
             break;
+        case SEND_HCI_CMD:
+            {
+                int cmd_size;
+                uint8_t *cmd_ptr;
 
+                if (!g_gap -> IsEnabled()) {
+                    fprintf( stdout, "BT adapter isn't enabed\n");
+                    break;
+                }
+
+                if (test_thread_id) {
+                    fprintf( stdout, "Test is ongoing, please wait until it finishes\n");
+                    break;
+                }
+
+                if (NULL == g_bt_app->bt_interface->hci_cmd_send) {
+                    fprintf( stdout, "send hci cmd unavailable\n");
+                    break;
+                }
+
+                cmd_size = send_hci_cmd_parse_args(user_cmd[ONE_PARAM], &cmd_ptr);
+                if (cmd_size <= 0) {
+                    fprintf( stdout, "hci cmd format error!\n");
+                    break;
+                }
+
+                if (cmd_size != (cmd_ptr[2] + 3)) {
+                    osi_free(cmd_ptr);
+                    fprintf( stdout, "hci cmd length error!\n");
+                    break;
+                }
+
+                test_thread_id = thread_new ("test_thread");
+                if (test_thread_id)
+                    thread_post(test_thread_id, handle_send_hci_cmd, (void *) cmd_ptr);
+                else
+                    osi_free(cmd_ptr);
+
+                break;
+            }
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);

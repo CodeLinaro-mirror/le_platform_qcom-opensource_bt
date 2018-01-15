@@ -274,6 +274,7 @@ typedef enum {
     VIRTUAL_UNPLUG,
     HID_BONDED_LIST,
     BACK_TO_MAIN,
+    SEND_HCI_CMD,
     END,
 } CommandList;
 
@@ -389,6 +390,7 @@ UserMenuList PanMenu[] = {
  */
 UserMenuList TestMenu[] = {
     {TEST_ON_OFF,           "on_off",    ONE_PARAM,     "<on_off> <number>   eg: on_off 100"},
+    {SEND_HCI_CMD,          "send_hci_cmd",    ONE_PARAM,     "<send_hci_cmd> <hci_cmd>"},
     {BACK_TO_MAIN,          "main_menu", ZERO_PARAM,    "main_menu"},
 };
 

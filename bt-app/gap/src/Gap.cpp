@@ -248,6 +248,24 @@ static void EnergyInfoRecvCb(bt_activity_energy_info *p_energy_info) {
     ALOGV (LOGTAG " EnergyInfoRecvCb: ");
 }
 
+static void hci_raw_event_show(uint8_t event_code, uint8_t *buf, uint8_t len){
+    int i;
+
+    fprintf(stdout, "#### raw event received ####\n");
+    fprintf(stdout, "%02x %02x ", event_code, len);
+
+    i = 2;
+    while (i < (len + 2)) {
+        if ((i % 16) == 0)
+            fprintf(stdout, "\n");
+        fprintf(stdout, "%02x ", buf[i - 2]);
+        i++;
+    }
+    fprintf(stdout, "\n#### end ####\n");
+
+    return;
+}
+
 //TODO: update the callbacks, made NULL to compile
 static bt_callbacks_t sBluetoothCallbacks = {
     sizeof(sBluetoothCallbacks),
@@ -264,7 +282,7 @@ static bt_callbacks_t sBluetoothCallbacks = {
     DutModeRecvCb,
     LeTestModeRecvCb,
     NULL,
-    NULL,
+    hci_raw_event_show,
 };
 
 static void SsrCleanupCb() {
