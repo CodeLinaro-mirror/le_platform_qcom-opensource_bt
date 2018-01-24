@@ -50,6 +50,7 @@
 #include "osi/include/list.h"
 #include "osi/include/allocator.h"
 #include "oi_utils.h"
+#include "A2dp_Sink_Streaming.hpp"
 
 #define LOGTAG_A2DP "A2DP_SRC "
 #define LOGTAG_AVRCP "AVRCP_TG "
@@ -59,6 +60,7 @@ using std::list;
 using std::string;
 
 extern Avrcp *pAvrcp;
+extern A2dp_Sink_Streaming *pA2dpSinkStream;
 A2dp_Source *pA2dpSource = NULL;
 static pthread_t playback_thread = NULL;
 AttrType mAttrType;
@@ -914,6 +916,44 @@ int get_codec_relay_data(void)
     pthread_mutex_unlock(&a2dp_sink_relay_mutex);
     return ptr->codec_type;
 }
+
+#define RELAY_QUEUE_SIZE        24
+#define MIN_NR_RELAY_FRAME        8
+
+static bool is_relay_sink2src(void)
+{
+    bool ret = false;
+    uint16_t codec_type;
+    t_SINK_RELAY_DATA* ptr;
+
+    if ((pA2dpSinkStream != NULL) && !(pA2dpSinkStream->sbc_decoding))
+        codec_type = A2DP_SINK_AUDIO_CODEC_SBC;
+    else
+        codec_type = A2DP_SINK_AUDIO_CODEC_PCM;
+
+    pthread_mutex_lock(&a2dp_sink_relay_mutex);
+    if (list_is_empty(a2dp_sink_relay_data_list))
+        goto out;
+
+    ptr = (t_SINK_RELAY_DATA*)list_front(a2dp_sink_relay_data_list);
+    if (ptr->codec_type != codec_type) {
+        ALOGD("in %s : Discard a frame : ptr->codec_type = %d, codec_type = %d",
+                __func__, ptr->codec_type, codec_type);
+        list_remove(a2dp_sink_relay_data_list, ptr);
+        osi_free(ptr);
+        goto out;
+    }
+
+    if(list_length(a2dp_sink_relay_data_list) < MIN_NR_RELAY_FRAME)
+        goto out;
+
+    ret = true;
+
+out:
+    pthread_mutex_unlock(&a2dp_sink_relay_mutex);
+    return ret;
+}
+
 void flush_relay_data(void)
 {
     if(!a2dp_sink_relay_data_list)
@@ -935,7 +975,7 @@ void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type)
 {
     ALOGD(" enque_relay_data size %d list_len = %d codec=%d", size, list_length(a2dp_sink_relay_data_list),codec_type);
     pthread_mutex_lock(&a2dp_sink_relay_mutex);
-    if (list_length(a2dp_sink_relay_data_list) > 10) {
+    if (list_length(a2dp_sink_relay_data_list) > RELAY_QUEUE_SIZE) {
         ALOGE(LOGTAG_A2DP "%s:a2dp sink relay queue is full",__func__);
         pthread_mutex_unlock(&a2dp_sink_relay_mutex);
         return;
@@ -1114,6 +1154,9 @@ static void *thread_func(void *in_param)
     while (media_playing) {
         if(is_sink_relay_enabled)
         {
+            if (!is_relay_sink2src())
+                continue;
+
             ALOGD(LOGTAG_A2DP "try to get the codec information of snk side");
             if( GetCodecInfoByAddr(NULL,&snk_codec_type,&snk_codec_cfg))
             {
@@ -2345,6 +2388,10 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                         sBtA2dpSourceVendorInterface->start_stream(&mConnectedDevice);
                         break;
                     }
+
+                    if (is_sink_relay_enabled)
+                        flush_relay_data();
+
                     if (media_playing)
                         BtA2dpResumeStreaming();
                     else
@@ -2402,6 +2449,10 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                 case CMD_ID_STOP:
                     /*Pause and Stop passthrough commands are handled here*/
                     media_playing = false;
+                    if (playback_thread != NULL) {
+                        pthread_join(playback_thread, NULL);
+                        playback_thread = NULL;
+                    }
                     if(pump_encoded_data){
                         sBtA2dpSourceVendorInterface->suspend_stream(&mConnectedDevice);
                         flush_relay_data();
