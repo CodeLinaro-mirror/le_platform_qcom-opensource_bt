@@ -57,7 +57,7 @@ extern A2dp_Sink *pA2dpSink;
 static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 #define ABS_VOL_BASE 127
 #define AUDIO_MAX_VOL_LEVEL 15
-int curr_audio_index = 1;
+int curr_audio_index = 7;
 #ifdef __cplusplus
 extern "C" {
 #endif
