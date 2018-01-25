@@ -1107,6 +1107,23 @@ size_t get_pcm_data(uint8_t* buffer, size_t size)
         return(end_buf_ptr - start_buf_ptr);
 }
 
+#define PCM_HEADER_SIZE        44
+static void skip_pcm_header(FILE *pcm_file)
+{
+    char hdr_buff[PCM_HEADER_SIZE];
+
+    memset(hdr_buff, 0x00, PCM_HEADER_SIZE);
+    if (fread(hdr_buff, 1, PCM_HEADER_SIZE, pcm_file) == PCM_HEADER_SIZE) {
+        if ((strncmp(hdr_buff, "RIFF", 4) == 0) && (strncmp(&hdr_buff[8], "WAVEfmt", 7) == 0)) {
+            printf("in %s : skip %d bytes\n", __func__, PCM_HEADER_SIZE);
+            return;
+        }
+    }
+
+    fseek(pcm_file, 0, SEEK_SET);
+    return;
+}
+
 static void *thread_func(void *in_param)
 {
     SrcStreamStatus srcStream = SRC_NO_STREAMING;
@@ -1116,6 +1133,7 @@ static void *thread_func(void *in_param)
     size_t out_buffer_size = 0;
     int codec_type;
     short buffer[AUDIO_STREAM_OUTPUT_BUFFER_SZ];
+    uint8_t hdr_buffer[32];
     btav_codec_config_t src_codec_cfg;
     btav_codec_config_t snk_codec_cfg;
     int src_codec_type = A2DP_SINK_AUDIO_CODEC_SBC;
@@ -1252,6 +1270,7 @@ static void *thread_func(void *in_param)
              if (len == 0) {
                  ALOGD(LOGTAG_A2DP "Read %d bytes from file", len);
                  fseek(in_file, 0, SEEK_SET);
+                 skip_pcm_header(in_file);
                  continue;
              }
              codec_type = A2DP_SINK_AUDIO_CODEC_PCM;
@@ -1275,8 +1294,10 @@ static void *thread_func(void *in_param)
             }
             else
             {
-                write_len = output_stream->write(output_stream, &codec_type, sizeof(codec_type));
-                write_len = output_stream->write(output_stream, &len, sizeof(len));
+                memcpy(&hdr_buffer[0], &codec_type, sizeof(codec_type));
+                memcpy(&hdr_buffer[sizeof(codec_type)], &len, sizeof(len));
+                write_len = output_stream->write(output_stream, hdr_buffer,
+                        sizeof(codec_type) + sizeof(len));
                 write_len = output_stream->write(output_stream, buffer, len);
             }
         }
@@ -1302,6 +1323,7 @@ static void BtA2dpStartStreaming()
             return;
         }
     }
+    skip_pcm_header(in_file);
     ALOGD(LOGTAG_A2DP "Successfully opened input file for playback");
     media_playing = true;
     if (pthread_create(&playback_thread, NULL, thread_func, in_file) != 0) {
