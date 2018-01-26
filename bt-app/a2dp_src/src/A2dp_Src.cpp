@@ -1154,12 +1154,12 @@ static void *thread_func(void *in_param)
     while (media_playing) {
         if(is_sink_relay_enabled)
         {
-            if (!is_relay_sink2src())
-                continue;
-
             ALOGD(LOGTAG_A2DP "try to get the codec information of snk side");
             if( GetCodecInfoByAddr(NULL,&snk_codec_type,&snk_codec_cfg))
             {
+                if (!is_relay_sink2src())
+                    continue;
+
                 if((a2dp_playstatus == A2DP_SOURCE_AUDIO_SUSPENDED) &&(srcStream != SRC_STREAMING))
                 {
                     ALOGD(LOGTAG_A2DP" resume: playStatus = %d  srcStreamStatus=%d",playStatus,srcStream);
