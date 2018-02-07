@@ -1822,6 +1822,26 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             }
             break;
 
+        case SET_SCAN_MODE:
+            if ( g_bt_app->GetState() == BT_STATE_ON ) {
+                if ( user_cmd[ONE_PARAM] != NULL ) {
+                    event = new BtEvent;
+                    event->event_id = GAP_API_SET_SCAN_MODE;
+                    int scanMode = atoi(user_cmd[ONE_PARAM]);
+                    bool ignoreLeScanModes = atoi(user_cmd[TWO_PARAM]);
+                    ALOGD(LOGTAG " scanMode mode %d ignoreLeScanModes %d",
+                        scanMode, ignoreLeScanModes);
+                    event->set_scan_mode_event.mode = (bt_scan_mode_t)scanMode;
+                    event->set_scan_mode_event.ignoreLeScanMode = ignoreLeScanModes;
+                    PostMessage (THREAD_ID_GAP, event);
+                } else {
+                    fprintf( stdout, " Incorrect Mode\n");
+                }
+            } else {
+                fprintf( stdout, " Currently BT is OFF\n");
+            }
+            break;
+
         default:
             ALOGV (LOGTAG " Command not handled");
             break;
