@@ -973,6 +973,15 @@ void flush_relay_data(void)
 
 void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type)
 {
+    static int prompt_cnt = 8;
+    if (NULL == a2dp_sink_relay_data_list) {
+        if (prompt_cnt > 0) {
+            printf("Please enable A2dp source function firstly\n");
+            prompt_cnt--;
+        }
+        return;
+    }
+
     ALOGD(" enque_relay_data size %d list_len = %d codec=%d", size, list_length(a2dp_sink_relay_data_list),codec_type);
     pthread_mutex_lock(&a2dp_sink_relay_mutex);
     if (list_length(a2dp_sink_relay_data_list) > RELAY_QUEUE_SIZE) {
@@ -2602,8 +2611,10 @@ void A2dp_Source::HandleDisableSource(void) {
    media_playing = false;
    playStatus = BTRC_PLAYSTATE_STOPPED;
    mCurrentTrackID = NO_TRACK_SELECTED;
-   if(a2dp_sink_relay_data_list != NULL)
-   list_free(a2dp_sink_relay_data_list);
+   if (a2dp_sink_relay_data_list != NULL) {
+       list_free(a2dp_sink_relay_data_list);
+       a2dp_sink_relay_data_list = NULL;
+   }
 }
 
 void A2dp_Source::ProcessEvent(BtEvent* pEvent) {
