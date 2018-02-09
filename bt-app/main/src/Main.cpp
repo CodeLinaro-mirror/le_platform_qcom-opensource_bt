@@ -2828,6 +2828,9 @@ void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t
     if(new_state == BT_BOND_STATE_BONDED) {
         if (it == bonded_devices.end()) {
             bonded_devices[deviceAddress] = bd_name;
+        } else {
+            bonded_devices.erase(it);
+            bonded_devices[deviceAddress] = bd_name;
         }
        if(it_inquiry!=inquiry_list.end())
         {
