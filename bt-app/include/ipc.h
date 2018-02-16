@@ -381,6 +381,7 @@ typedef enum {
     GAP_API_PIN_REPLY,
     GAP_API_SET_BDNAME,
     GAP_API_SET_LE_BDNAME,
+    GAP_API_SET_SCAN_MODE,
     GAP_EVENT_ADAPTER_STATE,
     GAP_EVENT_ACL_STATE_CHANGED,
     GAP_EVENT_DISCOVERY_STATE_CHANGED,
@@ -737,6 +738,16 @@ typedef struct {
     btvendor_lename_t name;
     bool gattsEnabled;
 }SetDeviceLeName;
+
+/**
+ * API to set Scan Mode
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bt_scan_mode_t mode;
+    bool ignoreLeScanMode;
+}SetScanMode;
+
 
 /**
  * Event for notifying Profile stop status
@@ -1292,6 +1303,15 @@ typedef struct
     int mtu;
 } GattsMTUchangedEvent;
 
+typedef struct{
+    BluetoothEventId event_id;
+    int conn_id;
+    int status;
+    int clientIf;
+    bt_bdaddr_t* bda;
+} GattsOpenEvent;
+
+
 /* Remote start profile support */
 typedef struct {
     BluetoothEventId event_id;
@@ -1382,7 +1402,6 @@ typedef struct {
     BluetoothEventId   event_id;
     ProfileIdType      profile_id;
 } BTAMControlRelease;
-
 typedef union {
     BluetoothEventId                        event_id;
     GapAppEvent                             state_event;
@@ -1398,6 +1417,7 @@ typedef union {
     DeviceFoundEventInt                     device_found_event_int;
     SetDeviceName                           set_device_name_event;
     SetDeviceLeName                         set_device_le_name_event;
+    SetScanMode                             set_scan_mode_event;
     RemotePropertiesEvent                   remote_properties_event;
     AdapterPropertiesEvent                  adapater_properties_event;
     DeviceDiscoverRequest                   discover_request;

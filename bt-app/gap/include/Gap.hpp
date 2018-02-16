@@ -326,6 +326,15 @@ class Gap {
      * @return status
      */
     void SetLeBtName(btvendor_lename_t *name);
+
+    /**
+     * @brief SetScanMode
+     *
+     * It will set the local bluetooth scan mode
+     *
+     * @return status
+     */
+    void SetScanMode(bt_scan_mode_t mode, bool ignoreLeScanModes);
 };
 
 #endif

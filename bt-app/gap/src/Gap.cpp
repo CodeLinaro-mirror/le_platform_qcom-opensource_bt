@@ -496,6 +496,12 @@ void Gap::SetLeBtName(btvendor_lename_t *name) {
         ALOGD(LOGTAG "sBtVendorInterface is nULL");
 }
 
+void Gap::SetScanMode(bt_scan_mode_t mode, bool ignoreLeScanMode){
+    if (sBtVendorInterface != NULL) {
+        sBtVendorInterface->setScanMode(mode, ignoreLeScanMode);
+    }
+}
+
 bool Gap::IsDeviceBonded(bt_bdaddr_t device) {
     return adapter_properties_obj_->IsDeviceBonded(device);
 }
@@ -855,6 +861,13 @@ void Gap::ProcessEvent(BtEvent* event) {
             /* Audio related cleanup can be done here.*/
             ALOGD(LOGTAG " Killing the proces after SSR_CLEANUP %d", event->event_id);
             kill(getpid(), SIGKILL);
+            break;
+
+        case GAP_API_SET_SCAN_MODE:
+            ALOGD(LOGTAG " SetScanMode mode %d leIgnore %d", event->set_scan_mode_event.mode,
+                event->set_scan_mode_event.ignoreLeScanMode);
+            SetScanMode(event->set_scan_mode_event.mode,
+                event->set_scan_mode_event.ignoreLeScanMode);
             break;
 
         default:
