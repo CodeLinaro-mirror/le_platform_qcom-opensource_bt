@@ -61,12 +61,33 @@ class gattstestClientCallback : public BluetoothGattClientCallback
 
    void btgattc_open_cb(int conn_id, int status, int clientIf, bt_bdaddr_t* bda)
    {
-        UNUSED
+        ALOGD(LOGTAG"btgattc_open_cb: conn_id = %d\n ", conn_id);
+        GattsOpenEvent event;
+        event.event_id = GEN_GATT_EVENT;
+        event.conn_id = conn_id;
+        event.clientIf = clientIf;
+        event.bda = bda;
+        event.status=status;
+
+        if (gattstest) {
+            gattstest->SetGATTSTESTClientConnectionData(&event);
+        }else {
+             fprintf(stdout, "(%s): Open With error (%d)\n", __FUNCTION__, status);
+        }
    }
 
    void btgattc_close_cb(int conn_id, int status, int clientIf, bt_bdaddr_t* bda)
    {
-        UNUSED
+       ALOGD(LOGTAG"btgattc_close_cb: conn_id = %d\n ", conn_id);
+       GattsOpenEvent *event;
+       if(gattstest){
+           event = gattstest->GetGATTSTESTClientConnectionData();
+           event->bda = NULL;
+           event->clientIf = NULL;
+           event->conn_id = NULL;
+           event->status = NULL;
+           free(event);
+       }
    }
 
    void btgattc_search_complete_cb(int conn_id, int status)
@@ -656,7 +677,7 @@ bool GattsTest::StartAdvertisement()
         return false;
     }
     ALOGD(LOGTAG  "(%s) Listening on the interface (%d) ",__FUNCTION__,
-            GetGATTSTESTAppData()->server_if);
+            GetGATTSTESTClientAppData()->clientIf);
     //SetDeviceState(WLAN_INACTIVE);
     return app_gatt->listen(GetGATTSTESTClientAppData()->clientIf, true);
 }
@@ -737,10 +758,20 @@ bool GattsTest::DisconnectServer()
 {
     int server_if = GetGATTSTESTConnectionData()->server_if;
     bt_bdaddr_t * bda = GetGATTSTESTConnectionData()->bda;
-    int conn_id = GetGATTSTESTConnectionData()->conn_id;
-    ALOGD(LOGTAG  "(%s) Disconnecting interface (%d), connid (%d) ",__FUNCTION__,
-            server_if, conn_id);
-    return app_gatt->serverDisconnect(server_if, bda, conn_id) == BT_STATUS_SUCCESS;
+    int server_conn_id = GetGATTSTESTConnectionData()->conn_id;
+    ALOGD(LOGTAG  "(%s) Disconnecting server interface (%d), connid (%d) ",__FUNCTION__,
+         server_if, server_conn_id);
+    app_gatt->serverDisconnect(server_if, bda, server_conn_id) == BT_STATUS_SUCCESS;
+
+    int client_if = GetGATTSTESTClientConnectionData()->clientIf;
+    bt_bdaddr_t *client_bda = GetGATTSTESTClientConnectionData()->bda;
+    int client_conn_id =  GetGATTSTESTClientConnectionData()->conn_id;
+    if (gattstest) {
+       ALOGD(LOGTAG,  "(%s) Disconnecting client interface (%d), connid (%d) ",__FUNCTION__,
+          client_if, client_conn_id);
+       app_gatt->clientDisconnect(client_if, client_bda, client_conn_id) == BT_STATUS_SUCCESS;
+
+    }
 }
 
 bool GattsTest::DeleteService()
