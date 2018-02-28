@@ -1793,6 +1793,11 @@ static void SendDisableCmdToGap() {
     }
 }
 
+bool is_disable_inprogress(void)
+{
+    return g_bt_app->status.disable_cmd == COMMAND_INPROGRESS;
+}
+
 static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *event = NULL;
 
@@ -1855,10 +1860,6 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 event->event_id = GAP_API_DISABLE;
                 ALOGV (LOGTAG " Posting disable to GAP thread");
                 PostMessage (THREAD_ID_GAP, event);
-            } else if (g_bt_app->status.disable_cmd == COMMAND_INPROGRESS) {
-                fprintf( stdout, " disable command is already in process\n");
-            } else {
-                fprintf( stdout, "Currently BT is already OFF\n");
             }
             break;
 
