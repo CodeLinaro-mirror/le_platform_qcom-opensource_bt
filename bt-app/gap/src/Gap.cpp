@@ -738,7 +738,7 @@ void Gap::ProcessEvent(BtEvent* event) {
                 break;
 
             }
-            HandleDisable();
+
             if(profile_config[PROFILE_ID_PAN].is_enabled)
             {
                 bt_event = new BtEvent;
@@ -777,7 +777,7 @@ void Gap::ProcessEvent(BtEvent* event) {
             // start the profile stop timer
             alarm_set(profile_stop_timer, PROFILE_STOP_TIMEOUT_DELAY,
                             profile_stop_timer_expired, NULL);
-
+            profile_count = 0;
             for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
                                                             profile_id++) {
                 if(profile_config[profile_id].is_enabled &&
@@ -785,7 +785,15 @@ void Gap::ProcessEvent(BtEvent* event) {
                     bt_event = new BtEvent;
                     bt_event->event_id = PROFILE_API_STOP;
                     PostMessage(profile_config[profile_id].thread_id, bt_event);
+                    profile_count++;
                 }
+            }
+
+            if ((profile_count == 0) && is_disable_inprogress()) {
+                ALOGI (LOGTAG "Rare case : disable BT adapter under no started profile");
+                fprintf(stdout, "Rare case : disable BT adapter under no started profile\n");
+                alarm_cancel(profile_stop_timer);
+                HandleDisable();
             }
             break;
 

@@ -1563,6 +1563,7 @@ extern "C" {
 typedef char bdstr_t[MAX_BD_STR_LEN];
 void PostMessage(ThreadIdType thread_id, void *msg);
 void BtGapMsgHandler(void *context);
+bool is_disable_inprogress(void);
 void BtMainMsgHandler(void *context);
 void BtSocketMsgHandler (void *context);
 void BtA2dpSinkMsgHandler(void *msg);
