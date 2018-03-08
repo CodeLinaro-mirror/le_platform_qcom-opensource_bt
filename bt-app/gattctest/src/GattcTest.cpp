@@ -191,6 +191,11 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         event.event_id = RSP_ENABLE_EVENT;
         event.status = status;
         event.clientIf = client_if;
+        event.app_uuid = (bt_uuid_t*)malloc(sizeof(bt_uuid_t));
+        if(event.app_uuid == NULL) {
+            fprintf(stdout,"Could not allocate memory to app_uuid\n");
+        }
+        memcpy(event.app_uuid,uuid,sizeof(bt_uuid_t));
         if(!gattctest) {
            fprintf(stdout,"Client not initialized ... returning%s \n", __func__);
            return;
@@ -273,6 +278,10 @@ class gattctestClientCallback : public BluetoothGattClientCallback
             }
             gattctestServData->conn_id = conn_id;
             gattctestServData->srvc_id = (btgatt_srvc_id_t*) malloc(sizeof (btgatt_srvc_id_t));
+            if(gattctestServData->srvc_id == NULL) {
+                fprintf(stdout,"Could not allocate memory to gattctestServData->srvc_id\n");
+                return;
+            }
             memcpy(gattctestServData->srvc_id, srvc_id, sizeof (btgatt_srvc_id_t));
 
              fprintf(stdout,"%s: Matching Service UUID in Search CB--\n", __func__);
@@ -386,11 +395,19 @@ class gattctestClientCallback : public BluetoothGattClientCallback
             gattctestAlertData->conn_id = conn_id;
 
             gattctestAlertData->srvc_id = (btgatt_srvc_id_t*) malloc(sizeof(btgatt_srvc_id_t));
+            if (gattctestAlertData->srvc_id == NULL) {
+                fprintf(stdout,"Could not allocate memory to gattctestAlertData->srvc_id \n");
+                return;
+            }
             memcpy(gattctestAlertData->srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
 
             gattctestAlertData->char_id = (btgatt_gatt_id_t*) malloc(sizeof(btgatt_gatt_id_t));
+            if (gattctestAlertData->char_id == NULL) {
+                fprintf(stdout,"Could not allocate memory to gattctestAlertData->char_id \n");
+                return;
+            }
             memcpy(gattctestAlertData->char_id, char_id, sizeof(btgatt_gatt_id_t));
-             fprintf(stdout, "%s, Return 1  -- \n", __func__);
+            fprintf(stdout, "%s, Return 1  -- \n", __func__);
             return;
             }
         } else {
@@ -408,9 +425,17 @@ class gattctestClientCallback : public BluetoothGattClientCallback
 
         gattctestServData->conn_id = conn_id;
         gattctestServData->srvc_id = (btgatt_srvc_id_t*) malloc (sizeof(btgatt_srvc_id_t));
+        if (gattctestServData->srvc_id == NULL) {
+            fprintf(stdout,"Could not allocate memory to gattctestServData->srvc_id \n");
+            return;
+        }
         memcpy(gattctestServData->srvc_id,srvc_id, (sizeof(btgatt_srvc_id_t)));
 
         gattctestServData->char_id = (btgatt_gatt_id_t*)malloc (sizeof(btgatt_gatt_id_t));
+        if (gattctestServData->char_id == NULL) {
+            fprintf(stdout,"Could not allocate memory to gattctestServData->char_id \n");
+            return;
+        }
         memcpy(gattctestServData->char_id, char_id, sizeof(btgatt_gatt_id_t));
         gattctestServData->descr_id = descr_id;
 
@@ -594,6 +619,11 @@ class gattctestClientCallback : public BluetoothGattClientCallback
                          }
                          gattctestServData->conn_id = conn_id;
                          gattctestServData->srvc_id = (btgatt_srvc_id_t*) malloc(sizeof (btgatt_srvc_id_t));
+                         if (gattctestServData->srvc_id == NULL) {
+                            fprintf(stdout,"Could not allocate memory to "
+                                "gattctestServData->srvc_id \n");
+                            return;
+                         }
                          CpUUID(&gattctestServData->srvc_id->id.uuid, &(curr.uuid));
                          gattctestServData->srvc_id->id.inst_id = curr.id;
 
@@ -639,6 +669,10 @@ class gattctestClientCallback : public BluetoothGattClientCallback
                      if(AlertServiceMatches == true){
                           fprintf(stdout, "Saving the Alert Level details\n");
                          gattctestAlertData = (ServiceData *) (malloc(sizeof(uint8_t)* sizeof(ServiceData)));
+                         if (gattctestAlertData == NULL) {
+                            fprintf(stdout,"Could not allocate memory to gattctestAlertData \n");
+                            return;
+                         }
                          gattctestAlertData->conn_id = conn_id;
                          gattctestAlertData->srvc_id = (btgatt_srvc_id_t*) malloc(sizeof(btgatt_srvc_id_t));
                          gattctestAlertData->char_id = (btgatt_gatt_id_t*) malloc(sizeof(btgatt_gatt_id_t));

@@ -230,7 +230,7 @@ class GattsTest {
         bool HandleWlanOn(void);
         void CleanUp(int);
         bool getIsAdvertising();
-        bool setIsAdvertising(bool);
+        void setIsAdvertising(bool);
 };
 #endif
 
