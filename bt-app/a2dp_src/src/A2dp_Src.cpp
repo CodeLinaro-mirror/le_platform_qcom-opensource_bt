@@ -780,6 +780,13 @@ static void BtA2dpLoadA2dpHal() {
 static void BtA2dpStopStreaming()
 {
     ALOGD(LOGTAG_A2DP "Stop A2dp Streaming");
+
+    if(pA2dpSource->pump_encoded_data) {
+        pA2dpSource->SendSuspendStreamReq();
+        ALOGD(LOGTAG_A2DP "PUMP A2dp stream successfully stopped");
+        return;
+    }
+
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     pthread_mutex_lock(&a2dp_hal_mutex);
     if(!output_stream)
@@ -868,9 +875,10 @@ static void BtA2dpOpenOutputStream()
 static void BtA2dpSuspendStreaming()
 {
     ALOGD(LOGTAG_A2DP "Suspend A2dp Stream");
-    if(pA2dpSource->pump_encoded_data)
-    {
+    if(pA2dpSource->pump_encoded_data) {
         pA2dpSource->SendSuspendStreamReq();
+        ALOGD(LOGTAG_A2DP "PUMP A2dp Stream suspended successfully");
+        return ;
     }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     pthread_mutex_lock(&a2dp_hal_mutex);
@@ -888,9 +896,10 @@ static void BtA2dpSuspendStreaming()
 static void BtA2dpResumeStreaming()
 {
     ALOGD(LOGTAG_A2DP "Resume A2dp Stream");
-    if(pA2dpSource->pump_encoded_data)
-    {
+    if(pA2dpSource->pump_encoded_data) {
         pA2dpSource->SendStartStreamReq();
+        ALOGD(LOGTAG_A2DP "PUMP A2dp Stream resumed successfully");
+        return ;
     }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     pthread_mutex_lock(&a2dp_hal_mutex);
@@ -926,10 +935,13 @@ static bool is_relay_sink2src(void)
     uint16_t codec_type;
     t_SINK_RELAY_DATA* ptr;
 
-    if ((pA2dpSinkStream != NULL) && !(pA2dpSinkStream->sbc_decoding))
-        codec_type = A2DP_SINK_AUDIO_CODEC_SBC;
-    else
+    if (NULL == pA2dpSinkStream)
+        return false;
+
+    if (pA2dpSinkStream->sbc_decoding)
         codec_type = A2DP_SINK_AUDIO_CODEC_PCM;
+    else
+        codec_type = A2DP_SINK_AUDIO_CODEC_SBC;
 
     pthread_mutex_lock(&a2dp_sink_relay_mutex);
     if (list_is_empty(a2dp_sink_relay_data_list))
@@ -986,12 +998,6 @@ void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type)
     pthread_mutex_lock(&a2dp_sink_relay_mutex);
     if (list_length(a2dp_sink_relay_data_list) > RELAY_QUEUE_SIZE) {
         ALOGE(LOGTAG_A2DP "%s:a2dp sink relay queue is full",__func__);
-        pthread_mutex_unlock(&a2dp_sink_relay_mutex);
-        return;
-    }
-
-    if (pA2dpSource->pump_encoded_data && a2dp_playstatus!=A2DP_SOURCE_AUDIO_STARTED) {
-        ALOGE(LOGTAG_A2DP "%s:A2DP source audio is not started",__func__);
         pthread_mutex_unlock(&a2dp_sink_relay_mutex);
         return;
     }
@@ -1324,6 +1330,12 @@ static void BtA2dpStartStreaming()
 {
     FILE *in_file = NULL;
 
+    if (media_playing == true) {
+        ALOGD(LOGTAG_A2DP "media_playing == true\n");
+        fprintf(stdout, "A2DP_SRC : media_playing == true\n");
+        return;
+    }
+
     ALOGD(LOGTAG_A2DP "Start A2dp Stream");
     if (true || !is_sink_relay_enabled) {
         in_file = fopen("/data/misc/bluetooth/pcmtest.wav", "r");
@@ -1331,9 +1343,15 @@ static void BtA2dpStartStreaming()
             ALOGE(LOGTAG_A2DP "Cannot open input file. Bail out!!");
             return;
         }
+        skip_pcm_header(in_file);
+        ALOGD(LOGTAG_A2DP "Successfully opened input file for playback");
     }
-    skip_pcm_header(in_file);
-    ALOGD(LOGTAG_A2DP "Successfully opened input file for playback");
+
+    if(pA2dpSource->pump_encoded_data) {
+        ALOGD(LOGTAG_A2DP "PUMP start stream\n");
+        pA2dpSource->SendStartStreamReq();
+    }
+
     media_playing = true;
     if (pthread_create(&playback_thread, NULL, thread_func, in_file) != 0) {
         ALOGD(LOGTAG_A2DP "Cannot create playback thread!\n");
@@ -1378,14 +1396,7 @@ static void bta2dp_audio_state_callback(btav_audio_state_t state, bt_bdaddr_t* b
             a2dp_playstatus = A2DP_SOURCE_AUDIO_STOPPED;
         break;
         case BTAV_AUDIO_STATE_STARTED:
-            if(!pA2dpSource->pump_encoded_data){
-                pEvent->a2dpSourceEvent.event_id = A2DP_SOURCE_AUDIO_STARTED;
-            }
-            else {
-                pEvent->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
-                pEvent->avrcpTargetEvent.key_id = CMD_ID_PLAY;
-                fprintf(stdout, "A2DP Source Audio state changes to: %d \n",A2DP_SOURCE_AUDIO_STARTED);
-            }
+            pEvent->a2dpSourceEvent.event_id = A2DP_SOURCE_AUDIO_STARTED;
             a2dp_playstatus = A2DP_SOURCE_AUDIO_STARTED;
         break;
     }
@@ -2414,11 +2425,6 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             }
             switch(key_id) {
                 case CMD_ID_PLAY:
-                    if(pump_encoded_data && a2dp_playstatus !=
-                                              A2DP_SOURCE_AUDIO_STARTED){
-                        sBtA2dpSourceVendorInterface->start_stream(&mConnectedDevice);
-                        break;
-                    }
 
                     if (is_sink_relay_enabled)
                         flush_relay_data();
@@ -2457,13 +2463,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     break;
                 case CMD_ID_PAUSE:
                     /*Pause key id is mapped to A2dp suspend*/
-                  if(pump_encoded_data){
-                      sBtA2dpSourceVendorInterface->suspend_stream(&mConnectedDevice);
-                      flush_relay_data();
-                  }
-                  else{
-                       BtA2dpSuspendStreaming();
-                  }
+                    BtA2dpSuspendStreaming();
                     pA2dpSource->StopPlayPostionTimer();
                     if (playStatus != BTRC_PLAYSTATE_PAUSED)
                     {
@@ -2484,13 +2484,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                         pthread_join(playback_thread, NULL);
                         playback_thread = NULL;
                     }
-                    if(pump_encoded_data){
-                        sBtA2dpSourceVendorInterface->suspend_stream(&mConnectedDevice);
-                        flush_relay_data();
-                    }
-                    else{
-                        BtA2dpStopStreaming();
-                    }
+                    BtA2dpStopStreaming();
                     pA2dpSource->StopPlayPostionTimer();
                     if (playStatus != BTRC_PLAYSTATE_STOPPED)
                     {
@@ -2864,6 +2858,7 @@ void A2dp_Source::SendEncodedData(){
     if(list_is_empty(a2dp_sink_relay_data_list))
     {
         pthread_mutex_unlock(&a2dp_sink_relay_mutex);
+        free(p_buf);
         return;
     }
     t_SINK_RELAY_DATA* ptr = (t_SINK_RELAY_DATA*)list_front(a2dp_sink_relay_data_list);
