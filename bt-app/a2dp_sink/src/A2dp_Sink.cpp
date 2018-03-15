@@ -38,6 +38,7 @@
 #include "A2dp_Sink.hpp"
 #include "Avrcp.hpp"
 #include "Gap.hpp"
+#include "A2dp_Src.hpp"
 #include "hardware/bt_av_vendor.h"
 #include <algorithm>
 #include "oi_utils.h"
@@ -51,7 +52,6 @@ using std::string;
 A2dp_Sink *pA2dpSink = NULL;
 A2dp_Sink_Streaming *pA2dpSinkStream;
 extern Avrcp *pAvrcp;
-extern void flush_relay_data(void);
 static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 #ifdef __cplusplus

@@ -86,6 +86,7 @@ typedef enum {
     STATE_A2DP_SOURCE_CONNECTED,
 }A2dpSourceState;
 
+void flush_relay_data(void);
 
 class MediaPlayerInfo {
   public:

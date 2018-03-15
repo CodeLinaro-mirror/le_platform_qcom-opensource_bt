@@ -896,6 +896,10 @@ static void BtA2dpSuspendStreaming()
 static void BtA2dpResumeStreaming()
 {
     ALOGD(LOGTAG_A2DP "Resume A2dp Stream");
+
+    if (is_sink_relay_enabled)
+        flush_relay_data();
+
     if(pA2dpSource->pump_encoded_data) {
         pA2dpSource->SendStartStreamReq();
         ALOGD(LOGTAG_A2DP "PUMP A2dp Stream resumed successfully");
@@ -1346,6 +1350,9 @@ static void BtA2dpStartStreaming()
         skip_pcm_header(in_file);
         ALOGD(LOGTAG_A2DP "Successfully opened input file for playback");
     }
+
+    if(is_sink_relay_enabled)
+        flush_relay_data();
 
     if(pA2dpSource->pump_encoded_data) {
         ALOGD(LOGTAG_A2DP "PUMP start stream\n");
@@ -2425,10 +2432,6 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             }
             switch(key_id) {
                 case CMD_ID_PLAY:
-
-                    if (is_sink_relay_enabled)
-                        flush_relay_data();
-
                     if (media_playing)
                         BtA2dpResumeStreaming();
                     else
