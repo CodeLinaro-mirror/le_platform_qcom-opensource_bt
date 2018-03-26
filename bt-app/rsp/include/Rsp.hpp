@@ -118,8 +118,6 @@ class Rsp {
         }
         inline void SetRSPAppData(GattsRegisterAppEvent *event)
         {
-            if(app_if.uuid != NULL)
-                osi_free(app_if.uuid);
             memset(&app_if, 0, sizeof(GattsRegisterAppEvent));
             memcpy(&app_if, event, sizeof(GattsRegisterAppEvent));
         }
@@ -139,8 +137,6 @@ class Rsp {
         inline void SetRSPCharacteristicData(GattsCharacteristicAddedEvent
                 *event)
         {
-            if(char_data.char_id != NULL)
-                osi_free(char_data.char_id);
             memset(&char_data, 0, sizeof(GattsCharacteristicAddedEvent));
             memcpy(&char_data, event, sizeof(GattsCharacteristicAddedEvent));
         }
@@ -150,8 +146,6 @@ class Rsp {
         }
         inline void SetRSPDescriptorData(GattsDescriptorAddedEvent *event)
         {
-            if(desc_data.descr_id != NULL)
-                osi_free(desc_data.descr_id);
             memset(&desc_data, 0, sizeof(GattsDescriptorAddedEvent));
             memcpy(&desc_data, event, sizeof(GattsDescriptorAddedEvent));
         }
