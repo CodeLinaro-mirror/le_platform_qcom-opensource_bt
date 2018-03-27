@@ -725,6 +725,14 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
         iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlPassThruEvent.bd_addr);
         if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
         {
+            if (pA2dpSinkStream)
+                if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &pEvent->avrcpCtrlPassThruEvent.bd_addr, sizeof(bt_bdaddr_t)))
+                    if (pEvent->avrcpCtrlPassThruEvent.key_id == CMD_ID_PAUSE) {
+                        pA2dpSinkStream->StopDataFetchTimer();
+                        ALOGD(LOGTAG_CTRL "in %s : pA2dpSinkStream->StopDataFetchTimer()", __func__);
+                        fprintf(stdout, LOGTAG_CTRL "in %s : pA2dpSinkStream->StopDataFetchTimer()\n", __func__);
+                    }
+
             ALOGD(LOGTAG_CTRL " passthrough cmd for AV & RC connected device, send to stack");
             SendPassThruCommandNative(pEvent->avrcpCtrlPassThruEvent.key_id,
             &pEvent->avrcpCtrlPassThruEvent.bd_addr, 0);

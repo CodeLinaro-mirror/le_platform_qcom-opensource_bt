@@ -414,10 +414,6 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             break;
         case A2DP_SINK_STREAMING_FLUSH_AUDIO:
             ALOGD(LOGTAG " A2DP_SINK_STREAMING_FLUSH_AUDIO");
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-            qahw_out_pause(pA2dpSinkStream->out_stream);
-            qahw_out_flush(pA2dpSinkStream->out_stream);
-#endif
             if (pA2dpSinkStream) {
                 if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
                 {
@@ -425,6 +421,10 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         update_flushing_device_vendor(&pEvent->a2dpSinkStreamingEvent.bd_addr);
                 }
             }
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+            qahw_out_flush(pA2dpSinkStream->out_stream);
+            qahw_out_pause(pA2dpSinkStream->out_stream);
+#endif
             break;
         default:
             break;
