@@ -291,8 +291,9 @@ class gattstestServerCallback :public BluetoothGattServerCallback
                 if(!gattstest->StopAdvertisement())
                     gattstest->setIsAdvertising(0);
             }
+            ALOGD(LOGTAG, "isAdvertising %d connected %d",gattstest->getIsAdvertising(),connected);
         }
-        ALOGD(LOGTAG, "isAdvertising %d connected %d",gattstest->getIsAdvertising(),connected);
+
     }
 
     void btgatts_service_added_cb(int status, int server_if,
@@ -756,12 +757,13 @@ bool GattsTest::AddService()
 
 bool GattsTest::DisconnectServer()
 {
+    int status;
     int server_if = GetGATTSTESTConnectionData()->server_if;
     bt_bdaddr_t * bda = GetGATTSTESTConnectionData()->bda;
     int server_conn_id = GetGATTSTESTConnectionData()->conn_id;
     ALOGD(LOGTAG  "(%s) Disconnecting server interface (%d), connid (%d) ",__FUNCTION__,
          server_if, server_conn_id);
-    app_gatt->serverDisconnect(server_if, bda, server_conn_id) == BT_STATUS_SUCCESS;
+    status = app_gatt->serverDisconnect(server_if, bda, server_conn_id);
 
     int client_if = GetGATTSTESTClientConnectionData()->clientIf;
     bt_bdaddr_t *client_bda = GetGATTSTESTClientConnectionData()->bda;
@@ -769,9 +771,13 @@ bool GattsTest::DisconnectServer()
     if (gattstest) {
        ALOGD(LOGTAG,  "(%s) Disconnecting client interface (%d), connid (%d) ",__FUNCTION__,
           client_if, client_conn_id);
-       app_gatt->clientDisconnect(client_if, client_bda, client_conn_id) == BT_STATUS_SUCCESS;
-
+       status = app_gatt->clientDisconnect(client_if, client_bda, client_conn_id);
     }
+
+    if (status == BT_STATUS_SUCCESS)
+        return true;
+    else
+        return false;
 }
 
 bool GattsTest::DeleteService()
@@ -848,7 +854,7 @@ bool GattsTest::getIsAdvertising()
     return isAdvertising;
 }
 
-bool GattsTest::setIsAdvertising(bool value){
+void GattsTest::setIsAdvertising(bool value){
     ALOGD(LOGTAG "setIsAdvertising %d ", value);
     isAdvertising = value;
 }
