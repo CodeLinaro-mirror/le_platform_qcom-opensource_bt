@@ -1777,6 +1777,24 @@ static void SendDisableCmdToGap() {
     if ((g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
         (g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
         (g_bt_app->bt_state == BT_STATE_ON)) {
+        if (gattstest) {
+            fprintf(stdout, " DisableGATTSTEST \n");
+            gattstest->DisableGATTSTEST();
+        } else {
+            ALOGV (LOGTAG " gattstest interface is null");
+        }
+        if (rsp) {
+            rsp->DisableRSP();
+            fprintf(stdout, " DisableRSP \n");
+        } else {
+            ALOGV (LOGTAG " rsp interface is null");
+        }
+        if (gattctest) {
+             fprintf(stdout, " DisableGATTCTEST \n");
+             gattctest->DisableGATTCTEST();
+        } else {
+             ALOGV (LOGTAG " gattctest interface is null");
+        }
 
         g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
 
@@ -1814,53 +1832,6 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case BT_DISABLE:
             SendDisableCmdToGap();
 
-            if ((g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
-                                (g_bt_app->bt_state == BT_STATE_ON)) {
-
-                if (gattstest) {
-                    fprintf(stdout, " DisableGATTSTEST \n");
-                    gattstest->DisableGATTSTEST();
-                } else {
-                    ALOGV (LOGTAG " gattstest interface is null");
-                }
-                if (rsp) {
-                    rsp->DisableRSP();
-                    fprintf(stdout, " DisableRSP \n");
-                } else {
-                    ALOGV (LOGTAG " rsp interface is null");
-                }
-                if (gattctest) {
-                    fprintf(stdout, " DisableGATTCTEST \n");
-                    gattctest->DisableGATTCTEST();
-                } else {
-                    ALOGV (LOGTAG " gattctest interface is null");
-                }
-                g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
-
-                if (gattstest) {
-                    fprintf(stdout, " DisableGATTSTEST \n");
-                    gattstest->DisableGATTSTEST();
-                } else {
-                    ALOGV (LOGTAG " gattstest interface is null");
-                }
-                if (rsp) {
-                    rsp->DisableRSP();
-                    fprintf(stdout, " DisableRSP \n");
-                } else {
-                    ALOGV (LOGTAG " rsp interface is null");
-                }
-                if (gattctest) {
-                    fprintf(stdout, " DisableGATTCTEST \n");
-                    gattctest->DisableGATTCTEST();
-                } else {
-                    ALOGV (LOGTAG " gattctest interface is null");
-                }
-
-                event = new BtEvent;
-                event->event_id = GAP_API_DISABLE;
-                ALOGV (LOGTAG " Posting disable to GAP thread");
-                PostMessage (THREAD_ID_GAP, event);
-            }
             break;
 
         case START_ENQUIRY:
