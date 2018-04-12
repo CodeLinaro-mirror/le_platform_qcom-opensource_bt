@@ -352,6 +352,10 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                             pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
                             audio_focus_state_vendor(3, &pA2dpSinkStream->mStreamingDevice);
                         }
+
+                        if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
+                            pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                                    update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
                         pA2dpSinkStream->ConfigureAudioHal();
                         if (!pA2dpSinkStream->enable_notification_cb) {
                             if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
