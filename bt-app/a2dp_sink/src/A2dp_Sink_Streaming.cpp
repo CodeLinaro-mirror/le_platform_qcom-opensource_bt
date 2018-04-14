@@ -36,6 +36,7 @@
 #include <hardware/bt_av.h>
 #include "Audio_Manager.hpp"
 #include "A2dp_Sink.hpp"
+#include "A2dp_Src.hpp"
 
 #include "A2dp_Sink_Streaming.hpp"
 #include "Gap.hpp"
@@ -143,8 +144,12 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
         case A2DP_SINK_STREAMING_CLOSE_AUDIO_STREAM:
             ALOGD(LOGTAG " A2DP_SINK_STREAMING_CLOSE_AUDIO_STREAM");
             if (pA2dpSinkStream) {
-                pA2dpSinkStream->CloseAudioStream();
                 pA2dpSinkStream->StopDataFetchTimer();
+                pA2dpSinkStream->CloseAudioStream();
+                flush_relay_data();
+                if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
+                    pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                            update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
             }
             // release control
             pReleaseControlReq = new BtEvent;
@@ -290,8 +295,13 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             ALOGD(LOGTAG " A2DP_SINK_STREAMING_AM_RELEASE_CONTROL");
             // release focus in this case.
             if (pA2dpSinkStream) {
-                pA2dpSinkStream->CloseAudioStream();
                 pA2dpSinkStream->StopDataFetchTimer();
+                pA2dpSinkStream->CloseAudioStream();
+                flush_relay_data();
+                if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
+                    pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                            update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
+
                 if (pA2dpSinkStream->use_bt_a2dp_hal) {
                     pA2dpSinkStream->SuspendInputStream();
                 }
@@ -325,8 +335,13 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
                         pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
                         PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
-                        pA2dpSinkStream->CloseAudioStream();
                         pA2dpSinkStream->StopDataFetchTimer();
+                        pA2dpSinkStream->CloseAudioStream();
+                        flush_relay_data();
+                        if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
+                            pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                                update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
+
                         break;
                     case STATUS_LOSS_TRANSIENT:
                         // inform bluedroid
@@ -343,8 +358,12 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                             pAvrcp->SendPassThruCommandNative(CMD_ID_PAUSE,
                                 &pA2dpSinkStream->mStreamingDevice, 0);
                         }
-                        pA2dpSinkStream->CloseAudioStream();
                         pA2dpSinkStream->StopDataFetchTimer();
+                        pA2dpSinkStream->CloseAudioStream();
+                        flush_relay_data();
+                        if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
+                            pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                                    update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
                         break;
                     case STATUS_GAIN:
                         // inform bluedroid
@@ -352,10 +371,6 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                             pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
                             audio_focus_state_vendor(3, &pA2dpSinkStream->mStreamingDevice);
                         }
-
-                        if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
-                            pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
-                                    update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
                         pA2dpSinkStream->ConfigureAudioHal();
                         if (!pA2dpSinkStream->enable_notification_cb) {
                             if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
