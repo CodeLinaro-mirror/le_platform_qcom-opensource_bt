@@ -2467,6 +2467,11 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
 
                     break;
                 case CMD_ID_PAUSE:
+                    if (!playback_thread) {
+                        ALOGD(LOGTAG_A2DP "Ignore suspend for a stop steam");
+                        fprintf(stdout, LOGTAG_A2DP "Ignore suspend for a stop stream\n");
+                        break;
+                    }
                     /*Pause key id is mapped to A2dp suspend*/
                     BtA2dpSuspendStreaming();
                     pA2dpSource->StopPlayPostionTimer();
