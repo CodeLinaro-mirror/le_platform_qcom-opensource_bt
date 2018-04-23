@@ -47,6 +47,7 @@ class clientCallback : public BluetoothGattClientCallback
         event.event_id = RSP_ENABLE_EVENT;
         event.status = status;
         event.clientIf = client_if;
+        memcpy(&event.app_uuid,uuid,sizeof(bt_uuid_t));
         rsp->SetRSPClientAppData(&event);
 
         rsp->ClientSetAdvData("Remote Start Profile");
@@ -241,7 +242,7 @@ class serverCallback :public BluetoothGattServerCallback
               GattsRegisterAppEvent rev;
               rev.event_id = RSP_ENABLE_EVENT;
               rev.server_if = server_if;
-              rev.uuid = uuid;
+              memcpy(&rev.uuid, uuid,sizeof(bt_uuid_t));
               rev.status = status;
               fprintf(stdout," set rsp data \n");
               rsp->SetRSPAppData(&rev);
@@ -261,7 +262,7 @@ class serverCallback :public BluetoothGattServerCallback
            event.conn_id = conn_id;
            event.server_if = server_if;
            event.connected = connected;
-           event.bda = bda;
+           memcpy(&event.bda, bda,sizeof(bt_bdaddr_t));
 
            if (rsp) {
                rsp->SetRSPConnectionData(&event);
@@ -280,7 +281,7 @@ class serverCallback :public BluetoothGattServerCallback
               GattsServiceAddedEvent event;
                event.event_id =RSP_ENABLE_EVENT;
                event.server_if = server_if;
-               event.srvc_id = srvc_id;
+               memcpy(&event.srvc_id, srvc_id,sizeof(btgatt_srvc_id_t));
                event.srvc_handle = srvc_handle;
                rsp->SetRSPSrvcData(&event);
                rsp->AddCharacteristics();
@@ -303,7 +304,7 @@ class serverCallback :public BluetoothGattServerCallback
                GattsCharacteristicAddedEvent event;
                event.event_id =RSP_ENABLE_EVENT;
                event.server_if = server_if;
-               event.char_id = char_id;
+               memcpy(&event.char_id, char_id, sizeof(bt_uuid_t));
                event.srvc_handle = srvc_handle;
                event.char_handle = char_handle;
                rsp->SetRSPCharacteristicData(&event);
@@ -321,7 +322,7 @@ class serverCallback :public BluetoothGattServerCallback
                GattsDescriptorAddedEvent event;
                event.event_id =RSP_ENABLE_EVENT;
                event.server_if = server_if;
-               event.descr_id= descr_id;
+               memcpy(&event.descr_id, descr_id,sizeof(bt_uuid_t));
                event.srvc_handle = srvc_handle;
                event.descr_handle= descr_handle;
                rsp->SetRSPDescriptorData(&event);
@@ -377,7 +378,7 @@ class serverCallback :public BluetoothGattServerCallback
            event.event_id = RSP_ENABLE_EVENT;
            event.conn_id = conn_id;
            event.trans_id = trans_id;
-           event.bda = bda;
+           memcpy(&event.bda, bda,sizeof(bt_bdaddr_t));
            event.attr_handle = attr_handle;
            event.offset = offset;
            event.length = length;
@@ -443,16 +444,11 @@ Rsp::~Rsp()
     SetDeviceState(WLAN_INACTIVE);
 
     GattsRegisterAppEvent* p_app_if = GetRSPAppData();
-    if(p_app_if->uuid != NULL)
-        osi_free(p_app_if->uuid);
 
     GattsCharacteristicAddedEvent* p_char_data = GetRSPCharacteristicData();
-    if(p_char_data->char_id != NULL)
-        osi_free(p_char_data->char_id);
 
     GattsDescriptorAddedEvent* p_desc_data = GetRSPDescriptorData();
-    if(p_desc_data->descr_id != NULL)
-        osi_free(p_desc_data->descr_id);
+
 }
 
 bool Rsp::CopyUUID(bt_uuid_t *uuid)
@@ -796,11 +792,12 @@ bool Rsp::AddService()
 bool Rsp::DisconnectServer()
 {
     int server_if = GetRSPConnectionData()->server_if;
-    bt_bdaddr_t * bda = GetRSPConnectionData()->bda;
+    bt_bdaddr_t bda;
+    memcpy(&bda,&(GetRSPConnectionData()->bda),sizeof(bt_bdaddr_t));
     int conn_id = GetRSPConnectionData()->conn_id;
     fprintf(stdout,  "(%s) Disconnecting interface (%d), connid (%d) ",__FUNCTION__,
             server_if, conn_id);
-    return app_gatt->serverDisconnect(server_if, bda, conn_id) == BT_STATUS_SUCCESS;
+    return app_gatt->serverDisconnect(server_if, &bda, conn_id) == BT_STATUS_SUCCESS;
 }
 
 bool Rsp::DeleteService()
