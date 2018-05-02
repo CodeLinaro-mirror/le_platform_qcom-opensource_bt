@@ -187,14 +187,17 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         AlertServiceMatches = false;
         srvcMatching = false;
 
+        if(!gattctest) {
+            fprintf(stdout,"Client not initialized ... returning%s \n", __func__);
+            return;
+        }
+
         GattcRegisterAppEvent event;
         event.event_id = RSP_ENABLE_EVENT;
         event.status = status;
         event.clientIf = client_if;
-        if(!gattctest) {
-           fprintf(stdout,"Client not initialized ... returning%s \n", __func__);
-           return;
-        }
+        memcpy(&event.app_uuid,uuid,sizeof(bt_uuid_t));
+
         gattctest->SetGATTCTESTClientAppData(&event);
     }
 
@@ -212,7 +215,7 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         event.event_id = BTGATTC_OPEN_EVENT;
         event.conn_id = conn_id;
         event.clientIf = clientIf;
-        event.bda = bda;
+        memcpy(&event.bda, bda, sizeof(bt_bdaddr_t));
 
         if (gattctest) {
             gattctest->SetGATTCTESTConnectionData(&event);
@@ -233,19 +236,36 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         if (gattctestAlertData != NULL ) {
              fprintf(stdout,"Diagnostic:(%s), freeing testAlert\n", __FUNCTION__);
             if (gattctestAlertData->srvc_id != NULL) {
-                free (gattctestAlertData->srvc_id);
+                osi_free (gattctestAlertData->srvc_id);
                 gattctestAlertData->srvc_id = NULL;
             }
             if (gattctestAlertData->char_id != NULL) {
-                free (gattctestAlertData->char_id);
+                osi_free (gattctestAlertData->char_id);
                 gattctestAlertData->char_id = NULL;
             }
-            free(gattctestAlertData);
+            if (gattctestAlertData->descr_id != NULL) {
+                osi_free (gattctestAlertData->descr_id);
+                gattctestAlertData->descr_id = NULL;
+            }
+            osi_free(gattctestAlertData);
             gattctestAlertData = NULL;
         }
         if (gattctestServData != NULL ) {
              fprintf(stdout,"Diagnostic:(%s), freeing testServerData\n", __FUNCTION__);
-
+            if (gattctestServData->srvc_id != NULL) {
+                osi_free (gattctestServData->srvc_id);
+                gattctestServData->srvc_id = NULL;
+            }
+            if (gattctestServData->char_id != NULL) {
+                osi_free (gattctestServData->char_id);
+                gattctestServData->char_id = NULL;
+            }
+            if (gattctestServData->descr_id != NULL) {
+                osi_free (gattctestServData->descr_id);
+                gattctestServData->descr_id = NULL;
+            }
+             osi_free(gattctestServData);
+             gattctestServData = NULL;
         }
     }
 
@@ -272,7 +292,11 @@ class gattctestClientCallback : public BluetoothGattClientCallback
                 return;
             }
             gattctestServData->conn_id = conn_id;
-            gattctestServData->srvc_id = (btgatt_srvc_id_t*) malloc(sizeof (btgatt_srvc_id_t));
+            gattctestServData->srvc_id = (btgatt_srvc_id_t*) osi_malloc(sizeof (btgatt_srvc_id_t));
+            if(gattctestServData->srvc_id == NULL) {
+                fprintf(stdout,"Could not allocate memory to gattctestServData->srvc_id\n");
+                return;
+            }
             memcpy(gattctestServData->srvc_id, srvc_id, sizeof (btgatt_srvc_id_t));
 
              fprintf(stdout,"%s: Matching Service UUID in Search CB--\n", __func__);
@@ -362,7 +386,7 @@ class gattctestClientCallback : public BluetoothGattClientCallback
     gatt_id_to_string(char_id, char_id_buf), char_prop);
 
     if(AlertServiceMatches!= true ) {
-        gattctestAlertData = (ServiceData *) (malloc(sizeof(uint8_t)* sizeof(ServiceData)));
+        gattctestAlertData = (ServiceData *) (osi_malloc(sizeof(ServiceData)));
         if (gattctestAlertData == NULL ) {
              fprintf(stdout, "Return: Could not allocate service data\n");
             return;
@@ -385,12 +409,20 @@ class gattctestClientCallback : public BluetoothGattClientCallback
              fprintf(stdout, "Saving the Alert Level details\n");
             gattctestAlertData->conn_id = conn_id;
 
-            gattctestAlertData->srvc_id = (btgatt_srvc_id_t*) malloc(sizeof(btgatt_srvc_id_t));
+            gattctestAlertData->srvc_id = (btgatt_srvc_id_t*) osi_malloc(sizeof(btgatt_srvc_id_t));
+            if (gattctestAlertData->srvc_id == NULL) {
+                fprintf(stdout,"Could not allocate memory to gattctestAlertData->srvc_id \n");
+                return;
+            }
             memcpy(gattctestAlertData->srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
 
-            gattctestAlertData->char_id = (btgatt_gatt_id_t*) malloc(sizeof(btgatt_gatt_id_t));
+            gattctestAlertData->char_id = (btgatt_gatt_id_t*) osi_malloc(sizeof(btgatt_gatt_id_t));
+            if (gattctestAlertData->char_id == NULL) {
+                fprintf(stdout,"Could not allocate memory to gattctestAlertData->char_id \n");
+                return;
+            }
             memcpy(gattctestAlertData->char_id, char_id, sizeof(btgatt_gatt_id_t));
-             fprintf(stdout, "%s, Return 1  -- \n", __func__);
+            fprintf(stdout, "%s, Return 1  -- \n", __func__);
             return;
             }
         } else {
@@ -407,10 +439,18 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         char char_id_buf[CHARID_STR_LEN];
 
         gattctestServData->conn_id = conn_id;
-        gattctestServData->srvc_id = (btgatt_srvc_id_t*) malloc (sizeof(btgatt_srvc_id_t));
+        gattctestServData->srvc_id = (btgatt_srvc_id_t*) osi_malloc (sizeof(btgatt_srvc_id_t));
+        if (gattctestServData->srvc_id == NULL) {
+            fprintf(stdout,"Could not allocate memory to gattctestServData->srvc_id \n");
+            return;
+        }
         memcpy(gattctestServData->srvc_id,srvc_id, (sizeof(btgatt_srvc_id_t)));
 
-        gattctestServData->char_id = (btgatt_gatt_id_t*)malloc (sizeof(btgatt_gatt_id_t));
+        gattctestServData->char_id = (btgatt_gatt_id_t*)osi_malloc (sizeof(btgatt_gatt_id_t));
+        if (gattctestServData->char_id == NULL) {
+            fprintf(stdout,"Could not allocate memory to gattctestServData->char_id \n");
+            return;
+        }
         memcpy(gattctestServData->char_id, char_id, sizeof(btgatt_gatt_id_t));
         gattctestServData->descr_id = descr_id;
 
@@ -571,11 +611,11 @@ class gattctestClientCallback : public BluetoothGattClientCallback
 
     void btgattc_get_gatt_db_cb(int conn_id, btgatt_db_element_t *db, int count)
     {
-           fprintf(stdout, "btgattc_get_gatt_db_cb conn_id is %d, count is %d\n", conn_id, count);
+          fprintf(stdout, "btgattc_get_gatt_db_cb conn_id is %d, count is %d\n", conn_id, count);
 
           for(int i = 0; i < count ; i++) {
              btgatt_db_element_t curr = db[i];
-             fprintf(stdout,"curr type is %d", curr.type);
+             fprintf(stdout,"curr type is %d\n", curr.type);
              switch(curr.type ) {
 
                 case BTGATT_DB_PRIMARY_SERVICE:
@@ -586,6 +626,7 @@ class gattctestClientCallback : public BluetoothGattClientCallback
                     for (int j = 0; j < sizeof(curr.uuid); j++) {
                       fprintf(stdout,  "%02x", curr.uuid.uu[j]);
                     }
+                    fprintf(stdout,"\n");
                     srvcMatching = MatchAlertServiceUUID(&curr.uuid) ;
                     if( srvcMatching == true) {
                          if (gattctestServData == NULL ) {
@@ -593,7 +634,12 @@ class gattctestClientCallback : public BluetoothGattClientCallback
                              return;
                          }
                          gattctestServData->conn_id = conn_id;
-                         gattctestServData->srvc_id = (btgatt_srvc_id_t*) malloc(sizeof (btgatt_srvc_id_t));
+                         gattctestServData->srvc_id = (btgatt_srvc_id_t*) osi_malloc(sizeof (btgatt_srvc_id_t));
+                         if (gattctestServData->srvc_id == NULL) {
+                            fprintf(stdout,"Could not allocate memory to "
+                                "gattctestServData->srvc_id \n");
+                            return;
+                         }
                          CpUUID(&gattctestServData->srvc_id->id.uuid, &(curr.uuid));
                          gattctestServData->srvc_id->id.inst_id = curr.id;
 
@@ -638,10 +684,14 @@ class gattctestClientCallback : public BluetoothGattClientCallback
                      AlertServiceMatches = MatchAlertCharUUID(&curr.uuid) && srvcMatching;
                      if(AlertServiceMatches == true){
                           fprintf(stdout, "Saving the Alert Level details\n");
-                         gattctestAlertData = (ServiceData *) (malloc(sizeof(uint8_t)* sizeof(ServiceData)));
+                         gattctestAlertData = (ServiceData *) (osi_malloc(sizeof(ServiceData)));
+                         if (gattctestAlertData == NULL) {
+                            fprintf(stdout,"Could not allocate memory to gattctestAlertData \n");
+                            return;
+                         }
                          gattctestAlertData->conn_id = conn_id;
-                         gattctestAlertData->srvc_id = (btgatt_srvc_id_t*) malloc(sizeof(btgatt_srvc_id_t));
-                         gattctestAlertData->char_id = (btgatt_gatt_id_t*) malloc(sizeof(btgatt_gatt_id_t));
+                         gattctestAlertData->srvc_id = (btgatt_srvc_id_t*) osi_malloc(sizeof(btgatt_srvc_id_t));
+                         gattctestAlertData->char_id = (btgatt_gatt_id_t*) osi_malloc(sizeof(btgatt_gatt_id_t));
                           fprintf(stdout," \n");
                           fprintf(stdout," attribute handle is %d \n", curr.attribute_handle);
                          gattctestAlertData->handle = curr.attribute_handle;
@@ -692,7 +742,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
           GattsRegisterAppEvent rev;
           rev.event_id = RSP_ENABLE_EVENT;
           rev.server_if = server_if;
-          rev.uuid = uuid;
+          memcpy(&rev.uuid, uuid,sizeof(bt_uuid_t));
           rev.status = status;
            fprintf(stdout," set gattctest data \n");
           gattctest->SetGATTCTESTAppData(&rev);
@@ -715,7 +765,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
           GattsServiceAddedEvent event;
            event.event_id =RSP_ENABLE_EVENT;
            event.server_if = server_if;
-           event.srvc_id = srvc_id;
+           memcpy(&event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
            event.srvc_handle = srvc_handle;
            gattctest->SetGATTCTESTSrvcData(&event);
            gattctest->AddCharacteristics();
@@ -738,7 +788,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
            GattsCharacteristicAddedEvent event;
            event.event_id =RSP_ENABLE_EVENT;
            event.server_if = server_if;
-           event.char_id = char_id;
+           memcpy(&event.char_id, char_id, sizeof(bt_uuid_t));
            event.srvc_handle = srvc_handle;
            event.char_handle = char_handle;
            gattctest->SetGATTCTESTCharacteristicData(&event);
@@ -756,7 +806,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
            GattsDescriptorAddedEvent event;
            event.event_id =RSP_ENABLE_EVENT;
            event.server_if = server_if;
-           event.descr_id= descr_id;
+           memcpy(&event.descr_id, descr_id,sizeof(bt_uuid_t));
            event.srvc_handle = srvc_handle;
            event.descr_handle= descr_handle;
            gattctest->SetGATTCTESTDescriptorData(&event);
@@ -790,11 +840,11 @@ class gattctestServerCallback :public BluetoothGattServerCallback
      if (gattctestAlertData != NULL ) {
           fprintf(stdout,"Diagnostic:(%s), freeing testAlert\n", __FUNCTION__);
          if (gattctestAlertData->srvc_id != NULL) {
-             free (gattctestAlertData->srvc_id);
+             osi_free (gattctestAlertData->srvc_id);
 	     gattctestAlertData->srvc_id = NULL;
 	 }
          if (gattctestAlertData->char_id != NULL) {
-	     free (gattctestAlertData->char_id);
+	     osi_free (gattctestAlertData->char_id);
 	     gattctestAlertData->char_id = NULL;
 	 }
          free(gattctestAlertData);
@@ -825,7 +875,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
        event.event_id = RSP_ENABLE_EVENT;
        event.conn_id = conn_id;
        event.trans_id = trans_id;
-       event.bda = bda;
+       memcpy(&event.bda, bda, sizeof(bt_uuid_t));
        event.attr_handle = attr_handle;
        event.offset = offset;
        event.length = length;
@@ -1128,9 +1178,10 @@ bool GattcTest::SearchService(int conn_id)
      }
      ALOGE(LOGTAG  "(%s) SearchService",__FUNCTION__);
 
-    if(!gattctestServData) //To be freed up at disconnect/off.
-        gattctestServData = (ServiceData *) (malloc(sizeof(uint8_t)* sizeof(ServiceData)));
-
+    if(!gattctestServData) { //To be freed up at disconnect/off.
+        gattctestServData = (ServiceData *) (osi_malloc(sizeof(ServiceData)));
+        memset(gattctestServData, 0, sizeof(ServiceData));
+    }
     return app_gatt->search_service(conn_id, NULL);
 }
 
@@ -1204,11 +1255,12 @@ bool GattcTest::AddService()
 bool GattcTest::DisconnectServer()
 {
     int server_if = GetGATTCTESTConnectionData()->clientIf;
-    bt_bdaddr_t * bda = GetGATTCTESTConnectionData()->bda;
+    bt_bdaddr_t bda;
+    memcpy(&bda, &(GetGATTCTESTConnectionData()->bda),sizeof(bt_bdaddr_t));
     int conn_id = GetGATTCTESTConnectionData()->conn_id;
      fprintf(stdout,  "(%s) Disconnecting interface (%d), connid (%d) ",__FUNCTION__,
             server_if, conn_id);
-    return app_gatt->serverDisconnect(server_if, bda, conn_id) == BT_STATUS_SUCCESS;
+    return app_gatt->serverDisconnect(server_if, &bda, conn_id) == BT_STATUS_SUCCESS;
 }
 
 bool GattcTest::DeleteService()
@@ -1230,7 +1282,7 @@ bool GattcTest::AddCharacteristics()
         return false;
     }
     bt_uuid_t char_uuid;
-    CopyParams(&char_uuid, &(GetGATTCTESTSrvcData()->srvc_id->id.uuid));
+    CopyParams(&char_uuid, &(GetGATTCTESTSrvcData()->srvc_id.id.uuid));
     int srvc_handle = GetGATTCTESTSrvcData()->srvc_handle;
     int server_if = GetGATTCTESTSrvcData()->server_if;
      fprintf(stdout,  "(%s) Adding Characteristics server_if (%d), srvc_handle (%d) \n",
