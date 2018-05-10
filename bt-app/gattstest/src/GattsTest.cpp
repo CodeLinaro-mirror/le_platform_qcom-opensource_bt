@@ -294,7 +294,8 @@ class gattstestServerCallback :public BluetoothGattServerCallback
         ALOGD(LOGTAG"btgatts_service_added_cb \n");
         if (status == BT_STATUS_SUCCESS) {
             GattsServiceAddedEvent event;
-            event.event_id =GEN_GATT_EVENT;
+            event.event_id = GEN_GATT_EVENT;
+            event.status = status;
             event.server_if = server_if;
             memcpy(&event.srvc_id, srvc_id,sizeof(btgatt_srvc_id_t));
             event.srvc_handle = srvc_handle;
@@ -317,7 +318,8 @@ class gattstestServerCallback :public BluetoothGattServerCallback
         ALOGD(LOGTAG"btgatts_characteristic_added_cb \n");
         if (status == BT_STATUS_SUCCESS) {
             GattsCharacteristicAddedEvent event;
-            event.event_id =GEN_GATT_EVENT;
+            event.event_id = GEN_GATT_EVENT;
+            event.status = status;
             event.server_if = server_if;
             memcpy(&event.char_id, char_id,sizeof(bt_uuid_t));
             event.srvc_handle = srvc_handle;
@@ -335,7 +337,8 @@ class gattstestServerCallback :public BluetoothGattServerCallback
         ALOGD(LOGTAG"btgatts_descriptor_added_cb \n");
         if (status == BT_STATUS_SUCCESS) {
             GattsDescriptorAddedEvent event;
-            event.event_id =GEN_GATT_EVENT;
+            event.event_id = GEN_GATT_EVENT;
+            event.status = status;
             event.server_if = server_if;
             memcpy(&event.descr_id, descr_id,sizeof(bt_uuid_t));
             event.srvc_handle = srvc_handle;
@@ -595,7 +598,7 @@ bool GattsTest::EnableGATTSTEST()
 bool GattsTest::DisableGATTSTEST()
 {
     ALOGD(LOGTAG "(%s) Disable GATTSTEST Initiated",__FUNCTION__);
-    StopService();
+    return StopService();
 }
 
 bool GattsTest::RegisterApp()
@@ -639,13 +642,15 @@ bool GattsTest::ClientSetAdvData(char *str)
     bool              SetScanGattsTest        = false;
     bool              IncludeName       = true;
     bool              IncludeTxPower    = false;
+    bool              dataset;
     int               min_conn_interval = GATTSTEST_MIN_CI;
     int               max_conn_interval = GATTSTEST_MAX_CI;
 
-    app_gatt->set_adv_data(GetGATTSTESTClientAppData()->clientIf, SetScanGattsTest,
+    dataset = app_gatt->set_adv_data(GetGATTSTESTClientAppData()->clientIf, SetScanGattsTest,
                                                 IncludeName, IncludeTxPower, min_conn_interval,
                                                 max_conn_interval, 0,strlen(str), str,
                                                 strlen(str), str, 0,NULL);
+    return dataset;
 }
 
 void GattsTest::CleanUp(int server_if)
