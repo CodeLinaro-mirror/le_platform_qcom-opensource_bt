@@ -358,8 +358,7 @@ static void config_parse(FILE *fp, config_t *config) {
         LOG_DEBUG("%s unterminated section name on line %d.", __func__, line_num);
         continue;
       }
-      strncpy(section, line_ptr + 1, len - 2);
-      section[len - 2] = '\0';
+      strlcpy(section, line_ptr + 1, len - 1);
     } else {
       char *split = strchr(line_ptr, '=');
       if (!split) {
