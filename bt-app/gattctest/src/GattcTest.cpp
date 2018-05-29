@@ -214,6 +214,7 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         GattcOpenEvent event;
         event.event_id = BTGATTC_OPEN_EVENT;
         event.conn_id = conn_id;
+        event.status = status;
         event.clientIf = clientIf;
         memcpy(&event.bda, bda, sizeof(bt_bdaddr_t));
 
@@ -764,6 +765,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
        if (status == BT_STATUS_SUCCESS) {
           GattsServiceAddedEvent event;
            event.event_id =RSP_ENABLE_EVENT;
+           event.status = status;
            event.server_if = server_if;
            memcpy(&event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
            event.srvc_handle = srvc_handle;
@@ -786,7 +788,8 @@ class gattctestServerCallback :public BluetoothGattServerCallback
         fprintf(stdout,"btgatts_characteristic_added_cb \n");
        if (status == BT_STATUS_SUCCESS) {
            GattsCharacteristicAddedEvent event;
-           event.event_id =RSP_ENABLE_EVENT;
+           event.event_id = RSP_ENABLE_EVENT;
+           event.status = status;
            event.server_if = server_if;
            memcpy(&event.char_id, char_id, sizeof(bt_uuid_t));
            event.srvc_handle = srvc_handle;
@@ -804,7 +807,8 @@ class gattctestServerCallback :public BluetoothGattServerCallback
         fprintf(stdout,"btgatts_descriptor_added_cb \n");
        if (status == BT_STATUS_SUCCESS) {
            GattsDescriptorAddedEvent event;
-           event.event_id =RSP_ENABLE_EVENT;
+           event.event_id = RSP_ENABLE_EVENT;
+           event.status = status;
            event.server_if = server_if;
            memcpy(&event.descr_id, descr_id,sizeof(bt_uuid_t));
            event.srvc_handle = srvc_handle;
@@ -1003,10 +1007,10 @@ bool GattcTest::MatchParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
 
 bool GattcTest::EnableGATTCTEST()
 {
-     fprintf(stdout, "(%s) Enable GATTCTEST Initiated \n",__FUNCTION__);
+    fprintf(stdout, "(%s) Enable GATTCTEST Initiated \n",__FUNCTION__);
     CopyClientUUID(&client_uuid);
     CopyGenUUID(&gen_uuid);
-    gattctest->RegisterClient();
+    return gattctest->RegisterClient();
 }
 
 bool GattcTest::DisableGATTCTEST()
@@ -1015,9 +1019,10 @@ bool GattcTest::DisableGATTCTEST()
 
       if (gattctest) {
           UnregisterClient(GetGATTCTESTClientAppData()->clientIf);
-              delete gattctest;
-              gattctest = NULL;
-          }
+          delete gattctest;
+          gattctest = NULL;
+      }
+      return true;
 }
 
 bool GattcTest::RegisterApp()
@@ -1027,7 +1032,7 @@ bool GattcTest::RegisterApp()
         return false;
     }
     bt_uuid_t server_uuid = GetGATTCTESTAttrData()->server_uuid;
-     fprintf(stdout,"reg app addr is %d \n", GetGATTCTESTAttrData()->server_uuid);
+    fprintf(stdout,"reg app addr is %d \n", GetGATTCTESTAttrData()->server_uuid);
     app_gatt->RegisterServerCallback(gattctestServerCb,&GetGATTCTESTAttrData()->server_uuid);
     return app_gatt->register_server(&server_uuid) == BT_STATUS_SUCCESS;
 }
@@ -1061,10 +1066,10 @@ bool GattcTest::ClientSetAdvData(char *str)
     int               min_conn_interval = RSP_MIN_CI;
     int               max_conn_interval = RSP_MAX_CI;
 
-    app_gatt->set_adv_data(GetGATTCTESTClientAppData()->clientIf, SetScanRsp,
+    return (app_gatt->set_adv_data(GetGATTCTESTClientAppData()->clientIf, SetScanRsp,
                                                 IncludeName, IncludeTxPower, min_conn_interval,
                                                 max_conn_interval, 0,strlen(str), str,
-                                                strlen(str), str, 0,NULL);
+                                                strlen(str), str, 0,NULL) == BT_STATUS_SUCCESS);
 }
 
 void GattcTest::CleanUp(int server_if)
@@ -1166,7 +1171,8 @@ bool GattcTest::SendAlert(int alert_level)
         }
 
     } else {
-	 fprintf(stdout, " Matching Alert not found - dont send alert, try disc and connect again\n");
+     fprintf(stdout, " Matching Alert not found - dont send alert, try disc and connect again\n");
+     return false;
     }
 }
 

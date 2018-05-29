@@ -242,14 +242,22 @@ static void raw_hid_data_cb(uint8_t* rpt, uint16_t len,bool rpt_id_flag){
         rpt_id = *(rpt);
         rpt_len = len-1;
         rpt_data = (uint8_t *)malloc((rpt_len)*sizeof(uint8_t));
+        if (rpt_data == NULL) {
+            ALOGD(LOGTAG " raw_hid_data_cb Memory not allocated");
+            return;
+        }
         memcpy(rpt_data,&rpt[1],(rpt_len)*sizeof(uint8_t));
         for (int i=0;i<rpt_len;i++)
             ALOGD(LOGTAG "raw_hid_data_cb : data at idx %d is %d",i,*(rpt_data+i));
     }
     else{
         rpt_len = len;
-        ALOGD(LOGTAG "Apurva raw_hid_data_cb :report does not contain report_id.");
+        ALOGD(LOGTAG "raw_hid_data_cb :report does not contain report_id.");
         rpt_data = (uint8_t *)malloc((rpt_len)*sizeof(uint8_t));
+        if (rpt_data == NULL) {
+             ALOGD(LOGTAG " raw_hid_data_cb Memory not allocated");
+             return;
+        }
         memcpy(rpt_data,&rpt[1],rpt_len*sizeof(uint8_t));
         for (int i=0;i<rpt_len;i++)
             ALOGD(LOGTAG "raw_hid_data_cb : data at idx %d is %d",i,*(rpt_data+i));

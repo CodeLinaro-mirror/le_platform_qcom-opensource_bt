@@ -1188,6 +1188,7 @@ static void *thread_func(void *in_param)
         PRINTBIT(codecinfo,10);
     }
 
+    use_file_stream = is_sink_relay_enabled ? 0 : 1;
     while (media_playing) {
         if(is_sink_relay_enabled)
         {
@@ -1246,6 +1247,7 @@ static void *thread_func(void *in_param)
                                     else
                                     {
                                         len = get_sbc_data((uint8_t*)buffer, out_buffer_size);
+                                        use_file_stream = 0;
                                     }
                                 }
                                 else
@@ -1274,14 +1276,16 @@ static void *thread_func(void *in_param)
                 srcStream= SRC_NO_STREAMING;
                 len =0;
             }
-            if (len == 0 && (use_file_stream ==0)) {
-                ALOGD(LOGTAG_A2DP "Read %d bytes from file sleep 20ms", len);
+            if (len == 0 || (use_file_stream ==1)) {
+                ALOGD(LOGTAG_A2DP "in %s : len=%d use_file_stream = %d sleep 20ms", __func__, len, use_file_stream);
+                len = 0;
+                use_file_stream = 0;
                 usleep(20000);
                 continue;
             }
         }
         ALOGD("use file steaming %d relay %d",use_file_stream,is_sink_relay_enabled);
-        if(!is_sink_relay_enabled || use_file_stream)
+        if(!is_sink_relay_enabled)
         {
              /* Use file for streaming */
              ALOGD(LOGTAG_A2DP "use file steaming Read %d buffer size", out_buffer_size);
@@ -1341,7 +1345,7 @@ static void BtA2dpStartStreaming()
     }
 
     ALOGD(LOGTAG_A2DP "Start A2dp Stream");
-    if (true || !is_sink_relay_enabled) {
+    if (!is_sink_relay_enabled) {
         in_file = fopen("/data/misc/bluetooth/pcmtest.wav", "r");
         if (!in_file) {
             ALOGE(LOGTAG_A2DP "Cannot open input file. Bail out!!");
@@ -2463,6 +2467,11 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
 
                     break;
                 case CMD_ID_PAUSE:
+                    if (!playback_thread) {
+                        ALOGD(LOGTAG_A2DP "Ignore suspend for a stop steam");
+                        fprintf(stdout, LOGTAG_A2DP "Ignore suspend for a stop stream\n");
+                        break;
+                    }
                     /*Pause key id is mapped to A2dp suspend*/
                     BtA2dpSuspendStreaming();
                     pA2dpSource->StopPlayPostionTimer();

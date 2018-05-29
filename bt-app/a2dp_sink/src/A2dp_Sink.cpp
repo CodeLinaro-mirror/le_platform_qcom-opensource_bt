@@ -1196,17 +1196,15 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
                     memcmp(&pA2dpSinkStream->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
             {
                 ALOGD(LOGTAG " another dev started streaming, pause previous one");
-                if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
-                    pA2dpSinkStream->StopDataFetchTimer();
-                    sBtA2dpSinkVendorInterface->update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
-                    ALOGI(LOGTAG "in %s : StopDataFetchTimer() for dualsink SBC codec", __func__);
-                    fprintf(stdout, "in %s : StopDataFetchTimer() for dualsink SBC codec", __func__);
-                }
                 if (pAvrcp != NULL)
                     pAvrcp->SendPassThruCommandNative(CMD_ID_PAUSE,
                             &pA2dpSinkStream->mStreamingDevice, 1);
+
+                pA2dpSinkStream->StopDataFetchTimer();
+
                 if (pA2dpSinkStream && !pA2dpSinkStream->use_bt_a2dp_hal)
                 {
+                    sBtA2dpSinkVendorInterface->update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
                     memset(&pA2dpSinkStream->mStreamingDevice, 0, sizeof(bt_bdaddr_t));
                     pAMReleaseControl = new BtEvent;
                     pAMReleaseControl->a2dpSinkStreamingEvent.event_id =
@@ -1260,6 +1258,9 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
                 ALOGD(LOGTAG " A2DP_SINK_AUDIO_SUSPENDED/STOPPED for non streaming device, ignore");
                 break;
             }
+
+            pA2dpSinkStream->StopDataFetchTimer();
+            sBtA2dpSinkVendorInterface->update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
             memset(&pA2dpSinkStream->mStreamingDevice, 0, sizeof(bt_bdaddr_t));
 
             pAMReleaseControl = new BtEvent;
