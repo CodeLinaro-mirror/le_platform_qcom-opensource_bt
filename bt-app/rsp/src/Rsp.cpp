@@ -672,11 +672,31 @@ bool Rsp::ClientSetAdvData(char *str)
     bool              IncludeTxPower    = false;
     int               min_conn_interval = RSP_MIN_CI;
     int               max_conn_interval = RSP_MAX_CI;
+    char              service_data[MAX_SIZE_SERVICE_DATA];
+    char rsp_service_uuid_16bit[] = {0x01, 0xaa};
+    int service_data_uuid_len = sizeof(rsp_service_uuid_16bit);
+    int service_data_info_len = strlen(str);
+    int service_data_len = service_data_uuid_len + SERVICE_DATA_UUID_IDX;
+
+    // copy service data
+    service_data[SERVICE_DATA_UUID_LEN_IDX] = (char)service_data_uuid_len;
+    memcpy(service_data + SERVICE_DATA_UUID_IDX, &rsp_service_uuid_16bit, service_data_uuid_len);
+    if (service_data_info_len > 0) {
+        if (service_data_info_len > MAX_SIZE_SERVICE_DATA - SERVICE_DATA_UUID_IDX -
+            service_data_uuid_len) {
+            service_data_info_len = MAX_SIZE_SERVICE_DATA - SERVICE_DATA_UUID_IDX -
+                                    service_data_uuid_len;
+        }
+        service_data_len += service_data_info_len;
+        memcpy(service_data + SERVICE_DATA_UUID_IDX + service_data_uuid_len,
+               str, service_data_info_len);
+    }
 
     app_gatt->set_adv_data(GetRSPClientAppData()->clientIf, SetScanRsp,
-                                                IncludeName, IncludeTxPower, min_conn_interval,
-                                                max_conn_interval, 0,strlen(str), str,
-                                                strlen(str), str, 0,NULL);
+                           IncludeName, IncludeTxPower, min_conn_interval,
+                           max_conn_interval, 0, 0, NULL,
+                           service_data_len,
+                           service_data, 0,NULL);
 }
 
 void Rsp::CleanUp(int server_if)

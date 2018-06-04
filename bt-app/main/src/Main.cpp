@@ -1524,7 +1524,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 if (gattstest) {
                     fprintf( stdout, "(Re)start Advertisement \n");
-                    gattstest->ClientSetAdvData("Remote Start Profile");
+                    gattstest->ClientSetAdvData("Immediate Alert");
                     gattstest->StartAdvertisement();
                 } else {
                     fprintf(stdout , "Do Init first\n");
