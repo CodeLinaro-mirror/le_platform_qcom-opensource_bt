@@ -1171,9 +1171,9 @@ bool GattcTest::SendAlert(int alert_level)
         }
 
     } else {
-     fprintf(stdout, " Matching Alert not found - dont send alert, try disc and connect again\n");
-     return false;
+        fprintf(stdout," Matching Alert not found - dont send alert, try disc and connect again\n");
     }
+    return false;
 }
 
 bool GattcTest::SearchService(int conn_id)
