@@ -28,10 +28,10 @@ char *osi_strdup(const char *str) {
   size_t size = strlen(str) + 1;  // + 1 for the null terminator
   size_t real_size = allocation_tracker_resize_for_canary(size);
 
-  char *new_string = allocation_tracker_notify_alloc(
+  char *new_string = static_cast<char*> (allocation_tracker_notify_alloc(
     alloc_allocator_id,
     malloc(real_size),
-    size);
+    size));
   if (!new_string)
     return NULL;
 

@@ -40,9 +40,8 @@
 #include "oi_stddefs.h"
 #include "oi_debug.h"
 #include "oi_status.h"
-#include <hardware/bluetooth.h>
-#include <hardware/bt_sock.h>
-
+#include <hardware/bt_obex_sock.h>
+typedef btsock_interface_t_v1 btsock_interface_t;
 /** \addtogroup OBEX */
 /**@{*/
 

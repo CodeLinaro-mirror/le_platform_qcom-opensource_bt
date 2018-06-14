@@ -62,11 +62,12 @@ using namespace std;
 
 static uint8_t  UUID_OBEX_OBJECT_PUSH[] = {0x00, 0x00, 0x11, 0x05, 0x00, 0x00, 0x10, 0x00,
                                                  0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB};
+static uint8_t  UUID_OBEX_OBJECT_PUSH_STR[] = "00001105-0000-1000-8000-00805f9b34fb";
 static  uint32_t profileVersion = 0x0102;
 static char profile_name[] = "OPP Profile";
 static char storageDir[] = "/data/misc/bluetooth/";
 static char noNameFileStoreLocation[] = "/data/misc/bluetooth/NoName";
-static char configFileName[] = "/etc/bluetooth/ext_to_mimetype.conf";
+static char configFileName[] = "/data/misc/bluetooth/ext_to_mimetype.conf";
 Opp *g_opp = NULL;;
 
 #define UUID_MAX_LENGTH 16
@@ -1104,7 +1105,7 @@ static void sdp_search_callback(bt_status_t status, bt_bdaddr_t *bd_addr, uint8_
         return;
     }
     ALOGE(LOGTAG "%s", __FUNCTION__);
-    if (IS_UUID(UUID_OBEX_OBJECT_PUSH, uuid)) {
+    if (IS_UUID(UUID_OBEX_OBJECT_PUSH_STR, uuid)) {
         bdaddr_to_string(bd_addr, bd_str, MAX_BD_STR_LEN);
         ALOGE(LOGTAG "%s: status %d, addr %s, L2CAP PSM = %d, "
             "RFCOMM channel = %d, profile version = 0x%04x, "

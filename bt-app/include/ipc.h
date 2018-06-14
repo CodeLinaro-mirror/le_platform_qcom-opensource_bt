@@ -26,7 +26,6 @@
 #include <hardware/bt_gatt_types.h>
 #include <hardware/bt_sdp.h>
 #include <hardware/bt_rc.h>
-#include <hardware/vendor.h>
 
 
 extern thread_t *g_gap_thread;
@@ -53,7 +52,6 @@ extern thread_t *g_pbapc_thread;
 #define SDP_CLIENT_MSG_BASE     (5000)
 #define PBAP_CLIENT_MSG_BASE    (6000)
 #define OPP_MSG_BASE            (7000)
-#define HID_API_MSG_BASE        (9000)
 
 #define AUDIO_MANAGER_MSG_BASE  (250)
 #define A2DP_SINK_MSG_BASE      (300)
@@ -96,7 +94,6 @@ typedef enum {
     THREAD_ID_HFP_AG,
     THREAD_ID_A2DP_SOURCE,
     THREAD_ID_AVRCP,
-    THREAD_ID_HID,
     THREAD_ID_MAX,
 } ThreadIdType;
 
@@ -117,7 +114,6 @@ typedef enum {
     PROFILE_ID_HFP_AG,
     PROFILE_ID_A2DP_SOURCE,
     PROFILE_ID_AVRCP,
-    PROFILE_ID_HID,
     PROFILE_ID_MAX
 } ProfileIdType;
 
@@ -383,7 +379,7 @@ typedef enum {
     GAP_API_SSP_REPLY,
     GAP_API_PIN_REPLY,
     GAP_API_SET_BDNAME,
-    GAP_API_SET_LE_BDNAME,
+
     GAP_EVENT_ADAPTER_STATE,
     GAP_EVENT_ACL_STATE_CHANGED,
     GAP_EVENT_DISCOVERY_STATE_CHANGED,
@@ -419,8 +415,7 @@ typedef enum {
     PAN_EVENT_API_DISABLE,
 
     //GATTS EVENTS
-    GEN_GATT_EVENT = GATT_MSG_BASE,
-    BTGATTS_REGISTER_APP_EVENT,
+    BTGATTS_REGISTER_APP_EVENT = GATT_MSG_BASE,
     BTGATTS_CONNECTION_EVENT,
     BTGATTS_SERVICE_ADDED_EVENT,
     BTGATTS_INCLUDED_SERVICE_ADDED_EVENT,
@@ -518,20 +513,6 @@ typedef enum {
     OPP_INTERNAL_DISCONNECTION,
     OPP_INCOMING_FILE_RESPONSE,
     OPP_CONNECT_TIMEOUT,
-
-    HID_API_CONNECT_REQ = HID_API_MSG_BASE,
-    HID_API_DISCONNECT_REQ,
-    HID_API_DISCONNECTED_CB,
-    HID_API_CONNECTING_CB,
-    HID_API_CONNECTED_CB,
-    HID_API_DISCONNECTING_CB,
-    HID_API_SET_REPORT_REQ,
-    HID_API_GET_REPORT_REQ,
-    HID_API_SET_PROTOCOL_REQ,
-    HID_API_GET_PROTOCOL_REQ,
-    HID_API_VIRTUAL_UNPLUG_REQ,
-    HID_API_BONDED_HID_LIST,
-    HID_API_BONDED_LIST_REQ
 } BluetoothEventId;
 
 typedef struct {
@@ -745,16 +726,6 @@ typedef struct {
     BluetoothEventId event_id;
     bt_property_t prop;
 } SetDeviceName;
-
-/**
- * API to set BT LE Name
- */
-typedef struct {
-    BluetoothEventId event_id;
-    btvendor_lename_t name;
-    bool gattsEnabled;
-}SetDeviceLeName;
-
 /**
  * Event for notifying Profile stop status
  */
@@ -1309,15 +1280,6 @@ typedef struct
     int mtu;
 } GattsMTUchangedEvent;
 
-typedef struct{
-    BluetoothEventId event_id;
-    int conn_id;
-    int status;
-    int clientIf;
-    bt_bdaddr_t bda;
-} GattsOpenEvent;
-
-
 /* Remote start profile support */
 typedef struct {
     BluetoothEventId event_id;
@@ -1409,17 +1371,6 @@ typedef struct {
     ProfileIdType      profile_id;
 } BTAMControlRelease;
 
-typedef struct {
-    BluetoothEventId   event_id;
-    bt_bdaddr_t        bd_addr;
-    char               report[20];
-    int                reportType;
-    int                reportID;
-    int                bufSize;
-    int                protocolMode;
-    int                idleTime;
-} HIDProfileEvent;
-
 typedef union {
     BluetoothEventId                        event_id;
     GapAppEvent                             state_event;
@@ -1434,7 +1385,6 @@ typedef union {
     DeviceFoundEvent                        device_found_event;
     DeviceFoundEventInt                     device_found_event_int;
     SetDeviceName                           set_device_name_event;
-    SetDeviceLeName                         set_device_le_name_event;
     RemotePropertiesEvent                   remote_properties_event;
     AdapterPropertiesEvent                  adapater_properties_event;
     DeviceDiscoverRequest                   discover_request;
@@ -1523,7 +1473,6 @@ typedef union {
     PbapClientEvent                         pbap_client_event;
     OppEvent                                opp_event;
 #endif
-    HIDProfileEvent                         hid_profile_event;
     BtIpcMsgEvent                           bt_ipc_msg_event;
 } BtEvent;
 
@@ -1572,7 +1521,6 @@ extern "C" {
 typedef char bdstr_t[MAX_BD_STR_LEN];
 void PostMessage(ThreadIdType thread_id, void *msg);
 void BtGapMsgHandler(void *context);
-bool is_disable_inprogress(void);
 void BtMainMsgHandler(void *context);
 void BtSocketMsgHandler (void *context);
 void BtA2dpSinkMsgHandler(void *msg);
@@ -1588,7 +1536,6 @@ void BtPbapClientMsgHandler(void *context);
 void BtOppMsgHandler(void *context);
 #endif
 void BtA2dpSourceMsgHandler(void *msg);
-void BtHidMsgHandler(void *msg);
 #ifdef __cplusplus
 }
 #endif

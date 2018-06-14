@@ -34,7 +34,7 @@
 #include <map>
 #include <string>
 #include <hardware/bluetooth.h>
-#include <hardware/bt_sock.h>
+#include <hardware/bt_obex_sock.h>
 #include <hardware/bt_sdp.h>
 #include <stdio.h>
 #include <string.h>

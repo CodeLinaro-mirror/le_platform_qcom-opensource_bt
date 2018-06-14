@@ -32,6 +32,8 @@
 #include "osi/include/log.h"
 #include "SdpClient.hpp"
 #include "utils.h"
+#include <bluetooth/uuid.h>
+using bluetooth::Uuid;
 
 #define LOGTAG "Sdp "
 
@@ -98,7 +100,7 @@ void BtSdpClientMsgHandler(void *msg)
     delete event;
 }
 
-void sdp_client_search_callback(bt_status_t status, bt_bdaddr_t *addr, uint8_t* uuid,
+void sdp_client_search_callback(bt_status_t status, RawAddress& addr, const bluetooth::Uuid& uuid,
             int num_records, bluetooth_sdp_record *records)
 {
     int i = 0;
@@ -118,7 +120,7 @@ void sdp_client_search_callback(bt_status_t status, bt_bdaddr_t *addr, uint8_t* 
             ALOGD("%s, ServiceName:  %s", __FUNCTION__, record->hdr.service_name);
         }
         if (mSearchCb)
-            mSearchCb(status, addr, uuid, record, more_results);
+            mSearchCb(status, (&addr), (unsigned uint8_t*)((uuid.ToString()).c_str()), record, more_results);
     }
     mSearchOngoing = false;
     mSearchCb = NULL;
@@ -211,7 +213,10 @@ bool SdpClient :: Search(bt_bdaddr_t *addr, uint8_t *uuid, SdpSearchCb cb)
     alarm_set(sdp_search_timer, SDP_SEARCH_TIMEOUT_DELAY,
                         sdp_search_timer_expired, addr);
     if (sdp_client_interface)
-        sdp_client_interface->sdp_search(addr, uuid);
+    {
+        Uuid uuid1 = Uuid::From128BitBE((uuid));
+        sdp_client_interface->sdp_search(addr, uuid1);
+    }
 
     /* sdp_search always returns BT_STATUS_SUCCESS, so return true */
     return true;

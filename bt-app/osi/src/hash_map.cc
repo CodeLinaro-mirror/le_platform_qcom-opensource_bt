@@ -60,7 +60,7 @@ hash_map_t *hash_map_new_internal(
   assert(num_bucket > 0);
   assert(zeroed_allocator != NULL);
 
-  hash_map_t *hash_map = zeroed_allocator->alloc(sizeof(hash_map_t));
+  hash_map_t *hash_map = static_cast<hash_map_t*> (zeroed_allocator->alloc(sizeof(hash_map_t)));
   if (hash_map == NULL)
     return NULL;
 
@@ -71,7 +71,7 @@ hash_map_t *hash_map_new_internal(
   hash_map->keys_are_equal = equality_fn ? equality_fn : default_key_equality;
 
   hash_map->num_bucket = num_bucket;
-  hash_map->bucket = zeroed_allocator->alloc(sizeof(hash_map_bucket_t) * num_bucket);
+  hash_map->bucket = static_cast<hash_map_bucket_t*> (zeroed_allocator->alloc(sizeof(hash_map_bucket_t) * num_bucket));
   if (hash_map->bucket == NULL) {
     zeroed_allocator->free(hash_map);
     return NULL;
@@ -143,7 +143,7 @@ bool hash_map_set(hash_map_t *hash_map, const void *key, void *data) {
   } else {
     hash_map->hash_size++;
   }
-  hash_map_entry = hash_map->allocator->alloc(sizeof(hash_map_entry_t));
+  hash_map_entry = static_cast<hash_map_entry_t*> (hash_map->allocator->alloc(sizeof(hash_map_entry_t)));
   if (hash_map_entry == NULL)
     return false;
 

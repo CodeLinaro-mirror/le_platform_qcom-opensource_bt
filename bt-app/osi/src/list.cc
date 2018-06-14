@@ -235,7 +235,7 @@ void *list_node(const list_node_t *node) {
   assert(node != NULL);
   if (node)
     return node->data;
-  return false;
+  return NULL;
 }
 
 static list_node_t *list_free_node_(list_t *list, list_node_t *node) {

@@ -32,7 +32,7 @@
 #include "osi/include/log.h"
 #include "Pan.hpp"
 #include "utils.h"
-
+#include "types/raw_address.h"
 #define LOGTAG "PAN "
 
 #define PAN_APP_UI_PRINT printf
@@ -47,8 +47,8 @@ Pan *g_pan = NULL;;
 const char *BT_PAN_NAP_ROLE_SUPPORTED         = "BtPanNapRoleSupported";
 const char *BT_PAN_PANU_ROLE_SUPPORTED        = "BtPanPanuRoleSupported";
 
-static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static const bt_bdaddr_t bd_addr_to_string= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static const bt_bdaddr_t bd_addr_null= RawAddress::kEmpty;
+static const bt_bdaddr_t bd_addr_to_string= RawAddress::kEmpty;
 
 #ifdef __cplusplus
 extern "C"

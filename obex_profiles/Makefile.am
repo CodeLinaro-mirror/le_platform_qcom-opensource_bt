@@ -1,6 +1,6 @@
 AM_CPPFLAGS = -O2 \
-              -D_GNU_SOURCE
-
+              -D_GNU_SOURCE \
+              -DOI_DEBUG
 AM_CFLAGS = -Wall \
         -Wundef \
         -Wstrict-prototypes \
@@ -12,6 +12,7 @@ AM_CFLAGS = -Wall \
         -DOI_USE_NATIVE_MEMCPY \
         -DOI_OBEX_OVER_L2CAP \
         -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include/ \
+        -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include/ \
         -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
         -I${WORKSPACE}/system/core/include/ \
         -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include \

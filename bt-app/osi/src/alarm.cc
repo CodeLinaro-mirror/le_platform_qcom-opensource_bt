@@ -91,11 +91,11 @@ alarm_t *alarm_new(void) {
   // Make sure we have a list we can insert alarms into.
   if (!alarms && !lazy_initialize())
     return NULL;
-
+  int error;
   pthread_mutexattr_t attr;
   pthread_mutexattr_init(&attr);
 
-  alarm_t *ret = osi_calloc(sizeof(alarm_t));
+  alarm_t *ret = static_cast<alarm_t*> (osi_calloc(sizeof(alarm_t)));
   if (!ret) {
     LOG_ERROR("%s unable to allocate memory for alarm.", __func__);
     goto error;
@@ -103,7 +103,7 @@ alarm_t *alarm_new(void) {
 
   // Make this a recursive mutex to make it safe to call |alarm_cancel| from
   // within the callback function of the alarm.
-  int error = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  error = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
   if (error) {
     LOG_ERROR("%s unable to create a recursive mutex: %s", __func__, strerror(error));
     goto error;
@@ -298,7 +298,7 @@ static void schedule_next_instance(alarm_t *alarm, bool force_reschedule) {
 static void reschedule_root_alarm(void) {
   bool timer_was_set = timer_set;
   assert(alarms != NULL);
-
+  alarm_t *next;
   // If used in a zeroed state, disarms the timer
   struct itimerspec wakeup_time;
   memset(&wakeup_time, 0, sizeof(wakeup_time));
@@ -306,7 +306,7 @@ static void reschedule_root_alarm(void) {
   if (list_is_empty(alarms))
     goto done;
 
-  alarm_t *next = list_front(alarms);
+  next = static_cast<alarm_t*> (list_front(alarms));
   wakeup_time.it_value.tv_sec = (next->deadline / 1000);
   wakeup_time.it_value.tv_nsec = (next->deadline % 1000) * 1000000LL;
 

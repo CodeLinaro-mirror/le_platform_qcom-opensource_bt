@@ -34,10 +34,8 @@
 #include "oi_wrapper.h"
 #include "oi_osinterface.h"
 #endif
-#include "GattsTest.hpp"
 
 const char *BT_LOCAL_DEV_NAME = "BtLocalDeviceName";
-const char *BT_LOCAL_DEV_LE_NAME = "BtLocalDeviceLeName";
 const char *BT_SCAN_MODE_TYPE = "BtScanMode";
 const char *BT_USR_INPUT     = "UserInteractionNeeded";
 const char *BT_A2DP_SINK_ENABLED_STRING  = "BtA2dpSinkEnable";
@@ -45,7 +43,6 @@ const char *BT_A2DP_SOURCE_ENABLED_STRING  = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED_STRING  = "BtHfClientEnable";
 const char *BT_PAN_ENABLED    = "BtPanEnable";
 const char *BT_GATT_ENABLED   = "BtGattEnable";
-const char *BT_HID_ENABLED_STRING    = "BtHidEnable";
 #ifdef USE_BT_OBEX
 const char *BT_OBEX_ENABLED    = "BtObexEnable";
 const char *BT_OBEX_LOG_LEVEL    = "BtObexLogLevel";
@@ -67,7 +64,6 @@ Gap *g_gap = NULL;
 #ifdef __cplusplus
 extern "C" {
 #endif
-extern GattsTest *gattstest;
 
 static bool SetWakeAlarm(uint64_t delay_millis, bool should_wake, alarm_cb cb,
                                                                     void *data) {
@@ -248,24 +244,6 @@ static void EnergyInfoRecvCb(bt_activity_energy_info *p_energy_info) {
     ALOGV (LOGTAG " EnergyInfoRecvCb: ");
 }
 
-static void hci_raw_event_show(uint8_t event_code, uint8_t *buf, uint8_t len){
-    int i;
-
-    fprintf(stdout, "#### raw event received ####\n");
-    fprintf(stdout, "%02x %02x ", event_code, len);
-
-    i = 2;
-    while (i < (len + 2)) {
-        if ((i % 16) == 0)
-            fprintf(stdout, "\n");
-        fprintf(stdout, "%02x ", buf[i - 2]);
-        i++;
-    }
-    fprintf(stdout, "\n#### end ####\n");
-
-    return;
-}
-
 //TODO: update the callbacks, made NULL to compile
 static bt_callbacks_t sBluetoothCallbacks = {
     sizeof(sBluetoothCallbacks),
@@ -282,7 +260,6 @@ static bt_callbacks_t sBluetoothCallbacks = {
     DutModeRecvCb,
     LeTestModeRecvCb,
     NULL,
-    hci_raw_event_show,
 };
 
 static void SsrCleanupCb() {
@@ -295,7 +272,6 @@ static void SsrCleanupCb() {
 static btvendor_callbacks_t sVendorCallbacks = {
     sizeof(sVendorCallbacks),
     NULL,
-    SsrCleanupCb,
     NULL,
 };
 
@@ -499,12 +475,6 @@ int Gap::SetBtName(bt_property_t *prop) {
     return adapter_properties_obj_->SetBtName(prop);
 }
 
-void Gap::SetLeBtName(btvendor_lename_t *name) {
-    if(sBtVendorInterface != NULL   ){
-        sBtVendorInterface->setLeBtName(name);
-    }else
-        ALOGD(LOGTAG "sBtVendorInterface is nULL");
-}
 
 bool Gap::IsDeviceBonded(bt_bdaddr_t device) {
     return adapter_properties_obj_->IsDeviceBonded(device);
@@ -513,8 +483,6 @@ void Gap::ProcessEvent(BtEvent* event) {
     bt_property_t prop;
     bt_scan_mode_t scan_mode;
     bt_bdname_t bd_name;
-    bt_lename_t le_name;
-    btvendor_lename_t name;
     BtEvent  *bt_event  = NULL;
     int profile_id, profile_count = 0;
 
@@ -543,14 +511,6 @@ void Gap::ProcessEvent(BtEvent* event) {
                 prop.val = &bd_name;
                 prop.len = strlen((char*)bd_name.name);
                 bluetooth_interface_->set_adapter_property(&prop);
-
-                /*Set Default BT_LE_NAME*/
-                strlcpy((char*)&le_name.name[0], config_get_string (config_,
-                 CONFIG_DEFAULT_SECTION, BT_LOCAL_DEV_LE_NAME, "MDM_LE_Fluoride"), sizeof(le_name));
-                name.val = &le_name;
-                name.len = strlen((char*)le_name.name);
-                sBtVendorInterface->setLeBtName(&name);
-                /*********************************************************************/
 
                 //Sending update to the Main thread
                 bt_event = new BtEvent;
@@ -620,8 +580,8 @@ void Gap::ProcessEvent(BtEvent* event) {
 #ifdef USE_BT_OBEX
             /* Initialize OBEX if enabled in config */
             if (is_obex_enabled_) {
-                if ((sock_interface_ = (btsock_interface_t *)
-                    bluetooth_interface_->get_profile_interface(BT_PROFILE_SOCKETS_ID)) == NULL) {
+                if ((sock_interface_ = (btsock_interface_t_v1 *)
+                    bluetooth_interface_->get_profile_interface(BT_PROFILE_OBEX_ID)) == NULL) {
                     ALOGE(LOGTAG "%s: Failed to get Bluetooth socket interface", __FUNCTION__);
                 } else {
                     OI_OBEX_Init(50);
@@ -648,8 +608,8 @@ void Gap::ProcessEvent(BtEvent* event) {
                 if(profile_config[profile_id].is_enabled) {
                     bt_event = new BtEvent;
                     bt_event->event_id = PROFILE_API_START;
-                    ALOGD(LOGTAG " sending start to Profile %d",
-                        profile_id);
+                    ALOGD(LOGTAG " sending start to Profile %d Profile name = %s",
+                        profile_id, profile_config[profile_id].name);
                     PostMessage(profile_config[profile_id].thread_id, bt_event);
                 }
             }
@@ -789,28 +749,11 @@ void Gap::ProcessEvent(BtEvent* event) {
                 }
             }
 
-            if ((profile_count == 0) && is_disable_inprogress()) {
-                ALOGI (LOGTAG "Rare case : disable BT adapter under no started profile");
-                fprintf(stdout, "Rare case : disable BT adapter under no started profile\n");
-                alarm_cancel(profile_stop_timer);
-                HandleDisable();
-            }
             break;
 
         case GAP_API_SET_BDNAME:
             SetBtName(&event->set_device_name_event.prop);
             config_set_string(config_,CONFIG_DEFAULT_SECTION,BT_LOCAL_DEV_NAME,(char *)event->set_device_name_event.prop.val);
-            break;
-
-        case GAP_API_SET_LE_BDNAME:
-            SetLeBtName(&event->set_device_le_name_event.name);
-            ALOGD(LOGTAG "set le bt name : %s",(char*)event->set_device_le_name_event.name.val);
-            config_set_string(config_,CONFIG_DEFAULT_SECTION,BT_LOCAL_DEV_LE_NAME,
-                                (char *)event->set_device_le_name_event.name.val);
-            if (event->set_device_le_name_event.gattsEnabled && gattstest->getIsAdvertising()) {
-                 gattstest->ClientSetAdvData("Remote Start Profile");
-                 gattstest->StartAdvertisement();
-            }
             break;
 
         case GAP_EVENT_DEVICE_FOUND_INT:
@@ -945,10 +888,10 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_AG;
         else if(profile_id == PROFILE_ID_AVRCP)
             this->profile_config[profile_id].thread_id = THREAD_ID_AVRCP;
-        else if(profile_id == PROFILE_ID_HID)
-            this->profile_config[profile_id].thread_id = THREAD_ID_HID;
+/*        else if(profile_id == PROFILE_ID_HID)
+            this->profile_config[profile_id].thread_id = THREAD_ID_HID;*/
     }
-
+/*
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED_STRING, false);
 
@@ -974,11 +917,11 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
     this->profile_config[PROFILE_ID_GATT].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_GATT_ENABLED, false);
-
+*/
     // SDP Client should be enabled and is not configurable to be disabled
     this->profile_config[PROFILE_ID_SDP_CLIENT].is_enabled = true;
-    this->profile_config[PROFILE_ID_HID].is_enabled = config_get_bool (config,
-                   CONFIG_DEFAULT_SECTION, BT_HID_ENABLED_STRING, false);
+/*    this->profile_config[PROFILE_ID_HID].is_enabled = config_get_bool (config,
+                   CONFIG_DEFAULT_SECTION, BT_HID_ENABLED_STRING, false);*/
 
 #ifdef USE_BT_OBEX
     this->profile_config[PROFILE_ID_PBAP_CLIENT].is_enabled = config_get_bool (config,
@@ -995,12 +938,12 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         }
     }
     // Vendor interface
-    sBtVendorInterface = (btvendor_interface_t *)bluetooth_interface_->
-                            get_profile_interface(BT_PROFILE_VENDOR_ID);
+   // sBtVendorInterface = (btvendor_interface_t *)bluetooth_interface_->
+   //                         get_profile_interface(BT_PROFILE_VENDOR_ID);
 
-    if (sBtVendorInterface != NULL) {
-        sBtVendorInterface->init(&sVendorCallbacks);
-    }
+   // if (sBtVendorInterface != NULL) {
+    //    sBtVendorInterface->init(&sVendorCallbacks);
+   // }
 
     if( !(profile_startup_timer = alarm_new())) {
         ALOGE(LOGTAG, " unable to create profile_startup_timer timer.");
@@ -1039,10 +982,10 @@ Gap :: ~Gap() {
     alarm_free(disable_timer);
     disable_timer = NULL;
 
-    if (sBtVendorInterface != NULL) {
-        sBtVendorInterface->cleanup();
-        sBtVendorInterface = NULL;
-    }
+    //if (sBtVendorInterface != NULL) {
+    //    sBtVendorInterface->cleanup();
+     //   sBtVendorInterface = NULL;
+    //}
 }
 
 int Gap:: GetState() {

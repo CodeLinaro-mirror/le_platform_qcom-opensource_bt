@@ -15,6 +15,16 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 PKG_PROG_PKG_CONFIG
 
+AC_ARG_WITH([chrome_includes],
+      AC_HELP_STRING([--with-chrome-includes=@<:@dir@:>@],
+         [Specify the location of the common headers]),
+      [chrome_incdir=$withval],
+      with_chrome_includes=no)
+
+if test "x$with_chrome_includes" != "xno"; then
+   CPPFLAGS="${CPPFLAGS} -I${chrome_incdir}"
+   CFLAGS="${CFLAGS} -I${chrome_incdir}"
+fi
 AC_ARG_WITH([glib],
      AC_HELP_STRING([--with-glib],
         [enable glib, building HLOS systems which use glib]))
