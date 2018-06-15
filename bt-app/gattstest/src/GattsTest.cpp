@@ -689,6 +689,7 @@ bool GattsTest::StartAdvertisement()
 bool GattsTest::SendResponse(GattsRequestWriteEvent *event)
 {
     char val[5];
+    unsigned char *p;
     if (GetGattInterface() == NULL) {
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present \n",__FUNCTION__);
         return false;
@@ -707,14 +708,18 @@ bool GattsTest::SendResponse(GattsRequestWriteEvent *event)
     ALOGD(LOGTAG "(%s) Sending GATTSTEST response to write (%d) ",__FUNCTION__,
         GetGATTSTESTAppData()->server_if);
 
-    if(0 == strncmp((char *) att_resp.attr_value.value ,"00",2) ) {
-         ALOGD(LOGTAG"low alert written \n");
-    } else if(0 == strncmp((char *) att_resp.attr_value.value,"01",2) ) {
-         ALOGD(LOGTAG"mid alert written \n");
-    } else if(0 == strncmp((char *) att_resp.attr_value.value,"02",2) ) {
-         ALOGD(LOGTAG"high alert written \n");
+    p = (unsigned char *)att_resp.attr_value.value;
+    if (p[0] == 0x00) {
+         response = 0;
+         ALOGI(LOGTAG"low alert written \n");
+    } else if (p[0] == 0x01) {
+         response = 0;
+         ALOGI(LOGTAG"mid alert written \n");
+    } else if (p[0] == 0x02) {
+         response = 0;
+         ALOGI(LOGTAG"high alert written \n");
     } else {
-     ALOGD(LOGTAG"default alert written \n");
+         ALOGI(LOGTAG"default alert written \n");
     }
     return app_gatt->send_response(event->conn_id, event->trans_id,
                                                          response, &att_resp);
