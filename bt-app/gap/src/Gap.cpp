@@ -891,7 +891,6 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 /*        else if(profile_id == PROFILE_ID_HID)
             this->profile_config[profile_id].thread_id = THREAD_ID_HID;*/
     }
-/*
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED_STRING, false);
 
@@ -912,6 +911,7 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         this->profile_config[PROFILE_ID_BT_AM].is_enabled = true;
     }
 
+/*
     this->profile_config[PROFILE_ID_PAN].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_PAN_ENABLED, false);
 

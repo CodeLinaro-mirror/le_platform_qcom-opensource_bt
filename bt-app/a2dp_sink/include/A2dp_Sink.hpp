@@ -92,7 +92,7 @@ class A2dp_Sink {
   private:
     config_t *config;
     const bt_interface_t * bluetooth_interface;
-    const btav_interface_t *sBtA2dpSinkInterface;
+    const btav_sink_interface_t *sBtA2dpSinkInterface;
     A2dpSinkState mSinkState;
     const btav_sink_vendor_interface_t *sBtA2dpSinkVendorInterface;
 

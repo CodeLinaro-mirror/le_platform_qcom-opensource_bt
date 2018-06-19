@@ -34,6 +34,7 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
                -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
+               -I${WORKSPACE}/hardware/libhardware/include \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth_ext/vhal/include \
                -I${WORKSPACE}/mcm-api/api \
@@ -41,7 +42,6 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include
-
 
 if USE_BT_OBEX
 AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
@@ -65,20 +65,19 @@ cpp_sources = ../utils/src/utils.cc \
             ../gap/src/Gap.cpp \
             ../gap/src/AdapterProperties.cpp \
             ../gap/src/RemoteDevices.cpp \
-            ../sdp_client/src/SdpClient.cpp
+            ../sdp_client/src/SdpClient.cpp\
+            ../a2dp_sink/src/A2dp_Sink.cpp \
+            ../a2dp_src/src/A2dp_Src.cpp \
+            ../a2dp_sink/src/A2dp_Sink_Streaming.cpp \
+            ../avrcp/src/Avrcp.cpp \
+            ../audio_manager/src/Audio_Manager.cpp \
+            ../hfp_client/src/HfpClient.cpp \
+            ../hfp_ag/src/HfpAG.cpp
 
-#Uncomment after enabling audio
+#Uncomment after enabling profiles
 #cpp_sources += \
-#            ../rsp/src/Rsp.cpp \
-#            ../a2dp_sink/src/A2dp_Sink.cpp \
-#            ../a2dp_src/src/A2dp_Src.cpp \
-#            ../a2dp_sink/src/A2dp_Sink_Streaming.cpp \
-#            ../avrcp/src/Avrcp.cpp \
-#            ../audio_manager/src/Audio_Manager.cpp \
-#            ../hfp_client/src/HfpClient.cpp \
 #            ../pan/src/Pan.cpp \
-#            ../hfp_ag/src/HfpAG.cpp
-#            ../gattstest/src/GattsTest.cpp
+#            ../rsp/src/Rsp.cpp
 
 if USE_BT_OBEX
 cpp_sources +=  ../pbap_client/src/PbapClient.cpp \

@@ -76,15 +76,14 @@ extern Gap *g_gap;
 //#define DUMP_COMPRESSED_DATA TRUE
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
 FILE *outputPcmSampleFile;
-char outputFilename [50] = "/etc/bluetooth/output_sample.pcm";
+char outputFilename [50] = "/etc/output_sample.pcm";
 #endif
 
 #if (defined(DUMP_COMPRESSED_DATA) && (DUMP_COMPRESSED_DATA == TRUE))
 FILE *outputPcmSampleFile;
-char outputFilename [50] = "/etc/bluetooth/output_sample.pcm";
+char outputFilename [50] = "/etc/output_sample.pcm";
 #endif
 
-static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 extern void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type);
 #ifdef __cplusplus
 extern "C" {
@@ -194,8 +193,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             }
             send_gst_data(&gstbtobj, pcm_data_read, 0);
 #else
-            if ((pA2dpSinkStream->pcm_buf == NULL) || !memcmp(&pA2dpSinkStream->mStreamingDevice,
-                    &bd_addr_null, sizeof(bt_bdaddr_t))) {
+            if ((pA2dpSinkStream->pcm_buf == NULL) || bdaddr_is_empty(&pA2dpSinkStream->mStreamingDevice)) {
                 // pcm buffer is null, closeStream or streaming device null have been called earlier
                 break;
             }
@@ -385,8 +383,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                             }
                         }
                         // send play to remote
-                        if (pAvrcp != NULL && memcmp(&pA2dpSinkStream->mResumingDevice, &bd_addr_null,
-                                sizeof(bt_bdaddr_t))) {
+                        if (pAvrcp != NULL && !bdaddr_is_empty(&pA2dpSinkStream->mResumingDevice)) {
                             ALOGD(LOGTAG " STATUS_REGAINED, sending play");
                             pAvrcp->SendPassThruCommandNative(CMD_ID_PLAY,
                                     &pA2dpSinkStream->mResumingDevice, 1);

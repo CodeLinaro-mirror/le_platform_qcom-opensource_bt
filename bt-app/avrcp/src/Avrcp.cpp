@@ -54,7 +54,6 @@ Avrcp *pAvrcp = NULL;
 extern A2dp_Sink_Streaming *pA2dpSinkStream;
 extern A2dp_Sink *pA2dpSink;
 
-static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 #define ABS_VOL_BASE 127
 #define AUDIO_MAX_VOL_LEVEL 15
 int curr_audio_index = 7;
@@ -187,7 +186,7 @@ static void btavrcpctrl_passthru_rsp_vendor_callback(int id, int key_state, bt_b
     }
 }
 
-static void btavrcpctrl_passthru_rsp_callback(int id, int key_state) {
+static void btavrcpctrl_passthru_rsp_callback(bt_bdaddr_t *bd_addr, int id, int key_state) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_passthru_rsp_callback id = %d key_state = %d", id, key_state);
 }
 
@@ -218,7 +217,7 @@ static void btavrcpctrl_track_changed_callback(bt_bdaddr_t *bd_addr, uint8_t num
 }
 
 static void btavrcpctrl_play_position_changed_callback(bt_bdaddr_t *bd_addr,
-                                                          uint32_t song_len, uint32_t song_pos, btrc_play_status_t play_status) {
+                                                          uint32_t song_len, uint32_t song_pos) {
     ALOGD(LOGTAG_CTRL "btrc_ctrl_play_position_changed_callback");
 }
 
@@ -226,11 +225,11 @@ static void btavrcpctrl_play_status_changed_callback(bt_bdaddr_t *bd_addr, btrc_
     ALOGD(LOGTAG_CTRL "btrc_ctrl_play_status_changed_callback");
 }
 
-static void btavrcpctrl_connection_state_callback(bool state, bt_bdaddr_t* bd_addr) {
-    ALOGD(LOGTAG_CTRL " btavrcpctrl_connection_state_callback state = %d", state);
+static void btavrcpctrl_connection_state_callback(bool rc_connect, bool br_connect, bt_bdaddr_t* bd_addr) {
+    ALOGD(LOGTAG_CTRL " btavrcpctrl_connection_state_callback rc: %d br: %d", rc_connect, br_connect);
     BtEvent *pEvent = new BtEvent;
     memcpy(&pEvent->avrcpCtrlPassThruEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-    if (state == true)
+    if (rc_connect == true)
     {
         fprintf(stdout, "     AVRCP_CTRL_CONNECTED_CB\n");
         pEvent->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_CONNECTED_CB;
@@ -388,7 +387,7 @@ static bt_status_t btavrcpctrl_setaddressedplayer_rsp_vendor_callback(bt_bdaddr_
 }
 
 static bt_status_t btavrcpctrl_setbrowsedplayer_rsp_vendor_callback(bt_bdaddr_t *bd_addr,
-    btrc_status_t rsp_status, uint32_t num_items, uint16_t charset_id , uint8_t folder_depth, btrc_folder_name_t *p_folders)
+    btrc_status_t rsp_status, uint32_t num_items, uint16_t charset_id , uint8_t folder_depth, btrc_br_folder_name_t *p_folders)
 
 {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_setbrowsedplayer_rsp_vendor_callback");
@@ -396,7 +395,7 @@ static bt_status_t btavrcpctrl_setbrowsedplayer_rsp_vendor_callback(bt_bdaddr_t 
     fprintf(stdout, "     responsed status: 0x%02x  num_items:%d charset_id:%d folder_depth:%d \n", rsp_status,
         num_items, charset_id, folder_depth);
     for(int i=0; i < folder_depth; i++)
-        fprintf(stdout, "     Folder name%d: %s\n", i, p_folders[i].p_str);
+        fprintf(stdout, "     Folder name%d: %s\n", i, (char*)p_folders[i].p_str);
     return BT_STATUS_SUCCESS;
 
 }
@@ -539,6 +538,10 @@ static btrc_ctrl_callbacks_t sBluetoothAvrcpCtrlCallbacks = {
    btavrcpctrl_track_changed_callback,
    btavrcpctrl_play_position_changed_callback,
    btavrcpctrl_play_status_changed_callback,
+   NULL,
+   NULL,
+   NULL,
+   NULL,
 };
 
 static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
@@ -564,7 +567,7 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {
     ALOGD(LOGTAG_CTRL " SendPassThruCommandNative ");
-    if (memcmp(&pA2dpSinkStream->mStreamingDevice, &bd_addr_null, sizeof(bt_bdaddr_t)) &&
+    if (!(bdaddr_is_empty(&(pA2dpSinkStream->mStreamingDevice))) &&
             memcmp(&pA2dpSinkStream->mStreamingDevice, addr, sizeof(bt_bdaddr_t)) &&
             (key_id == CMD_ID_PLAY))
         direct = 1;

@@ -294,7 +294,7 @@ void BtHfpClientMsgHandler(void *msg) {
 }
 #endif
 
-static void connection_state_cb(bthf_client_connection_state_t state, unsigned int peer_feat, unsigned chld_feat, bt_bdaddr_t* bd_addr) {
+static void connection_state_cb(const bt_bdaddr_t* bd_addr, bthf_client_connection_state_t state, unsigned int peer_feat, unsigned chld_feat) {
     ALOGD(LOGTAG " Connection State CB");
     BtEvent *pEvent = new BtEvent;
     memcpy(&pEvent->hfp_client_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
@@ -322,7 +322,7 @@ static void connection_state_cb(bthf_client_connection_state_t state, unsigned i
     PostMessage(THREAD_ID_HFP_CLIENT, pEvent);
 }
 
-static void audio_state_cb(bthf_client_audio_state_t state, bt_bdaddr_t* bd_addr) {
+static void audio_state_cb(const bt_bdaddr_t* bd_addr, bthf_client_audio_state_t state) {
     ALOGD(LOGTAG " Audio State CB");
     BtEvent *pEvent = new BtEvent;
     memcpy(&pEvent->hfp_client_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
@@ -343,42 +343,42 @@ static void audio_state_cb(bthf_client_audio_state_t state, bt_bdaddr_t* bd_addr
     PostMessage(THREAD_ID_HFP_CLIENT, pEvent);
 }
 
-void vr_cmd_cb(bthf_client_vr_state_t state) {
+void vr_cmd_cb(const bt_bdaddr_t* bd_addr, bthf_client_vr_state_t state) {
     ALOGD(LOGTAG "VR state is %s",(state == BTHF_CLIENT_VR_STATE_STOPPED) ? "stopped": "started");
     fprintf(stdout, "VR state is %s\n",(state == BTHF_CLIENT_VR_STATE_STOPPED) ? "stopped": "started");
 }
 
-void network_state_cb (bthf_client_network_state_t state) {
+void network_state_cb (const bt_bdaddr_t* bd_addr, bthf_client_network_state_t state) {
     ALOGD(LOGTAG "network state is %s", (state == BTHF_CLIENT_NETWORK_STATE_NOT_AVAILABLE) ? "not available": "available");
     fprintf(stdout, "network state is %s\n", (state == BTHF_CLIENT_NETWORK_STATE_NOT_AVAILABLE) ? "not available": "available");
 }
 
-void network_roaming_cb (bthf_client_service_type_t type) {
+void network_roaming_cb (const bt_bdaddr_t* bd_addr, bthf_client_service_type_t type) {
     ALOGD(LOGTAG "AG is in %s", (type == BTHF_CLIENT_SERVICE_TYPE_HOME) ? "home network": "roaming");
     fprintf(stdout, "AG is in %s\n", (type == BTHF_CLIENT_SERVICE_TYPE_HOME) ? "home network": "roaming");
 }
 
-void network_signal_cb (int signal) {
+void network_signal_cb (const bt_bdaddr_t* bd_addr, int signal) {
     ALOGD(LOGTAG "signal level is %d", signal);
     fprintf(stdout, "signal level is %d\n", signal);
 }
 
-void battery_level_cb (int level) {
+void battery_level_cb (const bt_bdaddr_t* bd_addr, int level) {
     ALOGD(LOGTAG "battery level is %d", level);
     fprintf(stdout, "battery level is %d\n", level);
 }
 
-void current_operator_cb (const char *name) {
+void current_operator_cb (const bt_bdaddr_t* bd_addr, const char *name) {
     ALOGD(LOGTAG "operator name is %s", name);
     fprintf(stdout, "operator name is %s\n", name);
 }
 
-void call_cb (bthf_client_call_t call) {
+void call_cb (const bt_bdaddr_t* bd_addr, bthf_client_call_t call) {
     ALOGD(LOGTAG "%s call is in progress", (call == BTHF_CLIENT_CALL_NO_CALLS_IN_PROGRESS) ? "no": "a");
     fprintf(stdout, "%s call is in progress\n", (call == BTHF_CLIENT_CALL_NO_CALLS_IN_PROGRESS) ? "no": "a");
 }
 
-void callsetup_cb (bthf_client_callsetup_t callsetup) {
+void callsetup_cb (const bt_bdaddr_t* bd_addr, bthf_client_callsetup_t callsetup) {
    BtEvent *pEvent = new BtEvent;
    if (callsetup == BTHF_CLIENT_CALLSETUP_NONE) {
       fprintf(stdout, "no call in setup\n");
@@ -401,7 +401,7 @@ void callsetup_cb (bthf_client_callsetup_t callsetup) {
    }
 }
 
-void callheld_cb (bthf_client_callheld_t callheld) {
+void callheld_cb (const bt_bdaddr_t* bd_addr, bthf_client_callheld_t callheld) {
    if (callheld == BTHF_CLIENT_CALLHELD_NONE) {
       fprintf(stdout, "no held call\n");
       ALOGD(LOGTAG "no held call");
@@ -416,7 +416,7 @@ void callheld_cb (bthf_client_callheld_t callheld) {
    }
 }
 
-void resp_and_hold_cb (bthf_client_resp_and_hold_t resp_and_hold) {
+void resp_and_hold_cb (const bt_bdaddr_t* bd_addr, bthf_client_resp_and_hold_t resp_and_hold) {
    if (resp_and_hold == BTHF_CLIENT_RESP_AND_HOLD_HELD) {
       fprintf(stdout,"incoming call put on held\n");
       ALOGD(LOGTAG "incoming call put on held");
@@ -431,17 +431,17 @@ void resp_and_hold_cb (bthf_client_resp_and_hold_t resp_and_hold) {
    }
 }
 
-void clip_cb (const char *number) {
+void clip_cb (const bt_bdaddr_t* bd_addr, const char *number) {
    ALOGD(LOGTAG "CLIP number is %s", number);
    fprintf(stdout, "CLIP number is %s\n", number);
 }
 
-void call_waiting_cb (const char *number) {
+void call_waiting_cb (const bt_bdaddr_t* bd_addr, const char *number) {
    ALOGD(LOGTAG "a call is waiting from number %s", number);
    fprintf(stdout, "a call is waiting from number %s\n", number);
 }
 
-void current_calls_cb (int index, bthf_client_call_direction_t dir,
+void current_calls_cb (const bt_bdaddr_t* bd_addr, int index, bthf_client_call_direction_t dir,
                                             bthf_client_call_state_t state,
                                             bthf_client_call_mpty_type_t mpty,
                                             const char *number) {
@@ -451,7 +451,7 @@ void current_calls_cb (int index, bthf_client_call_direction_t dir,
     __func__, index, dir, state, mpty, number);
 }
 
-void volume_change_cb (bthf_client_volume_type_t type, int volume) {
+void volume_change_cb (const bt_bdaddr_t* bd_addr, bthf_client_volume_type_t type, int volume) {
    BtEvent *pEvent = new BtEvent;
    ALOGD(LOGTAG "%s : %s volume is %d\n", __func__,
           (type == BTHF_CLIENT_VOLUME_TYPE_SPK) ? "speaker": "mic", volume);
@@ -467,11 +467,11 @@ void volume_change_cb (bthf_client_volume_type_t type, int volume) {
    PostMessage(THREAD_ID_HFP_CLIENT, pEvent);
 }
 
-void cmd_complete_cb (bthf_client_cmd_complete_t type, int cme) {
+void cmd_complete_cb (const bt_bdaddr_t* bd_addr, bthf_client_cmd_complete_t type, int cme) {
    ALOGD(LOGTAG "cmd_complete_cb, type %d, error %d", (int)type, cme);
 }
 
-void subscriber_info_cb (const char *name, bthf_client_subscriber_service_type_t type) {
+void subscriber_info_cb (const bt_bdaddr_t* bd_addr, const char *name, bthf_client_subscriber_service_type_t type) {
    if (type == BTHF_CLIENT_SERVICE_UNKNOWN) {
        ALOGD(LOGTAG "subscriber name is %s type is unknown", name);
        fprintf(stdout, "subscriber name is %s type is unknown\n", name);
@@ -486,7 +486,7 @@ void subscriber_info_cb (const char *name, bthf_client_subscriber_service_type_t
    }
 }
 
-void in_band_ring_cb (bthf_client_in_band_ring_state_t in_band) {
+void in_band_ring_cb (const bt_bdaddr_t* bd_addr, bthf_client_in_band_ring_state_t in_band) {
    if (in_band == BTHF_CLIENT_IN_BAND_RINGTONE_NOT_PROVIDED) {
        ALOGD(LOGTAG " in-band ringtone not provided");
        fprintf(stdout, "in-band ringtone not provided\n");
@@ -497,11 +497,11 @@ void in_band_ring_cb (bthf_client_in_band_ring_state_t in_band) {
    }
 }
 
-void last_voice_tag_number_cb (const char *number) {
+void last_voice_tag_number_cb (const bt_bdaddr_t* bd_addr, const char *number) {
    ALOGD(LOGTAG "last_voice_tag_number_cb: number is %s", number);
 }
 
-void ring_indication_cb () {
+void ring_indication_cb (const bt_bdaddr_t* bd_addr) {
    BtEvent *pEvent = new BtEvent;
    ALOGD(LOGTAG "ring_indication");
    fprintf(stdout, "RING indication for incoming call\n");
@@ -554,23 +554,16 @@ void Hfp_Client::HandleEnableClient(void) {
     {
         sBtHfpClientInterface = (bthf_client_interface_t *)bluetooth_interface->
                 get_profile_interface(BT_PROFILE_HANDSFREE_CLIENT_ID);
+
         if (sBtHfpClientInterface == NULL)
         {
             // TODO: sent message to indicate failure for profile init
             ALOGE(LOGTAG "get profile interface failed, returning");
             return;
         }
-        sBtHfpClientVendorInterface = (bthf_client_vendor_interface_t *)bluetooth_interface->
-                get_profile_interface(BT_PROFILE_HANDSFREE_CLIENT_VENDOR_ID);
-        if (sBtHfpClientVendorInterface == NULL)
-        {
-            // TODO: sent message to indicate failure for profile init
-            ALOGE(LOGTAG "get profile vendor interface failed, returning");
-            return;
-        }
+
         change_state(HFP_CLIENT_STATE_DISCONNECTED);
         sBtHfpClientInterface->init(&sBluetoothHfpClientCallbacks);
-        sBtHfpClientVendorInterface->init_vendor(&sBluetoothHfpClientVendorCallbacks);
         BtEvent *pEvent = new BtEvent;
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_HFP_CLIENT;
@@ -584,10 +577,6 @@ void Hfp_Client::HandleDisableClient(void) {
    if(sBtHfpClientInterface != NULL) {
        sBtHfpClientInterface->cleanup();
        sBtHfpClientInterface = NULL;
-   }
-   if(sBtHfpClientVendorInterface != NULL) {
-       sBtHfpClientVendorInterface->cleanup_vendor();
-       sBtHfpClientVendorInterface = NULL;
    }
    BtEvent *pEvent = new BtEvent;
    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
@@ -752,7 +741,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG "Connecting SCO/eSCO with device %s", str);
 
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->connect_audio(&pEvent->hfp_client_event.bd_addr);
+                sBtHfpClientInterface->connect_audio(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_AUDIO_STATE_CONNECTED_MSBC_CB:
@@ -867,12 +856,12 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_CLIENT_API_ACCEPT_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_ATA, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_ATA, 0);
             }
             break;
         case HFP_CLIENT_API_RELEASE_HELD_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_0, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_0, 0);
             }
             break;
         case HFP_CLIENT_API_REJECT_CALL_REQ:
@@ -895,127 +884,127 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             // intentional fall through. TODO: cross check
         case HFP_CLIENT_API_END_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHUP, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHUP, 0);
             }
             break;
         case HFP_CLIENT_API_RELEASE_ACTIVE_ACCEPT_WAITING_OR_HELD_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_1, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_1, 0);
             }
             break;
         case HFP_CLIENT_API_HOLD_CALL_REQ:
             // intentional fall through
         case HFP_CLIENT_API_SWAP_CALLS_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_2, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_2, 0);
             }
             break;
         case HFP_CLIENT_API_ADD_HELD_CALL_TO_CONF_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_3, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_3, 0);
             }
             break;
         case HFP_CLIENT_API_RELEASE_SPECIFIED_ACTIVE_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_1x,
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_1x,
                                            pEvent->hfp_client_event.arg1);
             }
             break;
         case HFP_CLIENT_API_PRIVATE_CONSULTATION_MODE_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_2x,
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_2x,
                                            pEvent->hfp_client_event.arg1);
             }
             break;
         case HFP_CLIENT_API_PUT_INCOMING_CALL_ON_HOLD_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_BTRH_0, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_BTRH_0, 0);
             }
             break;
         case HFP_CLIENT_API_ACCEPT_HELD_INCOMING_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_BTRH_1, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_BTRH_1, 0);
             }
             break;
         case HFP_CLIENT_API_REJECT_HELD_INCOMING_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_BTRH_2, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_BTRH_2, 0);
             }
             break;
         case HFP_CLIENT_API_DIAL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->dial(pEvent->hfp_client_event.str);
+                sBtHfpClientInterface->dial(&mConnectedDevice, pEvent->hfp_client_event.str);
             }
             break;
         case HFP_CLIENT_API_REDIAL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->dial("");
+                sBtHfpClientInterface->dial(&mConnectedDevice, NULL);
             }
             break;
         case HFP_CLIENT_API_DIAL_MEMORY_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->dial_memory(pEvent->hfp_client_event.arg1);
+                sBtHfpClientInterface->dial_memory(&mConnectedDevice, pEvent->hfp_client_event.arg1);
             }
             break;
         case HFP_CLIENT_API_START_VR_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->start_voice_recognition();
+                sBtHfpClientInterface->start_voice_recognition(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_API_STOP_VR_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->stop_voice_recognition();
+                sBtHfpClientInterface->stop_voice_recognition(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_API_CALL_ACTION_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action((bthf_client_call_action_t)(pEvent->hfp_client_event.arg1),
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, (bthf_client_call_action_t)(pEvent->hfp_client_event.arg1),
                                          pEvent->hfp_client_event.arg2);
             }
             break;
         case HFP_CLIENT_API_QUERY_CURRENT_CALLS_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->query_current_calls();
+                sBtHfpClientInterface->query_current_calls(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_API_QUERY_OPERATOR_NAME_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->query_current_operator_name();
+                sBtHfpClientInterface->query_current_operator_name(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_API_QUERY_SUBSCRIBER_INFO_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->retrieve_subscriber_info();
+                sBtHfpClientInterface->retrieve_subscriber_info(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_API_SCO_VOL_CTRL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->volume_control((bthf_client_volume_type_t)(pEvent->hfp_client_event.arg1),
+                sBtHfpClientInterface->volume_control(&mConnectedDevice, (bthf_client_volume_type_t)(pEvent->hfp_client_event.arg1),
                                          pEvent->hfp_client_event.arg2);
             }
             break;
         case HFP_CLIENT_API_SPK_VOL_CTRL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->volume_control(BTHF_CLIENT_VOLUME_TYPE_SPK,
+                sBtHfpClientInterface->volume_control(&mConnectedDevice, BTHF_CLIENT_VOLUME_TYPE_SPK,
                                           pEvent->hfp_client_event.arg1);
             }
             break;
         case HFP_CLIENT_API_MIC_VOL_CTRL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->volume_control(BTHF_CLIENT_VOLUME_TYPE_MIC,
+                sBtHfpClientInterface->volume_control(&mConnectedDevice, BTHF_CLIENT_VOLUME_TYPE_MIC,
                                           pEvent->hfp_client_event.arg1);
             }
             break;
         case HFP_CLIENT_API_SEND_DTMF_REQ:
             if (sBtHfpClientInterface != NULL) {
                 int dtmf_code = pEvent->hfp_client_event.str[0];
-                sBtHfpClientInterface->send_dtmf(dtmf_code);
+                sBtHfpClientInterface->send_dtmf(&mConnectedDevice, dtmf_code);
             }
             break;
         case HFP_CLIENT_API_DISABLE_NREC_ON_AG_REQ:
             if (sBtHfpClientInterface != NULL) {
                 // 15 is NREC command
-                sBtHfpClientInterface->send_at_cmd(15, 1, 0, NULL);
+                sBtHfpClientInterface->send_at_cmd(&mConnectedDevice, 15, 1, 0, NULL);
             }
             break;
         default:
@@ -1083,121 +1072,121 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_CLIENT_API_ACCEPT_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_ATA, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_ATA, 0);
             }
             break;
         case HFP_CLIENT_API_RELEASE_HELD_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_0, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_0, 0);
             }
             break;
         case HFP_CLIENT_API_REJECT_CALL_REQ:
                 // intentional fall through. TODO: cross check
         case HFP_CLIENT_API_END_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHUP, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHUP, 0);
             }
             break;
         case HFP_CLIENT_API_RELEASE_ACTIVE_ACCEPT_WAITING_OR_HELD_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_1, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_1, 0);
             }
             break;
         case HFP_CLIENT_API_HOLD_CALL_REQ:
             // intentional fall through
         case HFP_CLIENT_API_SWAP_CALLS_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_2, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_2, 0);
             }
             break;
         case HFP_CLIENT_API_ADD_HELD_CALL_TO_CONF_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_3, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_3, 0);
             }
             break;
         case HFP_CLIENT_API_RELEASE_SPECIFIED_ACTIVE_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_1x,
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_1x,
                                            pEvent->hfp_client_event.arg1);
             }
             break;
         case HFP_CLIENT_API_PRIVATE_CONSULTATION_MODE_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_CHLD_2x,
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_CHLD_2x,
                                            pEvent->hfp_client_event.arg1);
             }
             break;
         case HFP_CLIENT_API_PUT_INCOMING_CALL_ON_HOLD_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_BTRH_0, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_BTRH_0, 0);
             }
             break;
         case HFP_CLIENT_API_ACCEPT_HELD_INCOMING_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_BTRH_1, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_BTRH_1, 0);
             }
             break;
         case HFP_CLIENT_API_REJECT_HELD_INCOMING_CALL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action(BTHF_CLIENT_CALL_ACTION_BTRH_2, 0);
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, BTHF_CLIENT_CALL_ACTION_BTRH_2, 0);
             }
             break;
         case HFP_CLIENT_API_DIAL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->dial(pEvent->hfp_client_event.str);
+                sBtHfpClientInterface->dial(&mConnectedDevice, pEvent->hfp_client_event.str);
             }
             break;
         case HFP_CLIENT_API_REDIAL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->dial("");
+                sBtHfpClientInterface->dial(&mConnectedDevice, "");
             }
             break;
         case HFP_CLIENT_API_DIAL_MEMORY_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->dial_memory(pEvent->hfp_client_event.arg1);
+                sBtHfpClientInterface->dial_memory(&mConnectedDevice, pEvent->hfp_client_event.arg1);
             }
             break;
         case HFP_CLIENT_API_START_VR_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->start_voice_recognition();
+                sBtHfpClientInterface->start_voice_recognition(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_API_STOP_VR_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->stop_voice_recognition();
+                sBtHfpClientInterface->stop_voice_recognition(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_API_CALL_ACTION_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->handle_call_action((bthf_client_call_action_t)(pEvent->hfp_client_event.arg1),
+                sBtHfpClientInterface->handle_call_action(&mConnectedDevice, (bthf_client_call_action_t)(pEvent->hfp_client_event.arg1),
                                          pEvent->hfp_client_event.arg2);
             }
             break;
         case HFP_CLIENT_API_QUERY_CURRENT_CALLS_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->query_current_calls();
+                sBtHfpClientInterface->query_current_calls(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_API_QUERY_OPERATOR_NAME_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->query_current_operator_name();
+                sBtHfpClientInterface->query_current_operator_name(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_API_QUERY_SUBSCRIBER_INFO_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->retrieve_subscriber_info();
+                sBtHfpClientInterface->retrieve_subscriber_info(&mConnectedDevice);
             }
             break;
         case HFP_CLIENT_API_SCO_VOL_CTRL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->volume_control((bthf_client_volume_type_t)(pEvent->hfp_client_event.arg1),
+                sBtHfpClientInterface->volume_control(&mConnectedDevice, (bthf_client_volume_type_t)(pEvent->hfp_client_event.arg1),
                                          pEvent->hfp_client_event.arg2);
             }
             break;
         case HFP_CLIENT_API_SPK_VOL_CTRL_REQ:
             if (sBtHfpClientInterface != NULL) {
                 ConfigureVolume(BTHF_CLIENT_VOLUME_TYPE_SPK, pEvent->hfp_client_event.arg1, false);
-                sBtHfpClientInterface->volume_control(BTHF_CLIENT_VOLUME_TYPE_SPK,
+                sBtHfpClientInterface->volume_control(&mConnectedDevice, BTHF_CLIENT_VOLUME_TYPE_SPK,
                                           pEvent->hfp_client_event.arg1);
             }
             break;
@@ -1208,20 +1197,20 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
                 else
                     ConfigureVolume(BTHF_CLIENT_VOLUME_TYPE_MIC, pEvent->hfp_client_event.arg1, false);
 
-                sBtHfpClientInterface->volume_control(BTHF_CLIENT_VOLUME_TYPE_MIC,
+                sBtHfpClientInterface->volume_control(&mConnectedDevice, BTHF_CLIENT_VOLUME_TYPE_MIC,
                                           pEvent->hfp_client_event.arg1);
             }
             break;
         case HFP_CLIENT_API_SEND_DTMF_REQ:
             if (sBtHfpClientInterface != NULL) {
                 int dtmf_code = pEvent->hfp_client_event.str[0];
-                sBtHfpClientInterface->send_dtmf(dtmf_code);
+                sBtHfpClientInterface->send_dtmf(&mConnectedDevice, dtmf_code);
             }
             break;
         case HFP_CLIENT_API_DISABLE_NREC_ON_AG_REQ:
             if (sBtHfpClientInterface != NULL) {
                 // 15 is NREC command
-                sBtHfpClientInterface->send_at_cmd(15, 1, 0, NULL);
+                sBtHfpClientInterface->send_at_cmd(&mConnectedDevice, 15, 1, 0, NULL);
             }
             break;
 
