@@ -72,6 +72,10 @@ extern const char *BT_GATT_ENABLED;
        return ;                                                                  \
    }
 
+//Header Index for service data
+#define SERVICE_DATA_UUID_LEN_IDX 0
+#define SERVICE_DATA_UUID_IDX 1
+#define MAX_SIZE_SERVICE_DATA 32
 
  /**
    * This virtual class is used to implement {@link BluetoothGatt} callbacks.
