@@ -23,7 +23,7 @@ AM_CFLAGS = -Wall \
 
 ACLOCAL_AMFLAGS = -I m4
 
-c_sources = src/Gatt.cpp
+cpp_sources = src/Gatt.cpp
 
 AM_LDFLAGS := $(LDFLAFGS)
 
