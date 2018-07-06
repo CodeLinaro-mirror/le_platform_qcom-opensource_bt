@@ -66,6 +66,7 @@ typedef enum {
 
 static uint8_t  UUID_PBAP_PSE[] = {0x00, 0x00, 0x11, 0x2F, 0x00, 0x00, 0x10, 0x00,
                                    0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB};
+static uint8_t  UUID_PBAP_PSE_STR[] = "0000112f-0000-1000-8000-00805f9b34fb";
 static  uint32_t profileVersion = 0x0102;
 static char profile_name[] = "PBAP Client";
 static char storageDir[] = "/data/misc/bluetooth/";
@@ -1171,14 +1172,14 @@ static void sdp_search_callback(bt_status_t status, bt_bdaddr_t *bd_addr, uint8_
             bluetooth_sdp_record *record, bool more_result)
 {
     char bd_str[MAX_BD_STR_LEN];
-
+    ALOGD(LOGTAG "%s UUID = %s", __FUNCTION__, uuid);
     if (status) {
         ALOGE(LOGTAG "%s: sdp search failed, status %d", __FUNCTION__, status);
         fprintf(stdout, "Sdp search failed can't proceed with connection\n");
         return;
     }
     ALOGE(LOGTAG "%s", __FUNCTION__);
-    if (IS_UUID(UUID_PBAP_PSE, uuid)) {
+    if (IS_UUID(UUID_PBAP_PSE_STR, uuid)) {
         bdaddr_to_string(bd_addr, bd_str, MAX_BD_STR_LEN);
         ALOGE(LOGTAG "%s: status %d, addr %s, L2CAP PSM = %d, "
             "RFCOMM channel = %d, profile version = 0x%04x, "

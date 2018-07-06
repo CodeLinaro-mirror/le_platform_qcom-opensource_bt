@@ -615,9 +615,7 @@ static void LowerTransportConnectInd(OI_OBEX_LOWER_SERVER serverHandle)
         connectionHandle->lowerPrivate->addr = connectionHandle->lowerPrivate->conn_params.bd_addr;
         connectionHandle->lowerPrivate->channel = connectionHandle->lowerPrivate->conn_params.channel;
         connectionHandle->lowerPrivate->socket = remoteSocket;
-        if ((connectionHandle->lowerPrivate->conn_params.max_rx_packet_size ==
-            connectionHandle->lowerPrivate->conn_params.max_tx_packet_size) &&
-            (connectionHandle->lowerPrivate->conn_params.max_rx_packet_size == 0))
+        if (connectionHandle->lowerPrivate->conn_params.max_rx_packet_size == 0)
             connectionHandle->lowerPrivate->protocol = OI_OBEX_LOWER_RFCOMM;
         else
             connectionHandle->lowerPrivate->protocol = OI_OBEX_LOWER_L2CAP;
@@ -744,10 +742,15 @@ static OI_BOOL LowerTransportRecvDataInd(OI_OBEX_LOWER_CONNECTION connectionHand
              * first - enough to determine the actual packet size - then
              * read the expected number of bytes remaining.
              */
+            OI_DBGTRACE(("OI_OBEX_LOWER_RFCOMM"));
             readLen = OI_OBEX_SMALLEST_PKT;
         } else {
             readLen = connectionHandle->lowerPrivate->conn_params.max_rx_packet_size;
+            OI_DBGTRACE(("%02x", connectionHandle->lowerPrivate->protocol));
         }
+        OI_DBGPRINT(("readPos = %d, readLen = %d",
+                      lowerPrivate->readPos, readLen));
+
         recvBytes = recv(connectionHandle->lowerPrivate->socket,
                          lowerPrivate->readBuffer + lowerPrivate->readPos,
                          readLen - lowerPrivate->readPos,
@@ -762,7 +765,7 @@ static OI_BOOL LowerTransportRecvDataInd(OI_OBEX_LOWER_CONNECTION connectionHand
                                    errno,
                                    connectionHandle->lowerPrivate->socket));
             // strerror() isn't thread safe, so let's not use it in release mode
-            OI_DBGTRACE(("Error info: ", strerror(errno)));
+            OI_DBGTRACE(("Error info: %s", strerror(errno)));
             LowerTransportDisconnectInd(connectionHandle);
             return FALSE;
         }

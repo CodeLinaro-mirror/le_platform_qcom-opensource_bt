@@ -43,7 +43,7 @@ typedef struct fixed_queue_t {
 static void internal_dequeue_ready(void *context);
 
 fixed_queue_t *fixed_queue_new(size_t capacity) {
-  fixed_queue_t *ret = osi_calloc(sizeof(fixed_queue_t));
+  fixed_queue_t *ret = static_cast<fixed_queue_t*> (osi_calloc(sizeof(fixed_queue_t)));
   if (!ret) {
      LOG_ERROR("%s:Failed to allocate memory", __func__);
     goto error;
@@ -223,6 +223,6 @@ void fixed_queue_unregister_dequeue(fixed_queue_t *queue) {
 static void internal_dequeue_ready(void *context) {
   assert(context != NULL);
 
-  fixed_queue_t *queue = context;
+  fixed_queue_t *queue = static_cast<fixed_queue_t*> (context);
   queue->dequeue_ready(queue, queue->dequeue_context);
 }

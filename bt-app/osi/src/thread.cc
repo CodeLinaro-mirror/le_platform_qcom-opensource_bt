@@ -70,7 +70,7 @@ thread_t *thread_new_sized(const char *name, size_t work_queue_capacity) {
      ALOGE("%s: thread name is NULL", __func__);
      return NULL;
   }
-  thread_t *ret = osi_calloc(sizeof(thread_t));
+  thread_t *ret = static_cast<thread_t*> (osi_calloc(sizeof(thread_t)));
   if (!ret)
     goto error;
 
@@ -202,13 +202,13 @@ const char *thread_name(const thread_t *thread) {
   return thread->name;
 }
 
-static void *run_thread(void *start_arg) {
-  assert(start_arg != NULL);
-  if(!start_arg) {
+static void *run_thread(void *start_a) {
+  assert(start_a != NULL);
+  if(!start_a) {
      ALOGE("%s: arg is NULL", __func__);
      return NULL;
   }
-  struct start_arg *start = start_arg;
+  struct start_arg *start = static_cast<start_arg*> (start_a);
   thread_t *thread = start->thread;
 
   assert(thread != NULL);
@@ -229,7 +229,8 @@ static void *run_thread(void *start_arg) {
    thread->tid  = gettid();
 #endif
 
-  LOG_ERROR("%s thread id %d ", __func__, thread->tid);
+  LOG_DEBUG("%s: thread id %d, thread name %s started", __func__,
+           thread->tid, thread->name);
 
   semaphore_post(start->start_sem);
 
@@ -244,11 +245,11 @@ static void *run_thread(void *start_arg) {
   // This allows a caller to safely tear down by enqueuing a teardown
   // work item and then joining the thread.
   size_t count = 0;
-  work_item_t *item = fixed_queue_try_dequeue(thread->work_queue);
+  work_item_t *item = static_cast<work_item_t*> (fixed_queue_try_dequeue(thread->work_queue));
   while (item && count <= fixed_queue_capacity(thread->work_queue)) {
     item->func(item->context);
     osi_free(item);
-    item = fixed_queue_try_dequeue(thread->work_queue);
+    item = static_cast<work_item_t*> (fixed_queue_try_dequeue(thread->work_queue));
     ++count;
   }
 
@@ -265,7 +266,7 @@ static void work_queue_read_cb(void *context) {
      return;
   }
   fixed_queue_t *queue = (fixed_queue_t *)context;
-  work_item_t *item = fixed_queue_dequeue(queue);
+  work_item_t *item = static_cast<work_item_t*> (fixed_queue_dequeue(queue));
   if ( item != NULL ) {
       item->func(item->context);
       osi_free(item);

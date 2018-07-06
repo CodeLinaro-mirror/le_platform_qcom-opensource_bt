@@ -34,24 +34,26 @@
 #include <iostream>
 #include <iomanip>
 #include "Main.hpp"
-#include "A2dp_Sink.hpp"
+#include "SdpClient.hpp"
+/*#include "A2dp_Sink.hpp"
 #include "HfpClient.hpp"
 #include "Pan.hpp"
 #include "Gatt.hpp"
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
-#include "SdpClient.hpp"
+
 #include "Rsp.hpp"
 #include "Hid.hpp"
+#include "A2dp_Src.hpp"
+#include "Avrcp.hpp"
 #include "GattcTest.hpp"
-#include "GattsTest.hpp"
+#include "GattsTest.hpp"*/
 #ifdef USE_BT_OBEX
 #include "PbapClient.hpp"
 #include "Opp.hpp"
 #endif
 #include "osi/include/compat.h"
-#include "A2dp_Src.hpp"
-#include "Avrcp.hpp"
+
 
 #include "utils.h"
 
@@ -61,7 +63,7 @@
 static int bt_prop_socket;
 
 extern Gap *g_gap;
-extern HidH *pHid;
+/*extern HidH *pHid;
 extern A2dp_Sink *pA2dpSink;
 extern A2dp_Source *pA2dpSource;
 extern Pan *g_pan;
@@ -70,8 +72,11 @@ extern BT_Audio_Manager *pBTAM;
 extern Rsp *rsp;
 extern GattcTest *gattctest;
 extern GattsTest *gattstest;
+extern Hfp_Client *pHfpClient;
+extern Hfp_Ag *pHfpAG;
+extern Avrcp *pAvrcp;*/
 bool gattsEnabled = false;
-
+extern const char *BT_PAN_ENABLED;
 extern SdpClient *g_sdpClient;
 #ifdef USE_BT_OBEX
 extern PbapClient *g_pbapClient;
@@ -80,9 +85,7 @@ extern const char *BT_OBEX_ENABLED;
 #endif
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
-extern Hfp_Client *pHfpClient;
-extern Hfp_Ag *pHfpAG;
-extern Avrcp *pAvrcp;
+
 #ifdef USE_BT_OBEX
 static alarm_t *opp_incoming_file_accept_timer = NULL;
 #define USER_ACCEPTANCE_TIMEOUT 25000
@@ -233,7 +236,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &TestMenu[0];
             num_cmds  = NO_OF_COMMANDS(TestMenu);
             break;
-        case RSP_MENU:
+/*        case RSP_MENU:
             menu = &RspMenu[0];
             num_cmds  = NO_OF_COMMANDS(RspMenu);
             break;
@@ -256,7 +259,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         case HFP_CLIENT_MENU:
             menu = &HfpClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
-            break;
+            break;*/
 #ifdef USE_BT_OBEX
         case PBAP_CLIENT_MENU:
             menu = &PbapClientMenu[0];
@@ -267,14 +270,14 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             num_cmds  = NO_OF_COMMANDS(OppMenu);
             break;
 #endif
-        case HFP_AG_MENU:
+/*        case HFP_AG_MENU:
             menu = &HfpAGMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
             break;
         case HIDH_MENU:
             menu = &HidMenu[0];
             num_cmds  = NO_OF_COMMANDS(HidMenu);
-            break;
+            break;*/
         case MAIN_MENU:
         // fallback to default main menu
         default:
@@ -349,14 +352,6 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &RspMenu[0];
             num_cmds  = NO_OF_COMMANDS(RspMenu);
             break;
-        case GATTCTEST_MENU:
-            menu = &GattcTestMenu[0];
-            num_cmds  = NO_OF_COMMANDS(GattcTestMenu);
-            break;
-        case GATTSTEST_MENU:
-            menu = &GattsTestMenu[0];
-            num_cmds  = NO_OF_COMMANDS(GattsTestMenu);
-            break;
         case MAIN_MENU:
             menu = &MainMenu[0];
             num_cmds  = NO_OF_COMMANDS(MainMenu);
@@ -386,10 +381,6 @@ static void DisplayMenu(MenuType menu_type) {
         case HFP_AG_MENU:
             menu = &HfpAGMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
-            break;
-        case HIDH_MENU:
-            menu = &HidMenu[0];
-            num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
     }
     fprintf (stdout, " \n***************** Menu *******************\n");
@@ -1238,14 +1229,6 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = RSP_MENU;
             DisplayMenu(menu_type);
             break;
-        case GATTCTEST_OPTION:
-            menu_type = GATTCTEST_MENU;
-            DisplayMenu(menu_type);
-            break;
-        case GATTSTEST_OPTION:
-            menu_type = GATTSTEST_MENU;
-            DisplayMenu(menu_type);
-            break;
         case A2DP_SINK:
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);
@@ -1270,16 +1253,6 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 #endif
         case HFP_AG:
             menu_type = HFP_AG_MENU;
-            DisplayMenu(menu_type);
-            break;
-        case HID_HOST:
-            if(! (g_bt_app->is_hid_enabled)){
-                menu_type = MAIN_MENU;
-                ALOGE(LOGTAG "HID not supported. Enable it in bt_app.conf.");
-                fprintf(stdout,"HID not supported. Enable it in bt_app.conf.\n");
-            }
-            else
-                menu_type = HIDH_MENU;
             DisplayMenu(menu_type);
             break;
         case MAIN_EXIT:
@@ -1314,75 +1287,6 @@ void HandleOnOffTest (void *context) {
     test_thread_id = NULL;
 }
 
-static int send_hci_cmd_parse_args(char *args, unsigned char **cmd)
-{
-    int i;
-    int nr_cmd;
-    uint8_t *cmd_buff;
-    char *p;
-    unsigned long c;
-
-    nr_cmd = strlen(args) + 1;
-    if ((nr_cmd % 3))
-        return -1;
-    nr_cmd /= 3;
-    cmd_buff = (uint8_t *)osi_malloc(nr_cmd);
-    if (NULL == cmd_buff)
-        return -2;
-
-    p = args;
-    for (i = 0; i <  nr_cmd; i++) {
-        if ('\0' == *args)
-            break;
-        c = strtol(args, &p, 16);
-        if (p == args)
-            break;
-        if ((*p != ',') && (*p != '\0'))
-            break;
-        cmd_buff[i] = (uint8_t)c;
-        if (*p == '\0') {
-            i++;
-            break;
-        }
-        p ++;
-        args = p;
-    }
-
-    if ((i == nr_cmd) && ('\0' == *p)) {
-        *cmd = cmd_buff;
-        return nr_cmd;
-    }
-
-    osi_free(cmd_buff);
-    return -3;
-}
-
-static void handle_send_hci_cmd(void *cmd_ptr) {
-    int i;
-    int cmd_size;
-    uint8_t *cmd =(uint8_t *)cmd_ptr;
-
-    fprintf(stdout, "**** send hci cmd ****\n");
-    cmd_size = cmd[2] + 3;
-
-    i = 0;
-    while (i < cmd_size) {
-        fprintf(stdout, "%02x ", cmd[i]);
-        i++;
-        if (i % 16 == 0)
-            fprintf(stdout, "\n");
-    }
-    fprintf(stdout, "\n**** end ****\n");
-
-    g_bt_app->bt_interface->hci_cmd_send(*(uint16_t *)cmd, &cmd[3], cmd[2]);
-    osi_free(cmd_ptr);
-
-    reactor_stop(thread_get_reactor(test_thread_id));
-    test_thread_id = NULL;
-
-    return;
-}
-
 static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num = 0;
@@ -1406,46 +1310,7 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 fprintf( stdout, "Test is ongoing, please wait until it finishes\n");
             }
             break;
-        case SEND_HCI_CMD:
-            {
-                int cmd_size;
-                uint8_t *cmd_ptr;
 
-                if (!g_gap -> IsEnabled()) {
-                    fprintf( stdout, "BT adapter isn't enabed\n");
-                    break;
-                }
-
-                if (test_thread_id) {
-                    fprintf( stdout, "Test is ongoing, please wait until it finishes\n");
-                    break;
-                }
-
-                if (NULL == g_bt_app->bt_interface->hci_cmd_send) {
-                    fprintf( stdout, "send hci cmd unavailable\n");
-                    break;
-                }
-
-                cmd_size = send_hci_cmd_parse_args(user_cmd[ONE_PARAM], &cmd_ptr);
-                if (cmd_size <= 0) {
-                    fprintf( stdout, "hci cmd format error!\n");
-                    break;
-                }
-
-                if (cmd_size != (cmd_ptr[2] + 3)) {
-                    osi_free(cmd_ptr);
-                    fprintf( stdout, "hci cmd length error!\n");
-                    break;
-                }
-
-                test_thread_id = thread_new ("test_thread");
-                if (test_thread_id)
-                    thread_post(test_thread_id, handle_send_hci_cmd, (void *) cmd_ptr);
-                else
-                    osi_free(cmd_ptr);
-
-                break;
-            }
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
@@ -1455,7 +1320,7 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
     }
 }
-
+/*
 static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num;
@@ -1746,6 +1611,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     }
 }
 
+*/
 static void SendEnableCmdToGap() {
 
     if ((g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
@@ -1777,24 +1643,6 @@ static void SendDisableCmdToGap() {
     if ((g_bt_app->status.disable_cmd != COMMAND_INPROGRESS) &&
         (g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
         (g_bt_app->bt_state == BT_STATE_ON)) {
-        if (gattstest) {
-            fprintf(stdout, " DisableGATTSTEST \n");
-            gattstest->DisableGATTSTEST();
-        } else {
-            ALOGV (LOGTAG " gattstest interface is null");
-        }
-        if (rsp) {
-            rsp->DisableRSP();
-            fprintf(stdout, " DisableRSP \n");
-        } else {
-            ALOGV (LOGTAG " rsp interface is null");
-        }
-        if (gattctest) {
-             fprintf(stdout, " DisableGATTCTEST \n");
-             gattctest->DisableGATTCTEST();
-        } else {
-             ALOGV (LOGTAG " gattctest interface is null");
-        }
 
         g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
 
@@ -1809,11 +1657,6 @@ static void SendDisableCmdToGap() {
     } else {
         fprintf( stdout, "Currently BT is already OFF\n");
     }
-}
-
-bool is_disable_inprogress(void)
-{
-    return g_bt_app->status.disable_cmd == COMMAND_INPROGRESS;
 }
 
 static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
@@ -1965,30 +1808,6 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     PostMessage (THREAD_ID_GAP, event);
                 } else {
                  fprintf( stdout, " BD Name is NULL/more than required legnth\n");
-                }
-            } else {
-                fprintf( stdout, " Currently BT is OFF\n");
-            }
-            break;
-
-        case SET_LE_BT_NAME:
-            if ( g_bt_app->GetState() == BT_STATE_ON ) {
-                if (strlen(user_cmd[ONE_PARAM]) < BTM_MAX_LOC_BD_NAME_LEN &&
-                    (user_cmd[ONE_PARAM] != NULL) ) {
-                    bt_lename_t le_name;
-                    event = new BtEvent;
-                    event->event_id = GAP_API_SET_LE_BDNAME;
-                    strlcpy((char *) &le_name.name[0], user_cmd[ONE_PARAM], COMMAND_SIZE);
-                    event->set_device_le_name_event.name.val = &le_name;
-                    event->set_device_le_name_event.name.len = strlen((char*)le_name.name);
-                    if (gattsEnabled) {
-                        event->set_device_le_name_event.gattsEnabled = true;
-                    } else {
-                        event->set_device_le_name_event.gattsEnabled = false;
-                    }
-                    PostMessage (THREAD_ID_GAP, event);
-                } else {
-                    fprintf( stdout, " LE BT Name is NULL/more than required legnth\n");
                 }
             } else {
                 fprintf( stdout, " Currently BT is OFF\n");
@@ -2423,19 +2242,13 @@ static void BtCmdHandler (void *context) {
             case TEST_MENU:
                 HandleTestCommand(cmd_id, user_cmd);
                 break;
-            case RSP_MENU:
+           /* case RSP_MENU:
                 HandleRspCommand(cmd_id, user_cmd);
-                break;
-            case GATTCTEST_MENU:
-                HandleGattcTestCommand(cmd_id, user_cmd);
-                break;
-            case GATTSTEST_MENU:
-                HandleGattsTestCommand(cmd_id, user_cmd);
-                break;
+                break;*/
             case MAIN_MENU:
                 HandleMainCommand(cmd_id,user_cmd );
                 break;
-            case A2DP_SINK_MENU:
+/*            case A2DP_SINK_MENU:
                 HandleA2dpSinkCommand(cmd_id,user_cmd );
                 break;
             case A2DP_SOURCE_MENU:
@@ -2443,7 +2256,7 @@ static void BtCmdHandler (void *context) {
                 break;
             case HFP_CLIENT_MENU:
                 HandleHfpClientCommand(cmd_id,user_cmd );
-                break;
+                break;*/
 #ifdef USE_BT_OBEX
             case PBAP_CLIENT_MENU:
                 HandlePbapClientCommand(cmd_id,user_cmd );
@@ -2452,12 +2265,12 @@ static void BtCmdHandler (void *context) {
                 HandleOppCommand(cmd_id,user_cmd );
                 break;
 #endif
-            case HFP_AG_MENU:
+/*            case HFP_AG_MENU:
                 HandleHfpAGCommand(cmd_id, user_cmd );
                 break;
             case HIDH_MENU:
                 HandleHIDCommand(cmd_id,user_cmd );
-                break;
+                break;*/
         }
    } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
                         (!strcasecmp (user_cmd[ZERO_PARAM], "yes") ||
@@ -2887,7 +2700,7 @@ bool BluetoothApp :: LoadBtStack (void) {
     hw_module_t *module;
 
     if (hw_get_module (BT_STACK_MODULE_ID, (hw_module_t const **) &module)) {
-        ALOGE(LOGTAG " hw_get_module failed");
+        ALOGE(LOGTAG "%s hw_get_module failed", BT_STACK_MODULE_ID);
         return false;
     }
 
@@ -2931,7 +2744,7 @@ void BluetoothApp :: InitHandler (void) {
     if (threadInfo[THREAD_ID_GAP].thread_id) {
         g_gap = new Gap (bt_interface, config);
     }
-
+/*
     if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
         // we need to start BT-AM if either of A2DP_SINK or HFP-Client is enabled
         threadInfo[THREAD_ID_BT_AM].thread_id = thread_new (
@@ -2986,7 +2799,7 @@ void BluetoothApp :: InitHandler (void) {
             pHfpAG = new Hfp_Ag(bt_interface, config);
         }
     }
-
+*/
     // registers reactors for socket
     if (is_socket_input_enabled_) {
         if(LocalSocketCreate() != -1) {
@@ -3011,7 +2824,7 @@ void BluetoothApp :: InitHandler (void) {
 
     if (threadInfo[THREAD_ID_SDP_CLIENT].thread_id)
         g_sdpClient = new SdpClient(bt_interface, config);
-
+/*
     if (is_pan_enable_default_) {
         // Starting PAN Thread
         threadInfo[THREAD_ID_PAN].thread_id = thread_new (
@@ -3029,7 +2842,7 @@ void BluetoothApp :: InitHandler (void) {
         if (threadInfo[THREAD_ID_GATT].thread_id)
             g_gatt = new Gatt(bt_interface, config);
     }
-
+*/
 #ifdef USE_BT_OBEX
     if (is_obex_enabled_ && is_pbap_client_enabled_) {
         threadInfo[THREAD_ID_PBAP_CLIENT].thread_id = thread_new (
@@ -3058,16 +2871,6 @@ void BluetoothApp :: InitHandler (void) {
                         (threadInfo[THREAD_ID_MAIN].thread_id),
                         STDIN_FILENO, NULL, BtCmdHandler, NULL);
     }
-
-    if (is_hid_enable_default_) {
-        ALOGV (LOGTAG "  Starting HID thread");
-        threadInfo[THREAD_ID_HID].thread_id = thread_new (
-            threadInfo[THREAD_ID_HID].thread_name);
-
-        if (threadInfo[THREAD_ID_HID].thread_id)
-            pHid = new HidH(bt_interface, config);
-    }
-    is_hid_enabled = is_hid_enable_default_ ;
 }
 
 
@@ -3075,14 +2878,6 @@ void BluetoothApp :: DeInitHandler (void) {
     UnLoadBtStack ();
 
     ALOGV (LOGTAG "  %s:",__func__);
-    if (is_hid_enable_default_) {
-        if (threadInfo[THREAD_ID_HID].thread_id != NULL){
-            thread_free(threadInfo[THREAD_ID_HID].thread_id);
-            if (pHid != NULL)
-                delete pHid;
-        }
-    }
-
      // de-register reactors for socket
     if (is_socket_input_enabled_) {
         if(listen_reactor_)
@@ -3096,7 +2891,7 @@ void BluetoothApp :: DeInitHandler (void) {
             accept_reactor_ = NULL;
         }
     }
-
+/*
     if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
         if (threadInfo[THREAD_ID_BT_AM].thread_id != NULL) {
             thread_free (threadInfo[THREAD_ID_BT_AM].thread_id);
@@ -3149,7 +2944,7 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete pHfpAG;
         }
     }
-
+*/
     // Stop GAP Thread
     if (threadInfo[THREAD_ID_GAP].thread_id != NULL) {
         thread_free (threadInfo[THREAD_ID_GAP].thread_id);
@@ -3163,7 +2958,7 @@ void BluetoothApp :: DeInitHandler (void) {
         if ( g_sdpClient != NULL)
             delete g_sdpClient;
     }
-
+/*
     if (is_pan_enable_default_) {
         // Stop PAN Thread
         if (threadInfo[THREAD_ID_PAN].thread_id != NULL) {
@@ -3180,7 +2975,7 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete g_gatt;
         }
     }
-
+*/
 #ifdef USE_BT_OBEX
     if (opp_incoming_file_accept_timer) {
         alarm_free(opp_incoming_file_accept_timer);
@@ -3331,9 +3126,6 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_hfp_ag_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_HFP_AG_ENABLED, false);
 
-    //checking for hid
-    is_hid_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
-                                    BT_HID_ENABLED, false);
     if (is_hfp_client_enabled_ == true && is_hfp_ag_enabled_ == true) {
         ALOGE (LOGTAG " Both HFP AG and Client are enabled, disabling AG. Set \
            BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \

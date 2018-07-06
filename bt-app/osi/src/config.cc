@@ -60,7 +60,7 @@ static void entry_free(void *ptr);
 static entry_t *entry_find(const config_t *config, const char *section, const char *key);
 
 config_t *config_new_empty(void) {
-  config_t *config = osi_calloc(sizeof(config_t));
+  config_t *config = static_cast<config_t*> (osi_calloc(sizeof(config_t)));
   if (!config) {
     LOG_ERROR("%s unable to allocate memory for config_t.", __func__);
     goto error;
@@ -195,7 +195,7 @@ void config_set_string(config_t *config, const char *section, const char *key, c
  }
 
   for (const list_node_t *node = list_begin(sec->entries); node != list_end(sec->entries); node = list_next(node)) {
-    entry_t *entry = list_node(node);
+    entry_t *entry = static_cast<entry_t*> (list_node(node));
     if (!strcmp(entry->key, key)) {
       osi_free(entry->value);
       entry->value = osi_strdup(value);
@@ -258,7 +258,7 @@ bool config_save(const config_t *config, const char *filename) {
   assert(filename != NULL);
   assert(*filename != '\0');
 
-  char *temp_filename = osi_calloc(strlen(filename) + 5);
+  char *temp_filename = static_cast<char*> (osi_calloc(strlen(filename) + 5));
   if (!temp_filename) {
     LOG_ERROR("%s unable to allocate memory for filename.", __func__);
     return false;
@@ -374,7 +374,7 @@ static void config_parse(FILE *fp, config_t *config) {
 }
 
 static section_t *section_new(const char *name) {
-  section_t *section = osi_calloc(sizeof(section_t));
+  section_t *section = static_cast<section_t*> (osi_calloc(sizeof(section_t)));
   if (!section)
     return NULL;
 
@@ -387,7 +387,7 @@ static void section_free(void *ptr) {
   if (!ptr)
     return;
 
-  section_t *section = ptr;
+  section_t *section = static_cast<section_t*> (ptr);
   osi_free(section->name);
   list_free(section->entries);
   osi_free(section);
@@ -395,7 +395,7 @@ static void section_free(void *ptr) {
 
 static section_t *section_find(const config_t *config, const char *section) {
   for (const list_node_t *node = list_begin(config->sections); node != list_end(config->sections); node = list_next(node)) {
-    section_t *sec = list_node(node);
+    section_t *sec = static_cast<section_t*> (list_node(node));
     if (!strcmp(sec->name, section))
       return sec;
   }
@@ -404,7 +404,7 @@ static section_t *section_find(const config_t *config, const char *section) {
 }
 
 static entry_t *entry_new(const char *key, const char *value) {
-  entry_t *entry = osi_calloc(sizeof(entry_t));
+  entry_t *entry = static_cast<entry_t*> (osi_calloc(sizeof(entry_t)));
   if (!entry)
     return NULL;
 
@@ -417,7 +417,7 @@ static void entry_free(void *ptr) {
   if (!ptr)
     return;
 
-  entry_t *entry = ptr;
+  entry_t *entry = static_cast<entry_t*> (ptr);
   osi_free(entry->key);
   osi_free(entry->value);
   osi_free(entry);
@@ -429,7 +429,7 @@ static entry_t *entry_find(const config_t *config, const char *section, const ch
     return NULL;
 
   for (const list_node_t *node = list_begin(sec->entries); node != list_end(sec->entries); node = list_next(node)) {
-    entry_t *entry = list_node(node);
+    entry_t *entry = static_cast<entry_t*> (list_node(node));
     if (!strcmp(entry->key, key))
       return entry;
   }

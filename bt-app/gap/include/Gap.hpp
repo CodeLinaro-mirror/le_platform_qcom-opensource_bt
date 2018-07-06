@@ -23,7 +23,7 @@
 #include <string>
 #include <hardware/bluetooth.h>
 #include <hardware/vendor.h>
-#include <hardware/bt_sock.h>
+#include <hardware/bt_obex_sock.h>
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
@@ -124,7 +124,7 @@ class Gap {
     /**
      *  structure object for standard Bluetooth Socket interface
      */
-    btsock_interface_t *sock_interface_;
+    btsock_interface_t_v1 *sock_interface_;
 
     /**
      *  class object for @ref AdapterProperties class
@@ -317,15 +317,6 @@ class Gap {
      * @return bool
      */
     bool IsDeviceBonded(bt_bdaddr_t device);
-
-    /**
-     * @brief SetLeBtName
-     *
-     * It will set the local bluetooth LE name
-     *
-     * @return status
-     */
-    void SetLeBtName(btvendor_lename_t *name);
 };
 
 #endif
