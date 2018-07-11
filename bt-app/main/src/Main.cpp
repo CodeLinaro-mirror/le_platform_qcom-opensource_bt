@@ -183,6 +183,7 @@ int main (int argc, char *argv[]) {
 
     // initialize signal handler
     signal(SIGINT, SignalHandler);
+    signal(SIGTERM, SignalHandler);
 
     ThreadInfo *main_thread = &threadInfo[THREAD_ID_MAIN];
 #ifndef USE_ANDROID_LOGGING
