@@ -441,8 +441,11 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 }
             }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
-            qahw_out_flush(pA2dpSinkStream->out_stream);
-            qahw_out_pause(pA2dpSinkStream->out_stream);
+            if(pA2dpSinkStream->out_stream != NULL)
+            {
+                qahw_out_flush(pA2dpSinkStream->out_stream);
+                qahw_out_pause(pA2dpSinkStream->out_stream);
+            }
 #endif
             break;
         default:
@@ -1049,16 +1052,20 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
                     SetStreamVol(pAvrcp->get_current_audio_index());
                 }
             }
-        }
-        if (codec_type != A2DP_SINK_AUDIO_CODEC_SBC) {
-            qahw_out_set_callback(out_stream, compressed_callback, NULL);
-            if (mBtA2dpSinkStreamingVendorInterface != NULL)
-            {
-                uint16_t delay = qahw_out_get_latency(out_stream);
-                ALOGD(LOGTAG " ConfigureAudioHal : qahw_get_out_latency %d !", delay);
+            if (codec_type != A2DP_SINK_AUDIO_CODEC_SBC) {
+                qahw_out_set_callback(out_stream, compressed_callback, NULL);
+                if (mBtA2dpSinkStreamingVendorInterface != NULL)
+                {
+                    uint16_t delay = qahw_out_get_latency(out_stream);
+                    ALOGD(LOGTAG " ConfigureAudioHal : qahw_get_out_latency %d !", delay);
 
-                mBtA2dpSinkStreamingVendorInterface->update_qahw_delay_vendor(delay);
+                    mBtA2dpSinkStreamingVendorInterface->update_qahw_delay_vendor(delay);
+                }
             }
+        }
+        else
+        {
+            ALOGE(LOGTAG " WARNNING : output tream is NULL ");
         }
     }
 #endif
