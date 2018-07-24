@@ -768,6 +768,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
            event.server_if = server_if;
            memcpy(&event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
            event.srvc_handle = srvc_handle;
+           event.status = BT_STATUS_SUCCESS;
            gattctest->SetGATTCTESTSrvcData(&event);
            gattctest->AddCharacteristics();
        } else {
@@ -811,6 +812,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
            memcpy(&event.descr_id, descr_id,sizeof(bt_uuid_t));
            event.srvc_handle = srvc_handle;
            event.descr_handle= descr_handle;
+           event.status = BT_STATUS_SUCCESS;
            gattctest->SetGATTCTESTDescriptorData(&event);
            gattctest->StartService();
         } else {
