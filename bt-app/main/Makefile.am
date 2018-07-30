@@ -72,12 +72,13 @@ cpp_sources = ../utils/src/utils.cc \
             ../avrcp/src/Avrcp.cpp \
             ../audio_manager/src/Audio_Manager.cpp \
             ../hfp_client/src/HfpClient.cpp \
-            ../hfp_ag/src/HfpAG.cpp
+            ../hfp_ag/src/HfpAG.cpp \
+            ../pan/src/Pan.cpp
 
 #Uncomment after enabling profiles
 #cpp_sources += \
-#            ../pan/src/Pan.cpp \
-#            ../rsp/src/Rsp.cpp
+#            ../rsp/src/Rsp.cpp \
+#            ../gattstest/src/GattsTest.cpp
 
 if USE_BT_OBEX
 cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
