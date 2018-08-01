@@ -326,6 +326,8 @@ static bthf_callbacks_t sBluetoothHfpAgCallbacks = {
     at_cops_callback,
     at_clcc_callback,
     unknown_at_callback,
+    NULL,
+    NULL,
     key_pressed_callback
 };
 
@@ -396,7 +398,7 @@ void Hfp_Ag::HandleEnableAg(void) {
             return;
         }
         change_state(HFP_AG_STATE_DISCONNECTED);
-        sBtHfpAgInterface->init(&sBluetoothHfpAgCallbacks, 1);
+        sBtHfpAgInterface->init(&sBluetoothHfpAgCallbacks, 1, true);
         sBtHfpAgVendorInterface->init_vendor(&sBluetoothHfpAgVendorCallbacks);
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -556,6 +558,13 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
             fprintf(stdout, "SLC connected with device %s", str);
             ALOGD(LOGTAG " SLC connected with device %s", str);
+            bt_status_t ret_val;
+            ret_val = sBtHfpAgInterface->set_active_device(&pEvent->hfp_ag_event.bd_addr);
+            if (ret_val != BT_STATUS_SUCCESS) {
+                fprintf(stdout, "Failure setting active device %s", str);
+                ALOGD(LOGTAG "Failure setting active device %s", str);
+                break;
+            }
 #if defined(BT_MODEM_INTEGRATION)
             processSlcConnected();
 #endif
@@ -722,6 +731,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG "Connecting SCO/eSCO with device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
+               bt_status_t status = sBtHfpAgInterface->set_sco_allowed(true);
+               if (status != BT_STATUS_SUCCESS)
+                 ALOGD("Failed HF set sco allowed, status: %d", status);
+               else
                 sBtHfpAgInterface->connect_audio(&pEvent->hfp_ag_event.bd_addr);
             }
             break;
@@ -1756,7 +1769,7 @@ void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
           for (i = 0; i < MAX_HF_INDICATORS;i++) {
               // TODO: send all the indicators as disabled for now
               sBtHfpAgVendorInterface->
-                  bind_response_vendor(i+1, BTHF_VENDOR_HF_INDICATOR_STATE_DISABLED,
+                  bind_response_vendor(bthf_hf_ind_type_t(i+1), BTHF_VENDOR_HF_INDICATOR_STATE_DISABLED,
                   &pEvent->hfp_ag_event.bd_addr);
           }
       }

@@ -41,7 +41,6 @@
 #include "A2dp_Src.hpp"
 #include "hardware/bt_av_vendor.h"
 #include <algorithm>
-#include "oi_utils.h"
 
 #define LOGTAG "A2DP_SINK"
 
@@ -52,7 +51,7 @@ using std::string;
 A2dp_Sink *pA2dpSink = NULL;
 A2dp_Sink_Streaming *pA2dpSinkStream;
 extern Avrcp *pAvrcp;
-static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+extern void flush_relay_data(void);
 
 #ifdef __cplusplus
 extern "C" {
@@ -229,6 +228,21 @@ const A2DP_SINK_VARIABLE variable_list[] = {
 #define ishyphon(c) (c == '-')
 #endif
 
+
+int StrcompareInsensitiv(char const *p1,  char const *p2){
+    if((p1 != NULL) && (p2 != NULL)){
+      for (;;) {
+        char uc1 = std::toupper(*p1);
+        char uc2 = std::toupper(*p2);
+        if (uc1 < uc2) return -1;
+        if (uc1 > uc2) return 1;
+        if (uc1 == '\0') return 0;
+        p1++;
+        p2++;
+      }
+    }
+}
+
 static int find_str_in_list(const char *str, const char * const *list,
                                    int list_size)
 {
@@ -240,7 +254,7 @@ static int find_str_in_list(const char *str, const char * const *list,
         return -1;
 
     for (i = 0; i < list_size; i++) {
-        if (!OI_StrcmpInsensitive(list[i], str)) {
+        if (!StrcompareInsensitiv(list[i], str)) {
             item = i;
             match_cnt++;
         }
@@ -515,7 +529,7 @@ bool GetCodecInfoByAddr(bt_bdaddr_t* bd_addr, uint16_t *dev_codec_type, btav_cod
     {
         bd_addr= &pA2dpSinkStream->mStreamingDevice;
         ALOGD(LOGTAG " check the steramding device codec");
-        if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &bd_addr_null, sizeof(bt_bdaddr_t)))
+        if (bdaddr_is_empty(&(pA2dpSinkStream->mStreamingDevice)))
         {
             ALOGD(LOGTAG " the steaming device is empty ");
             return false;
@@ -538,10 +552,10 @@ bool GetCodecInfoByAddr(bt_bdaddr_t* bd_addr, uint16_t *dev_codec_type, btav_cod
     }
 }
 
-static void bta2dp_connection_state_callback(btav_connection_state_t state, bt_bdaddr_t* bd_addr) {
+static void bta2dp_connection_state_callback(const RawAddress& bd_addr, btav_connection_state_t state) {
     ALOGD(LOGTAG " Connection State CB state = %d", state);
     BtEvent *pEvent = new BtEvent;
-    memcpy(&pEvent->a2dpSinkEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->a2dpSinkEvent.bd_addr = bd_addr;
     switch( state ) {
         case BTAV_CONNECTION_STATE_DISCONNECTED:
             pEvent->a2dpSinkEvent.event_id = A2DP_SINK_DISCONNECTED_CB;
@@ -559,10 +573,10 @@ static void bta2dp_connection_state_callback(btav_connection_state_t state, bt_b
     PostMessage(THREAD_ID_A2DP_SINK, pEvent);
 }
 
-static void bta2dp_audio_state_callback(btav_audio_state_t state, bt_bdaddr_t* bd_addr) {
+static void bta2dp_audio_state_callback(const RawAddress& bd_addr, btav_audio_state_t state) {
     ALOGD(LOGTAG " Audio State CB state = %d", state);
     BtEvent *pEvent = new BtEvent;
-    memcpy(&pEvent->a2dpSinkEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->a2dpSinkEvent.bd_addr = bd_addr;
     switch( state ) {
         case BTAV_AUDIO_STATE_REMOTE_SUSPEND:
             pEvent->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_SUSPENDED;
@@ -577,10 +591,10 @@ static void bta2dp_audio_state_callback(btav_audio_state_t state, bt_bdaddr_t* b
     PostMessage(THREAD_ID_A2DP_SINK, pEvent);
 }
 
-static void bta2dp_audio_config_callback(bt_bdaddr_t *bd_addr, uint32_t sample_rate,
+static void bta2dp_audio_config_callback(const RawAddress& bd_addr, uint32_t sample_rate,
         uint8_t channel_count) {
     ALOGD(LOGTAG " Audio Config CB sample_rate %d, channel_count %d", sample_rate, channel_count);
-    list<A2dp_Device>::iterator iter = FindDeviceByAddr(pA2dpSink->pA2dpDeviceList, *bd_addr);
+    list<A2dp_Device>::iterator iter = FindDeviceByAddr(pA2dpSink->pA2dpDeviceList, bd_addr);
     if(iter != pA2dpSink->pA2dpDeviceList.end())
     {
         ALOGD(LOGTAG " Audio Config CB: found matching device");
@@ -639,7 +653,7 @@ static void bta2dp_audio_registration_callback(bool state) {
     ALOGD(LOGTAG " Audio Registration Callback: state = %d", state);
 }
 
-static btav_callbacks_t sBluetoothA2dpSinkCallbacks = {
+static btav_sink_callbacks_t sBluetoothA2dpSinkCallbacks = {
     sizeof(sBluetoothA2dpSinkCallbacks),
     bta2dp_connection_state_callback,
     bta2dp_audio_state_callback,
@@ -664,7 +678,7 @@ void A2dp_Sink::HandleEnableSink(void) {
 
     if (bluetooth_interface != NULL)
     {
-        sBtA2dpSinkInterface = (btav_interface_t *)bluetooth_interface->
+        sBtA2dpSinkInterface = (btav_sink_interface_t *)bluetooth_interface->
                 get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_SINK_ID);
         sBtA2dpSinkVendorInterface = (btav_sink_vendor_interface_t *)bluetooth_interface->
                 get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_SINK_VENDOR_ID);
@@ -950,7 +964,7 @@ void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent, list<A2dp_Device>::i
         case A2DP_SINK_API_CONNECT_REQ:
             memcpy(&iter->mConnectingDevice, &iter->mDevice, sizeof(bt_bdaddr_t));
             if (sBtA2dpSinkInterface != NULL) {
-                sBtA2dpSinkInterface->connect(&iter->mDevice);
+                sBtA2dpSinkInterface->connect(iter->mDevice);
             }
             change_state(iter, DEVICE_STATE_PENDING);
             break;
@@ -1101,7 +1115,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
             memset(&iter->mConnectingDevice, 0, sizeof(bt_bdaddr_t));
 
             if (sBtA2dpSinkInterface != NULL) {
-                sBtA2dpSinkInterface->disconnect(&iter->mDevice);
+                sBtA2dpSinkInterface->disconnect(iter->mDevice);
             }
             change_state(iter, DEVICE_STATE_PENDING);
             break;
@@ -1192,7 +1206,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
             bdaddr_to_string(&pA2dpSinkStream->mStreamingDevice, str, 18);
             ALOGD(LOGTAG " current streaming device %s", str);
 
-            if (memcmp(&pA2dpSinkStream->mStreamingDevice, &bd_addr_null, sizeof(bt_bdaddr_t)) &&
+            if (!(bdaddr_is_empty(&pA2dpSinkStream->mStreamingDevice)) &&
                     memcmp(&pA2dpSinkStream->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
             {
                 ALOGD(LOGTAG " another dev started streaming, pause previous one");

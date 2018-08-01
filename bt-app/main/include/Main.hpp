@@ -99,7 +99,7 @@ const char *BT_ENABLE_SOC_LOG      = "BtEnableSocLog";
 /**
  * The Configuration file path
  */
-const char *CONFIG_FILE_PATH       = "/data/misc/bluetooth/bt_app.conf";
+const char *CONFIG_FILE_PATH       = "/etc/bluetooth/bt_app.conf";
 
 /**
  * To track user command status
@@ -148,6 +148,8 @@ typedef enum {
     PLAY,
     PAUSE,
     STOP,
+    AVDT_START,
+    AVDT_SUSPEND,
     FASTFORWARD,
     REWIND,
     FORWARD,
@@ -418,6 +420,8 @@ UserMenuList A2dpSourceMenu[] = {
     {PLAY,                  "start",            ZERO_PARAM,   "start"},
     {PAUSE,                 "suspend",          ZERO_PARAM,   "suspend"},
     {STOP,                  "stop",             ZERO_PARAM,   "stop"},
+    {AVDT_START,            "avdt_start",       ZERO_PARAM,   "avdt_start"},
+    {AVDT_SUSPEND,          "avdt_suspend",     ZERO_PARAM,   "avdt_suspend"},
     {TRACK_CHANGE,          "trackchange",      ZERO_PARAM,   "trackchange"},
     {SET_ABS_VOL,           "setabsolutevol",   ONE_PARAM,
             "setabsolutevol<space><volstep>  eg: setabsolutevol 10 (range 0-15)"},

@@ -35,18 +35,18 @@
 #include <iomanip>
 #include "Main.hpp"
 #include "SdpClient.hpp"
-/*#include "A2dp_Sink.hpp"
+#include "A2dp_Sink.hpp"
 #include "HfpClient.hpp"
-#include "Pan.hpp"
-#include "Gatt.hpp"
+/*#include "Pan.hpp"
+#include "Gatt.hpp"*/
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
 
-#include "Rsp.hpp"
-#include "Hid.hpp"
+/*#include "Rsp.hpp"
+#include "Hid.hpp"*/
 #include "A2dp_Src.hpp"
 #include "Avrcp.hpp"
-#include "GattcTest.hpp"
+/*#include "GattcTest.hpp"
 #include "GattsTest.hpp"*/
 #ifdef USE_BT_OBEX
 #include "PbapClient.hpp"
@@ -63,18 +63,18 @@
 static int bt_prop_socket;
 
 extern Gap *g_gap;
-/*extern HidH *pHid;
+/*extern HidH *pHid;*/
 extern A2dp_Sink *pA2dpSink;
 extern A2dp_Source *pA2dpSource;
-extern Pan *g_pan;
-extern Gatt *g_gatt;
+/*extern Pan *g_pan;
+extern Gatt *g_gatt;*/
 extern BT_Audio_Manager *pBTAM;
-extern Rsp *rsp;
+/*extern Rsp *rsp;
 extern GattcTest *gattctest;
-extern GattsTest *gattstest;
+extern GattsTest *gattstest;*/
 extern Hfp_Client *pHfpClient;
 extern Hfp_Ag *pHfpAG;
-extern Avrcp *pAvrcp;*/
+extern Avrcp *pAvrcp;
 bool gattsEnabled = false;
 extern const char *BT_PAN_ENABLED;
 extern SdpClient *g_sdpClient;
@@ -247,7 +247,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         case GATTSTEST_MENU:
             menu = &GattsTestMenu[0];
             num_cmds  = NO_OF_COMMANDS(GattsTestMenu);
-            break;
+            break;*/
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
             num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
@@ -259,7 +259,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
         case HFP_CLIENT_MENU:
             menu = &HfpClientMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpClientMenu);
-            break;*/
+            break;
 #ifdef USE_BT_OBEX
         case PBAP_CLIENT_MENU:
             menu = &PbapClientMenu[0];
@@ -270,11 +270,11 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             num_cmds  = NO_OF_COMMANDS(OppMenu);
             break;
 #endif
-/*        case HFP_AG_MENU:
+        case HFP_AG_MENU:
             menu = &HfpAGMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
             break;
-        case HIDH_MENU:
+      /*   case HIDH_MENU:
             menu = &HidMenu[0];
             num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;*/
@@ -855,6 +855,18 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
             event = new BtEvent;
             event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
             event->avrcpTargetEvent.key_id = CMD_ID_STOP;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case AVDT_START:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_AVDT_CMD_REQ;
+            event->avrcpTargetEvent.key_id = CMD_ID_PLAY;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case AVDT_SUSPEND:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_AVDT_CMD_REQ;
+            event->avrcpTargetEvent.key_id = CMD_ID_PAUSE;
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
         case TRACK_CHANGE:
@@ -2248,7 +2260,7 @@ static void BtCmdHandler (void *context) {
             case MAIN_MENU:
                 HandleMainCommand(cmd_id,user_cmd );
                 break;
-/*            case A2DP_SINK_MENU:
+            case A2DP_SINK_MENU:
                 HandleA2dpSinkCommand(cmd_id,user_cmd );
                 break;
             case A2DP_SOURCE_MENU:
@@ -2256,7 +2268,7 @@ static void BtCmdHandler (void *context) {
                 break;
             case HFP_CLIENT_MENU:
                 HandleHfpClientCommand(cmd_id,user_cmd );
-                break;*/
+                break;
 #ifdef USE_BT_OBEX
             case PBAP_CLIENT_MENU:
                 HandlePbapClientCommand(cmd_id,user_cmd );
@@ -2265,10 +2277,10 @@ static void BtCmdHandler (void *context) {
                 HandleOppCommand(cmd_id,user_cmd );
                 break;
 #endif
-/*            case HFP_AG_MENU:
+            case HFP_AG_MENU:
                 HandleHfpAGCommand(cmd_id, user_cmd );
                 break;
-            case HIDH_MENU:
+/*            case HIDH_MENU:
                 HandleHIDCommand(cmd_id,user_cmd );
                 break;*/
         }
@@ -2744,7 +2756,7 @@ void BluetoothApp :: InitHandler (void) {
     if (threadInfo[THREAD_ID_GAP].thread_id) {
         g_gap = new Gap (bt_interface, config);
     }
-/*
+
     if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
         // we need to start BT-AM if either of A2DP_SINK or HFP-Client is enabled
         threadInfo[THREAD_ID_BT_AM].thread_id = thread_new (
@@ -2799,7 +2811,7 @@ void BluetoothApp :: InitHandler (void) {
             pHfpAG = new Hfp_Ag(bt_interface, config);
         }
     }
-*/
+
     // registers reactors for socket
     if (is_socket_input_enabled_) {
         if(LocalSocketCreate() != -1) {
@@ -2891,7 +2903,7 @@ void BluetoothApp :: DeInitHandler (void) {
             accept_reactor_ = NULL;
         }
     }
-/*
+
     if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
         if (threadInfo[THREAD_ID_BT_AM].thread_id != NULL) {
             thread_free (threadInfo[THREAD_ID_BT_AM].thread_id);
@@ -2944,7 +2956,7 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete pHfpAG;
         }
     }
-*/
+
     // Stop GAP Thread
     if (threadInfo[THREAD_ID_GAP].thread_id != NULL) {
         thread_free (threadInfo[THREAD_ID_GAP].thread_id);

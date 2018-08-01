@@ -26,19 +26,19 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     //thread_id thread type            Thread Message Handler    Thread Name
     { NULL ,    THREAD_ID_MAIN,        &BtMainMsgHandler,        "Main_Thread" } ,
     { NULL ,    THREAD_ID_GAP,         &BtGapMsgHandler,         "Gap_Thread" } ,
-    { NULL ,    THREAD_ID_A2DP_SINK,   NULL,    "A2dp_Sink_Thread" } ,
-    { NULL ,    THREAD_ID_HFP_CLIENT,  NULL,   "Hfp_Client_Thread" } ,
+    { NULL ,    THREAD_ID_A2DP_SINK,   &BtA2dpSinkMsgHandler,    "A2dp_Sink_Thread" } ,
+    { NULL ,    THREAD_ID_HFP_CLIENT,  &BtHfpClientMsgHandler,   "Hfp_Client_Thread" } ,
     { NULL ,    THREAD_ID_PAN,         NULL,         "Pan_Thread" } ,
     { NULL ,    THREAD_ID_GATT,        NULL,        "Gatt_Thread" } ,
-    { NULL ,    THREAD_ID_BT_AM,       NULL,   "BT_AUDIO_MANAGER_Thread" } ,
+    { NULL ,    THREAD_ID_BT_AM,       &BtAudioManagerHandler,   "BT_AUDIO_MANAGER_Thread" } ,
     { NULL ,    THREAD_ID_SDP_CLIENT,  &BtSdpClientMsgHandler,   "Sdp_Client_Thread" } ,
 #ifdef USE_BT_OBEX
     { NULL ,    THREAD_ID_PBAP_CLIENT, &BtPbapClientMsgHandler,  "Pbap_Client_Thread" } ,
     { NULL ,    THREAD_ID_OPP,         &BtOppMsgHandler,         "Opp_Thread" } ,
 #endif
-    { NULL ,    THREAD_ID_HFP_AG,      NULL,       "Hfp_AG_Thread" } ,
-    { NULL ,    THREAD_ID_A2DP_SOURCE, NULL,  "A2dp_Source_Thread" } ,
-    { NULL ,    THREAD_ID_AVRCP,       NULL,       "Avrcp_Thread" } ,
+    { NULL ,    THREAD_ID_HFP_AG,      &BtHfpAgMsgHandler,       "Hfp_AG_Thread" } ,
+    { NULL ,    THREAD_ID_A2DP_SOURCE, &BtA2dpSourceMsgHandler,  "A2dp_Source_Thread" } ,
+    { NULL ,    THREAD_ID_AVRCP,       &BtAvrcpMsgHandler,       "Avrcp_Thread" } ,
 };
 
 void PostMessage(ThreadIdType thread_type, void *msg) {

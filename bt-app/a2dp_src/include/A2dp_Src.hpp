@@ -137,12 +137,11 @@ class A2dp_Source {
   private:
     config_t *config;
     const bt_interface_t * bluetooth_interface;
-    const btav_interface_t *sBtA2dpSourceInterface;
+    const btav_source_interface_t *sBtA2dpSourceInterface;
     const btrc_interface_t *sBtAvrcpTargetInterface;
     A2dpSourceState mSourceState;
     bool mAvrcpConnected;
     const btav_vendor_interface_t *sBtA2dpSourceVendorInterface;
-    const btrc_vendor_interface_t *sBtAvrcpTargetVendorInterface;
 
   public:
     A2dp_Source(const bt_interface_t *bt_interface, config_t *config);
@@ -176,13 +175,14 @@ class A2dp_Source {
     uint32_t play_position_interval;
     uint16_t mPreviousAddrPlayerId;
     uint16_t mCurrentAddrPlayerId;
-    uint32_t get_a2dp_sbc_sampling_rate(uint8_t frequency);
-    char * get_a2dp_sbc_channel_mode(uint8_t channel_count);
+    char * get_a2dp_codec_type(uint8_t codectype);
+    uint32_t get_a2dp_sampling_rate(uint8_t frequency);
+    uint32_t get_a2dp_bits_per_sample(uint8_t bits_per_sample);
+    char * get_a2dp_channel_mode(uint8_t channel_count);
     uint8_t get_a2dp_sbc_block_len(uint8_t blocklen);
     uint8_t get_a2dp_sbc_sub_band(uint8_t subband);
     char * get_a2dp_sbc_allocation_mth(uint8_t allocation);
-    uint32_t get_a2dp_aptx_sampling_rate(uint8_t frequency);
-    char * get_a2dp_aptx_channel_mode(uint8_t channel_count);
+
     void HandleAvrcpEvents(BtEvent* pEvent);
     void HandleEnableSource();
     void HandleDisableSource();
@@ -192,7 +192,7 @@ class A2dp_Source {
     void StopPlayPostionTimer();
     void SendAppSettingChange();
     void updateResetNotification(btrc_event_id_t noti);
-    void UpdateSupportedCodecs(uint8_t num_codecs);
+    void UpdateSupportedCodecs(const RawAddress& bd_addr, uint8_t num_codecs);
     void SendEncodedData();
     void SendStartStreamReq();
     void SendSuspendStreamReq();
