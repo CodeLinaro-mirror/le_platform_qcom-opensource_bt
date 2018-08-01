@@ -159,6 +159,7 @@ typedef enum {
     VOL_DOWN,
     CODEC_LIST,
     TRACK_CHANGE,
+    NOW_PLAYING_CONTENT_CHANGED,
     SET_ABS_VOL,
     SEND_VOL_UP_DOWN,
     VOL_CHANGED_NOTI,
@@ -433,12 +434,13 @@ UserMenuList A2dpSourceMenu[] = {
     {AVDT_START,            "avdt_start",       ZERO_PARAM,   "avdt_start"},
     {AVDT_SUSPEND,          "avdt_suspend",     ZERO_PARAM,   "avdt_suspend"},
     {TRACK_CHANGE,          "trackchange",      ZERO_PARAM,   "trackchange"},
+    {NOW_PLAYING_CONTENT_CHANGED,"now_playing_content_changed",  ZERO_PARAM,   "now_playing_content_changed"},
     {SET_ABS_VOL,           "setabsolutevol",   ONE_PARAM,
             "setabsolutevol<space><volstep>  eg: setabsolutevol 10 (range 0-15)"},
     {SEND_VOL_UP_DOWN,      "sendvolupdown",    ONE_PARAM,
             "sendvolupdown<space><1/0>  eg: sendvolupdown 1 (1-up, 0-down)"},
-    {ADDR_PLAYER_CHANGE,    "addrplayerchange", ONE_PARAM,
-            "addrplayerchange<space><1/0>  eg: addrplayerchange 1 "},
+  /*  {ADDR_PLAYER_CHANGE,    "addrplayerchange", ONE_PARAM,
+            "addrplayerchange<space><1/0>  eg: addrplayerchange 1 "},*/
     {AVAIL_PLAYER_CHANGE,   "availplayerchange",ZERO_PARAM,   "availplayerchange"},
     {BIGGER_METADATA,       "biggermetadata",   ZERO_PARAM,   "biggermetadata"},
     {CODEC_LIST,            "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"

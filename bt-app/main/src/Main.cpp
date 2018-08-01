@@ -877,6 +877,11 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
             event->avrcpTargetEvent.event_id = AVRCP_TARGET_TRACK_CHANGED;
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
+        case NOW_PLAYING_CONTENT_CHANGED:
+            event = new BtEvent;
+            event->avrcpTargetEvent.event_id = AVRCP_TARGET_NOW_PLAYING_CONTENT_CHANGED;
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
         case SET_ABS_VOL:
             event = new BtEvent;
             event->avrcpTargetEvent.event_id = AVRCP_TARGET_SET_ABS_VOL;

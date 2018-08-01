@@ -111,11 +111,50 @@ class MediaPlayerInfo {
     MediaPlayerInfo(short playerId, char majorPlayerType, int playerSubType, char playState,
                         short charsetId, short displayableNameLength, char* displayableName,
                         char* playerPackageName, bool isAvailable, bool isFocussed, char itemType,
-                        bool isRemoteAddressable, short itemLength, short entryLength,
-                        char featureMask[]);
+                        bool isRemoteAddressable, char featureMask[]);
     int RetrievePlayerEntryLength();
     char* RetrievePlayerItemEntry();
     ~MediaPlayerInfo();
+};
+
+class FolderInfo {
+  public:
+    uint8_t   mUid[8];
+    uint8_t   mType;
+    uint8_t   mPlayable;
+    uint16_t  mCharsetId;
+    short mDisplayableNameLength;
+    char* mDisplayableName;
+    short mItemLength;
+    short mEntryLength;
+
+  public:
+    FolderInfo(uint8_t   uid[],    uint8_t   type, uint8_t   playable, uint16_t  charsetId, short displayableNameLength,
+                                char* displayableName );
+    int RetrieveFolderEntryLength();
+    char* RetrieveFolderItemEntry();
+
+    ~FolderInfo();
+};
+
+class MediaInfo {
+  public:
+    uint8_t   mUid[8];
+    uint8_t   mType;
+    uint16_t  mCharsetId;
+    short mDisplayableNameLength;
+    char* mDisplayableName;
+    uint8_t mNum_attrs;
+    short mItemLength;
+    short mEntryLength;
+
+  public:
+    MediaInfo(uint8_t   uid[],    uint8_t   type, uint16_t  charsetId, short displayableNameLength,
+                                char* displayableName,  uint8_t   num_attrs);
+    int RetrieveMediaEntryLength();
+    char* RetrieveMediaItemEntry();
+
+    ~MediaInfo();
 };
 
 typedef struct  {
@@ -197,6 +236,8 @@ class A2dp_Source {
     void SendStartStreamReq();
     void SendSuspendStreamReq();
     list<MediaPlayerInfo> pMediaPlayerList;
+    list<FolderInfo> pFolderList;
+    list<MediaInfo> pMediaList;
 };
 
 #endif
