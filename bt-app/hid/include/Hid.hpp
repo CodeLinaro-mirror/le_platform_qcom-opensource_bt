@@ -43,6 +43,7 @@
 #include "osi/include/config.h"
 #include "ipc.h"
 #include "utils.h"
+#include "hardware/bt_rc.h"
 #include "hardware/bt_rc_vendor.h"
 #include "hardware/bt_hh.h"
 #include <list>

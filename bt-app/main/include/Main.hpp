@@ -96,6 +96,7 @@ const char *BT_AVRCP_ENABLED       = "BtAvrcpEnable";
 const char *BT_ENABLE_EXT_POWER    = "BtEnableExtPower";
 const char *BT_ENABLE_FW_SNOOP     = "BtEnableFWSnoop";
 const char *BT_ENABLE_SOC_LOG      = "BtEnableSocLog";
+const char *BT_HID_ENABLED         = "BtHidEnable";
 /**
  * The Configuration file path
  */
@@ -254,6 +255,13 @@ typedef enum {
     DISABLE_NREC_ON_AG,
     SEND_AT_CMD,
     HFP_AG,
+    HID_HOST,
+    SET_PROTOCOL,
+    GET_PROTOCOL,
+    SET_REPORT,
+    GET_REPORT,
+    VIRTUAL_UNPLUG,
+    HID_BONDED_LIST,
     BACK_TO_MAIN,
     END,
 } CommandList;
@@ -278,7 +286,8 @@ typedef enum {
     A2DP_SINK_MENU,
     HFP_CLIENT_MENU,
     PAN_MENU,
-    RSP_MENU,
+//    RSP_MENU,
+    HIDH_MENU,
 #ifdef USE_BT_OBEX
     PBAP_CLIENT_MENU,
     OPP_MENU,
@@ -330,10 +339,11 @@ UserMenuList GapMenu[] = {
 UserMenuList MainMenu[] = {
     {GAP_OPTION,            "gap_menu",         ZERO_PARAM,   "gap_menu"},
     {PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
-    {RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
+//    {RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
+    {HID_HOST,              "hid_menu",         ZERO_PARAM,   "hid_menu"},
 #ifdef USE_BT_OBEX
     {PBAP_CLIENT_OPTION,    "pbap_client_menu", ZERO_PARAM,   "pbap_client_menu"},
     {OPP_OPTION,            "opp_menu",         ZERO_PARAM,   "opp_menu"},
@@ -479,6 +489,21 @@ UserMenuList HfpClientMenu[] = {
     {BACK_TO_MAIN,          "main_menu",     ZERO_PARAM,   "main_menu"},
 };
 
+
+/**
+ * list of supported commands for HID
+ */
+UserMenuList HidMenu[] = {
+    {CONNECT,         "connect",           ONE_PARAM,    "connect<space><bt_address>"},
+    {DISCONNECT,      "disconnect",        ONE_PARAM,    "disconnect<space><bt_address>"},
+    {HID_BONDED_LIST, "hid_list",          ZERO_PARAM,   "hid_list"},
+    {GET_PROTOCOL,    "get_protocol",      TWO_PARAM,    "get_protocol<space><bt_address><protocolMode>"},
+    {SET_PROTOCOL,    "set_protocol",      TWO_PARAM,    "set_protocol<space><bt_address><protocolMode> eg:0-REPORTMODE,1-BOOTMODE"},
+    {VIRTUAL_UNPLUG,  "virtual_unplug",    ONE_PARAM,    "virtual_unplug<space><bt_address>"},
+    {GET_REPORT,    "get_report",        FOUR_PARAM,   "get_report<space>bt_address<space><reportType><space><reportId><space><bufSize>"},
+    {SET_REPORT,    "set_report",        FOUR_PARAM,   "set_report<space>bt_address<space><reportType><space><reportString><space><size>"},
+    {BACK_TO_MAIN,    "main_menu",         ZERO_PARAM,   "main_menu"},
+};
 #ifdef USE_BT_OBEX
 /**
  * list of supported commands for PBAP_CLIENT Menu
@@ -694,6 +719,7 @@ class BluetoothApp {
     bool is_pbap_client_enabled_;
     bool is_opp_enabled_;
 #endif
+    bool is_hid_enable_default_;
     reactor_object_t *cmd_reactor_;
     struct hw_device_t *device_;
     bluetooth_device_t *bt_device_;
@@ -709,6 +735,7 @@ class BluetoothApp {
     int client_socket_;
     bool ssp_notification;
     bool pin_notification;
+    bool is_hid_enabled;
 #ifdef USE_BT_OBEX
     bool incoming_file_notification;
 #endif

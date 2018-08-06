@@ -36,14 +36,13 @@
 #include "Main.hpp"
 #include "SdpClient.hpp"
 #include "A2dp_Sink.hpp"
+#include "Hid.hpp"
 #include "HfpClient.hpp"
 #include "Pan.hpp"
 /*#include "Gatt.hpp"*/
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
-
-/*#include "Rsp.hpp"
-#include "Hid.hpp"*/
+//#include "Rsp.hpp"
 #include "A2dp_Src.hpp"
 #include "Avrcp.hpp"
 /*#include "GattcTest.hpp"
@@ -63,8 +62,8 @@
 static int bt_prop_socket;
 
 extern Gap *g_gap;
-/*extern HidH *pHid;*/
 extern A2dp_Sink *pA2dpSink;
+extern HidH *pHid;
 extern A2dp_Source *pA2dpSource;
 extern Pan *g_pan;
 /*extern Gatt *g_gatt;*/
@@ -236,7 +235,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &TestMenu[0];
             num_cmds  = NO_OF_COMMANDS(TestMenu);
             break;
-/*        case RSP_MENU:
+/*         case RSP_MENU:
             menu = &RspMenu[0];
             num_cmds  = NO_OF_COMMANDS(RspMenu);
             break;
@@ -274,10 +273,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &HfpAGMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
             break;
-      /*   case HIDH_MENU:
+        case HIDH_MENU:
             menu = &HidMenu[0];
             num_cmds  = NO_OF_COMMANDS(HidMenu);
-            break;*/
+            break;
         case MAIN_MENU:
         // fallback to default main menu
         default:
@@ -348,10 +347,10 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &TestMenu[0];
             num_cmds  = NO_OF_COMMANDS(TestMenu);
             break;
-        case RSP_MENU:
+/*        case RSP_MENU:
             menu = &RspMenu[0];
             num_cmds  = NO_OF_COMMANDS(RspMenu);
-            break;
+            break;*/
         case MAIN_MENU:
             menu = &MainMenu[0];
             num_cmds  = NO_OF_COMMANDS(MainMenu);
@@ -381,6 +380,10 @@ static void DisplayMenu(MenuType menu_type) {
         case HFP_AG_MENU:
             menu = &HfpAGMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
+            break;
+        case HIDH_MENU:
+            menu = &HidMenu[0];
+            num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
     }
     fprintf (stdout, " \n***************** Menu *******************\n");
@@ -1237,10 +1240,10 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = TEST_MENU;
             DisplayMenu(menu_type);
             break;
-        case RSP_OPTION:
+/*        case RSP_OPTION:
             menu_type = RSP_MENU;
             DisplayMenu(menu_type);
-            break;
+            break;*/
         case A2DP_SINK:
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);
@@ -1265,6 +1268,16 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 #endif
         case HFP_AG:
             menu_type = HFP_AG_MENU;
+            DisplayMenu(menu_type);
+            break;
+        case HID_HOST:
+            if(! (g_bt_app->is_hid_enabled)){
+                menu_type = MAIN_MENU;
+                ALOGE(LOGTAG "HID not supported. Enable it in bt_app.conf.");
+                fprintf(stdout,"HID not supported. Enable it in bt_app.conf.\n");
+            }
+            else
+                menu_type = HIDH_MENU;
             DisplayMenu(menu_type);
             break;
         case MAIN_EXIT:
@@ -1388,7 +1401,7 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
     }
 }
-
+*/
 static void HandleHIDCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     ALOGD(LOGTAG "HandleHIDCommand cmd_id = %d", cmd_id);
     BtEvent *event = NULL;
@@ -1446,7 +1459,7 @@ static void HandleHIDCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->hid_profile_event.bd_addr);
             event->hid_profile_event.reportType= atoi(user_cmd[TWO_PARAM]);
             event->hid_profile_event.bufSize   = atoi(user_cmd[FOUR_PARAM]);
-            strncpy(event->hid_profile_event.report , user_cmd[THREE_PARAM], 20);
+            strlcpy(event->hid_profile_event.report , user_cmd[THREE_PARAM], 20);
             PostMessage (THREAD_ID_HID, event);
             break;
 
@@ -1462,7 +1475,7 @@ static void HandleHIDCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
     }
 }
-
+/*
 static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num;
@@ -2280,9 +2293,9 @@ static void BtCmdHandler (void *context) {
             case HFP_AG_MENU:
                 HandleHfpAGCommand(cmd_id, user_cmd );
                 break;
-/*            case HIDH_MENU:
+            case HIDH_MENU:
                 HandleHIDCommand(cmd_id,user_cmd );
-                break;*/
+                break;
         }
    } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
                         (!strcasecmp (user_cmd[ZERO_PARAM], "yes") ||
@@ -2885,6 +2898,16 @@ void BluetoothApp :: InitHandler (void) {
                         (threadInfo[THREAD_ID_MAIN].thread_id),
                         STDIN_FILENO, NULL, BtCmdHandler, NULL);
     }
+
+    if (is_hid_enable_default_) {
+        ALOGV (LOGTAG "  Starting HID thread");
+        threadInfo[THREAD_ID_HID].thread_id = thread_new (
+            threadInfo[THREAD_ID_HID].thread_name);
+
+        if (threadInfo[THREAD_ID_HID].thread_id)
+            pHid = new HidH(bt_interface, config);
+    }
+    is_hid_enabled = is_hid_enable_default_ ;
 }
 
 
@@ -2892,6 +2915,14 @@ void BluetoothApp :: DeInitHandler (void) {
     UnLoadBtStack ();
 
     ALOGV (LOGTAG "  %s:",__func__);
+    if (is_hid_enable_default_) {
+        if (threadInfo[THREAD_ID_HID].thread_id != NULL){
+            thread_free(threadInfo[THREAD_ID_HID].thread_id);
+            if (pHid != NULL)
+                delete pHid;
+        }
+    }
+
      // de-register reactors for socket
     if (is_socket_input_enabled_) {
         if(listen_reactor_)
@@ -3140,6 +3171,9 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_hfp_ag_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_HFP_AG_ENABLED, false);
 
+    //checking for hid
+    is_hid_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_HID_ENABLED, false);
     if (is_hfp_client_enabled_ == true && is_hfp_ag_enabled_ == true) {
         ALOGE (LOGTAG " Both HFP AG and Client are enabled, disabling AG. Set \
            BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \

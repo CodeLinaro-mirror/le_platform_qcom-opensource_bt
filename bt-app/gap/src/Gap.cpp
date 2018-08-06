@@ -43,6 +43,7 @@ const char *BT_A2DP_SOURCE_ENABLED_STRING  = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED_STRING  = "BtHfClientEnable";
 const char *BT_PAN_ENABLED    = "BtPanEnable";
 const char *BT_GATT_ENABLED   = "BtGattEnable";
+const char *BT_HID_ENABLED_STRING    = "BtHidEnable";
 #ifdef USE_BT_OBEX
 const char *BT_OBEX_ENABLED    = "BtObexEnable";
 const char *BT_OBEX_LOG_LEVEL    = "BtObexLogLevel";
@@ -888,8 +889,8 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_AG;
         else if(profile_id == PROFILE_ID_AVRCP)
             this->profile_config[profile_id].thread_id = THREAD_ID_AVRCP;
-/*        else if(profile_id == PROFILE_ID_HID)
-            this->profile_config[profile_id].thread_id = THREAD_ID_HID;*/
+        else if(profile_id == PROFILE_ID_HID)
+            this->profile_config[profile_id].thread_id = THREAD_ID_HID;
     }
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED_STRING, false);
@@ -920,8 +921,8 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
     // SDP Client should be enabled and is not configurable to be disabled
     this->profile_config[PROFILE_ID_SDP_CLIENT].is_enabled = true;
 
-/*  this->profile_config[PROFILE_ID_HID].is_enabled = config_get_bool (config,
-                    CONFIG_DEFAULT_SECTION, BT_HID_ENABLED_STRING, false);*/
+    this->profile_config[PROFILE_ID_HID].is_enabled = config_get_bool (config,
+                   CONFIG_DEFAULT_SECTION, BT_HID_ENABLED_STRING, false);
 
 #ifdef USE_BT_OBEX
     this->profile_config[PROFILE_ID_PBAP_CLIENT].is_enabled = config_get_bool (config,
