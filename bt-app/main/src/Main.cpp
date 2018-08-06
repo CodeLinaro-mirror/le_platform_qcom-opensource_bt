@@ -37,8 +37,8 @@
 #include "SdpClient.hpp"
 #include "A2dp_Sink.hpp"
 #include "HfpClient.hpp"
-/*#include "Pan.hpp"
-#include "Gatt.hpp"*/
+#include "Pan.hpp"
+/*#include "Gatt.hpp"*/
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
 
@@ -66,8 +66,8 @@ extern Gap *g_gap;
 /*extern HidH *pHid;*/
 extern A2dp_Sink *pA2dpSink;
 extern A2dp_Source *pA2dpSource;
-/*extern Pan *g_pan;
-extern Gatt *g_gatt;*/
+extern Pan *g_pan;
+/*extern Gatt *g_gatt;*/
 extern BT_Audio_Manager *pBTAM;
 /*extern Rsp *rsp;
 extern GattcTest *gattctest;
@@ -2836,7 +2836,7 @@ void BluetoothApp :: InitHandler (void) {
 
     if (threadInfo[THREAD_ID_SDP_CLIENT].thread_id)
         g_sdpClient = new SdpClient(bt_interface, config);
-/*
+
     if (is_pan_enable_default_) {
         // Starting PAN Thread
         threadInfo[THREAD_ID_PAN].thread_id = thread_new (
@@ -2846,6 +2846,7 @@ void BluetoothApp :: InitHandler (void) {
             g_pan = new Pan (bt_interface, config);
     }
 
+#if 0
     if (is_gatt_enable_default_) {
         ALOGV (LOGTAG "  Starting GATT thread");
         threadInfo[THREAD_ID_GATT].thread_id = thread_new (
@@ -2854,7 +2855,8 @@ void BluetoothApp :: InitHandler (void) {
         if (threadInfo[THREAD_ID_GATT].thread_id)
             g_gatt = new Gatt(bt_interface, config);
     }
-*/
+#endif
+
 #ifdef USE_BT_OBEX
     if (is_obex_enabled_ && is_pbap_client_enabled_) {
         threadInfo[THREAD_ID_PBAP_CLIENT].thread_id = thread_new (
@@ -2970,7 +2972,7 @@ void BluetoothApp :: DeInitHandler (void) {
         if ( g_sdpClient != NULL)
             delete g_sdpClient;
     }
-/*
+
     if (is_pan_enable_default_) {
         // Stop PAN Thread
         if (threadInfo[THREAD_ID_PAN].thread_id != NULL) {
@@ -2979,7 +2981,7 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete g_pan;
         }
     }
-
+/*
     if (is_gatt_enable_default_) {
         if (threadInfo[THREAD_ID_GATT].thread_id != NULL){
             thread_free(threadInfo[THREAD_ID_GATT].thread_id);

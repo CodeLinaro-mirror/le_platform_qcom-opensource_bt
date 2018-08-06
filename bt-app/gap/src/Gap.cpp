@@ -911,17 +911,17 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         this->profile_config[PROFILE_ID_BT_AM].is_enabled = true;
     }
 
-/*
     this->profile_config[PROFILE_ID_PAN].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_PAN_ENABLED, false);
-
+/*
     this->profile_config[PROFILE_ID_GATT].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_GATT_ENABLED, false);
 */
     // SDP Client should be enabled and is not configurable to be disabled
     this->profile_config[PROFILE_ID_SDP_CLIENT].is_enabled = true;
-/*    this->profile_config[PROFILE_ID_HID].is_enabled = config_get_bool (config,
-                   CONFIG_DEFAULT_SECTION, BT_HID_ENABLED_STRING, false);*/
+
+/*  this->profile_config[PROFILE_ID_HID].is_enabled = config_get_bool (config,
+                    CONFIG_DEFAULT_SECTION, BT_HID_ENABLED_STRING, false);*/
 
 #ifdef USE_BT_OBEX
     this->profile_config[PROFILE_ID_PBAP_CLIENT].is_enabled = config_get_bool (config,
