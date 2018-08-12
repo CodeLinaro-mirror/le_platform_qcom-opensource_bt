@@ -24,6 +24,7 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/pan/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hid/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/rsp/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/native/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattctest/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattstest/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \
@@ -90,6 +91,10 @@ if USE_GST
 requiredlibs = ../osi/libgstbtapposi.la ../utils/libgstbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
 else
 requiredlibs = ../osi/libbtapposi.la ../utils/libbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
+endif
+
+if USE_GEN_GATT
+requiredlibs += ../gatt/libgengatt.la
 endif
 
 if AUDIO_HAL_SUPPORTED

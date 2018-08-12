@@ -30,7 +30,7 @@
 #include <hardware/bluetooth.h>
 #include "include/ipc.hpp"
 #include "utils.h"
-#include "Rsp.hpp"
+//#include "Rsp.hpp"
 
 #include <cutils/sockets.h>
 #include <sys/un.h>

@@ -1,3 +1,3 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = osi utils main
+SUBDIRS = osi utils gatt main

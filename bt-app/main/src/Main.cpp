@@ -90,6 +90,10 @@ static alarm_t *opp_incoming_file_accept_timer = NULL;
 #define USER_ACCEPTANCE_TIMEOUT 25000
 #endif
 
+#ifdef USE_GEN_GATT
+extern const char *BT_GATT_ENABLED;
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -3192,9 +3196,11 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_pan_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_PAN_ENABLED, false);
 
+#ifdef USE_GEN_GATT
     //checking for Gatt handler
     is_gatt_enable_default_= config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_GATT_ENABLED, false);
+#endif
 
 #ifdef USE_BT_OBEX
     //checking for OBEX handler
