@@ -37,7 +37,7 @@
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
-#include "ipc.h"
+#include "ipc.hpp"
 
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
 #include "qahw_api.h"

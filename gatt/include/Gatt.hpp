@@ -46,7 +46,7 @@
 #include "osi/include/config.h"
 #include "osi/include/semaphore.h"
 #include "osi/include/allocator.h"
-#include "ipc.h"
+#include "ipc.hpp"
 
 #define MAX_GATT_DEVICES    (1)
 

@@ -27,7 +27,7 @@
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include <list>
 #include "RemoteDevices.hpp"
 

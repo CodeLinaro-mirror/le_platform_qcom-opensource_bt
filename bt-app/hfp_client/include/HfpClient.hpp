@@ -53,7 +53,7 @@
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "osi/include/allocator.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "utils.h"
 #include "hardware/bt_hf_client_vendor.h"
 

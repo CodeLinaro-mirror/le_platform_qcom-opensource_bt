@@ -46,7 +46,7 @@
 #include "osi/include/config.h"
 #include "osi/include/allocator.h"
 #include "osi/include/alarm.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "utils.h"
 #include "hardware/bt_av_vendor.h"
 

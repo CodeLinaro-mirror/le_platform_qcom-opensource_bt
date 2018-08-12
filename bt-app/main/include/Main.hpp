@@ -28,7 +28,7 @@
 #include "osi/include/config.h"
 #include "gap/include/Gap.hpp"
 #include <hardware/bluetooth.h>
-#include "include/ipc.h"
+#include "include/ipc.hpp"
 #include "utils.h"
 #include "Rsp.hpp"
 

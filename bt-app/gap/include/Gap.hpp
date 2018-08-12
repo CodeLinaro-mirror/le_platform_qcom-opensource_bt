@@ -29,7 +29,7 @@
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "osi/include/alarm.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "AdapterProperties.hpp"
 #include "RemoteDevices.hpp"
 

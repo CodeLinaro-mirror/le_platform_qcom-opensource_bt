@@ -42,7 +42,7 @@
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "Gatt.hpp"
 
 #define RSP_MIN_CI           (100)

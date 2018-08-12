@@ -38,7 +38,7 @@
 #include "osi/include/thread.h"
 #include <stdio.h>
 #include "osi/include/config.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "GattsTest.hpp"
 #include "Gatt.hpp"
 

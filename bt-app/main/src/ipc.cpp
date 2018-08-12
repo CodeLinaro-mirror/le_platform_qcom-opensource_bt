@@ -18,7 +18,7 @@
  *
  ******************************************************************************/
 
-#include "ipc.h"
+#include "ipc.hpp"
 #include "osi/include/thread.h"
 #include "osi/include/log.h"
 

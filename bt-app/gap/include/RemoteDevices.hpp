@@ -24,7 +24,7 @@
 #include <hardware/bluetooth.h>
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include <pthread.h>
 
 /**
