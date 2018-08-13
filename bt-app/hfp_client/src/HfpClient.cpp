@@ -1138,7 +1138,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_CLIENT_API_REDIAL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->dial(&mConnectedDevice, "");
+                sBtHfpClientInterface->dial(&mConnectedDevice, NULL);
             }
             break;
         case HFP_CLIENT_API_DIAL_MEMORY_REQ:

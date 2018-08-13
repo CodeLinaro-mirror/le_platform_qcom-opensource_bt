@@ -2550,48 +2550,10 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                         BtA2dpResumeStreaming();
                     else
                         BtA2dpStartStreaming();
-                    if (playStatus != BTRC_PLAYSTATE_PLAYING)
-                    {
-                        playStatus = BTRC_PLAYSTATE_PLAYING;
-                        if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
-                            param.play_status = playStatus;
-                            mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
-                            sBtAvrcpTargetInterface->register_notification_rsp(
-                                    BTRC_EVT_PLAY_STATUS_CHANGED,
-                                    mPlayStatusNotiType, &param);
-                        }
-                    }
-                    if (mTrackChangeNotiType == BTRC_NOTIFICATION_TYPE_INTERIM)
-                    {
-                        mCurrentTrackID = TRACK_IS_SELECTED;
-                        TrackNumberRsp = mCurrentTrackID;
-                        mTrackChangeNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
-                        ALOGD(LOGTAG_AVRCP " TrackNumberRsp = %l", TrackNumberRsp);
-                        for (int i = 0; i < 8; ++i) {
-                            param.track[i] = (uint8_t) (TrackNumberRsp >> (56 - 8 * i));
-                        }
-                        sBtAvrcpTargetInterface->register_notification_rsp(
-                                BTRC_EVT_TRACK_CHANGE,
-                                mTrackChangeNotiType, &param);
-                    }
-                    if (mPlayPosChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM)
-                        pA2dpSource->StartPlayPostionTimer();
                     break;
                 case CMD_ID_PAUSE:
                     /*Pause key id is mapped to A2dp suspend*/
                     BtA2dpSuspendStreaming();
-                    pA2dpSource->StopPlayPostionTimer();
-                    if (playStatus != BTRC_PLAYSTATE_PAUSED)
-                    {
-                        playStatus = BTRC_PLAYSTATE_PAUSED;
-                        if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
-                            param.play_status = playStatus;
-                            mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
-                            sBtAvrcpTargetInterface->register_notification_rsp(
-                                    BTRC_EVT_PLAY_STATUS_CHANGED,
-                                    mPlayStatusNotiType, &param);
-                        }
-                    }
                     break;
                 default:
                    ALOGE(LOGTAG_AVRCP " Command not supported ");
@@ -2643,11 +2605,7 @@ void A2dp_Source::HandleEnableSource(void) {
                                             "a2dp_source_codec_priority_ldac",5001);
         ALOGD(LOGTAG_A2DP "assignCodecConfigPriorities");
         assignCodecConfigPriorities(priority_values, numConfigs);
-#ifdef USE_LIBHW_AOSP
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, a2dpSrcCodecList);
-#else
-        sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, a2dpSrcCodecList);
-#endif
         property_get("persist.bt.a2dp_offload_cap", value, "false");
         ALOGD(LOGTAG_A2DP "offload_cap:%s", value);
         if (strcmp(value, "false") != 0)
@@ -2663,11 +2621,7 @@ void A2dp_Source::HandleEnableSource(void) {
                 get_profile_interface(BT_PROFILE_AV_RC_ID);
         if (sBtAvrcpTargetInterface != NULL) {
         //TODO: check and update
-#ifdef USE_LIBHW_AOSP
             sBtAvrcpTargetInterface->init(&sBluetoothAvrcpTargetCallbacks);
-#else
-            sBtAvrcpTargetInterface->init(&sBluetoothAvrcpTargetCallbacks);
-#endif
         }
         change_state(STATE_A2DP_SOURCE_DISCONNECTED);
         PostMessage(THREAD_ID_GAP, pEvent);
