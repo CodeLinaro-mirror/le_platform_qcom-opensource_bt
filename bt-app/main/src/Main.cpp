@@ -1,4 +1,3 @@
-
 /******************************************************************************
  *
  *  Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
@@ -24,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
+#include <sstream>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -43,6 +43,7 @@
 #ifdef USE_GEN_GATT
 #include "GattLibService.hpp"
 #include "GattcTest.hpp"
+#include "GattsTest.hpp"
 #endif
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
@@ -64,11 +65,12 @@
 using namespace gatt;
 using namespace btapp;
 #endif
-
 #define LOGTAG  "MAIN "
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
 #define SOCKETNAME  "/data/misc/bluetooth/btprop"
 static int bt_prop_socket;
+int server_num;
+bool file_read = 0;
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
@@ -76,7 +78,6 @@ extern HidH *pHid;
 extern A2dp_Source *pA2dpSource;
 extern Pan *g_pan;
 extern BT_Audio_Manager *pBTAM;
-
 extern Hfp_Client *pHfpClient;
 extern Hfp_Ag *pHfpAG;
 extern Avrcp *pAvrcp;
@@ -101,6 +102,7 @@ static alarm_t *opp_incoming_file_accept_timer = NULL;
 GattLibService *g_gatt;
 extern const char *BT_GATT_ENABLED;
 extern GattcTest *gattctest;
+extern GattsTest *gattstest;
 #endif
 
 #ifdef __cplusplus
@@ -259,6 +261,10 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &GattcTestMenu[0];
             num_cmds  = NO_OF_COMMANDS(GattcTestMenu);
             break;
+        case GATTSTEST_MENU:
+            menu = &GattsTestMenu[0];
+            num_cmds  = NO_OF_COMMANDS(GattsTestMenu);
+            break;
 #endif
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
@@ -368,6 +374,10 @@ static void DisplayMenu(MenuType menu_type) {
         case GATTC_TEST_MENU:
             menu = &GattcTestMenu[0];
             num_cmds = NO_OF_COMMANDS(GattcTestMenu);
+            break;
+        case GATTSTEST_MENU:
+            menu = &GattsTestMenu[0];
+            num_cmds  = NO_OF_COMMANDS(GattsTestMenu);
             break;
 #endif
         case MAIN_MENU:
@@ -1285,6 +1295,10 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = GATTC_TEST_MENU;
             DisplayMenu(menu_type);
             break;
+        case GATTSTEST_OPTION:
+            menu_type = GATTSTEST_MENU;
+            DisplayMenu(menu_type);
+            break;
 #endif
 #ifdef USE_BT_OBEX
         case PBAP_CLIENT_OPTION:
@@ -2012,6 +2026,229 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             break;
     }
 }
+
+
+static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
+{
+    bool advEnable = true;
+    int  advDuration = 20000;
+    int  advMaxEvents = 0;
+    bool isConnected=0;
+    static bool init_server_file=0;
+    static bool init_advertiser_file = 0;
+    int  server_inst = 0;
+    int  service_inst = 0;
+    static bool disable = 0;
+    switch (cmd_id) {
+        case GATTSTEST_INIT_SERVER:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                fprintf( stdout, "ENABLE GATTSTEST\n");
+                if (gattstest) {
+                    fprintf(stdout,"Gattstest already initialized \n");
+                    return;
+                } else {
+                    if (g_gatt) {
+                        fprintf(stdout,"Initializing Gattstest \n");
+                        gattstest = new GattsTest(g_gatt);
+                        if (gattstest) {
+                            fprintf(stdout,"Reading Server Configuration File .... \n");
+                             gattstest->ReadServerConfigurationFile();
+                             init_server_file = true;
+                        } else {
+                            fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                        }
+                    } else {
+                        fprintf(stdout," gatt interface is null \n");
+                    }
+                }
+             } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+             break;
+        case GATTSTEST_ADDSERVER:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if(g_gatt) {
+                    if(init_server_file)  {
+                        server_num++;
+                        fprintf(stdout,"Adding Server %d \n",server_num);
+                        gattstest->AddServer();
+                    } else {
+                        fprintf(stdout,"Do gattstest_init_server first \n");
+                    }
+                } else {
+                    fprintf(stdout,"gatt interface is null \n");
+                }
+            } else {
+                fprintf(stdout, "BT is in OFF State now \n");
+            }
+            break;
+        case GATTSTEST_ADDSERVICES:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (gattstest) {
+                    fprintf(stdout,"AddServices \n");
+                    string server_instance = user_cmd[ONE_PARAM];
+                    string service_instance = user_cmd[TWO_PARAM];
+                    bool result = gattstest->AddService(server_instance,service_instance);
+                    if(!result) {
+                        fprintf(stdout,"Service could not be added\n");
+                    }
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
+            } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+            }
+            break;
+        case GATTSTEST_INIT_ADVERTISER:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (gattstest) {
+                    fprintf(stdout,"Initialize Advertiser \n");
+                    file_read = gattstest->ReadAdvertiserConfigFile();
+                    init_advertiser_file = true;
+                    if(file_read)
+                        fprintf(stdout,"File read Succcessfully \n");
+                    else
+                        fprintf(stdout,"File not read \n");
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
+            } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+            }
+            break;
+        case GATTSTEST_START_ADVERTISER:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (gattstest) {
+                    fprintf(stdout,"StartAdvertisement \n");
+                    string server_instance = user_cmd[ONE_PARAM];
+                    if(file_read && (init_advertiser_file == true)) {
+                        bool result =gattstest->StartAdvertisement(server_instance);
+                        if(!result){
+                            fprintf(stdout,"Advertisement has not started\n");
+                        }
+                    } else {
+                        fprintf(stdout,"Do init Advertiser first \n");
+                    }
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
+             } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+             break;
+        case GATTSTEST_READPHY:
+            fprintf(stdout,"Read Phy \n");
+            if(string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattstest) {
+                    ALOGE(LOGTAG"gattstest->ReadPhy");
+                    fprintf(stdout,"User input is %s \n",user_cmd[ONE_PARAM]);
+                    string server_instance = user_cmd[TWO_PARAM];
+                    bool status =gattstest->ReadPhy(server_instance,user_cmd[ONE_PARAM]);
+                    if(!status)
+                    {
+                        fprintf(stdout,"tx/rx phy could not be read \n");
+                    }
+                } else {
+                    fprintf( stdout, "Do Init first \n ");
+                }
+            } else {
+                fprintf(stdout,"BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTSTEST_SET_PREFERRED_PHY:
+            fprintf(stdout,"Set Preferred Phy \n");
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattstest) {
+                    string deviceAddress = user_cmd[ONE_PARAM];
+                    string server_instance = user_cmd[TWO_PARAM];
+                    string txOption = user_cmd[THREE_PARAM];
+                    string rxOption = user_cmd[FOUR_PARAM];
+                    int phyOption = AdvertisingSetParameters::PHY_OPTION_NO_PREFERRED;
+                    fprintf(stdout,"the user options are address: %s server_instance: %s txoption: %s rxoption: %s phyoption: %d \n",deviceAddress.c_str(),server_instance.c_str(),txOption.c_str(),rxOption.c_str(),phyOption);
+                    bool status =gattstest->SetPreferredPhy(deviceAddress,server_instance,txOption,rxOption,phyOption);
+                    if(!status) {
+                        fprintf(stdout,"Phy preferences were not set \n");
+                    }
+                } else {
+                    fprintf( stdout, "Do Init first \n ");
+                }
+            } else {
+                fprintf(stdout,"BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTSTEST_STOP:
+            if(gattstest) {
+                fprintf(stdout, "Stop Advertisement \n");
+                string server_instance = user_cmd[ONE_PARAM];
+                gattstest->StopAdvertisement(server_instance);
+            } else {
+                fprintf( stdout, "Do Init first \n ");
+            }
+            break;
+        case GATTSTEST_UNREGISTER_SERVER:
+            if((g_bt_app->bt_state == BT_STATE_ON)){
+                fprintf( stdout, "Unregister Server \n");
+                if (gattstest) {
+                    bool status = gattstest->UnregisterServer(user_cmd[ONE_PARAM]);
+                    if(status)
+                    {
+                        fprintf(stdout,"Server unregistered succesfully \n");
+                    } else {
+                         fprintf(stdout,"Server not unregistered\n");
+                    }
+                } else {
+                    fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                }
+             } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+             break;
+        case GATTSTEST_DISABLE:
+            if((g_bt_app->bt_state == BT_STATE_ON)){
+                fprintf( stdout, "Disable Gattstest \n");
+                if (gattstest) {
+                    if(!disable) {
+                    gattstest->DisableGATTSTEST();
+                    gattstest->~GattsTest();
+                    disable = true;
+              } else {
+                fprintf(stdout,"Disable was already performed \n");
+              }
+                } else {
+                    fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                }
+             } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+             break;
+        case GATTSTEST_CANCEL_CONNECTION:
+            if((g_bt_app->bt_state == BT_STATE_ON)) {
+                fprintf( stdout, "Cancel Connection \n");
+                if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                    if (gattstest) {
+                        string deviceAddress = user_cmd[ONE_PARAM];
+                        gattstest->CancelConnection(deviceAddress);
+                    } else {
+                        fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                    }
+                } else {
+                    fprintf(stdout,"BD address is NULL/Invalid \n");
+                }
+            } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+            }
+            break;
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+
+        default:
+            fprintf(stdout, " Command not handled\n");
+            break;
+    }
+}
+
 #endif
 
 static void SendEnableCmdToGap() {
@@ -2648,6 +2885,9 @@ static void BtCmdHandler (void *context) {
             case GATTC_TEST_MENU:
                 fprintf(stdout, "BtCmdHandler GATTC_TEST_MENU");
                 HandleGattcTestCommand(cmd_id, user_cmd);
+                break;
+            case GATTSTEST_MENU:
+                HandleGattsTestCommand(cmd_id, user_cmd);
                 break;
 #endif
            /* case RSP_MENU:

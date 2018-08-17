@@ -34,6 +34,7 @@
 
 #ifdef USE_GEN_GATT
 #include "GattcTest.hpp"
+#include "GattsTest.hpp"
 #endif
 #include <cutils/sockets.h>
 #include <sys/un.h>
@@ -257,6 +258,18 @@ typedef enum {
     GATTCTEST_GETDESCID,
     GATTCTEST_CONN_DEVICES,
     GATTCTEST_RELIABLEWRITE,
+    GATTSTEST_OPTION,
+    GATTSTEST_INIT_SERVER,
+    GATTSTEST_ADDSERVER,
+    GATTSTEST_ADDSERVICES,
+    GATTSTEST_INIT_ADVERTISER,
+    GATTSTEST_START_ADVERTISER,
+    GATTSTEST_READPHY,
+    GATTSTEST_SET_PREFERRED_PHY,
+    GATTSTEST_STOP,
+    GATTSTEST_UNREGISTER_SERVER,
+    GATTSTEST_DISABLE,
+    GATTSTEST_CANCEL_CONNECTION,
 #endif
     HFP_CLIENT,
     CREATE_SCO_CONN,
@@ -324,6 +337,7 @@ typedef enum {
 //    RSP_MENU,
 #ifdef USE_GEN_GATT
     GATTC_TEST_MENU,
+    GATTSTEST_MENU,
 #endif
     HIDH_MENU,
 #ifdef USE_BT_OBEX
@@ -383,6 +397,7 @@ UserMenuList MainMenu[] = {
     {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
 #ifdef USE_GEN_GATT
     {GATTCTEST_OPTION,      "gattctest_menu",   ZERO_PARAM,   "gattctest_menu"},
+    {GATTSTEST_OPTION,      "gattstest_menu",   ZERO_PARAM,   "gattstest_menu"},
 #endif
     {HID_HOST,              "hid_menu",         ZERO_PARAM,   "hid_menu"},
 #ifdef USE_BT_OBEX
@@ -424,6 +439,22 @@ UserMenuList RspMenu[] = {
     {RSP_START,             "rsp_start", ZERO_PARAM,    "rsp_start would (re)start adv"},
     {BACK_TO_MAIN,          "main_menu",  ZERO_PARAM, "main_menu"},
 };
+
+UserMenuList GattsTestMenu[] = {
+    {GATTSTEST_INIT_SERVER,        "gattstest_init_server",        ZERO_PARAM,    "gattstest_init_server (only for Init time)"},
+    {GATTSTEST_ADDSERVER,          "gattstest_addservers",         ZERO_PARAM,    "gattstest_addservers"},
+    {GATTSTEST_ADDSERVICES,        "gattstest_addservices",        TWO_PARAM,     "gattstest_addservices<space><server instance><space><service instance>"},
+    {GATTSTEST_INIT_ADVERTISER,    "gattstest_init_advertiser",    ZERO_PARAM,    "gattstest_init_advertiser initialzes advertiser"},
+    {GATTSTEST_START_ADVERTISER,   "gattstest_start_advertiser",   ONE_PARAM,     "gattstest_start_advertiser<space><server instance>"},
+    {GATTSTEST_READPHY,            "gattstest_readphy",            ONE_PARAM,     "gattstest_readphy<space><remote address><server instance>"},
+    {GATTSTEST_SET_PREFERRED_PHY,  "gattstest_set_preferred_phy",  FOUR_PARAM,    "gattstest_set_preferred_phy<space><remote address><space><server instance><space><tx phy><space><rx phy>"},
+    {GATTSTEST_STOP,               "gattstest_stop",               ONE_PARAM,     "gattstest_stop<space><server_instance>"},
+    {GATTSTEST_DISABLE,             "gattstest_disable",         ZERO_PARAM,     "gattstest_disable"},
+    {GATTSTEST_CANCEL_CONNECTION,   "gattstest_cancel_connection",  ONE_PARAM,   "gattstest_cancel_connection<space><remote address>"},
+    {GATTSTEST_UNREGISTER_SERVER, "gattstest_unregister_Server",  ONE_PARAM,    "gattstest_unregister_server<space><server instance>"},
+    {BACK_TO_MAIN,          "main_menu",       ZERO_PARAM,    "main_menu"},
+};
+
 
 #ifdef USE_GEN_GATT
 /**
@@ -748,6 +779,18 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
 * @return none
 */
 static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+
+/**
+ * @brief HandleGattsTestCommand
+ *
+ *  This function will handle all the commands in @ref GattstestMenu
+ *
+ * @param[in] cmd_id It has command id from @ref CommandList
+ * @param[in] user_cmd It has parsed commands with arguments passed by user
+ * @return none
+ */
+ static void HandleGattsTestCommand(int cmd_id, char user_cmd [ ] [ COMMAND_ARG_SIZE ]);
+
 #endif
 
 /**

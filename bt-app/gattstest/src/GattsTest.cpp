@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-18, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -27,834 +27,1258 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Gatt.hpp"
+#include <algorithm>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <map>
+#include <unordered_map>
+#include <list>
+#include <iterator>
+#include <regex>
+
+
 #include "GattsTest.hpp"
+#include "AdvertiseSettings.hpp"
+#include "AdvertiseData.hpp"
+#include "AdvertisingSetCallback.hpp"
+#include "AdvertisingSet.hpp"
+#include "AdvertisingSetParameters.hpp"
+#include "PeriodicAdvertiseParameters.hpp"
+#include "GattLeAdvertiser.hpp"
+
+
+using namespace std;
+using namespace gatt;
 
 #define LOGTAG "GATTSTEST "
 #define UNUSED
 
+#define SERVER_CFG_FILE_PATH "/data/misc/bluetooth/ServerConfigFile.txt"
+#define ADV_CFG_FILE_PATH "/data/misc/bluetooth/AdvertiserConfigFile.txt"
+#define GATT_SUCCESS 0
+#define AUTO_CONNECT 0
+#define TRANSPORT 0
+#define MAX_SERVER_INSTANCE 20
+#define MAX_SERVICE_INSTANCE 5
+
 GattsTest *gattstest = NULL;
-int gattstestserverif, gattstestclientif;
-
-class gattstestClientCallback : public BluetoothGattClientCallback
-{
-   public:
-   void btgattc_client_register_app_cb(int status,int client_if,bt_uuid_t *uuid) {
-
-        ALOGD(LOGTAG"gattServerRegisterAppCb\n ");
-
-        GattcRegisterAppEvent event;
-        event.event_id = GEN_GATT_EVENT;
-        event.status = status;
-        event.clientIf = client_if;
-        memcpy(&event.app_uuid,uuid,sizeof(bt_uuid_t));
-        gattstest->SetGATTSTESTClientAppData(&event);
-
-        gattstest->ClientSetAdvData("Remote Start Profile");
-        if (!gattstest->StartAdvertisement())
-             gattstest->setIsAdvertising(1);
-        ALOGD(LOGTAG, "isAdvertising %d",gattstest->getIsAdvertising() );
-   }
-
-   void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data) {
-        UNUSED
-   }
-
-   void btgattc_open_cb(int conn_id, int status, int clientIf, bt_bdaddr_t* bda)
-   {
-        ALOGD(LOGTAG"btgattc_open_cb: conn_id = %d\n ", conn_id);
-        GattsOpenEvent event;
-        event.event_id = GEN_GATT_EVENT;
-        event.conn_id = conn_id;
-        event.clientIf = clientIf;
-        memcpy(&event.bda, bda, sizeof(bt_bdaddr_t));
-        event.status=status;
-
-        if (gattstest) {
-            gattstest->SetGATTSTESTClientConnectionData(&event);
-        }else {
-             fprintf(stdout, "(%s): Open With error (%d)\n", __FUNCTION__, status);
-        }
-   }
-
-   void btgattc_close_cb(int conn_id, int status, int clientIf, bt_bdaddr_t* bda)
-   {
-       ALOGD(LOGTAG"btgattc_close_cb: conn_id = %d\n ", conn_id);
-   }
-
-   void btgattc_search_complete_cb(int conn_id, int status)
-   {
-        UNUSED
-   }
-
-   void btgattc_search_result_cb(int conn_id, btgatt_srvc_id_t *srvc_id)
-   {
-        UNUSED
-   }
-
-   void btgattc_get_characteristic_cb(int conn_id, int status,
-                                     btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
-                                     int char_prop)
-   {
-        UNUSED
-   }
-
-   void btgattc_get_descriptor_cb(int conn_id, int status,
-                                 btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
-                                 btgatt_gatt_id_t *descr_id)
-   {
-        UNUSED
-   }
-
-   void btgattc_get_included_service_cb(int conn_id, int status,
-                                       btgatt_srvc_id_t *srvc_id, btgatt_srvc_id_t *incl_srvc_id)
-   {
-        UNUSED
-   }
-
-   void btgattc_register_for_notification_cb(int conn_id, int registered,
-                                                int status, btgatt_srvc_id_t *srvc_id,
-                                                btgatt_gatt_id_t *char_id)
-   {
-        UNUSED
-   }
-
-   void btgattc_notify_cb(int conn_id, btgatt_notify_params_t *p_data)
-   {
-        UNUSED
-   }
-
-   void btgattc_read_characteristic_cb(int conn_id, int status,
-                                          btgatt_read_params_t *p_data)
-   {
-        UNUSED
-   }
-
-   void btgattc_write_characteristic_cb(int conn_id, int status,
-                                           btgatt_write_params_t *p_data)
-   {
-        UNUSED
-   }
-
-   void btgattc_read_descriptor_cb(int conn_id, int status, btgatt_read_params_t *p_data)
-   {
-        UNUSED
-   }
-
-    void btgattc_write_descriptor_cb(int conn_id, int status, btgatt_write_params_t *p_data)
-    {
-        UNUSED
-    }
-
-   void btgattc_execute_write_cb(int conn_id, int status)
-   {
-        UNUSED
-   }
-
-   void btgattc_remote_rssi_cb(int client_if,bt_bdaddr_t* bda, int rssi, int status)
-   {
-       UNUSED
-   }
-
-   void btgattc_advertise_cb(int status, int client_if)
-   {
-        UNUSED
-
-   }
-
-   void btgattc_configure_mtu_cb(int conn_id, int status, int mtu)
-   {
-        UNUSED
-   }
-
-   void btgattc_scan_filter_cfg_cb(int action, int client_if, int status, int filt_type, int avbl_space)
-   {
-        UNUSED
-   }
-
-   void btgattc_scan_filter_param_cb(int action, int client_if, int status, int avbl_space)
-   {
-        UNUSED
-   }
-
-   void btgattc_scan_filter_status_cb(int action, int client_if, int status)
-   {
-        UNUSED
-   }
-
-   void btgattc_multiadv_enable_cb(int client_if, int status)
-   {
-        UNUSED
-   }
-
-   void btgattc_multiadv_update_cb(int client_if, int status)
-   {
-        UNUSED
-   }
-
-    void btgattc_multiadv_setadv_data_cb(int client_if, int status)
-   {
-        UNUSED
-   }
-
-   void btgattc_multiadv_disable_cb(int client_if, int status)
-   {
-        UNUSED
-   }
-
-   void btgattc_congestion_cb(int conn_id, bool congested)
-   {
-        UNUSED
-   }
-
-   void btgattc_batchscan_cfg_storage_cb(int client_if, int status)
-   {
-        UNUSED
-   }
-
-   void btgattc_batchscan_startstop_cb(int startstop_action, int client_if, int status)
-   {
-        UNUSED
-
-   }
-
-   void btgattc_batchscan_reports_cb(int client_if, int status, int report_format,
-        int num_records, int data_len, uint8_t *p_rep_data)
-   {
-        UNUSED
-   }
-
-   void btgattc_batchscan_threshold_cb(int client_if)
-   {
-        UNUSED
-   }
-
-   void btgattc_track_adv_event_cb(btgatt_track_adv_info_t *p_adv_track_info)
-   {
-        UNUSED
-   }
-
-   void btgattc_scan_parameter_setup_completed_cb(int client_if, btgattc_error_t status)
-   {
-        UNUSED
-   }
-
-};
-
-class gattstestServerCallback :public BluetoothGattServerCallback
-{
-
-    public:
-
-    void gattServerRegisterAppCb(int status, int server_if, bt_uuid_t *uuid) {
-
-        ALOGD(LOGTAG"gattServerRegisterAppCb status is %d, serverif is %d \n ",
-                status, server_if);
-
-        if (status == BT_STATUS_SUCCESS) {
-            GattsRegisterAppEvent rev;
-            rev.event_id = GEN_GATT_EVENT;
-            rev.server_if = server_if;
-            memcpy(&rev.uuid, uuid, sizeof(bt_uuid_t));
-            rev.status = status;
-            ALOGD(LOGTAG" set gattstest data \n");
-            gattstest->SetGATTSTESTAppData(&rev);
-            gattstest->AddService();
-        } else {
-            fprintf (stdout,"(%s) Failed to registerApp, %d \n",__FUNCTION__, server_if);
-        }
-    }
-
-    void btgatts_connection_cb(int conn_id, int server_if, int connected, bt_bdaddr_t *bda)
-    {
-
-        ALOGD(LOGTAG"btgatts_connection_cb  gattstest \n ");
-
-        GattsConnectionEvent event;
-        event.event_id = GEN_GATT_EVENT;
-        event.conn_id = conn_id;
-        event.server_if = server_if;
-        event.connected = connected;
-        memcpy(&event.bda, bda, sizeof(bt_bdaddr_t));
-
-        if (gattstest) {
-            gattstest->SetGATTSTESTConnectionData(&event);
-            if (connected) {
-                if(!gattstest->StopAdvertisement())
-                    gattstest->setIsAdvertising(0);
-            }
-            ALOGD(LOGTAG, "isAdvertising %d connected %d",gattstest->getIsAdvertising(),connected);
-        }
-
-    }
-
-    void btgatts_service_added_cb(int status, int server_if,
-                                    btgatt_srvc_id_t *srvc_id, int srvc_handle)
-    {
-        ALOGD(LOGTAG"btgatts_service_added_cb \n");
-        if (status == BT_STATUS_SUCCESS) {
-            GattsServiceAddedEvent event;
-            event.event_id =GEN_GATT_EVENT;
-            event.server_if = server_if;
-            memcpy(&event.srvc_id, srvc_id,sizeof(btgatt_srvc_id_t));
-            event.srvc_handle = srvc_handle;
-            gattstest->SetGATTSTESTSrvcData(&event);
-            gattstest->AddCharacteristics();
-        } else {
-            ALOGD(LOGTAG "(%s) Failed to Add_Service %d ",__FUNCTION__, server_if);
-        }
-    }
-
-    void btgatts_included_service_added_cb(int status, int server_if, int srvc_handle,
-                                                int incl_srvc_handle)
-    {
-            UNUSED;
-    }
-
-    void btgatts_characteristic_added_cb(int status, int server_if, bt_uuid_t *char_id,
-                                                    int srvc_handle, int char_handle)
-    {
-        ALOGD(LOGTAG"btgatts_characteristic_added_cb \n");
-        if (status == BT_STATUS_SUCCESS) {
-            GattsCharacteristicAddedEvent event;
-            event.event_id =GEN_GATT_EVENT;
-            event.server_if = server_if;
-            memcpy(&event.char_id, char_id,sizeof(bt_uuid_t));
-            event.srvc_handle = srvc_handle;
-            event.char_handle = char_handle;
-            gattstest->SetGATTSTESTCharacteristicData(&event);
-            gattstest->AddDescriptor();
-        } else {
-            ALOGD(LOGTAG "(%s) Failed to Add Characteristics %d ",__FUNCTION__, server_if);
-        }
-    }
-
-    void btgatts_descriptor_added_cb(int status, int server_if, bt_uuid_t *descr_id,
-                                                int srvc_handle, int descr_handle)
-    {
-        ALOGD(LOGTAG"btgatts_descriptor_added_cb \n");
-        if (status == BT_STATUS_SUCCESS) {
-            GattsDescriptorAddedEvent event;
-            event.event_id =GEN_GATT_EVENT;
-            event.server_if = server_if;
-            memcpy(&event.descr_id, descr_id,sizeof(bt_uuid_t));
-            event.srvc_handle = srvc_handle;
-            event.descr_handle= descr_handle;
-            gattstest->SetGATTSTESTDescriptorData(&event);
-            gattstest->StartService();
-            } else {
-            ALOGD(LOGTAG "(%s) Failed to add descriptor %d \n",__FUNCTION__, server_if);
-            }
-    }
-
-    void btgatts_service_started_cb(int status, int server_if, int srvc_handle)
-    {
-        ALOGD(LOGTAG"btgatts_service_started_cb \n");
-        gattstest->RegisterClient();
-    }
-
-    void btgatts_service_stopped_cb(int status, int server_if, int srvc_handle)
-    {
-        ALOGD(LOGTAG"btgatts_service_stopped_cb \n");
-
-        if (gattstest) {
-            if (!status)
-                gattstest->DeleteService();
-        }
-        ALOGD(LOGTAG  "GATTSTEST Service stopped successfully, deleting the service\n");
-    }
-
-    void btgatts_service_deleted_cb(int status, int server_if, int srvc_handle)
-    {
-        ALOGD(LOGTAG"btgatts_service_deleted_cb \n");
-
-        if (gattstest) {
-            if (!status) {
-                gattstest->CleanUp(server_if);
-                delete gattstest;
-                gattstest = NULL;
-            }
-        }
-        ALOGD(LOGTAG"GATTSTEST Service stopped & Unregistered successfully\n");
-    }
-
-    void btgatts_request_read_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int attr_handle,
-                                            int offset, bool is_long)
-    {
-        UNUSED;
-    }
-
-    void btgatts_request_write_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int attr_handle,
-                                            int offset, int length, bool need_rsp, bool is_prep,
-                                            uint8_t* value)
-    {
-        ALOGD(LOGTAG"onCharacteristicWriteRequest \n");
-        GattsRequestWriteEvent event;
-        event.event_id = GEN_GATT_EVENT;
-        event.conn_id = conn_id;
-        event.trans_id = trans_id;
-        memcpy(&event.bda, bda, sizeof(bt_uuid_t));
-        event.attr_handle = attr_handle;
-        event.offset = offset;
-        event.length = length;
-        event.need_rsp = need_rsp;
-        event.is_prep = is_prep;
-    event.value = value;
-
-        gattstest->SendResponse(&event);
-    }
-    void btgatts_request_exec_write_cb(int conn_id, int trans_id,
-                                                    bt_bdaddr_t *bda, int exec_write)
-    {
-        UNUSED;
-    }
-
-    void btgatts_response_confirmation_cb(int status, int handle)
-    {
-        UNUSED;
-    }
-
-    void btgatts_indication_sent_cb(int conn_id, int status)
-    {
-        UNUSED;
-    }
-
-    void btgatts_congestion_cb(int conn_id, bool congested)
-    {
-        UNUSED;
-    }
-
-    void btgatts_mtu_changed_cb(int conn_id, int mtu)
-    {
-        UNUSED;
-    }
-};
-
+extern GattLibService *g_gatt;
+int num_of_server;
+int num_of_devices;
+int num_of_advertiser = 0;
+GattServer *mgattServer = NULL;
 gattstestServerCallback *gattstestServerCb = NULL;
-gattstestClientCallback *gattstestClientCb = NULL;
 
-GattsTest::GattsTest(btgatt_interface_t *gatt_itf, Gatt* gatt)
+
+
+map<int, AdvertisingSet*> advSetMap;
+vector <string> connectedDevices;
+unordered_map < gattstestServerCallback*, GattServer*> servCBInstanceMap;
+
+map<gattstestServerCallback*,string> connectedDeviceMap;
+map<string,GattServer*> DeviceMap;
+
+
+vector <string> service_field;
+list <GattCharacteristic> mCharList;
+
+AdvertiseSettings *mAdvertiseSettings = NULL;
+AdvertiseData *mAdvertiseData = NULL;
+AdvertiseData *mScanResponseData = NULL;
+AdvertiseData *mPeriodicData = NULL;
+
+
+AdvertisingSetParameters *mAdvertisingParameters;
+PeriodicAdvertiseParameters *mPeriodicParams;
+AdvertisingSet *mAdvertisingSet;
+
+bool split (const string &s, char c,vector<string> &v)
 {
-    ALOGD(LOGTAG"gattstest instantiated ");
-    gatt_interface = gatt_itf;
-    app_gatt = gatt;
-    gattstestClientCb = new gattstestClientCallback;
-    gattstestServerCb = new gattstestServerCallback;
-    isClientRegistered = false;
-    isServerRegistered = false;
-    isAdvertising = false;
+  string::size_type i = 0;
+  string::size_type j = s.find(c);
+  //if comma separator found at the first index then the entry is invalid
+  if ( j == 0 ) {
+    return false;
+  }
+  //if comma separator not found in entire string
+  if( j == string::npos) {
+    v.push_back(s);
+    return true;
+  }
+  while(j != string::npos) {
+    v.push_back(s.substr(i,j-i));
+    i = ++j;
+    j = s.find(c,j);
+    if(j == string::npos) {
+      v.push_back(s.substr(i,s.length()));
+      return true;
+    }
+  }
 }
 
+void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int status,
+                                                               int newState)
+{
+  bool connected= false;
+  string address;
+  GattServer *mServer;
+  unordered_map <gattstestServerCallback*,GattServer*> ::iterator ptr;
+  map <string,GattServer*> ::iterator dtr = DeviceMap.find(deviceAddress);
+  map<gattstestServerCallback*,string> ::iterator iter;
+  iter =connectedDeviceMap.find(gattstestServerCb);
+  vector <string> ::iterator it;
+  it = find(connectedDevices.begin(),connectedDevices.end(),deviceAddress);
+  ALOGD(LOGTAG"%s status = %d newState = %d", __FUNCTION__ , status , newState);
+  ALOGD(LOGTAG"%s device address: %s",__FUNCTION__, deviceAddress.c_str());
+  if (newState == GattDevice::STATE_CONNECTED && status == GATT_SUCCESS) {
+    fprintf(stdout,"The device %s got connected \n", deviceAddress.c_str());
+    gattstestServerCb = this;
+    if(it != connectedDevices.end()) {
+      //Device already exists do not insert
+    } else {
+        connectedDevices.push_back(deviceAddress);
+    }
+    for(ptr = servCBInstanceMap.begin(); ptr != servCBInstanceMap.end() ; ++ptr ) {
+      if(ptr->first == gattstestServerCb) {
+        ALOGD(LOGTAG"ptr->first == gattstestServerCb");
+        connected = true;
+        break;
+      }
+    }
+    if(connected) {
+      mServer= ptr->second;
+      if(dtr != DeviceMap.end()) {
+      //Device Already exists do not add
+    } else {
+      DeviceMap.insert(pair <string,GattServer*> (deviceAddress,mServer));
+    }
+    mServer->connect(deviceAddress,AUTO_CONNECT);
+    }
+  } else if(newState == GattDevice::STATE_DISCONNECTED) {
+    fprintf(stdout,"The device %s got disconnected \n", deviceAddress.c_str());
+    if(dtr != DeviceMap.end()) {
+      DeviceMap.erase(dtr);
+    }
+    for(it = connectedDevices.begin(); it != connectedDevices.end() ; ++it ) {
+      if(*it == deviceAddress) {
+        ALOGD(LOGTAG"*itr == deviceAddress  %s == %s", (*it).c_str(),deviceAddress.c_str());
+        connectedDevices.erase(it);
+        break;
+      }
+    }
+  }
+  ALOGD(LOGTAG"Connected Device list :");
+  for(it = connectedDevices.begin(); it != connectedDevices.end() ; ++it ) {
+    ALOGD(LOGTAG"deviceAddress: %s", (*it).c_str());
+  }
+}
+
+void gattstestServerCallback::onServiceAdded(int status,GattService *service)
+{
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  if (status == GATT_SUCCESS) {
+    ALOGD(LOGTAG"%s Service Added successfully",__FUNCTION__);
+    ALOGD(LOGTAG"The Service has a UUID: %s IsAdvertisePreferred: %d instanceid: %d", service->getUuid().ToString().c_str(),
+          service->isAdvertisePreferred(), service->getInstanceId());
+    int type = service->getType();
+    if(type) {
+      ALOGD(LOGTAG"Service is of Type - Secondary");
+    } else {
+      ALOGD(LOGTAG"Service is of Type - Primary");
+    }
+  } else {
+    ALOGD(LOGTAG "%s Failed to Add Service instance id: %d ", __FUNCTION__, service->getInstanceId());
+  }
+}
+
+void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, int requestId,
+                                          int offset, GattCharacteristic *characteristic)
+{
+  ALOGD(LOGTAG"%s address = %s requestId = %d offset = %d",__FUNCTION__,deviceAddress.c_str(),requestId,offset);
+  uint8_t *value = NULL;
+  value = characteristic->getValue();
+  GattService *mService = characteristic->getService();
+  Uuid s_uuid = mService->getUuid();
+  Uuid c_uuid = characteristic->getUuid();
+  ALOGD(LOGTAG"%s value = %s", __FUNCTION__, value);
+  ALOGD(LOGTAG"%s characteristic = %p", __FUNCTION__, *characteristic);
+  ALOGD(LOGTAG"%s service Uuid = %s", __FUNCTION__, s_uuid.ToString().c_str());
+  ALOGD(LOGTAG"%s characteristic uuid = %s", __FUNCTION__, c_uuid.ToString().c_str());
+  GattServer *mServer = NULL;
+  unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
+  gattstestServerCb = this;
+  for(str = servCBInstanceMap.begin(); str != servCBInstanceMap.end() ; ++str ) {
+    if(str->first == gattstestServerCb) {
+      ALOGD(LOGTAG"str->first == gattstestServerCb");
+      break;
+    }
+  }
+  mServer= str->second;
+  ALOGD(LOGTAG"str->first %p  str->second %p", str->first, str->second);
+  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+  if(status) {
+    ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
+  }
+}
+
+void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,int requestId,
+                                      GattCharacteristic *characteristic,bool preparedWrite,bool responseNeeded,
+                                      int offset,uint8_t* value)
+{
+  ALOGD(LOGTAG"%s address:%s requestId: %d offset: %d preparedWrite = %d, responseNeeded = %d", __FUNCTION__, deviceAddress.c_str(),
+       requestId,offset,preparedWrite,responseNeeded);
+  ALOGD(LOGTAG"%s uuid: %s ", __FUNCTION__, characteristic->getUuid().ToString().c_str());
+  ALOGD(LOGTAG"%s value: %s ", __FUNCTION__,value);
+  characteristic->setValue(value);
+  GattServer *mServer = NULL;
+  unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
+  bool confirm  = false;
+  gattstestServerCb = this;
+  for(str = servCBInstanceMap.begin(); str != servCBInstanceMap.end() ; ++str ) {
+    if(str->first == gattstestServerCb) {
+      ALOGD(LOGTAG"str->first == gattstestServerCb");
+      break;
+    }
+  }
+  mServer= str->second;
+  if (responseNeeded) {
+    mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+  }
+  int d = characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY;
+  if((characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY) != 0) {
+    confirm = false;
+    mServer->notifyCharacteristicChanged(deviceAddress,*characteristic,confirm);
+  } else if((characteristic->getProperties() & GattCharacteristic::PROPERTY_INDICATE) != 0) {
+    confirm = true;
+    mServer->notifyCharacteristicChanged(deviceAddress,*characteristic,confirm);
+  }
+}
+
+void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int requestId, int offset, GattDescriptor *descriptor)
+{
+  ALOGD(LOGTAG"%s address = %s requestId = %d offset = %d", __FUNCTION__, deviceAddress.c_str(), requestId, offset);
+  uint8_t *value = NULL;
+  Uuid desc_uuid = descriptor->getUuid();
+  value = descriptor->getValue();
+  ALOGD(LOGTAG"%s Descriptor UUID: %s  value = %s", __FUNCTION__, desc_uuid.ToString().c_str(),descriptor->getValue());
+  GattServer *mServer = NULL;
+  unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
+    gattstestServerCb = this;
+    for(str = servCBInstanceMap.begin(); str != servCBInstanceMap.end() ; ++str ) {
+    if(str->first == gattstestServerCb)
+        ALOGD(LOGTAG"str->first == gattstestServerCb");
+        break;
+    }
+    mServer= str->second;
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+    if(status) {
+        ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
+    }
+}
+
+void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int requestId,
+                                                    GattDescriptor *descriptor,bool preparedWrite,
+                                                    bool responseNeeded, int offset, uint8_t * value)
+{
+  ALOGD(LOGTAG"%s address: %s requestID: %d preparedWrite: %d  responseNeeded: \
+              %d offset: %d", __FUNCTION__, deviceAddress.c_str(), requestId,
+              preparedWrite, responseNeeded, offset);
+  GattCharacteristic *characteristic = descriptor->getCharacteristic();
+  Uuid d_uid = descriptor->getUuid();
+  Uuid c_uid = characteristic->getUuid();
+  value = descriptor->getValue();
+  ALOGD(LOGTAG"%s  descriptor_uuid: %s value = %s", __FUNCTION__, d_uid.ToString().c_str(),
+                                                    descriptor->getValue());
+  GattServer *mServer = NULL;
+  unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
+  gattstestServerCb = this;
+  for(str = servCBInstanceMap.begin(); str != servCBInstanceMap.end() ; ++str ) {
+    if(str->first == gattstestServerCb) {
+      ALOGD(LOGTAG"str->first == gattstestServerCb");
+      break;
+    }
+  }
+  mServer= str->second;
+  if (responseNeeded) {
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+    if (status) {
+      ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
+    }
+  }
+}
+
+void gattstestServerCallback::onExecuteWrite(string deviceAddress, int requestId, bool execute)
+{
+  ALOGD(LOGTAG"%s deviceAddress: %s, requestID: %d execute %d", __FUNCTION__, deviceAddress,
+                                                              requestId, execute);
+}
+
+void gattstestServerCallback::onNotificationSent(string deviceAddress, int status)
+{
+  ALOGD(LOGTAG"%s deviceAddress %s status %d", __FUNCTION__, deviceAddress.c_str(), status);
+  if (status == GATT_SUCCESS)
+    ALOGD(LOGTAG"Notification sent Successfully");
+}
+
+void gattstestServerCallback::onMtuChanged(string deviceAddress, int mtu)
+{
+  ALOGD(LOGTAG"%s deviceAddress: %s mtu %d", deviceAddress.c_str(), mtu);
+}
+
+void gattstestServerCallback::onPhyUpdate(string deviceAddress,int txPhy, int rxPhy, int status)
+{
+  ALOGD(LOGTAG"%s deviceAddress: %s txphy: %d rxPhy: %d   status: %d", __FUNCTION__,
+                                          deviceAddress.c_str(), txPhy, rxPhy, status);
+  if (status == GATT_SUCCESS)
+    ALOGD(LOGTAG"Phy Update Sucessful");
+}
+
+void gattstestServerCallback::onPhyRead(string deviceAddress,int txPhy,int rxPhy,int status)
+{
+  fprintf(stdout,"%s deviceAddress: %s, txPhy: %d rxPhy: %d status: %d \n", __FUNCTION__,
+                                                    deviceAddress.c_str(), txPhy, rxPhy, status);
+  ALOGD(LOGTAG"%s deviceAddress: %s, txPhy: %d rxPhy: %d status: %d",__FUNCTION__,
+                                                    deviceAddress.c_str(), txPhy, rxPhy, status);
+  if (status == GATT_SUCCESS)
+    ALOGD(LOGTAG"Phy Read Sucessful");
+}
+
+void gattstestServerCallback::onConnectionUpdated(string deviceAddress,int interval,int latency,int timeout,int status)
+{
+  ALOGD(LOGTAG"%s deviceAddress: %s,interval: %d,latency %d,timeout %d, status:%d", __FUNCTION__,
+                                        deviceAddress.c_str(), interval, latency, timeout, status);
+  if (status == GATT_SUCCESS)
+    ALOGD(LOGTAG"Connection updated Successfully");
+}
+
+
+class gattstestAdvertiserCallback  :public AdvertisingSetCallback
+{
+  public:
+  void onAdvertisingSetStarted (AdvertisingSet *advertisingSet, int txPower, int status) {
+    ALOGD(LOGTAG"%s status: %d  txpower: %d", __FUNCTION__, status, txPower);
+    switch (status) {
+      case AdvertisingSetCallback::ADVERTISE_SUCCESS:
+        num_of_advertiser++;
+        ALOGD(LOGTAG"Advertising Set Success");
+        fprintf(stdout,"onAdvertisingSetStarted - Success \n");
+        ALOGD(LOGTAG"AdvertiserID: %d", advertisingSet->getAdvertiserId());
+        advSetMap.insert(pair <int,AdvertisingSet*> (num_of_advertiser,advertisingSet));
+      break;
+      case AdvertisingSetCallback::ADVERTISE_FAILED_ALREADY_STARTED:
+        ALOGD(LOGTAG"Advertising Already started");
+      break;
+      case AdvertisingSetCallback::ADVERTISE_FAILED_DATA_TOO_LARGE:
+        ALOGD(LOGTAG"Advertising Failed: Data too Large");
+      break;
+      case AdvertisingSetCallback::ADVERTISE_FAILED_FEATURE_UNSUPPORTED:
+        ALOGD(LOGTAG"Advertising Failed: Feature Unsupported");
+      break;
+      case AdvertisingSetCallback::ADVERTISE_FAILED_INTERNAL_ERROR:
+        ALOGD(LOGTAG"Advertising Failed: Internal Error");
+      break;
+      case AdvertisingSetCallback::ADVERTISE_FAILED_TOO_MANY_ADVERTISERS:
+        ALOGD(LOGTAG"Advertising Failed: Too Many Advertisers");
+      break;
+      default:
+        ALOGD(LOGTAG"Failure case unknown");
+     }
+  }
+
+  void  onAdvertisingDataSet(AdvertisingSet *advertisingset,int status)
+  {
+    ALOGD(LOGTAG"%s status: %d", __FUNCTION__, status);
+    if (status == AdvertisingSetCallback::ADVERTISE_SUCCESS) {
+      ALOGD(LOGTAG"Advertising Data is set successfully");
+      ALOGD(LOGTAG"Advertiser ID  %d", advertisingset->getAdvertiserId());
+    }
+  }
+
+  void onAdvertisingSetStopped (AdvertisingSet *advertisingSet)
+  {
+    ALOGD(LOGTAG"%s",__FUNCTION__);
+    ALOGD(LOGTAG"Advertiser ID  %d", advertisingSet->getAdvertiserId());
+  }
+
+  void onAdvertisingEnabled (AdvertisingSet *advertisingSet, bool enable, int status)
+  {
+    ALOGD(LOGTAG"%s  enable: %d status %d",__FUNCTION__,enable,status);
+    if (status == AdvertisingSetCallback::ADVERTISE_SUCCESS) {
+      ALOGD(LOGTAG"AdvertiserID: %d Advertising Enabled Succesfully", advertisingSet->getAdvertiserId());
+    }
+  }
+
+  void onScanResponseDataSet (AdvertisingSet *advertisingSet, int status)
+  {
+    ALOGD(LOGTAG"onScanResponseDataSet status: %d", status);
+    if (status == AdvertisingSetCallback::ADVERTISE_SUCCESS) {
+      ALOGD(LOGTAG"Advertiser id: %d Scan response Data set successfully", advertisingSet->getAdvertiserId());
+    }
+  }
+
+  void onAdvertisingParametersUpdated (AdvertisingSet *advertisingSet, int txPower, int status)
+  {
+    ALOGD(LOGTAG"onAdvertisingParametersUpdated txpower: %d status %d", txPower, status);
+    if (status == 0) {
+      ALOGD(LOGTAG"Advertiser Id: %d Advertising Parameters Updated Succesfully", advertisingSet->getAdvertiserId());
+     }
+  }
+
+  void onPeriodicAdvertisingParametersUpdated (AdvertisingSet *advertisingSet, int status)
+  {
+    ALOGD(LOGTAG"onPeriodicParametersUpdated  status: %d", status);
+    if (status == 0) {
+      ALOGD(LOGTAG"Advertiser id: %d Periodic Parameters Updated Succesfully", advertisingSet->getAdvertiserId());
+    }
+  }
+
+  void onPeriodicAdvertisingDataSet (AdvertisingSet *advertisingSet, int status)
+  {
+    ALOGD(LOGTAG"onPeriodicAAdvertisingDataSet status: %d", status);
+    if (status == 0) {
+      ALOGD(LOGTAG"Advertiser Id: %d Periodic advertising data Updated Succesfully", advertisingSet->getAdvertiserId());
+    }
+  }
+
+  void onPeriodicAdvertisingEnabled (AdvertisingSet *advertisingSet, bool enable, int status)
+  {
+    ALOGD(LOGTAG"onPeriodicAdvertisingEnabled enable : %d status: %d Advertiser id: %d", enable, status, advertisingSet->getAdvertiserId());
+  }
+
+  void onOwnAddressRead (AdvertisingSet *advertisingSet, int addressType, string address)
+  {
+    ALOGD(LOGTAG"onOwnAddressRead  addressType: %d  address: %s advertiser id: %d", addressType, address, advertisingSet->getAdvertiserId());
+  }
+
+  void onStartSuccess(AdvertiseSettings *settingsInEffect)
+  {
+    ALOGD(LOGTAG "onStartSuccess()");
+  }
+
+  void onStartFailure(int errorCode)
+  {
+    ALOGE(LOGTAG "onStartFailure() %d", errorCode);
+    fprintf(stdout," onStartFailure errorCode = %d", errorCode);
+  }
+
+};
+
+map <int, GattServer*> servInstanceMap;
+map <int,gattstestAdvertiserCallback*> advCBInstanceMap;
+gattstestAdvertiserCallback *gattstestAdvCb = NULL;
+GattLeAdvertiser *madvertiser = NULL;
+
+GattsTest::GattsTest(GattLibService* g_gatt)
+{
+  ALOGD(LOGTAG"gattstest instantiated ");
+  mlibservice = g_gatt->getGatt();
+}
 
 GattsTest::~GattsTest()
 {
-    if(gattstestClientCb != NULL) {
-        delete(gattstestClientCb);
-        gattstestClientCb = NULL;
+  ALOGD(LOGTAG "(%s) GATTSTEST DeInitialized",__FUNCTION__);
+  mlibservice = NULL;
+}
+
+
+void GattsTest::ReadServerConfigurationFile()
+{
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  string ch;
+  int line_num = 0;
+  int desired_line = 7;
+  bool status = false;
+  std::ifstream infile(SERVER_CFG_FILE_PATH);
+  //check whether file exists
+  if(!infile) {
+    ALOGD(LOGTAG"Error opening file");
+    return ;
+  }
+
+  while(!infile.eof()) {
+    getline(infile,ch,'\n');
+    if(std::regex_search(ch,std::regex("\\bServer[1-9]|Server[1-9][0-9]\\b"))) {
+      while(line_num < desired_line) {
+        getline(infile,ch,'\n');
+        status = ParseServiceDetails(ch);
+        if(!status) {
+          fprintf(stdout,"Service Records are not consistent \n");
+          break;
+        }
+        line_num++;
+      }
+      } else {
+        fprintf(stdout,"Server Config File is incorrect \n");
+      }
+      line_num = 0;
     }
-    if(gattstestServerCb != NULL) {
-        delete(gattstestServerCb);
-        gattstestServerCb = NULL;
+  fprintf(stdout,"File reading Done \n");
+  //closing the file after reading
+  infile.close();
+}
+
+bool GattsTest::ParseServiceDetails(string temp)
+{
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  int pos=0;
+  int i =0;
+  int manuID;
+  string manuData;
+  bool status = false;
+  if(regex_search(temp,regex("\\bService1\\b"))) {
+    i = 1;
+  }
+  if(regex_search(temp,regex("\\bService2\\b"))){
+    i = 2;
+  }
+  if(regex_search(temp,regex("\\bService3\\b"))) {
+    i = 3;
+  }
+  if(regex_search(temp,regex("\\bService4\\b"))) {
+    i = 4;
+  }
+  if(regex_search(temp,regex("\\bService5\\b"))) {
+    i = 5;
+  }
+  if(regex_search(temp,regex("\\bManufacturerId\\b"))) {
+    i = 6;
+  }
+  if(regex_search(temp,regex("\\bManufacturerData\\b"))) {
+    i = 7;
+  }
+  pos = temp.find(":");
+  temp = temp.substr(pos + 1);
+  stringstream ss(temp);
+  ss >> temp;
+  if(i == 6) {
+    istringstream(temp) >> manuID;
+    manufacturerId_list.push_back(manuID);
+    return true;
+  } else if (i == 7) {
+    manufacturerData_list.push_back(temp);
+    return true;
+  } else if (i <= 5 && i >= 1) {
+    status = split(temp,',',service_field);
+    if(status) {
+      ALOGD(LOGTAG"%s  status: %d", __FUNCTION__, status);
+      ParseServiceElement(i);
+      service_field.clear();
+      return true;
+    } else {
+      if (temp.empty()) {
+        ALOGD(LOGTAG" No Service UUID is present for service%d record",i);
+        return true;
+      } else {
+        ALOGD(LOGTAG"Invalid service entry");
+        return false;
+      }
     }
-    ALOGD(LOGTAG "(%s) GATTSTEST DeInitialized\n",__FUNCTION__);
-    isClientRegistered = false;
-    isServerRegistered = false;
-    isAdvertising = false;
+  } else if (i == 0) {
+    fprintf(stdout,"No Service record");
+    return false;
+  }
 }
 
-bool GattsTest::CopyUUID(bt_uuid_t *uuid)
+void GattsTest::ParseServiceElement(int instance)
 {
-    CHECK_PARAM(uuid)
-    for (int i = 0; i < 16; i++) {
-        uuid->uu[i] = 0x30;
+  ALOGD(LOGTAG"%s instance: %d",__FUNCTION__,instance);
+  string parameter;
+  int property;
+  int permissions;
+  Service *service_temp = new Service;
+  service_temp->s_uuid = "";
+  service_temp->c_uuid = "";
+  service_temp->d_uuid = "";
+  service_temp->c_property = -1;
+  service_temp->c_permissions = -1;
+  service_temp->d_permissions = -1;
+  int len = service_field.size();
+  if(instance >= 1 && instance <= 5) {
+    if(len >= 1) {
+      service_temp->s_uuid = service_field[0];
     }
-    return true;
-}
-
-bool GattsTest::CopyClientUUID(bt_uuid_t *uuid)
-{
-    CHECK_PARAM(uuid)
-    uuid->uu[0] = 0xff;
-    for (int i = 1; i < 16; i++) {
-        uuid->uu[i] = 0x30;
+    if(len >= 2) {
+      service_temp->c_uuid = service_field[1];
     }
-    return true;
-}
-
-bool GattsTest::CopyAlertServUUID(bt_uuid_t *uuid)
-{
-    CHECK_PARAM(uuid)
-    uuid->uu[15] = 0x00;
-    uuid->uu[14] = 0x00;
-    uuid->uu[13] = 0x18;
-    uuid->uu[12] = 0x02;
-    uuid->uu[11] = 0x00;
-    uuid->uu[10] =0x00;
-    uuid->uu[9] = 0x10;
-    uuid->uu[8] = 0x00;
-    uuid->uu[7] =0x80;
-    uuid->uu[6] = 0x00;
-    uuid->uu[5] = 0x00;
-    uuid->uu[4] = 0x80;
-    uuid->uu[3] = 0x5f;
-    uuid->uu[2] = 0x9b;
-    uuid->uu[1] = 0x34;
-    uuid->uu[0] = 0xfb;
-
-    return true;
-}
-bool GattsTest::CopyAlertCharUUID(bt_uuid_t *uuid)
-{
-    CHECK_PARAM(uuid)
-    uuid->uu[15] = 0x00;
-    uuid->uu[14] = 0x00;
-    uuid->uu[13] = 0x2a;
-    uuid->uu[12] = 0x06;
-    uuid->uu[11] = 0x00;
-    uuid->uu[10] =0x00;
-    uuid->uu[9] = 0x10;
-    uuid->uu[8] = 0x00;
-    uuid->uu[7] =0x80;
-    uuid->uu[6] = 0x00;
-    uuid->uu[5] = 0x00;
-    uuid->uu[4] = 0x80;
-    uuid->uu[3] = 0x5f;
-    uuid->uu[2] = 0x9b;
-    uuid->uu[1] = 0x34;
-    uuid->uu[0] = 0xfb;
-
-    return true;
-}
-
-bool GattsTest::CopyAlertDescUUID(bt_uuid_t *uuid)
-{
-    CHECK_PARAM(uuid)
-    uuid->uu[15] = 0x00;
-    uuid->uu[14] = 0x00;
-    uuid->uu[13] = 0x2a;
-    uuid->uu[12] = 0x07;
-    uuid->uu[11] = 0x00;
-    uuid->uu[10] =0x00;
-    uuid->uu[9] = 0x10;
-    uuid->uu[8] = 0x00;
-    uuid->uu[7] =0x80;
-    uuid->uu[6] = 0x00;
-    uuid->uu[5] = 0x00;
-    uuid->uu[4] = 0x80;
-    uuid->uu[3] = 0x5f;
-    uuid->uu[2] = 0x9b;
-    uuid->uu[1] = 0x34;
-    uuid->uu[0] = 0xfb;
-
-
-    return true;
-}
-
-
-bool GattsTest::CopyParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
-{
-    CHECK_PARAM(uuid_dest)
-    CHECK_PARAM(uuid_src)
-
-    for (int i = 0; i < 16; i++) {
-        uuid_dest->uu[i] = uuid_src->uu[i];
+    if(len >= 3) {
+      istringstream(service_field[2]) >> property;
+      service_temp->c_property = property;
     }
-    return true;
-}
-
-bool GattsTest::MatchParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
-{
-    CHECK_PARAM(uuid_dest)
-    CHECK_PARAM(uuid_src)
-
-    for (int i = 0; i < 16; i++) {
-        if(uuid_dest->uu[i] != uuid_src->uu[i])
-            return false;
+    if(len >= 4) {
+      istringstream(service_field[3]) >> permissions;
+      service_temp->c_permissions = permissions;
     }
-    ALOGD(LOGTAG "(%s) UUID Matches",__FUNCTION__);
-    return true;
+    if(len >= 5) {
+      service_temp->d_uuid = service_field[4];
+    }
+    if(len >= 5) {
+      istringstream(service_field[5]) >> permissions;
+      service_temp->d_permissions = permissions;
+    }
+  }
+  if(instance == 1) {
+    service1_list.push_back(service_temp);
+  }
+  if(instance == 2) {
+    service2_list.push_back(service_temp);
+  }
+  if(instance == 3) {
+    service3_list.push_back(service_temp);
+  }
+  if(instance == 4) {
+    service4_list.push_back(service_temp);
+  }
+  if(instance == 5) {
+    service5_list.push_back(service_temp);
+  }
 }
 
-bool GattsTest::EnableGATTSTEST()
+void GattsTest::AddServer()
 {
-    ALOGD(LOGTAG "(%s) Enable GATTSTEST Initiated \n",__FUNCTION__);
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  if(num_of_server <= MAX_SERVER_INSTANCE) {
+    num_of_server++;
+    ALOGD(LOGTAG"Adding Server Instance : %d", num_of_server);
+    mgattServer = new GattServer(g_gatt,TRANSPORT);
+    servInstanceMap.insert(pair <int,GattServer*> (num_of_server,mgattServer));
+    ALOGD(LOGTAG"Adding Server CallBack : %d ", num_of_server);
+    gattstestServerCb = new gattstestServerCallback();
+    servCBInstanceMap.insert(pair <gattstestServerCallback*,GattServer*> (gattstestServerCb,mgattServer));
+    mgattServer->registerCallback(*gattstestServerCb);
+    ALOGD(LOGTAG"Adding Advertiser Callback: %d ", num_of_server);
+    gattstestAdvCb    = new gattstestAdvertiserCallback();
+    advCBInstanceMap.insert(pair <int,gattstestAdvertiserCallback*> (num_of_server,gattstestAdvCb));
+  } else {
+    fprintf(stdout,"The number of servers that can be created has reached it's limit of 20 \n");
+    ALOGD(LOGTAG"Server Not created");
+    num_of_server = 20;
+  }
+}
 
-    GattsTestEnableEvent rev;
-    rev.event_id = GEN_GATT_EVENT;// change it later
-    CopyAlertCharUUID(&rev.characteristics_uuid);
-    CopyAlertDescUUID(&rev.descriptor_uuid);
-    CopyUUID(&rev.server_uuid);
-    CopyClientUUID(&rev.client_uuid);
-    CopyAlertServUUID(&rev.service_uuid);
+bool GattsTest::AddService(string server_instance,string service_instance)
+{
+  ALOGD(LOGTAG"%s  ",__FUNCTION__);
+  int server_inst;
+  int service_inst;
+  istringstream(server_instance) >> server_inst;
+  istringstream(service_instance) >> service_inst;
+  ALOGD(LOGTAG"server_inst: %d service_inst %d", server_inst, service_inst);
+  Uuid  temp_UUID;
+  string uid;
+  GattServer *mServer = NULL;
+  GattService *mService = NULL;
+  Service *service_temp;
+  int property = 0;
+  int permissions = 0;
+  string char_val = "QTI_LE";
+  string desc_val = "QTI_DESC";
+  if(server_inst > num_of_server) {
+    fprintf(stdout,"Please create the server instance first \n");
+    return false;
+  } else if((server_inst <= 0) || (server_inst > MAX_SERVER_INSTANCE) || (service_inst <=0) || (service_inst > MAX_SERVICE_INSTANCE) ) {
+    fprintf(stdout,"Incorrect instance values  \n" );
+    return false;
+  } else if (service_inst < 6) {
+    mServer = servInstanceMap[server_inst];
+    if(service_inst == 1) {
+      service_temp = service1_list[server_inst - 1];
+    }
+    if(service_inst == 2) {
+      service_temp = service2_list[server_inst - 1];
+    }
+    if(service_inst == 3) {
+      service_temp = service3_list[server_inst - 1];
+    }
+    if(service_inst == 4) {
+      service_temp = service4_list[server_inst - 1];
+    }
+    if(service_inst == 5) {
+      service_temp = service5_list[server_inst - 1];
+    }
+    uid = service_temp->s_uuid;
+    temp_UUID = Uuid::FromString(uid);
+    mService  = new GattService(temp_UUID,GattService::SERVICE_TYPE_PRIMARY);
+    uid = service_temp->c_uuid;
+    if(uid != "") {
+      temp_UUID = Uuid::FromString(uid);
+      property = service_temp->c_property;
+      if(property == -1) {
+        property = 2;
+      }
+      permissions = service_temp->c_permissions;
+      if(permissions == -1) {
+        permissions = 1;
+      }
+      AddCharacteristics(temp_UUID,property,permissions,char_val);
+      uid = service_temp->d_uuid;
+      if(uid != "") {
+        temp_UUID = Uuid::FromString(uid);
+        permissions = service_temp->d_permissions;
+        AddDescriptors(temp_UUID,permissions,desc_val);
+        mgattCharacteristic->addDescriptor(mgattDescriptor);
+      } else {
+        ALOGD(LOGTAG,"No descriptor added\n");
+      }
+      mService->addCharacteristic(mgattCharacteristic);
+    } else {
+      ALOGD(LOGTAG,"No Characteristics added \n");
+    }
+  }
+  mServer->addService(*mService);
+  return true;
+}
 
-    ALOGD(LOGTAG" set gattstest data \n");
-    SetGATTSTESTAttrData(&rev);
-    return RegisterApp();
+bool GattsTest::ReadAdvertiserConfigFile()
+{
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  string ch;
+  int pos=0;
+  int line_num = 0;
+  int desired_line = 12;
+  std::ifstream infile(ADV_CFG_FILE_PATH,std::ios::binary);
+  if(!infile) {
+    ALOGD(LOGTAG"File doesn't exist \n");
+    return false;
+  }
+  while(!infile.eof()) {
+    getline(infile,ch,'\n');
+    if(regex_search(ch,regex("\\bAdvertisingSet[1-9]|AdvertisingSet[1-9][0-9]\\b"))) {
+      set_temp = new AdvertiseSet;
+      set_temp->tx_power = -1;
+      set_temp->legacyflag = -1;
+      set_temp->periodicflag = -1;
+      set_temp->connectableflag = -1;
+      set_temp->scannableflag = -1;
+      set_temp->anonymousflag = -1;
+      set_temp->includeTxPowerflag= -1;
+      set_temp->primary_phy= -1;
+      set_temp->secondary_phy= -1;
+      set_temp->interval = -1;
+      set_temp->timeout_legacy= -1;
+      set_temp->advertise_mode= -1;
+      while(line_num < desired_line) {
+        ALOGD(LOGTAG"line_num < desired_line  %d < %d", line_num, desired_line);
+        getline(infile,ch,'\n');
+        ParseAdvertiserDetails(ch);
+        line_num++;
+      }
+      AdvSet_list.push_back(set_temp);
+    }else {
+    fprintf(stdout,"There are no Advertising Set records in the file \n");
+    break;
+    }
+    line_num = 0;
+  }
+  madvertiser = GattLeAdvertiser::getGattLeAdvertiser();
+  ALOGD(LOGTAG"File reading done \n");
+  infile.close();
+  return true;
+}
+
+void GattsTest::ParseAdvertiserDetails(string temp)
+{
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  int pos = 0;
+  int parameter = 0;
+  string data;
+  pos = temp.find(":");
+  data = temp.substr(pos + 1);
+  istringstream(data) >> parameter;
+  if(regex_search(temp,regex("\\bTxPower\\b"))){
+    ALOGD(LOGTAG"%s Found Tx Power",__FUNCTION__);
+    set_temp->tx_power = parameter;
+  }
+  if(regex_search(temp,regex("\\bLegacyFlag\\b"))) {
+    ALOGD(LOGTAG"%s Found LegacyFlag",__FUNCTION__);
+    set_temp->legacyflag = parameter;
+  }
+  if(regex_search(temp,regex("\\bPeriodicFlag\\b"))) {
+    ALOGD(LOGTAG"%s Found PeriodicFlag",__FUNCTION__);
+    set_temp->periodicflag = parameter;
+  }
+  if(regex_search(temp,regex("\\bConnectableFlag\\b"))) {
+    ALOGD(LOGTAG"%s Found ConnectableFlag",__FUNCTION__);
+    set_temp->connectableflag = parameter;
+  }
+  if(regex_search(temp,regex("\\bScannableFlag\\b"))) {
+    ALOGD(LOGTAG"%s Found ScannableFlag",__FUNCTION__);
+    set_temp->scannableflag = parameter;
+  }
+  if(regex_search(temp,regex("\\bAnonymousFlag\\b"))) {
+    ALOGD(LOGTAG"%s Found AnonymousFlag",__FUNCTION__);
+    set_temp->anonymousflag = parameter;
+  }
+  if(regex_search(temp,regex("\\bIncludePower\\b"))) {
+    ALOGD(LOGTAG"%s Found IncludePower",__FUNCTION__);
+    set_temp->includeTxPowerflag= parameter;
+  }
+  if(regex_search(temp,regex("\\bPrimaryPhy\\b"))) {
+    ALOGD(LOGTAG"%s Found PrimaryPhy",__FUNCTION__);
+    set_temp->primary_phy= parameter;
+  }
+  if(regex_search(temp,regex("\\bSecondaryPhy\\b"))) {
+    ALOGD(LOGTAG"%s Found SecondaryPhy",__FUNCTION__);
+    set_temp->secondary_phy= parameter;
+  }
+  if(regex_search(temp,regex("\\bInterval\\b"))) {
+    ALOGD(LOGTAG"%s Found Interval",__FUNCTION__);
+    set_temp->interval = parameter;
+  }
+  if(regex_search(temp,regex("\\bTimeOutLegacy\\b"))) {
+    ALOGD(LOGTAG"%s Found TimeOutLegacy",__FUNCTION__);
+    set_temp->timeout_legacy= parameter;
+  }
+  if(regex_search(temp,regex("\\bAdvertiseMode\\b"))) {
+    ALOGD(LOGTAG"%s Found AdvertiseMode",__FUNCTION__);
+    set_temp->advertise_mode= parameter;
+  }
+}
+
+bool GattsTest::StartAdvertisement(string        instanceID)
+{
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  int instance = 0;
+  istringstream(instanceID) >> instance;
+  if (instance <= 0 || instance > MAX_SERVER_INSTANCE) {
+    ALOGD("%s invalid input argument");
+    fprintf(stdout,"Invalid input argument \n");
+    return false;
+  }
+  int legacyflag = 0;
+  AdvertiseSet *temp = NULL;
+  bool status = false;
+  status = BuildAdvertisingParameters(instance);
+  if(!status) {
+    fprintf(stdout,"Advertising Parameters not set \n");
+    return false;
+  }
+  status = BuildAdvertisingData(instance);
+  if(!status) {
+    fprintf(stdout,"Advertising Data not set \n");
+    return false;
+  }
+  status = SetPeriodicAdvertisingParameters(instance);
+  if(!status) {
+    fprintf(stdout,"Periodic Advertising parameters not set \n");
+    return false;
+  }
+  status = SetPeriodicAdvertisingData(instance);
+  if(!status) {
+    fprintf(stdout,"Periodic Advertising Data not set \n");
+    return false;
+  }
+  status = SetScanResponseData(instance);
+  if(!status) {
+    fprintf(stdout,"Scan Response Data not set \n");
+    return false;
+  }
+  //fetching advertiser Callback instance for the server/advertiser instance key
+  gattstestAdvCb = advCBInstanceMap[instance];
+  //Finding corresponding Legacy flag details for the corresponding advertiser
+  temp = AdvSet_list[instance -1];
+  legacyflag = temp->legacyflag;
+  try {
+    if(legacyflag) {
+      ALOGD(LOGTAG"Legacy StartAdvertisement");
+      madvertiser->startAdvertising(mAdvertiseSettings,mAdvertiseData,mScanResponseData,gattstestAdvCb);
+    } else {
+      madvertiser->startAdvertisingSet(mAdvertisingParameters,
+                         mAdvertiseData,mScanResponseData,mPeriodicParams,mPeriodicData,gattstestAdvCb);
+    }
+  } catch(const std::exception &ex) {
+    ALOGD(LOGTAG"%s start Advertising exception  %s", __FUNCTION__, ex.what());
+    return false;
+  }
+  return true;
+}
+
+bool GattsTest::BuildAdvertisingParameters(int instance)
+{
+  int connectableflag;
+  int scannableflag;
+  int legacyflag;
+  int anonymousflag;
+  int periodicflag;
+  int includeTxPowerflag;
+  int primary_phy;
+  int secondary_phy;
+  int interval;
+  int tx_power;
+  int power_mode;
+  int timeout_legacy;
+  int advertise_mode;
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  AdvertiseSet *temp;
+  temp = AdvSet_list[instance - 1];
+  if(temp == NULL) {
+    ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
+    return false;
+  }
+  legacyflag = temp->legacyflag;
+  //input validation
+  if (legacyflag < 0 && connectableflag < 0 && scannableflag < 0 && periodicflag < 0 && anonymousflag < 0 && includeTxPowerflag < 0 &&
+        primary_phy < 0 && secondary_phy < 0 && interval < 0 && tx_power < 0 && power_mode < 0 && timeout_legacy < 0 && advertise_mode < 0) {
+    fprintf(stdout,"Incorrect value of legacy flag\n");
+    return false;
+  }
+  if (legacyflag > 1 && connectableflag > 1 && scannableflag > 1 && periodicflag > 1 && anonymousflag > 1 && includeTxPowerflag > 1) {
+    fprintf(stdout,"Flags values set incorrectly, Please check 'legacyflag' 'connectableflag' 'scannableflag' periodicflag' 'anonymousflag' includetxpowerflag' \n");
+    return false;
+  }
+  try {
+    if(legacyflag) {
+      ALOGD(LOGTAG" Legacy Advertising will be used \n");
+      mAdvertiseSettings = AdvertiseSettings::Builder()
+                           .setAdvertiseMode(temp->advertise_mode)
+                           .setTxPowerLevel(temp->tx_power)
+                           .setConnectable(temp->connectableflag)
+                           .setTimeout(temp->timeout_legacy)
+                           .build();
+
+      ALOGD(LOGTAG"Advertising Settings connectable = %d \
+            TxPowerLevel = %d AdvertiseMode =%d TimeOut = %d",
+            mAdvertiseSettings->isConnectable(),
+            mAdvertiseSettings->getTxPowerLevel(), mAdvertiseSettings->getMode(),
+            mAdvertiseSettings->getTimeout());
+    } else {
+      mAdvertisingParameters = AdvertisingSetParameters::Builder()
+                              .setConnectable(temp->connectableflag)
+                              .setScannable(temp->scannableflag)
+                              .setLegacyMode(temp->legacyflag)
+                              .setAnonymous(temp->anonymousflag)
+                              .setIncludeTxPower(temp->includeTxPowerflag)
+                              .setPrimaryPhy(temp->primary_phy)
+                              .setSecondaryPhy(temp->secondary_phy)
+                              .setInterval(temp->interval)
+                              .setTxPowerLevel(temp->tx_power)
+                              .build();
+
+    ALOGD(LOGTAG"Advertising parameters connectable = %d \
+            scannable= %d LegacyMode =%d anonymous = %d \
+            includeTxPower = %d primaryphy = %d secondaryphy = %d \
+            interval = %d Txpower = %d \n", mAdvertisingParameters->isConnectable(),
+            mAdvertisingParameters->isScannable(), mAdvertisingParameters->isLegacy(),
+            mAdvertisingParameters->isAnonymous(), mAdvertisingParameters->includeTxPower(),
+            mAdvertisingParameters->getPrimaryPhy(), mAdvertisingParameters->getSecondaryPhy(),
+            mAdvertisingParameters->getInterval(), mAdvertisingParameters->getTxPowerLevel());
+    }
+  }
+  catch(const std::exception &ex) {
+    ALOGD(LOGTAG"%s exception caught: %s", __FUNCTION__, ex.what());
+    fprintf(stdout,"exception: %s", ex.what());
+    return false;
+  }
+  return true;
+}
+
+bool GattsTest::BuildAdvertisingData(int instance) {
+  int includeTxPowerflag;
+  string mManufacturerID;
+  string mManufacturerData;
+  string service1_uuid;
+  Service *temp;
+  AdvertiseSet *set = NULL;
+  string service_data= "QTI_SERVICE_DATA";
+  string service_data_uuid = "0000AAAA-0000-1000-8000-00805F9B34FB";
+  Uuid mUuid;
+  set = AdvSet_list[instance -1];
+  if(set == NULL) {
+    ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
+    return false;
+  }
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  AdvertiseData::Builder builder = AdvertiseData::Builder().setIncludeDeviceName(true)
+                                  .setIncludeTxPowerLevel(set->includeTxPowerflag);
+  mManufacturerID = manufacturerId_list[instance-1];
+  mManufacturerData = manufacturerData_list[instance-1];
+  int legacyflag =  set->legacyflag;
+  //If legacy flag is not set then add manufacturer and Service data
+  if(!legacyflag) {
+  //If manufacturer Data and ID are not empty then add to Advertising Data
+    if(mManufacturerID != "" && mManufacturerData != "" ) {
+      int id=0;
+      istringstream(mManufacturerID) >> id;
+      ALOGD(LOGTAG"ManufacturerID: %d", id);
+      ALOGD(LOGTAG"Manufacturer Data: %s", mManufacturerData.c_str());
+      std::vector<uint8_t> vec(mManufacturerData.begin(), mManufacturerData.end());
+      builder.addManufacturerData(id,vec);
+    }
+    temp= service1_list[instance -1];
+    if(temp->s_uuid.empty()) {
+      mUuid = btapp::Uuid::FromString(temp->s_uuid);
+      builder.addServiceUuid(mUuid);
+      mUuid = btapp::Uuid::FromString(service_data_uuid);
+      std::vector<uint8_t> vec(service_data.begin(), service_data.end());
+      builder.addServiceData(mUuid,vec);
+    }
+  }
+  mAdvertiseData = builder.build();
+  ALOGD(LOGTAG"AdvertiseData IncludeDevicename: %d IncludeTxPowerLevel: %d ",
+              mAdvertiseData->getIncludeDeviceName(), mAdvertiseData->getIncludeTxPowerLevel());
+  if(!legacyflag) {
+    ALOGD(LOGTAG"manufacturer_data size:  %d", mAdvertiseData->getManufacturerSpecificData().size());
+    ALOGD(LOGTAG"serviceData size:  %d", mAdvertiseData->getServiceData().size());
+  }
+  return true;
+}
+
+bool GattsTest::SetPeriodicAdvertisingData(int instance)
+{
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  int periodic_flag;
+  AdvertiseSet *temp = NULL;
+  temp = AdvSet_list[instance -1];
+  if(temp == NULL) {
+    ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
+    return false;
+  }
+  periodic_flag = temp->periodicflag;
+  if(periodic_flag) {
+    mPeriodicData = mAdvertiseData;
+    mAdvertisingSet->setPeriodicAdvertisingData(*mPeriodicData);
+  } else {
+    mPeriodicData = NULL;
+  }
+  return true;
+}
+
+
+bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
+{
+  ALOGD(LOGTAG"%s ",__FUNCTION__);
+  int periodic_flag;
+  AdvertiseSet *temp = NULL;
+  temp = AdvSet_list[instance -1];
+  if(temp == NULL) {
+    ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
+    return false;
+  }
+  periodic_flag = temp->periodicflag;
+  int include_txpower;
+  int periodic_interval = 200;
+  include_txpower = temp->includeTxPowerflag;
+
+  if(periodic_flag) {
+    mPeriodicParams = PeriodicAdvertiseParameters::Builder()
+                      .setIncludeTxPower(include_txpower)
+                      .setInterval(periodic_interval)
+                      .build();
+
+    ALOGD(LOGTAG"SetPeriodicAdvertisingParameters:: IncludeTxPower: %d interval %d", mPeriodicParams->getIncludeTxPower() ,mPeriodicParams->getInterval());
+      mAdvertisingSet->setPeriodicAdvertisingParameters(*mPeriodicParams);
+  } else {
+    mPeriodicParams = NULL;
+  }
+  return true;
+}
+
+bool GattsTest::SetScanResponseData(int instance)
+{
+  ALOGD(LOGTAG"%s ",__FUNCTION__);
+  int scannable_flag;
+  AdvertiseSet *temp = NULL;
+  temp = AdvSet_list[instance -1];
+  if(temp == NULL) {
+    ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
+    return false;
+  }
+  scannable_flag = temp->scannableflag;
+  if(scannable_flag) {
+    mScanResponseData = mAdvertiseData;
+  } else {
+    mScanResponseData = NULL;
+  }
+  return true;
+}
+
+bool GattsTest::UnregisterServer(string instance)
+{
+  GattServer *mServer;
+  ALOGD(LOGTAG"%s ",__FUNCTION__);
+  int instanceId;
+  istringstream(instance) >> instanceId;
+  if(instanceId <=0 || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+    fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
+    return false;
+  }
+  if(num_of_server <= MAX_SERVER_INSTANCE) {
+    mServer = servInstanceMap[instanceId];
+    mServer->close();
+    return true;
+  } else {
+    fprintf(stdout,"There are no more servers to unregister \n");
+    return false;
+  }
+}
+
+bool GattsTest::StopAdvertisement(string instance)
+{
+  ALOGD(LOGTAG"StopAdvertisement \n");
+  int instanceId;
+  istringstream(instance) >> instanceId;
+  if(instanceId <=0 || instanceId > num_of_server) {
+    fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
+    return false;
+  } else {
+    AdvertisingSetCallback *mAdvSetCB;
+    mAdvSetCB = advCBInstanceMap[instanceId];
+    madvertiser->stopAdvertising(mAdvSetCB);
+  }
+}
+
+
+bool GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, string val)
+{
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  mgattCharacteristic = new GattCharacteristic(uid,property,permissions);
+  uint8_t c_val1[val.length()+1];
+  std::copy(val.begin(),val.end(),c_val1);
+  mgattCharacteristic->setValue(c_val1);
+  ALOGD(LOGTAG"CharacteristicUUID: %s  ", uid.ToString().c_str());
+  ALOGD(LOGTAG"Characteristic Property: %d ", mgattCharacteristic->getProperties());
+  ALOGD(LOGTAG"characteristic Permissions: %d ", mgattCharacteristic->getPermissions());
+  ALOGD(LOGTAG"characteristic value: %s", mgattCharacteristic->getValue());
+}
+
+bool GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
+{
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  ALOGD(LOGTAG"string value =  %s", value.c_str());
+  mgattDescriptor = new GattDescriptor(uid,permissions);
+  uint8_t d_val1[value.length()+1];
+  std::copy(value.begin(),value.end(),d_val1);
+  mgattDescriptor->setValue(d_val1);
+  ALOGD(LOGTAG"Descriptor UUID: %s  ", uid.ToString().c_str());
+  ALOGD(LOGTAG"Descriptor Permissions: %d ", mgattDescriptor->getPermissions());
+}
+
+bool GattsTest::ReadPhy(string instance,string deviceAddress)
+{
+  ALOGD(LOGTAG"%s Address: %s", __FUNCTION__, deviceAddress.c_str());
+  vector <string> ::iterator str;
+  bool connected= false;
+  int instanceId;
+  istringstream(instance) >> instanceId;
+  GattServer *mServer;
+
+  if(instanceId <=0 || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+    fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
+    return false;
+  } else {
+    mServer = servInstanceMap[instanceId];
+    for(str = connectedDevices.begin(); str != connectedDevices.end(); str++) {
+      if(deviceAddress == *str) {
+        ALOGD(LOGTAG"Present in connected device list ");
+        connected = true;
+        break;
+      }
+    }
+  }
+  if(connected) {
+    mServer->readPhy(deviceAddress);
+    return true;
+  } else {
+    ALOGD(LOGTAG"Device is not present in connected list");
+    return false;
+  }
+}
+
+bool GattsTest::SetPreferredPhy(string deviceAddress,string instance,string txPhy,string rxPhy,int phyOptions)
+{
+  ALOGD(LOGTAG"%s Address: %s  txPhy: %s rxPhy: %s phyOptions: %d", __FUNCTION__, deviceAddress.c_str(), txPhy.c_str(), rxPhy.c_str(), phyOptions);
+  int instanceId = 0;
+  int tx_phy = 0;
+  int rx_phy = 0;
+  istringstream(instance) >> instanceId;
+  istringstream(txPhy) >> tx_phy;
+  istringstream(rxPhy) >> rx_phy;
+  GattServer *mServer;
+  vector <string> ::iterator str;
+  bool connected= false;
+  if (instanceId <=0 || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+    fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
+    return false;
+  } else {
+    if((tx_phy != 1) && (tx_phy != 2) && (tx_phy != 3)) {
+      fprintf(stdout,"Enter a valid tx phy option \n");
+      return false;
+  }
+  if((rx_phy != 1) && (rx_phy != 2) && (rx_phy != 3)) {
+    fprintf(stdout,"Enter a valid rx phy option \n");
+    return false;
+  }
+  mServer = servInstanceMap[instanceId];
+  for(str = connectedDevices.begin(); str != connectedDevices.end(); str++) {
+    if(deviceAddress == *str) {
+      ALOGD(LOGTAG"Present in connected device list ");
+      connected = true;
+      break;
+    }
+  }
+  if(connected) {
+    mServer->setPreferredPhy(deviceAddress,tx_phy,rx_phy,phyOptions);
+    return true;
+  } else {
+    return false;
+  }
+  }
+}
+
+bool GattsTest::EnablePeriodicAdvertising(bool enable)
+{
+  ALOGD(LOGTAG"%s ", __FUNCTION__);
+  mAdvertisingSet->setPeriodicAdvertisingEnabled(enable);
+}
+
+void GattsTest::CancelConnection(string remoteAddress)
+{
+  ALOGD(LOGTAG"%s", __FUNCTION__);
+  GattServer *mServer = NULL;
+  bool connected = false;
+  map <string,GattServer*> ::iterator dtr = DeviceMap.find(remoteAddress);
+  for(dtr = DeviceMap.begin(); dtr != DeviceMap.end() ; ++dtr) {
+    if(remoteAddress == dtr->first) {
+      mServer = dtr->second;
+      connected = true;
+      break;
+    }
+  }
+  if(connected) {
+    mServer->cancelConnection(remoteAddress);
+  } else {
+    fprintf(stdout,"Device %s is not connected", remoteAddress.c_str());
+    ALOGD(LOGTAG"Device %s is not connected", remoteAddress.c_str());
+  }
 }
 
 bool GattsTest::DisableGATTSTEST()
 {
-    ALOGD(LOGTAG "(%s) Disable GATTSTEST Initiated",__FUNCTION__);
-    StopService();
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  GattServer *mServer = NULL;
+  gattstestServerCallback *mServercallback = NULL;
+  gattstestAdvertiserCallback *mAdvertisercallback = NULL;
+  map <int, GattServer*> ::iterator itr;
+  map <int,gattstestAdvertiserCallback*> ::iterator at;
+  servInstanceMap.clear();
+  unordered_map  <gattstestServerCallback*,GattServer*> ::iterator it;
+  for(it = servCBInstanceMap.begin(); it != servCBInstanceMap.end(); ++it) {
+    mServercallback = it->first;
+    delete(mServercallback);
+    mServer = it->second;
+    delete(mServer);
+  }
+  servCBInstanceMap.clear();
+  for(at = advCBInstanceMap.begin(); at != advCBInstanceMap.end(); ++at) {
+    mAdvertisercallback = at->second;
+    delete(mAdvertisercallback);
+  }
+  advCBInstanceMap.clear();
+  delete(madvertiser);
+  return true;
 }
 
-bool GattsTest::RegisterApp()
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-    bt_uuid_t server_uuid = GetGATTSTESTAttrData()->server_uuid;
-    ALOGD(LOGTAG"reg app addr is %d \n", GetGATTSTESTAttrData()->server_uuid);
-    app_gatt->RegisterServerCallback(gattstestServerCb,&GetGATTSTESTAttrData()->server_uuid);
-    isServerRegistered = (app_gatt->register_server(&server_uuid) == BT_STATUS_SUCCESS);
-    return isServerRegistered;
-}
-
-bool GattsTest::RegisterClient()
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-    bt_uuid_t client_uuid = GetGATTSTESTAttrData()->client_uuid;
-    app_gatt->RegisterClientCallback(gattstestClientCb,&GetGATTSTESTAttrData()->client_uuid);
-    isClientRegistered =(app_gatt->register_client(&client_uuid) == BT_STATUS_SUCCESS);
-    return isClientRegistered;
-}
-
-bool GattsTest::UnregisterClient(int client_if)
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-    app_gatt->UnRegisterClientCallback(client_if);
-    return app_gatt->unregister_client(client_if) == BT_STATUS_SUCCESS;
-}
-
-bool GattsTest::ClientSetAdvData(char *str)
-{
-    bt_status_t        Ret;
-    bool              SetScanGattsTest        = false;
-    bool              IncludeName       = true;
-    bool              IncludeTxPower    = false;
-    int               min_conn_interval = GATTSTEST_MIN_CI;
-    int               max_conn_interval = GATTSTEST_MAX_CI;
-
-    app_gatt->set_adv_data(GetGATTSTESTClientAppData()->clientIf, SetScanGattsTest,
-                                                IncludeName, IncludeTxPower, min_conn_interval,
-                                                max_conn_interval, 0,strlen(str), str,
-                                                strlen(str), str, 0,NULL);
-}
-
-void GattsTest::CleanUp(int server_if)
-{
-    int client_if = GetGATTSTESTClientAppData()->clientIf ;
-    ALOGD(LOGTAG "(%s) unregistering serverif(%d) & ClientIf(%d)\n",__FUNCTION__, server_if,client_if);
-    if (isServerRegistered)
-        UnregisterServer(server_if);
-    if (isClientRegistered)
-        UnregisterClient(client_if);
-    ALOGD(LOGTAG "(%s) unregistered serverif(%d) & ClientIf(%d)\n",__FUNCTION__, server_if,client_if);
-}
-
-bool GattsTest::UnregisterServer(int server_if)
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "Gatt Interface Not present");
-        return false;
-    }
-    app_gatt->UnRegisterServerCallback(server_if);
-    return app_gatt->unregister_server(server_if) == BT_STATUS_SUCCESS;
-}
-
-bool GattsTest::StartAdvertisement()
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-    ALOGD(LOGTAG  "(%s) Listening on the interface (%d) ",__FUNCTION__,
-            GetGATTSTESTClientAppData()->clientIf);
-    //SetDeviceState(WLAN_INACTIVE);
-    return app_gatt->listen(GetGATTSTESTClientAppData()->clientIf, true);
-}
-
-bool GattsTest::SendResponse(GattsRequestWriteEvent *event)
-{
-    char val[5];
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present \n",__FUNCTION__);
-        return false;
-    }
-    CHECK_PARAM(event)
-    btgatt_response_t att_resp;
-    int response = -1;
-    memset(att_resp.attr_value.value,0,BTGATT_MAX_ATTR_LEN);
-    memcpy(att_resp.attr_value.value, event->value, event->length);
-    att_resp.attr_value.handle = event->attr_handle;
-    att_resp.attr_value.offset = event->offset;
-    att_resp.attr_value.len = event->length;
-    att_resp.attr_value.auth_req = 0;
 
 
-    ALOGD(LOGTAG "(%s) Sending GATTSTEST response to write (%d) ",__FUNCTION__,
-        GetGATTSTESTAppData()->server_if);
 
-    if(0 == strncmp((char *) att_resp.attr_value.value ,"00",2) ) {
-         ALOGD(LOGTAG"low alert written \n");
-    } else if(0 == strncmp((char *) att_resp.attr_value.value,"01",2) ) {
-         ALOGD(LOGTAG"mid alert written \n");
-    } else if(0 == strncmp((char *) att_resp.attr_value.value,"02",2) ) {
-         ALOGD(LOGTAG"high alert written \n");
-    } else {
-     ALOGD(LOGTAG"default alert written \n");
-    }
-    return app_gatt->send_response(event->conn_id, event->trans_id,
-                                                         response, &att_resp);
-}
-
-bool GattsTest::HandleWlanOn()
-{
-    BtEvent *event = new BtEvent;
-    CHECK_PARAM(event);
-    event->event_id = SKT_API_IPC_MSG_WRITE;
-    event->bt_ipc_msg_event.ipc_msg.type = BT_IPC_REMOTE_START_WLAN;
-    event->bt_ipc_msg_event.ipc_msg.status = INITIATED;
-    StopAdvertisement();
-    ALOGD(LOGTAG "(%s) Posting wlan start to main thread \n",__FUNCTION__);
-    PostMessage (THREAD_ID_MAIN, event);
-    return true;
-}
-
-bool GattsTest::StopAdvertisement()
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-    ALOGD(LOGTAG "(%s) Stopping listen on the interface (%d) \n",__FUNCTION__,
-            GetGATTSTESTClientAppData()->clientIf);
-    return app_gatt->listen(GetGATTSTESTClientAppData()->clientIf, false);
-}
-
-bool GattsTest::AddService()
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-    btgatt_srvc_id_t srvc_id;
-    srvc_id.id.inst_id = 0;   // 1 instance
-    srvc_id.is_primary = 1;   // Primary addition
-    srvc_id.id.uuid = GetGATTSTESTAttrData()->service_uuid;
-    return app_gatt->add_service(GetGATTSTESTAppData()->server_if, &srvc_id,4)
-                                                        ==BT_STATUS_SUCCESS;
-}
-
-bool GattsTest::DisconnectServer()
-{
-    int status;
-    int server_if = GetGATTSTESTConnectionData()->server_if;
-    bt_bdaddr_t bda;
-    memcpy(&bda, &(GetGATTSTESTConnectionData()->bda),sizeof(bt_bdaddr_t));
-    int server_conn_id = GetGATTSTESTConnectionData()->conn_id;
-    ALOGD(LOGTAG  "(%s) Disconnecting server interface (%d), connid (%d) ",__FUNCTION__,
-         server_if, server_conn_id);
-    status = app_gatt->serverDisconnect(server_if, &bda, server_conn_id);
-
-    int client_if = GetGATTSTESTClientConnectionData()->clientIf;
-    bt_bdaddr_t client_bda;
-    memcpy(&client_bda, &(GetGATTSTESTClientConnectionData()->bda),sizeof(bt_bdaddr_t));
-    int client_conn_id =  GetGATTSTESTClientConnectionData()->conn_id;
-    if (gattstest) {
-       ALOGD(LOGTAG,  "(%s) Disconnecting client interface (%d), connid (%d) ",__FUNCTION__,
-          client_if, client_conn_id);
-       status = app_gatt->clientDisconnect(client_if, &client_bda, client_conn_id);
-    }
-
-    if (status == BT_STATUS_SUCCESS)
-        return true;
-    else
-        return false;
-}
-
-bool GattsTest::DeleteService()
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-    bool status = false;
-    int srvc_handle = GetGattsTestSrvcData()->srvc_handle;
-    return app_gatt->delete_service(GetGATTSTESTAppData()->server_if,
-                                                            srvc_handle) == BT_STATUS_SUCCESS;
-}
-
-bool GattsTest::AddCharacteristics()
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-    bt_uuid_t char_uuid;
-    char_uuid = GetGATTSTESTAttrData()->characteristics_uuid;
-    int srvc_handle = GetGattsTestSrvcData()->srvc_handle;
-    int server_if = GetGattsTestSrvcData()->server_if;
-    ALOGD(LOGTAG  "(%s) Adding Characteristics server_if (%d), srvc_handle (%d) \n",
-            __FUNCTION__, server_if,srvc_handle);
-    return app_gatt->add_characteristic(server_if, srvc_handle, &char_uuid,
-                                                            GATT_PROP_WRITE, GATT_PERM_WRITE)
-                                                            ==BT_STATUS_SUCCESS;
-}
-
-bool GattsTest::AddDescriptor(void)
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-
-    bt_uuid_t desc_uuid;
-    desc_uuid = GetGATTSTESTAttrData()->descriptor_uuid;
-    int srvc_handle = GetGattsTestSrvcData()->srvc_handle;
-    return app_gatt->add_descriptor(GetGATTSTESTAppData()->server_if,
-                                                        srvc_handle, &desc_uuid,
-                                                        GATT_PERM_READ) == BT_STATUS_SUCCESS;
-}
-
-bool GattsTest::StartService()
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-
-    int srvc_handle = GetGattsTestSrvcData()->srvc_handle;
-    return app_gatt->start_service(GetGATTSTESTAppData()->server_if,
-                                                        srvc_handle, GATT_TRANSPORT_LE)
-                                                        == BT_STATUS_SUCCESS;
-}
-
-bool GattsTest::StopService()
-{
-    if (GetGattInterface() == NULL) {
-        ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
-        return false;
-    }
-
-    int srvc_handle = GetGattsTestSrvcData()->srvc_handle;
-    return app_gatt->stop_service(GetGATTSTESTAppData()->server_if,
-                                                        srvc_handle) == BT_STATUS_SUCCESS;
-}
-
-bool GattsTest::getIsAdvertising()
-{
-    return isAdvertising;
-}
-
-void GattsTest::setIsAdvertising(bool value){
-    ALOGD(LOGTAG "setIsAdvertising %d ", value);
-    isAdvertising = value;
-}

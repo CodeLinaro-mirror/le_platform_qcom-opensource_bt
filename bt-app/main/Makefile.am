@@ -28,6 +28,7 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/framework/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/lib/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattctest/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattstest/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_client/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_ag/include \
@@ -76,12 +77,12 @@ cpp_sources = ../utils/src/utils.cc \
             ../hfp_client/src/HfpClient.cpp \
             ../hfp_ag/src/HfpAG.cpp \
             ../gattctest/src/GattcTest.cpp \
-            ../pan/src/Pan.cpp
+            ../pan/src/Pan.cpp \
+            ../gattstest/src/GattsTest.cpp
 
 #Uncomment after enabling profiles
 #cpp_sources += \
-#            ../rsp/src/Rsp.cpp \
-#            ../gattstest/src/GattsTest.cpp
+#            ../rsp/src/Rsp.cpp
 
 if USE_BT_OBEX
 cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
