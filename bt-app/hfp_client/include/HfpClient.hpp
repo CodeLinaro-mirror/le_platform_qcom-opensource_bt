@@ -73,6 +73,9 @@ typedef enum {
     HFP_CLIENT_MODE_IN_CALL
 }HfpClientMode;
 
+#define OUT_DEVICE_SPEAKER                         2
+#define OUT_DEVICE_LINE_OUT                        131072
+
 class Hfp_Client {
 
   private:
