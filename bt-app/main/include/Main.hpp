@@ -32,6 +32,9 @@
 #include "utils.h"
 //#include "Rsp.hpp"
 
+#ifdef USE_GEN_GATT
+#include "GattcTest.hpp"
+#endif
 #include <cutils/sockets.h>
 #include <sys/un.h>
 #include <sys/poll.h>
@@ -224,6 +227,37 @@ typedef enum {
     OPP_SEND,
     OPP_ABORT,
 #endif
+#ifdef USE_GEN_GATT
+    GATTCTEST_OPTION,
+    GATTCTEST_INIT,
+    GATTCTEST_SCAN_FILTER,
+    GATTCTEST_SCANFILTER_MAN_DATA,
+    GATTCTEST_SCAN_SETTINGS,
+    GATTCTEST_START_SCAN,
+    GATTCTEST_STOP_SCAN,
+    GATTCTEST_BATCH_SCAN,
+    GATTCTEST_CONN_PARAMS,
+    GATTCTEST_CONNECT,
+    GATTCTEST_DISCONNECT,
+    GATTCTEST_DISCSRVC,
+    GATTCTEST_DISCSRVC_UUID,
+    GATTCTEST_ALERT,
+    GATTCTEST_READPHY,
+    GATTCTEST_READRSSI,
+    GATTCTEST_REQMTU,
+    GATTCTEST_REFRESH,
+    GATTCTEST_SETPHY,
+    GATTCTEST_GETSERVICES,
+    GATTCTEST_REQCONN_PRI,
+    GATTCTEST_GETSRVC,
+    GATTCTEST_RDCHAR_UUID,
+    GATTCTEST_RDWRCHAR,
+    GATTCTEST_RDWRDESC,
+    GATTCTEST_GETCHARID,
+    GATTCTEST_GETDESCID,
+    GATTCTEST_CONN_DEVICES,
+    GATTCTEST_RELIABLEWRITE,
+#endif
     HFP_CLIENT,
     CREATE_SCO_CONN,
     DESTROY_SCO_CONN,
@@ -288,6 +322,9 @@ typedef enum {
     HFP_CLIENT_MENU,
     PAN_MENU,
 //    RSP_MENU,
+#ifdef USE_GEN_GATT
+    GATTC_TEST_MENU,
+#endif
     HIDH_MENU,
 #ifdef USE_BT_OBEX
     PBAP_CLIENT_MENU,
@@ -344,6 +381,9 @@ UserMenuList MainMenu[] = {
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
+#ifdef USE_GEN_GATT
+    {GATTCTEST_OPTION,      "gattctest_menu",   ZERO_PARAM,   "gattctest_menu"},
+#endif
     {HID_HOST,              "hid_menu",         ZERO_PARAM,   "hid_menu"},
 #ifdef USE_BT_OBEX
     {PBAP_CLIENT_OPTION,    "pbap_client_menu", ZERO_PARAM,   "pbap_client_menu"},
@@ -384,6 +424,47 @@ UserMenuList RspMenu[] = {
     {RSP_START,             "rsp_start", ZERO_PARAM,    "rsp_start would (re)start adv"},
     {BACK_TO_MAIN,          "main_menu",  ZERO_PARAM, "main_menu"},
 };
+
+#ifdef USE_GEN_GATT
+/**
+* list of supported commands for GATTCTEST Menu
+*/
+UserMenuList GattcTestMenu[] = {
+    {GATTCTEST_INIT,              "gattctest_init",       ZERO_PARAM,    "gattctest_init (only for Init time)"},
+    {GATTCTEST_SCAN_SETTINGS,       "gattctest_scanset",    TWO_PARAM,    "gattctest_scanset<space><scan_type><space><value> \
+        eg: scanType: 0-NO_SET,1-SCAN_MODE,2-CB_Type,3-NUM_RESPONSE,4-PHY,5-LEGACY,6-REPORT_DELAY"},
+    {GATTCTEST_SCAN_FILTER,       "gattctest_scanFilter",    TWO_PARAM,    "gattctest_scanFilter<space><filter_type><space><filter_Value> \
+        eg: filterType: 0-NO_FILT,1-FILT_BD_ADDR,2-FILT_DEV_NAME,3-FILT_SRVC_UUID"},
+    {GATTCTEST_SCANFILTER_MAN_DATA,       "gattctest_scanFilter_manData",    THREE_PARAM,    "gattctest_scanFilter_manData<space><manuId><space><ManuData><space><ManuMask>"},
+    {GATTCTEST_START_SCAN,        "gattctest_start_scan", ZERO_PARAM,    "gattctest_start_scan"},
+    {GATTCTEST_STOP_SCAN,         "gattctest_stop_scan",  ZERO_PARAM,    "gattctest_stop_scan"},
+    {GATTCTEST_BATCH_SCAN,        "gattctest_batch_scan", ZERO_PARAM,    "gattctest_batch_scan"},
+    {BACK_TO_MAIN,          "main_menu",      ZERO_PARAM,    "main_menu"},
+    {GATTCTEST_CONN_PARAMS,       "gattctest_conn_params",    THREE_PARAM,    "gattctest_conn_params<space><isAuto><space><phy><space><isOppur> \
+        eg: isAuto(0/1);phy (1/2/3(codec); isOppur(0/1))"},
+    {GATTCTEST_CONNECT,           "gattctest_connect",    TWO_PARAM,     "gattctest_connect<space><bt_address><space><transport>\
+         eg. gattctest_connect 00:11:22:33:44:55 0(Auto)/1(BREDR)/2(LE)"},
+    {GATTCTEST_DISCONNECT,           "gattctest_disconnect", ONE_PARAM,     "gattctest_disconnect<space><bt_address> \
+          eg.gattctest_connect 00:11:22:33:44:55 "},
+    {GATTCTEST_DISCSRVC,              "gattctest_discsrvc",       ONE_PARAM,    "gattctest_discsrvc<space><bdaddr>  discovering services"},
+    {GATTCTEST_RDCHAR_UUID,              "gattctest_rdchar_uuid",       TWO_PARAM,    "gattctest_rdchar_uuid<space><bdaddr><space><uuid> \
+        eg: reading char by uuid"},
+    {GATTCTEST_READPHY,           "gattctest_readPhy",    ONE_PARAM,    "gattctest_readPhy<space><bt_address>"},
+    {GATTCTEST_READRSSI,           "gattctest_readrssi",    ONE_PARAM,    "gattctest_readrssi<space><bt_address>"},
+    {GATTCTEST_REQMTU,           "gattctest_reqMtu",    TWO_PARAM,    "gattctest_reqMtu<space><bt_address><space><value>"},
+    {GATTCTEST_REFRESH,           "gattctest_refresh",    ONE_PARAM,    "gattctest_refresh<space><bt_address>"},
+    {GATTCTEST_SETPHY,           "gattctest_setphy",    THREE_PARAM,    "gattctest_setphy<space><TxValue(1/2/3)><space><RxValue(1/2/3)><space><bt_address>"},
+    {GATTCTEST_GETSERVICES,           "gattctest_getservices",    ONE_PARAM,    "gattctest_getservices<space><bt_address>"},
+    {GATTCTEST_REQCONN_PRI,           "gattctest_reqconn_pri",    TWO_PARAM,    "gattctest_reqconn_pri<space><bt_address><space><priority 0/1/2>"},
+    {GATTCTEST_GETCHARID,           "gattctest_getcharid",    TWO_PARAM,    "gattctest_getcharid<space><bt_address><space><instanceid>"},
+    {GATTCTEST_RELIABLEWRITE,       "gattctest_reliablewrite",    TWO_PARAM,    "gattctest_reliablewrite<space><bt_address><space><instanceid>"},
+    {GATTCTEST_GETDESCID,           "gattctest_getdescid",    TWO_PARAM,    "gattctest_getdescid<space><bt_address><space><instanceid>"},
+    {GATTCTEST_GETSRVC,           "gattctest_getsrvc",    THREE_PARAM,    "gattctest_getsrvc<space><bt_address><space><UUID><space><INSTANCEID>"},
+    {GATTCTEST_RDWRDESC,       "gattctest_RdWrDesc",    FOUR_PARAM,    "gattctest_RdWrDesc<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID>"},
+    {GATTCTEST_RDWRCHAR,           "gattctest_RdWrchar",    FOUR_PARAM,    "gattctest_RdWrchar<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID>"},
+    {GATTCTEST_CONN_DEVICES,     "gattctest_conn_dev",  ZERO_PARAM,    "gattctest_conn_dev"},
+};
+#endif
 
 /**
  * list of supported commands for A2DP_SINK Menu
@@ -656,6 +737,18 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
  */
 static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
 
+#ifdef USE_GEN_GATT
+/**
+* @brief HandleGattcTestCommand
+*
+*  This function will handle all the commands in @ref RspMenu
+*
+* @param[in] cmd_id It has command id from @ref CommandList
+* @param[in] user_cmd It has parsed commands with arguments passed by user
+* @return none
+*/
+static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+#endif
 
 /**
  * @brief HandleGapCommand

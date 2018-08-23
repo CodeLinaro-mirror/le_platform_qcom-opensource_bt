@@ -28,12 +28,10 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/framework/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/lib/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattctest/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattstest/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_client/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_ag/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
-               -I${WORKSPACE}/qcom-opensource/bt/gatt/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
                -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
@@ -77,6 +75,7 @@ cpp_sources = ../utils/src/utils.cc \
             ../audio_manager/src/Audio_Manager.cpp \
             ../hfp_client/src/HfpClient.cpp \
             ../hfp_ag/src/HfpAG.cpp \
+            ../gattctest/src/GattcTest.cpp \
             ../pan/src/Pan.cpp
 
 #Uncomment after enabling profiles
