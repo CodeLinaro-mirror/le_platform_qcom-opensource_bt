@@ -1138,7 +1138,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_CLIENT_API_REDIAL_REQ:
             if (sBtHfpClientInterface != NULL) {
-                sBtHfpClientInterface->dial(&mConnectedDevice, "");
+                sBtHfpClientInterface->dial(&mConnectedDevice, NULL);
             }
             break;
         case HFP_CLIENT_API_DIAL_MEMORY_REQ:
@@ -1253,8 +1253,8 @@ void Hfp_Client::ConfigureRingTonePlayback() {
    audio_module = pBTAM->GetAudioDevice();
    if(audio_module != NULL) {
          // select speaker(2) as output device
-         ret = qahw_open_output_stream(audio_module, handle, 2, AUDIO_OUTPUT_FLAG_DIRECT_PCM,
-                                        &config, &out_stream_ring_tone, "bt_hfp_client");
+         ret = qahw_open_output_stream(audio_module, handle, OUT_DEVICE_LINE_OUT,
+                 AUDIO_OUTPUT_FLAG_DIRECT_PCM,&config, &out_stream_ring_tone, "bt_hfp_client");
    }
    else {
       fprintf(stdout, "ConfigureRingTonePlayback: audio_device is NULL\n");
@@ -1359,7 +1359,7 @@ void Hfp_Client::ConfigureAudio(bool enable) {
    if(audio_module != NULL) {
       if (enable) {
          // select speaker(2) as output device
-         qahw_open_output_stream(audio_module, handle, 2, AUDIO_OUTPUT_FLAG_NONE,
+         qahw_open_output_stream(audio_module, handle, OUT_DEVICE_LINE_OUT, AUDIO_OUTPUT_FLAG_NONE,
                                         &config, &out_stream, "bt_hfp_client");
          ALOGD(LOGTAG " setting sample rate %s", (mAudioWbs ? "16000" : "8000"));
          fprintf(stdout, " setting sample rate %s\n", (mAudioWbs ? "16000" : "8000"));

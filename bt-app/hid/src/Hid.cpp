@@ -38,8 +38,10 @@
 
 #include "Hid.hpp"
 #include "Gap.hpp"
+#include "hardware/bt_rc.h"
 #include "hardware/bt_rc_vendor.h"
 #include "hardware/bt_hh_vendor.h"
+#include "types/raw_address.h"
 using namespace std;
 using std::list;
 using std::string;
@@ -49,7 +51,7 @@ using std::string;
 
 thread_t *hid_report_thread;
 const char* threadName = "hid_report";
-static const bt_bdaddr_t bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static const bt_bdaddr_t bd_addr_null= RawAddress::kEmpty;
 HidH *pHid = NULL;
 
 using namespace std;
@@ -242,14 +244,22 @@ static void raw_hid_data_cb(uint8_t* rpt, uint16_t len,bool rpt_id_flag){
         rpt_id = *(rpt);
         rpt_len = len-1;
         rpt_data = (uint8_t *)malloc((rpt_len)*sizeof(uint8_t));
+        if (rpt_data == NULL) {
+            ALOGD(LOGTAG " raw_hid_data_cb Memory not allocated");
+            return;
+        }
         memcpy(rpt_data,&rpt[1],(rpt_len)*sizeof(uint8_t));
         for (int i=0;i<rpt_len;i++)
             ALOGD(LOGTAG "raw_hid_data_cb : data at idx %d is %d",i,*(rpt_data+i));
     }
     else{
         rpt_len = len;
-        ALOGD(LOGTAG "Apurva raw_hid_data_cb :report does not contain report_id.");
+        ALOGD(LOGTAG "raw_hid_data_cb :report does not contain report_id.");
         rpt_data = (uint8_t *)malloc((rpt_len)*sizeof(uint8_t));
+        if (rpt_data == NULL) {
+             ALOGD(LOGTAG " raw_hid_data_cb Memory not allocated");
+             return;
+        }
         memcpy(rpt_data,&rpt[1],rpt_len*sizeof(uint8_t));
         for (int i=0;i<rpt_len;i++)
             ALOGD(LOGTAG "raw_hid_data_cb : data at idx %d is %d",i,*(rpt_data+i));

@@ -62,6 +62,7 @@ endif
 cpp_sources = ../utils/src/utils.cc \
             src/ipc.cpp \
             src/Main.cpp \
+            ../hid/src/Hid.cpp \
             ../gap/src/Gap.cpp \
             ../gap/src/AdapterProperties.cpp \
             ../gap/src/RemoteDevices.cpp \
