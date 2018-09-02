@@ -96,5 +96,6 @@ AC_SUBST([CFLAGS])
 AC_SUBST([CC])
 AC_CONFIG_FILES([Makefile\
     osi/Makefile\
-    main/Makefile])
+    main/Makefile\
+    utils/Makefile])
 AC_OUTPUT
