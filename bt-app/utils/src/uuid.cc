@@ -22,6 +22,8 @@
 #include <base/strings/stringprintf.h>
 #include <algorithm>
 #include <cstring>
+#include <utils/Log.h>
+#define LOGTAG "UUID"
 namespace btapp {
 
 static_assert(sizeof(Uuid) == 16, "Uuid must be 16 bytes long!");
@@ -166,5 +168,51 @@ std::string Uuid::ToString() const {
       "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
       uu[0], uu[1], uu[2], uu[3], uu[4], uu[5], uu[6], uu[7], uu[8], uu[9],
       uu[10], uu[11], uu[12], uu[13], uu[14], uu[15]);
+}
+
+std::array<uint8_t,Uuid::kNumBytes16> Uuid::As16BitBE() const {
+  std::array<uint8_t,Uuid::kNumBytes16> uuid;
+  ALOGE(LOGTAG "As16Bit u[1] %d u[0] %d",
+                uu[3], uu[2]);
+  uuid[1] = uu[3];
+  uuid[0] = uu[2];
+
+  return uuid;
+}
+
+std::array<uint8_t,Uuid::kNumBytes32> Uuid::As32BitBE() const {
+  std::array<uint8_t,Uuid::kNumBytes32> uuid;
+  ALOGE(LOGTAG "As32Bit u[3] %d u[2] %d u[1] %d u[0] %d",
+                uu[3], uu[2], uu[1], uu[0]);
+  uuid[3] = uu[3];
+  uuid[2] = uu[2];
+  uuid[1] = uu[1];
+  uuid[0] = uu[0];
+
+  return uuid;
+}
+
+std::vector<uint8_t> Uuid::uuidToByte(Uuid uuid) {
+  std::array<uint8_t,Uuid::kNumBytes16> serviceDataUuid16Bit;
+  std::array<uint8_t,Uuid::kNumBytes32> serviceDataUuid32Bit;
+  Uuid::UUID128Bit serviceDataUuid128Bit;
+
+  std::vector<uint8_t> vec;
+  if(uuid.GetShortestRepresentationSize() == Uuid::kNumBytes16) {
+    serviceDataUuid16Bit= uuid.As16BitBE(); // this returns big endian representation
+    vec.assign(serviceDataUuid16Bit.begin(), serviceDataUuid16Bit.end());
+  }
+  else if(uuid.GetShortestRepresentationSize() == Uuid::kNumBytes32) {
+    serviceDataUuid32Bit = uuid.As32BitBE(); // this returns big endian representation
+    vec.assign(serviceDataUuid32Bit.begin(), serviceDataUuid32Bit.end());
+    }
+  else {
+      serviceDataUuid128Bit = uuid.To128BitBE();
+      vec.assign(serviceDataUuid128Bit.begin(), serviceDataUuid128Bit.end());
+    }
+  std::string t(vec.begin(), vec.end());
+
+  return vec;
+
 }
 }  // namespace btapp

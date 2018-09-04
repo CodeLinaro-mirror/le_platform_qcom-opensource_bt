@@ -121,16 +121,49 @@ void AdapterProperties::GetBondedDevicesFromPropertyList(int num_properties,
 
 void AdapterProperties::GetCorePropertyList(int num_properties,
         bt_property_t *properties) {
-
+    ALOGD(LOGTAG " AdapterProperties::GetCorePropertyList()");
     int index;
     for (index = 0; index < num_properties; index++) {
-        if (properties[index].type == BT_PROPERTY_BDADDR) {
-            memcpy((bt_bdaddr_t *)&bt_device_info.bd_addr, properties[index].val,
-                                properties[index].len);
-        } else if ( properties[index].type == BT_PROPERTY_BDNAME) {
+        BtEvent *event = new BtEvent;
+        CHECK_PARAM_VOID(event);
+
+        event->event_id = GATT_EVENT_ADAPTER_PROPERTIES;
+        event->gatt_adapter_property_event.len = properties[index].len;
+        event->gatt_adapter_property_event.val = properties[index].val;
+
+        switch(properties[index].type) {
+          case BT_PROPERTY_BDADDR:
+           {
+             ALOGD(LOGTAG " AdapterProperties::BT_PROPERTY_BDADDR");
+             std::memcpy((bt_bdaddr_t *)&bt_device_info.bd_addr, properties[index].val,
+                        properties[index].len);
+
+             event->gatt_adapter_property_event.type = BT_PROPERTY_BDADDR;
+             PostMessage(THREAD_ID_GATT, event);
+           }
+           break;
+           case BT_PROPERTY_BDNAME:
+           {
+            ALOGD(LOGTAG "AdapterProperties::BT_PROPERTY_BDNAME");
+
             memset (&bt_device_info.bd_name, '\0', sizeof (bt_device_info.bd_name));
-            memcpy((bt_bdname_t *)&bt_device_info.bd_name, properties[index].val,
-                                properties[index].len);
+            std::memcpy((bt_bdname_t *)&bt_device_info.bd_name, properties[index].val,
+                          properties[index].len);
+
+            event->gatt_adapter_property_event.type = BT_PROPERTY_BDNAME;
+            PostMessage(THREAD_ID_GATT, event);
+           }
+           break;
+           case BT_PROPERTY_LOCAL_LE_FEATURES:
+           {
+            ALOGD(LOGTAG "AdapterProperties::BT_PROPERTY_LOCAL_LE_FEATURES");
+
+           event->gatt_adapter_property_event.type = BT_PROPERTY_LOCAL_LE_FEATURES;
+           PostMessage(THREAD_ID_GATT, event);
+           }
+           break;
+           default:
+             ALOGD (LOGTAG " Unknown Type");
         }
     }
 }

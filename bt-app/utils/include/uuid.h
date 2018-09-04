@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <array>
 #include <string>
-
+#include <vector>
 namespace btapp {
 
 // This class is representing Bluetooth UUIDs across whole stack.
@@ -105,6 +105,10 @@ class Uuid final {
   bool operator<(const Uuid& rhs) const;
   bool operator==(const Uuid& rhs) const;
   bool operator!=(const Uuid& rhs) const;
+
+  std::array<uint8_t,Uuid::kNumBytes16> As16BitBE() const;
+  std::array<uint8_t,Uuid::kNumBytes32> As32BitBE() const;
+  static std::vector<uint8_t> uuidToByte(Uuid uuid);
 
  private:
   // Network-byte-ordered ID (Big Endian).

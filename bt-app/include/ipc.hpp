@@ -503,6 +503,7 @@ typedef enum {
     BLESCANNER_PERIODIC_ADVERTISING_SYNC_LOST_EVENT,
     BLESCANNER_PERIODIC_ADVERTISING_SYNC_REPORT_EVENT,
 
+    GATT_EVENT_ADAPTER_PROPERTIES,
     RSP_ENABLE_EVENT = RSP_MSG_BASE,
     RSP_DISABLE_EVENT,
 #endif
@@ -1506,6 +1507,12 @@ typedef struct
     std::vector<uint8_t> *data;
 } BleScannerPeriodicAdvSyncReportEvent;
 
+typedef struct {
+  BluetoothEventId event_id;
+  int type;
+  int len;
+  void *val;
+}GattAdapterPropertyEvent;
 
 /* Remote start profile support */
 typedef struct {
@@ -1725,7 +1732,9 @@ typedef union {
     BleScannerPeriodicAdvSyncStartEvent     blescanner_periodic_adv_sync_start_event;
     BleScannerPeriodicAdvSyncLostEvent      blescanner_periodic_adv_sync_lost_event;
     BleScannerPeriodicAdvSyncReportEvent    blescanner_periodic_adv_sync_report_event;
-
+#ifdef USE_GEN_GATT
+    GattAdapterPropertyEvent                gatt_adapter_property_event;
+#endif
     RspEnableEvent                          rsp_enable_event;
     RspDisableEvent                         rsp_disable_event;
 #endif

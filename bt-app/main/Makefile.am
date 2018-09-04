@@ -25,6 +25,8 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hid/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/rsp/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/native/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/framework/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/lib/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattctest/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattstest/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \

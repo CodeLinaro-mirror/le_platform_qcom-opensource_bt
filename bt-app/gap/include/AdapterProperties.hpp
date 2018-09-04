@@ -35,6 +35,11 @@
  * @file AdapterProperties.hpp
  * @brief Adapter Properties header file
  */
+#define CHECK_PARAM_VOID(x)                                                   \
+if (!x) {                                                                     \
+    ALOGE("'%s' Void Param is NULL - exiting from function ", __FUNCTION__);  \
+    return ;                                                                  \
+}
 
 /**
  * Bluetooth Address length

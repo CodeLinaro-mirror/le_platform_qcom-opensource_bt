@@ -30,7 +30,7 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     { NULL ,    THREAD_ID_HFP_CLIENT,  &BtHfpClientMsgHandler,   "Hfp_Client_Thread" } ,
     { NULL ,    THREAD_ID_PAN,         &BtPanMsgHandler,         "Pan_Thread" } ,
 #ifdef USE_GEN_GATT
-    { NULL ,    THREAD_ID_GATT,        NULL,        "Gatt_Thread" } ,
+    { NULL ,    THREAD_ID_GATT,        &BtGattMsgHandler,        "Gatt_Thread" } ,
 #endif
     { NULL ,    THREAD_ID_BT_AM,       &BtAudioManagerHandler,   "BT_AUDIO_MANAGER_Thread" } ,
     { NULL ,    THREAD_ID_SDP_CLIENT,  &BtSdpClientMsgHandler,   "Sdp_Client_Thread" } ,

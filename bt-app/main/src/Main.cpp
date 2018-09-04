@@ -39,7 +39,9 @@
 #include "Hid.hpp"
 #include "HfpClient.hpp"
 #include "Pan.hpp"
-/*#include "Gatt.hpp"*/
+#ifdef USE_GEN_GATT
+#include "GattLibService.hpp"
+#endif
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
 //#include "Rsp.hpp"
@@ -61,12 +63,12 @@
 #define SOCKETNAME  "/data/misc/bluetooth/btprop"
 static int bt_prop_socket;
 
+using namespace gatt;
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
 extern HidH *pHid;
 extern A2dp_Source *pA2dpSource;
 extern Pan *g_pan;
-/*extern Gatt *g_gatt;*/
 extern BT_Audio_Manager *pBTAM;
 /*extern Rsp *rsp;
 extern GattcTest *gattctest;
@@ -92,6 +94,7 @@ static alarm_t *opp_incoming_file_accept_timer = NULL;
 
 #ifdef USE_GEN_GATT
 extern const char *BT_GATT_ENABLED;
+GattLibService *g_gatt;
 #endif
 
 #ifdef __cplusplus
@@ -2867,17 +2870,17 @@ void BluetoothApp :: InitHandler (void) {
         if (threadInfo[THREAD_ID_PAN].thread_id)
             g_pan = new Pan (bt_interface, config);
     }
+#ifdef USE_GEN_GATT
+      if (is_gatt_enable_default_) {
+          ALOGV (LOGTAG "  Starting GATT thread");
+          threadInfo[THREAD_ID_GATT].thread_id = thread_new (
+              threadInfo[THREAD_ID_GATT].thread_name);
 
-#if 0
-    if (is_gatt_enable_default_) {
-        ALOGV (LOGTAG "  Starting GATT thread");
-        threadInfo[THREAD_ID_GATT].thread_id = thread_new (
-            threadInfo[THREAD_ID_GATT].thread_name);
-
-        if (threadInfo[THREAD_ID_GATT].thread_id)
-            g_gatt = new Gatt(bt_interface, config);
-    }
+          if (threadInfo[THREAD_ID_GATT].thread_id)
+              g_gatt = GattLibService::getInstance(bt_interface);
+      }
 #endif
+
 
 #ifdef USE_BT_OBEX
     if (is_obex_enabled_ && is_pbap_client_enabled_) {
@@ -3021,15 +3024,16 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete g_pan;
         }
     }
-/*
-    if (is_gatt_enable_default_) {
-        if (threadInfo[THREAD_ID_GATT].thread_id != NULL){
-            thread_free(threadInfo[THREAD_ID_GATT].thread_id);
-            if (g_gatt != NULL)
-                delete g_gatt;
-        }
-    }
-*/
+#ifdef USE_GEN_GATT
+      if (is_gatt_enable_default_) {
+          if (threadInfo[THREAD_ID_GATT].thread_id != NULL){
+              thread_free(threadInfo[THREAD_ID_GATT].thread_id);
+              if (g_gatt != NULL)
+                  delete g_gatt;
+          }
+      }
+#endif
+
 #ifdef USE_BT_OBEX
     if (opp_incoming_file_accept_timer) {
         alarm_free(opp_incoming_file_accept_timer);
