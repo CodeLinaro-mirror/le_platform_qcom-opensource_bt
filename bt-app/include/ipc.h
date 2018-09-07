@@ -369,11 +369,19 @@ typedef enum {
     AVRCP_TARGET_SET_ADDR_PLAYER_CB,
     AVRCP_TARGET_ADDR_PLAYER_CHANGED,
     AVRCP_TARGET_AVAIL_PLAYER_CHANGED,
+    AVRCP_TARGET_UID_CHANGED,
+    AVRCP_TARGET_NOW_PLAYING_CONTENT_CHANGED,
     AVRCP_TARGET_USE_BIGGER_METADATA,
     AVRCP_SET_EQUALIZER_VAL,
     AVRCP_SET_REPEAT_VAL,
     AVRCP_SET_SHUFFLE_VAL,
     AVRCP_SET_SCAN_VAL,
+    AVRCP_TARGET_SET_BROWSED_PLAYER_REQ,
+    AVRCP_TARGET_CHANGE_PATH_REQ,
+    AVRCP_TARGET_GET_ITEM_ATTRIBUTES_REQ,
+    AVRCP_TARGET_PLAY_ITEMS_REQ,
+    AVRCP_TARGET_ADDTO_NOW_PLAYING_REQ,
+    AVRCP_TARGET_SEARCH_REQ,
 
     GAP_API_ENABLE = GAP_MSG_BASE,
     GAP_API_DISABLE,
@@ -789,12 +797,14 @@ typedef struct {
     uint8_t*           buf_ptr;
     uint16_t           buf_size;
     btrc_player_attr_t attr_id;
+    btrc_media_attr_t attr_id1;
     uint8_t attr_ids[BTRC_MAX_APP_SETTINGS];
     uint8_t attr_values[BTRC_MAX_APP_SETTINGS];
     uint16_t           arg1;
     uint32_t           arg2;
     uint8_t            arg3;
     uint8_t            arg4;
+    uint16_t           arg5;
 } AvrcpTargetEvent;
 
 typedef struct {
