@@ -2011,6 +2011,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case GET_BT_ADDR:
             if ( g_bt_app->GetState() == BT_STATE_ON ) {
                 bdstr_t bd_str;
+                strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
                 bt_bdaddr_t *bd_addr = g_gap->GetBtAddress();
                 bdaddr_to_string(bd_addr, &bd_str[0], sizeof(bd_str));
                 fprintf(stdout, " BT Address : %s\n", bd_str);
@@ -2768,8 +2769,9 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
 
         case MAIN_EVENT_DEVICE_FOUND:
            {
-           bdstr_t bd_str;
+            bdstr_t bd_str;
             std::map<std::string, std::string>::iterator it;
+            strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
             bdaddr_to_string(&event->device_found_event.remoteDevice.address, &bd_str[0], sizeof(bd_str));
             std::string deviceAddress(bd_str);
 
@@ -2861,6 +2863,7 @@ void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t
     std::map<std::string, std::string>::iterator it;
     std::map<std::string, std::string>::iterator it_inquiry;
     bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
     it = bonded_devices.find(deviceAddress);
@@ -2896,6 +2899,7 @@ void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t
 void BluetoothApp:: HandleUnPair(bt_bdaddr_t bd_addr ) {
     bdstr_t bd_str;
     std::map<std::string, std::string>::iterator it;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
 
@@ -2911,6 +2915,7 @@ bt_bdaddr_t BluetoothApp:: AddFoundedDevice(std::string bd_name, bt_bdaddr_t bd_
     ALOGI(LOGTAG " Adding Device to inquiry list");
     std::map<std::string, std::string>::iterator it;
     bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
 

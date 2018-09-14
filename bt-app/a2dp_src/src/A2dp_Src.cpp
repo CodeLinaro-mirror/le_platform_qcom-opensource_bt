@@ -1427,7 +1427,8 @@ static void bta2dp_multicast_state_vendor_callback(int state) {
 }
 
 static void bta2dp_delay_report_vendor_callback(bt_bdaddr_t *bd_addr, uint16_t report_delay) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(bd_addr,str, 18);
     ALOGD(LOGTAG_A2DP "Received delay report! [%s] the delay is [%d]", str, report_delay);
     fprintf(stdout, "Received delay report! the delay is %d ms\n", report_delay);
@@ -2706,7 +2707,8 @@ char* A2dp_Source::dump_message(BluetoothEventId event_id) {
 }
 
 void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG_A2DP "state_disconnected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SOURCE_API_CONNECT_REQ:
@@ -2747,11 +2749,12 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
     }
 }
 void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
     bt_bdaddr_t mDevice;
     uint32_t freq;
     char *mode;
     bool is_valid_codec = true;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG_A2DP "state_pending_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SOURCE_CONNECTED_CB:
@@ -2931,12 +2934,13 @@ void A2dp_Source::SendEncodedData(){
 }
 
 void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
     bt_bdaddr_t mDevice;
     uint32_t freq;
     char *mode;
     bool is_valid_codec = true;
     BtEvent *pControlRequest, *pReleaseControlReq;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG_A2DP "state_connected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SOURCE_API_CONNECT_REQ:

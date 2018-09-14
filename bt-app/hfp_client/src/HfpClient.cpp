@@ -37,6 +37,11 @@ extern "C" {
 #endif
 #endif
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
+
 #define LOGTAG "HFP_CLIENT"
 
 using namespace std;
@@ -619,7 +624,8 @@ void Hfp_Client::ProcessEvent(BtEvent* pEvent) {
 }
 
 void Hfp_Client::state_disconnected_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG "state_disconnected_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_CONNECT_REQ:
@@ -656,7 +662,8 @@ void Hfp_Client::state_disconnected_handler(BtEvent* pEvent) {
     }
 }
 void Hfp_Client::state_connecting_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG "state_connecting_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_CLIENT_CONNECTING_CB:
@@ -695,8 +702,9 @@ void Hfp_Client::state_connecting_handler(BtEvent* pEvent) {
 
 void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
     ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
-    char str[18];
+    bdstr_t str;
     BtEvent *pControlRequest, *pReleaseControlReq;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_DISCONNECT_REQ:
             // release control
@@ -1025,8 +1033,9 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
 }
 
 void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
     BtEvent *pControlRequest, *pReleaseControlReq;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG "state_audio_on_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_DISCONNECT_AUDIO_REQ:
