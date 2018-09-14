@@ -1435,16 +1435,7 @@ static void *thread_func(void *in_param)
             //ALOGD(LOGTAG_A2DP"**QCOM** size wanna to write =%d, acctully = %d",len,write_len);
             if(len!=0)
             {
-                if(src_codec_type == NON_A2DP_MEDIA_CT)
-                {
-                    write_len = output_stream->write(output_stream, buffer, len);
-                }
-                else
-                {
-                    write_len = output_stream->write(output_stream, &codec_type, sizeof(codec_type));
-                    write_len = output_stream->write(output_stream, &len, sizeof(len));
-                    write_len = output_stream->write(output_stream, buffer, len);
-                }
+                write_len = output_stream->write(output_stream, buffer, len);
             }
             pthread_mutex_unlock(&a2dp_hal_mutex);
         }
@@ -3267,6 +3258,13 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
             bdaddr_to_string(&mConnectedDevice, str, 18);
             fprintf(stdout, "A2DP Source Connected to %s\n", str);
             change_state(STATE_A2DP_SOURCE_CONNECTED);
+            bt_status_t ret_val;
+            ret_val = sBtA2dpSourceInterface->set_active_device(pEvent->a2dpSourceEvent.bd_addr);
+            if (ret_val != BT_STATUS_SUCCESS) {
+                fprintf(stdout, "Failure setting active device %s", str);
+                ALOGD(LOGTAG_A2DP "Failure setting active device %s", str);
+                break;
+            }
             BtA2dpOpenOutputStream();
             break;
         default:
@@ -3289,6 +3287,13 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             bdaddr_to_string(&mConnectedDevice, str, 18);
             fprintf(stdout, "A2DP Source Connected to %s\n", str);
             change_state(STATE_A2DP_SOURCE_CONNECTED);
+            bt_status_t ret_val;
+            ret_val = sBtA2dpSourceInterface->set_active_device(pEvent->a2dpSourceEvent.bd_addr);
+            if (ret_val != BT_STATUS_SUCCESS) {
+                fprintf(stdout, "Failure setting active device %s", str);
+                ALOGD(LOGTAG_A2DP "Failure setting active device %s", str);
+                break;
+            }
             BtA2dpOpenOutputStream();
             break;
         case A2DP_SOURCE_DISCONNECTED_CB:
