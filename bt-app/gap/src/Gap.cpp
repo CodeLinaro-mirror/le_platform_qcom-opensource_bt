@@ -301,12 +301,41 @@ static void VendorAclStateChangedCb(bt_status_t status,
     ALOGV (LOGTAG " VendorAclStateChangedCb :");
 }
 
+static void DidInfoCb(bt_sdp_did_get_record di_rec) {
+   ALOGV (LOGTAG " DidInfoCb :");
+   ALOGV (LOGTAG " spec_id:0x%x :", di_rec.spec_id);
+   ALOGV (LOGTAG " vendor:0x%x :", di_rec.rec.vendor);
+   ALOGV (LOGTAG " vendor_id_source:0x%x :", di_rec.rec.vendor_id_source);
+   ALOGV (LOGTAG " product:0x%x :", di_rec.rec.product);
+   ALOGV (LOGTAG " vendor:0x%x :", di_rec.rec.vendor);
+   ALOGV (LOGTAG " primary_record:0x%x :", di_rec.rec.primary_record);
+   ALOGV (LOGTAG " client_executable_url:%s :", di_rec.rec.client_executable_url);
+   ALOGV (LOGTAG " primary_record:%s :", di_rec.rec.service_description);
+   ALOGV (LOGTAG " primary_record:%s :", di_rec.rec.documentation_url);
+
+   ALOGV (LOGTAG "----------------FINISH--------------");
+
+   fprintf(stdout, "\n*****************DidInfoCb*******************\n");
+   fprintf(stdout, " spec_id:0x%x :\n", di_rec.spec_id);
+   fprintf(stdout, " vendor:0x%x :\n", di_rec.rec.vendor);
+   fprintf(stdout, " vendor_id_source:0x%x :\n", di_rec.rec.vendor_id_source);
+   fprintf(stdout, " product:0x%x :\n", di_rec.rec.product);
+   fprintf(stdout, " vendor:0x%x :\n", di_rec.rec.vendor);
+   fprintf(stdout, " primary_record:0x%x :\n", di_rec.rec.primary_record);
+   fprintf(stdout, " client_executable_url:%s :\n", di_rec.rec.client_executable_url);
+   fprintf(stdout, " service_description:%s :\n", di_rec.rec.service_description);
+   fprintf(stdout, " documentation_url:%s :\n", di_rec.rec.documentation_url);
+
+   fprintf(stdout, "\n*****************FINISH*******************\n");
+}
+
 static btvendor_callbacks_t sVendorCallbacks = {
     sizeof(sVendorCallbacks),
     NULL,
     SsrCleanupCb,
     NULL,
     VendorAclStateChangedCb,
+    DidInfoCb,
 };
 
 void BtGapMsgHandler(void *msg) {
@@ -864,6 +893,13 @@ void Gap::ProcessEvent(BtEvent* event) {
 
         case GAP_API_STOP_INQUIRY:
             HandleStopDiscovery();
+            break;
+
+        case GAP_API_GET_REMOTE_DI_INFO:
+            bt_uuid_t di_uuid;
+            memcpy(di_uuid.uu, g_di_uuid, sizeof(bt_uuid_t));
+            bluetooth_interface_->cancel_discovery();
+            bluetooth_interface_->get_remote_service_record(&event->di_device.bd_addr, &di_uuid);
             break;
 
         case GAP_API_CREATE_BOND:
