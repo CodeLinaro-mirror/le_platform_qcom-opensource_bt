@@ -376,6 +376,7 @@ typedef enum {
     GAP_API_DISABLE,
     GAP_API_START_INQUIRY,
     GAP_API_STOP_INQUIRY,
+    GAP_API_GET_REMOTE_DI_INFO,
     GAP_API_CREATE_BOND,
     GAP_API_SSP_REPLY,
     GAP_API_PIN_REPLY,
@@ -681,6 +682,14 @@ typedef struct {
     BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
 } DeviceBondRequest;
+
+/**
+ * Event for notifying Device to get di info
+ */
+typedef struct {
+    BluetoothEventId    event_id;
+    bt_bdaddr_t         bd_addr;
+} DeviceDiInfoRequest;
 
 /**
  * Event for notifying Device connect
@@ -1422,6 +1431,7 @@ typedef union {
     AdapterPropertiesEvent                  adapater_properties_event;
     DeviceDiscoverRequest                   discover_request;
     DeviceBondRequest                       bond_device;
+    DeviceDiInfoRequest                     di_device;
     ProfileStartRequest                     profile_start_request;
     ProfileStopRequest                      profile_stop_request;
     ProfileStartEvent                       profile_start_event;
