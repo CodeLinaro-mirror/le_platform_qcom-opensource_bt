@@ -784,6 +784,8 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
                 if (iter->mAvrcpConnected && iter->mAbsVolNotificationRequested)
                 {
                     perVol = (((int)pEvent->avrcpCtrlPassThruEvent.arg1*ABS_VOL_BASE)/AUDIO_MAX_VOL_LEVEL);
+                    if (perVol > ABS_VOL_BASE)
+                        perVol = ABS_VOL_BASE;
                     curr_audio_index = (int)pEvent->avrcpCtrlPassThruEvent.arg1;
                     ALOGD(LOGTAG_CTRL " perVol %d & mPreviousPercentageVol %d", perVol,
                                                     mPreviousPercentageVol);
