@@ -571,5 +571,7 @@ class Gatt {
         /** Send a response to a read/write operation */
         bt_status_t send_response(int conn_id, int trans_id,
                                      int status, btgatt_response_t *response);
+
+        bt_status_t service_changed();
 };
 #endif
