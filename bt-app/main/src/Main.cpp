@@ -183,6 +183,7 @@ int main (int argc, char *argv[]) {
 
     // initialize signal handler
     signal(SIGINT, SignalHandler);
+    signal(SIGTERM, SignalHandler);
 
     ThreadInfo *main_thread = &threadInfo[THREAD_ID_MAIN];
 #ifndef USE_ANDROID_LOGGING
@@ -1636,7 +1637,7 @@ static void HandleHIDCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->hid_profile_event.bd_addr);
             event->hid_profile_event.reportType= atoi(user_cmd[TWO_PARAM]);
             event->hid_profile_event.bufSize   = atoi(user_cmd[FOUR_PARAM]);
-            strncpy(event->hid_profile_event.report , user_cmd[THREE_PARAM], 20);
+            strlcpy(event->hid_profile_event.report , user_cmd[THREE_PARAM], 20);
             PostMessage (THREAD_ID_HID, event);
             break;
 
