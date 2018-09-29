@@ -87,9 +87,9 @@ cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
 endif
 
 if USE_GST
-requiredlibs = ../osi/libgstbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lchrome
+requiredlibs = ../osi/libgstbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes
 else
-requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lchrome
+requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes
 endif
 
 requiredlibs += -lgengatt -lcutils
