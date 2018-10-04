@@ -141,6 +141,7 @@ typedef enum {
     GET_BT_NAME,
     GET_BT_ADDR,
     SET_BT_NAME,
+    SET_SCAN_MODE,
     UNPAIR,
     GET_BT_STATE,
     TEST_MODE,
@@ -382,6 +383,8 @@ UserMenuList GapMenu[] = {
     {GET_BT_ADDR,           "get_bt_address",   ZERO_PARAM,    "get_bt_address"},
     {SET_BT_NAME,           "set_bt_name",      ONE_PARAM,    "set_bt_name<space><bt name> \
     eg. set_bt_name MDM_Fluoride"},
+    {SET_SCAN_MODE,         "set_scan_mode",    ONE_PARAM,    "set_scan_mode<space><scan mode value (range 0-2)> \
+    eg. set_scan_mode 0 --0-BT_SCAN_MODE_NONE,1- BT_SCAN_MODE_CONNECTABLE,2-BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
 };
 

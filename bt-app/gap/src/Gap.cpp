@@ -476,6 +476,10 @@ int Gap::SetBtName(bt_property_t *prop) {
     return adapter_properties_obj_->SetBtName(prop);
 }
 
+int Gap::SetScanMode(bt_property_t *prop) {
+    return adapter_properties_obj_->SetScanMode(prop);
+}
+
 
 bool Gap::IsDeviceBonded(bt_bdaddr_t device) {
     return adapter_properties_obj_->IsDeviceBonded(device);
@@ -755,6 +759,10 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_API_SET_BDNAME:
             SetBtName(&event->set_device_name_event.prop);
             config_set_string(config_,CONFIG_DEFAULT_SECTION,BT_LOCAL_DEV_NAME,(char *)event->set_device_name_event.prop.val);
+            break;
+
+        case GAP_API_SET_SCAN_MODE:
+            SetScanMode(&event->set_scan_mode_event.prop);
             break;
 
         case GAP_EVENT_DEVICE_FOUND_INT:

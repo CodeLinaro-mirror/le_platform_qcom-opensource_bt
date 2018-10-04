@@ -77,6 +77,10 @@ int AdapterProperties:: SetBtName(bt_property_t *prop) {
     return bluetooth_interface_->set_adapter_property(prop);
 }
 
+int AdapterProperties:: SetScanMode(bt_property_t *prop) {
+    return bluetooth_interface_->set_adapter_property(prop);
+}
+
 bool AdapterProperties::IsDeviceBonded(bt_bdaddr_t bd_addr) {
     bdstr_t bd_str;
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));

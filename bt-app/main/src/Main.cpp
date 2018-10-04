@@ -2453,6 +2453,41 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             }
             break;
 
+        case SET_SCAN_MODE:
+            if ( g_bt_app->GetState() == BT_STATE_ON ) {
+                if (user_cmd[ONE_PARAM] !=NULL)  {
+                    bt_scan_mode_t scan_mode;
+                    event = new BtEvent;
+                    switch (atoi(user_cmd[ONE_PARAM])){
+                    case 0:
+                        scan_mode = BT_SCAN_MODE_NONE;
+                        fprintf( stdout, " Disabled Inquiry Scan and Page Scan \n");
+                        break;
+                    case 1:
+                        scan_mode = BT_SCAN_MODE_CONNECTABLE;
+                        fprintf( stdout, " Disabled Inquiry Scan and Page Scan Enabled \n");
+                        break;
+                    case 2:
+                        scan_mode = BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE;
+                        fprintf( stdout, " Enabled Inquiry Scan and Page Scan \n");
+                        break;
+                    default:
+                        fprintf( stdout, " Invalid SCAN MODE parameter \n");
+                        return;
+                    }
+                event->event_id = GAP_API_SET_SCAN_MODE;
+                event->set_scan_mode_event.prop.type = BT_PROPERTY_ADAPTER_SCAN_MODE;
+                event->set_scan_mode_event.prop.val = &scan_mode;
+                event->set_scan_mode_event.prop.len = sizeof(bt_scan_mode_t);
+                PostMessage (THREAD_ID_GAP, event);
+                } else {
+                    fprintf( stdout, " Invalid SCAN MODE parameter\n");
+                }
+            } else {
+                fprintf( stdout, " Currently BT is OFF\n");
+            }
+            break;
+
         default:
             ALOGV (LOGTAG " Command not handled");
             break;

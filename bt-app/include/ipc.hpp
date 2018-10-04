@@ -394,6 +394,7 @@ typedef enum {
     GAP_API_SSP_REPLY,
     GAP_API_PIN_REPLY,
     GAP_API_SET_BDNAME,
+    GAP_API_SET_SCAN_MODE,
 
     GAP_EVENT_ADAPTER_STATE,
     GAP_EVENT_ACL_STATE_CHANGED,
@@ -777,6 +778,16 @@ typedef struct {
     BluetoothEventId event_id;
     bt_property_t prop;
 } SetDeviceName;
+
+/**
+ * API to set BT SCAN mode
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bt_property_t prop;
+} SetScanMode;
+
+
 /**
  * Event for notifying Profile stop status
  */
@@ -1631,6 +1642,7 @@ typedef union {
     DeviceFoundEvent                        device_found_event;
     DeviceFoundEventInt                     device_found_event_int;
     SetDeviceName                           set_device_name_event;
+    SetScanMode                             set_scan_mode_event;
     RemotePropertiesEvent                   remote_properties_event;
     AdapterPropertiesEvent                  adapater_properties_event;
     DeviceDiscoverRequest                   discover_request;

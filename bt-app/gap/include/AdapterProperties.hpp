@@ -208,6 +208,15 @@ class AdapterProperties {
         int SetBtName(bt_property_t *prop);
 
         /**
+         * @brief SetScanMode
+         *
+         * It will set the  SCAN Mode
+         *
+         * @return status
+         */
+        int SetScanMode(bt_property_t *prop);
+
+        /**
          * @brief IsDeviceBonded
          *
          * It will return's true if device is already bonded else returns false
