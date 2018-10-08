@@ -1255,7 +1255,8 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
                     sizeof(bt_bdaddr_t));
             bdaddr_to_string(&pA2dpSinkStream->mStreamingDevice, str, 18);
             ALOGD(LOGTAG " A2DP_SINK_AUDIO_STARTED - set current streaming device as %s", str);
-
+            if(pA2dpSinkStream->suspend_wait_timer)
+                pA2dpSinkStream->StopRemoteSuspendWaitTimer();
             sBtA2dpSinkVendorInterface->
                     update_streaming_device_vendor(&pA2dpSinkStream->mStreamingDevice);
 
@@ -1268,6 +1269,9 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
             }
             break;
         case A2DP_SINK_AUDIO_SUSPENDED:
+            if((!memcmp(&pA2dpSinkStream->mStreamingDevice, &pEvent->a2dpSinkEvent.bd_addr,
+                    sizeof(bt_bdaddr_t)))&&(pA2dpSinkStream->suspend_wait_timer))
+                pA2dpSinkStream->StopRemoteSuspendWaitTimer();
         case A2DP_SINK_AUDIO_STOPPED:
             if(memcmp(&pA2dpSinkStream->mStreamingDevice, &pEvent->a2dpSinkEvent.bd_addr,
                     sizeof(bt_bdaddr_t)))

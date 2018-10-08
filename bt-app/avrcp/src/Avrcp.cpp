@@ -593,6 +593,15 @@ void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t
         if (CMD_ID_PLAY == key_id)
         {
             ALOGD( LOGTAG_CTRL " sending started event ");
+            if (!memcmp(&pA2dpSinkStream->mStreamingDevice, addr, sizeof(bt_bdaddr_t)))
+            {
+                if(pA2dpSinkStream->suspend_wait_timer) {
+                    ALOGD("AVRCP_PLAY before remote suspend, cancelling suspend_wait_timer and calling StartPcmTimer");
+                    pA2dpSinkStream->StopRemoteSuspendWaitTimer();
+                    pA2dpSinkStream->StartPcmTimer();
+                    qahw_out_resume(pA2dpSinkStream->out_stream);
+                }
+            }
             BtEvent *pEvent = new BtEvent;
             pEvent->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_STARTED;
             memcpy(&pEvent->a2dpSinkEvent.bd_addr, addr, sizeof(bt_bdaddr_t));
@@ -758,8 +767,18 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
                 if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &pEvent->avrcpCtrlPassThruEvent.bd_addr, sizeof(bt_bdaddr_t))) {
                     if (pEvent->avrcpCtrlPassThruEvent.key_id == CMD_ID_PAUSE) {
                         pA2dpSinkStream->StopDataFetchTimer();
+                        ALOGD("AVRCP_PAUSE, starting suspend_wait_timer");
+                        pA2dpSinkStream->StartRemoteSuspendWaitTimer();
                         ALOGD(LOGTAG_CTRL "in %s : pA2dpSinkStream->StopDataFetchTimer()", __func__);
                         fprintf(stdout, LOGTAG_CTRL "in %s : pA2dpSinkStream->StopDataFetchTimer()\n", __func__);
+                    }
+                    else if (pEvent->avrcpCtrlPassThruEvent.key_id == CMD_ID_PLAY) {
+                        if(pA2dpSinkStream->suspend_wait_timer) {
+                           ALOGD("AVRCP_PLAY before remote suspend, cancelling suspend_wait_timer and calling StartPcmTimer");
+                           pA2dpSinkStream->StopRemoteSuspendWaitTimer();
+                           pA2dpSinkStream->StartPcmTimer();
+                           qahw_out_resume(pA2dpSinkStream->out_stream);
+                        }
                     }
                 }
             }
