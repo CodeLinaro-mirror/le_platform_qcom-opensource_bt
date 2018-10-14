@@ -76,12 +76,12 @@ extern Gap *g_gap;
 //#define DUMP_COMPRESSED_DATA TRUE
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
 FILE *outputPcmSampleFile;
-char outputFilename [50] = "/etc/output_sample.pcm";
+char outputFilename [50] = "/data/misc/bluetooth/output_sample.pcm";
 #endif
 
 #if (defined(DUMP_COMPRESSED_DATA) && (DUMP_COMPRESSED_DATA == TRUE))
 FILE *outputPcmSampleFile;
-char outputFilename [50] = "/etc/output_sample.pcm";
+char outputFilename [50] = "/data/misc/bluetooth/output_sample.pcm";
 #endif
 
 extern void enque_relay_data(uint8_t* buffer, size_t size, uint8_t codec_type);
