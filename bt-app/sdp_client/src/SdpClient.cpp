@@ -33,6 +33,11 @@
 #include "SdpClient.hpp"
 #include "utils.h"
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
+
 #define LOGTAG "Sdp "
 
 using namespace std;
@@ -162,7 +167,8 @@ void sdp_search_timer_expired(void *context) {
 
 void SdpClient::ProcessEvent(BtEvent* pEvent)
 {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG "%s: Processing event %d", __FUNCTION__, pEvent->event_id);
 
     switch(pEvent->event_id) {

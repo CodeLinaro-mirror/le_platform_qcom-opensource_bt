@@ -238,7 +238,8 @@ int Pan :: GetLocalRole()
 bool Pan :: Connect(bt_bdaddr_t *addr, int src_role, int dest_role)
 {
     bool ret = true;
-    char bd_str[MAX_BD_STR_LEN];
+    bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
 
     if (src_role == LOCAL_PANU_ROLE && (is_panu_role_supported == false
         || pan_state != UNTETHERED)) {
@@ -273,7 +274,8 @@ bool Pan :: Connect(bt_bdaddr_t *addr, int src_role, int dest_role)
 bool Pan :: Disconnect(bt_bdaddr_t *addr)
 {
     bool ret = true;
-    char bd_str[MAX_BD_STR_LEN];
+    bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
 
     bdaddr_to_string(addr, bd_str, MAX_BD_STR_LEN);
     ALOGV(LOGTAG "%s: %s", __FUNCTION__, bd_str);
@@ -374,7 +376,8 @@ void Pan::HandlePanDeviceConnectedListEvent(PanDeviceConnectedListEvent *event)
     PAN_APP_UI_PRINT("\n*****Connected Device List*****\n");
     for (int i = 0; i < MAX_PAN_DEVICES; i++) {
         if (pan_device[i].state == BTPAN_STATE_CONNECTED) {
-            char bd_str[MAX_BD_STR_LEN];
+            bdstr_t bd_str;
+            strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
             bdaddr_to_string(&(pan_device[i].bd_addr), bd_str, MAX_BD_STR_LEN);
             PAN_APP_UI_PRINT("%s \n", bd_str);
         }
@@ -423,7 +426,8 @@ void Pan::HandlePanControlStateEvent(PanControlStateEvent *event)
 void Pan::HandlePanConnectionStateEvent(PanConnectionStateEvent *event)
 {
     pan_device_t *pan_dev;
-    char bd_str[MAX_BD_STR_LEN];
+    bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
 
     ALOGV(LOGTAG "%s", __FUNCTION__);
 

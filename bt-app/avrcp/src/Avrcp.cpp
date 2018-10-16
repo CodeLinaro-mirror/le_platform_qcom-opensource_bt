@@ -670,6 +670,7 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
     int perVol = 0;
     bdstr_t bd_str;
     std::list<std::string>::iterator bdstring;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG_CTRL " HandleAvrcpCTPassThruEvents event = %s",
             dump_message(pEvent->avrcpCtrlPassThruEvent.event_id));
     switch(pEvent->avrcpCtrlPassThruEvent.event_id) {
@@ -813,6 +814,7 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
     int perVol;
     bdstr_t bd_str;
     std::list<std::string>::iterator bdstring;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG_CTRL " HandleAvrcpCTEvents event = %s",
             dump_message(pEvent->avrcpCtrlEvent.event_id));
     switch(pEvent->avrcpCtrlEvent.event_id) {

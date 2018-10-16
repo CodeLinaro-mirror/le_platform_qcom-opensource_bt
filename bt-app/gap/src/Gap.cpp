@@ -380,7 +380,7 @@ void Gap::HandleSspRequestEvent(SSPRequestEvent *event) {
     DeviceProperties *remote_dev_prop;
     BtEvent *bt_event;
     bdstr_t bd_str;
-
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(&event->bd_addr, &bd_str[0], sizeof(bd_str));
 
     string deviceAddress(bd_str);
