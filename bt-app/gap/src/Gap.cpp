@@ -282,26 +282,32 @@ static void VendorAclStateChangedCb(bt_status_t status,
     ALOGV (LOGTAG " VendorAclStateChangedCb :");
 }
 
-static void DidInfoCb(bt_sdp_did_get_record di_rec) {
+static void DidInfoCb(bt_sdp_did_info di_info) {
+   bt_sdp_did_get_record di_rec = di_info.rec;
+   bdstr_t bdstr = {0};
+
+   bdaddr_to_string(&di_info.bd_addr, bdstr, sizeof(bdstr));
+
    ALOGV (LOGTAG " DidInfoCb :");
+   ALOGV (LOGTAG " bd addr:%s :", bdstr);
    ALOGV (LOGTAG " spec_id:0x%x :", di_rec.spec_id);
    ALOGV (LOGTAG " vendor:0x%x :", di_rec.rec.vendor);
    ALOGV (LOGTAG " vendor_id_source:0x%x :", di_rec.rec.vendor_id_source);
    ALOGV (LOGTAG " product:0x%x :", di_rec.rec.product);
-   ALOGV (LOGTAG " vendor:0x%x :", di_rec.rec.vendor);
+   ALOGV (LOGTAG " version:0x%x :", di_rec.rec.version);
    ALOGV (LOGTAG " primary_record:0x%x :", di_rec.rec.primary_record);
    ALOGV (LOGTAG " client_executable_url:%s :", di_rec.rec.client_executable_url);
-   ALOGV (LOGTAG " primary_record:%s :", di_rec.rec.service_description);
-   ALOGV (LOGTAG " primary_record:%s :", di_rec.rec.documentation_url);
+   ALOGV (LOGTAG " service_description:%s :", di_rec.rec.service_description);
+   ALOGV (LOGTAG " documentation_url:%s :", di_rec.rec.documentation_url);
 
    ALOGV (LOGTAG "----------------FINISH--------------");
-
    fprintf(stdout, "\n*****************DidInfoCb*******************\n");
+   fprintf(stdout, " bd addr:%s :\n", bdstr);
    fprintf(stdout, " spec_id:0x%x :\n", di_rec.spec_id);
    fprintf(stdout, " vendor:0x%x :\n", di_rec.rec.vendor);
    fprintf(stdout, " vendor_id_source:0x%x :\n", di_rec.rec.vendor_id_source);
    fprintf(stdout, " product:0x%x :\n", di_rec.rec.product);
-   fprintf(stdout, " vendor:0x%x :\n", di_rec.rec.vendor);
+   fprintf(stdout, " version:0x%x :\n", di_rec.rec.version);
    fprintf(stdout, " primary_record:0x%x :\n", di_rec.rec.primary_record);
    fprintf(stdout, " client_executable_url:%s :\n", di_rec.rec.client_executable_url);
    fprintf(stdout, " service_description:%s :\n", di_rec.rec.service_description);
