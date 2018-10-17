@@ -87,12 +87,11 @@ cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
 endif
 
 if USE_GST
-requiredlibs = ../osi/libgstbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes
+requiredlibs = ../osi/libgstbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
 else
-requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes
+requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
 endif
 
-requiredlibs += -lgengatt -lcutils
 if AUDIO_HAL_SUPPORTED
 requiredlibs += -lqahw
 endif
