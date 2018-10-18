@@ -307,7 +307,7 @@ static void DidInfoCb(bt_sdp_did_info di_info) {
 
    bdaddr_to_string(&di_info.bd_addr, bdstr, sizeof(bdstr));
 
-   ALOGV (LOGTAG " DidInfoCb :");
+   ALOGV (LOGTAG " DidInfo result %s:", (di_info.status == BT_STATUS_SUCCESS) ? "SUCCESS" : "FAIL");
    ALOGV (LOGTAG " bd addr:%s :", bdstr);
    ALOGV (LOGTAG " spec_id:0x%x :", di_rec.spec_id);
    ALOGV (LOGTAG " vendor:0x%x :", di_rec.rec.vendor);
@@ -321,6 +321,7 @@ static void DidInfoCb(bt_sdp_did_info di_info) {
 
    ALOGV (LOGTAG "----------------FINISH--------------");
    fprintf(stdout, "\n*****************DidInfoCb*******************\n");
+   fprintf(stdout, " DidInfo result %s:\n", (di_info.status == BT_STATUS_SUCCESS) ? "SUCCESS" : "FAIL");
    fprintf(stdout, " bd addr:%s :\n", bdstr);
    fprintf(stdout, " spec_id:0x%x :\n", di_rec.spec_id);
    fprintf(stdout, " vendor:0x%x :\n", di_rec.rec.vendor);
