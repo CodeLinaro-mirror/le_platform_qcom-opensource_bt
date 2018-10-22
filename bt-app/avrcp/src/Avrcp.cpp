@@ -40,6 +40,7 @@
 #include "Gap.hpp"
 #include "hardware/bt_rc_vendor.h"
 #include "A2dp_Sink.hpp"
+#include "A2dp_Sink_Split.hpp"
 #include <math.h>
 #include <algorithm>
 
@@ -53,6 +54,9 @@ using std::string;
 Avrcp *pAvrcp = NULL;
 extern A2dp_Sink_Streaming *pA2dpSinkStream;
 extern A2dp_Sink *pA2dpSink;
+extern A2dp_Sink_Split *pA2dpSinkSplit;
+
+static bool is_a2dp_sink_split_enabled;
 
 #define ABS_VOL_BASE 127
 #define AUDIO_MAX_VOL_LEVEL 15
@@ -567,9 +571,9 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {
     ALOGD(LOGTAG_CTRL " SendPassThruCommandNative ");
-    if (!(bdaddr_is_empty(&(pA2dpSinkStream->mStreamingDevice))) &&
+    if (is_a2dp_sink_split_enabled || (!(bdaddr_is_empty(&(pA2dpSinkStream->mStreamingDevice))) &&
             memcmp(&pA2dpSinkStream->mStreamingDevice, addr, sizeof(bt_bdaddr_t)) &&
-            (key_id == CMD_ID_PLAY))
+            (key_id == CMD_ID_PLAY)))
         direct = 1;
 
     if (!direct && pA2dpSinkStream && pA2dpSinkStream->use_bt_a2dp_hal &&
@@ -614,10 +618,31 @@ list<A2dp_Device>::iterator FindAvDeviceByAddr(list<A2dp_Device>& pA2dpDev, bt_b
     return p;
 }
 
+list<A2dp_Device>::iterator FindAvDevice(bt_bdaddr_t dev,bool* is_end) {
+    bool status = false;
+    list<A2dp_Device> pA2dpDev;
+    list<A2dp_Device>::iterator p;
+    ALOGD(LOGTAG_CTRL "%s : A2dp_Sink Split enabled: %d", __func__,is_a2dp_sink_split_enabled);
+    if(is_a2dp_sink_split_enabled){
+        p = pA2dpSinkSplit->pA2dpDeviceList.begin();
+        p = FindAvDeviceByAddr(pA2dpSinkSplit->pA2dpDeviceList,dev);
+        if(p == pA2dpSinkSplit->pA2dpDeviceList.end())
+            status = true;
+    } else {
+        p = pA2dpSink->pA2dpDeviceList.begin();
+        p = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList,dev);
+        if(p == pA2dpSink->pA2dpDeviceList.end())
+            status = true;
+    }
+    *is_end = status;
+    return p;
+}
+
 bool Avrcp::is_abs_vol_supported(bt_bdaddr_t bd_addr){
     list<A2dp_Device>::iterator iter;
-    iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, bd_addr);
-    if (iter != pA2dpSink->pA2dpDeviceList.end()) {
+    bool is_end;
+    iter = FindAvDevice(bd_addr, &is_end);
+    if (!is_end) {
         return iter->mAbsVolNotificationRequested;
     }
     else {
@@ -655,7 +680,7 @@ void Avrcp::setAbsVolume(bt_bdaddr_t* dev, int absVol, int label) {
               * change in index values which are in range of 0-15. For such cases
               * no action is requiredf
               */
-        if (newIndex != currIndex) {
+        if (!is_a2dp_sink_split_enabled && newIndex != currIndex) {
             curr_audio_index = newIndex;
             pA2dpSinkStream->SetStreamVol(curr_audio_index);
         }
@@ -672,13 +697,14 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
     list<A2dp_Device>::iterator iter;
     int perVol = 0;
     bdstr_t bd_str;
+    bool is_end;
     std::list<std::string>::iterator bdstring;
     ALOGD(LOGTAG_CTRL " HandleAvrcpCTPassThruEvents event = %s",
             dump_message(pEvent->avrcpCtrlPassThruEvent.event_id));
     switch(pEvent->avrcpCtrlPassThruEvent.event_id) {
     case AVRCP_CTRL_CONNECTED_CB:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlPassThruEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end())
+        iter = FindAvDevice(pEvent->avrcpCtrlPassThruEvent.bd_addr,&is_end);
+        if (!is_end)
         {
             ALOGD(LOGTAG_CTRL " Rc connection for AV connected dev, mark avrcp connected");
             iter->mAvrcpConnected = true;
@@ -701,8 +727,8 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
         }
         break;
     case AVRCP_CTRL_DISCONNECTED_CB:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlPassThruEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end())
+        iter = FindAvDevice(pEvent->avrcpCtrlPassThruEvent.bd_addr,&is_end);
+        if (!is_end)
         {
             ALOGD(LOGTAG_CTRL " Rc disconnection for AV connected dev, mark avrcp disconnected");
             iter->mAvrcpConnected = false;
@@ -725,17 +751,18 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
         }
         break;
     case AVRCP_CTRL_PASS_THRU_CMD_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlPassThruEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlPassThruEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
-            if (pA2dpSinkStream)
-                if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &pEvent->avrcpCtrlPassThruEvent.bd_addr, sizeof(bt_bdaddr_t)))
+            if (!is_a2dp_sink_split_enabled && pA2dpSinkStream) {
+                if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &pEvent->avrcpCtrlPassThruEvent.bd_addr, sizeof(bt_bdaddr_t))) {
                     if (pEvent->avrcpCtrlPassThruEvent.key_id == CMD_ID_PAUSE) {
                         pA2dpSinkStream->StopDataFetchTimer();
                         ALOGD(LOGTAG_CTRL "in %s : pA2dpSinkStream->StopDataFetchTimer()", __func__);
                         fprintf(stdout, LOGTAG_CTRL "in %s : pA2dpSinkStream->StopDataFetchTimer()\n", __func__);
                     }
-
+                }
+            }
             ALOGD(LOGTAG_CTRL " passthrough cmd for AV & RC connected device, send to stack");
             SendPassThruCommandNative(pEvent->avrcpCtrlPassThruEvent.key_id,
             &pEvent->avrcpCtrlPassThruEvent.bd_addr, 0);
@@ -746,8 +773,8 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
         }
         break;
     case AVRCP_CTRL_SET_ABS_VOL_CMD_CB:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlPassThruEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlPassThruEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL " setabsvol cmd cb for AV & RC connected device, send to stack");
             setAbsVolume(&iter->mDevice, (int)pEvent->avrcpCtrlPassThruEvent.arg2,
@@ -759,8 +786,8 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
         }
         break;
     case AVRCP_CTRL_REG_NOTI_ABS_VOL_CB:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlPassThruEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlPassThruEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL " NOTI_ABS_VOL_CB for AV & RC connected device, send to stack");
             iter->mNotificationLabel = (int)pEvent->avrcpCtrlPassThruEvent.arg1;
@@ -779,8 +806,8 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
     case AVRCP_CTRL_VOL_CHANGED_NOTI_REQ:
         ALOGD(LOGTAG_CTRL " AVRCP_CTRL_VOL_CHANGED_NOTI_REQ, vol level = %d",
                                                  pEvent->avrcpCtrlPassThruEvent.arg1);
-        iter = pA2dpSink->pA2dpDeviceList.begin();
-        while(iter != pA2dpSink->pA2dpDeviceList.end()) {
+        iter = FindAvDevice(pEvent->avrcpCtrlPassThruEvent.bd_addr,&is_end);
+        if (!is_end) {
                 ALOGD(LOGTAG_CTRL " iter->mAvrcpConnected %d ", iter->mAvrcpConnected);
                 ALOGD(LOGTAG_CTRL " iter->mAbsVolNotificationRequested %d",
                                     iter->mAbsVolNotificationRequested);
@@ -802,7 +829,8 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
                 iter++;
         }
         mPreviousPercentageVol = perVol;
-        pA2dpSinkStream->SetStreamVol(curr_audio_index);
+        if(!is_a2dp_sink_split_enabled)
+            pA2dpSinkStream->SetStreamVol(curr_audio_index);
         break;
 
     }
@@ -812,14 +840,15 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
 void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
     list<A2dp_Device>::iterator iter;
     int perVol;
+    bool is_end;
     bdstr_t bd_str;
     std::list<std::string>::iterator bdstring;
     ALOGD(LOGTAG_CTRL " HandleAvrcpCTEvents event = %s",
             dump_message(pEvent->avrcpCtrlEvent.event_id));
     switch(pEvent->avrcpCtrlEvent.event_id) {
         case AVRCP_CTRL_GET_CAP_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_GET_CAP_REQ : getcapabilities_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -838,8 +867,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         break;
 
         case AVRCP_CTRL_LIST_PALYER_SETTING_ATTR_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_LIST_PALYER_SETTING_ATTR_REQ : list_player_app_setting_attrib_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -857,8 +886,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         break;
 
         case AVRCP_CTRL_LIST_PALYER_SETTING_VALUE_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_LIST_PALYER_SETTING_VALUE_REQ : list_player_app_setting_value_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -877,8 +906,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         break;
 
         case AVRCP_CTRL_GET_PALYER_APP_SETTING_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_GET_PALYER_APP_SETTING_REQ : get_player_app_setting_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -900,8 +929,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         case AVRCP_CTRL_SET_PALYER_APP_SETTING_VALUE_REQ:
         {
             uint8_t* pValue = NULL;
-            iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-            if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+            iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end  && (iter->mAvrcpConnected == true))
             {
                 ALOGD(LOGTAG_CTRL "AVRCP_CTRL_SET_PALYER_APP_SETTING_VALUE_REQ : set_player_app_setting_cmd called!~");
                 pValue = (uint8_t*)pEvent->avrcpCtrlEvent.arg6;
@@ -925,8 +954,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
             break;
         }
         case AVRCP_CTRL_GET_ELEMENT_ATTR_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_GET_ELEMENT_ATTR_REQ : get_element_attribute_command_vendor called!~");
           if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -945,8 +974,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         }
         break;
         case AVRCP_CTRL_GET_PLAY_STATUS_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_GET_PLAY_STATUS_REQ : list_player_app_setting_attrib_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -963,8 +992,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         }
         break;
         case AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_SET_ADDRESSED_PLAYER_REQ : set_addressed_player_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -982,8 +1011,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         }
         break;
         case AVRCP_CTRL_SET_BROWSED_PLAYER_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_SET_BROWSED_PLAYER_REQ : set_addressed_player_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -1001,8 +1030,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         }
         break;
         case AVRCP_CTRL_CHANGE_PATH_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_CHANGE_PATH_REQ : change_path_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -1020,8 +1049,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         }
         break;
         case AVRCP_CTRL_GET_FOLDER_ITEMS_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_GET_FOLDER_ITEMS_REQ : get_folder_items_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -1040,8 +1069,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         }
         break;
         case AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_GET_ITEM_ATTRIBUTES_REQ : get_item_attributes_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -1060,8 +1089,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         }
         break;
         case AVRCP_CTRL_PLAY_ITEMS_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_PLAY_ITEMS_REQ : play_item_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -1080,8 +1109,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         break;
 
         case AVRCP_CTRL_ADDTO_NOW_PLAYING_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_ADDTO_NOW_PLAYING_REQ : addto_now_playing_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -1100,8 +1129,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
         break;
 
         case AVRCP_CTRL_SEARCH_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_SEARCH_REQ : search_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -1121,8 +1150,8 @@ void Avrcp::HandleAvrcpCTEvents(BtEvent* pEvent) {
 
 
         case AVRCP_CTRL_REG_NOTIFICATION_REQ:
-        iter = FindAvDeviceByAddr(pA2dpSink->pA2dpDeviceList, pEvent->avrcpCtrlEvent.bd_addr);
-        if (iter != pA2dpSink->pA2dpDeviceList.end() && (iter->mAvrcpConnected == true))
+        iter = FindAvDevice(pEvent->avrcpCtrlEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
         {
             ALOGD(LOGTAG_CTRL "AVRCP_CTRL_REG_NOTIFICATION_REQ : register_notification_command_vendor called!~");
             if (sBtAvrcpCtrlVendorInterface != NULL) {
@@ -1149,6 +1178,8 @@ void Avrcp::HandleEnableAvrcp(void) {
 
     max_avrcp_conn = config_get_int (config,
             CONFIG_DEFAULT_SECTION, "BtMaxA2dpConn", 1);
+    is_a2dp_sink_split_enabled = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    "BtA2dpSinkSplitEnable", false);
 
     if (bluetooth_interface != NULL)
     {

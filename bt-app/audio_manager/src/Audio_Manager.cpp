@@ -33,6 +33,7 @@
 
 #include "Audio_Manager.hpp"
 #include "A2dp_Sink_Streaming.hpp"
+#include "A2dp_Sink_Split.hpp"
 
 #define LOGTAG "BT_AM"
 
@@ -42,6 +43,7 @@ using std::string;
 
 BT_Audio_Manager *pBTAM = NULL;
 extern A2dp_Sink_Streaming *pA2dpSinkStream;
+static bool is_a2dp_sink_split_enabled;
 
 #ifdef __cplusplus
 extern "C" {
@@ -133,6 +135,11 @@ int BT_Audio_Manager::GetTopIndex(void) {
 
 void BT_Audio_Manager::LoadAudioHal()
 {
+    if(is_a2dp_sink_split_enabled) {
+        ALOGD(" %s Split A2dp Sink enabled, bail out ",__func__);
+        return;
+    }
+
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     ALOGD(LOGTAG " Load Audio HAL +");
     if (qahw_mod_handle != NULL) {
@@ -149,6 +156,10 @@ void BT_Audio_Manager::LoadAudioHal()
 }
 void BT_Audio_Manager::UnloadAudioHal()
 {
+    if(is_a2dp_sink_split_enabled) {
+        ALOGD(" %s Split A2dp Sink enabled, bail out ",__func__);
+        return;
+    }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     int ret = 0;
     ALOGD(LOGTAG "UnLoad Audio HAL +");
@@ -237,7 +248,9 @@ void BT_Audio_Manager::SendControlStatusMessage(ControlStatusType ctrlStatus,
         PostMessage(GetThreadId(profile_id), pControlResponse);
     }
     else {
-        if (pA2dpSinkStream != NULL) {
+        if(is_a2dp_sink_split_enabled) {
+            PostMessage(THREAD_ID_A2DP_SINK_SPLIT, (void*)pControlResponse);
+        } else if (pA2dpSinkStream != NULL) {
             thread_post(pA2dpSinkStream->threadInfo.thread_id,
             pA2dpSinkStream->threadInfo.thread_handler, (void*)pControlResponse);
         }
@@ -321,6 +334,8 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
 }
 
 BT_Audio_Manager :: BT_Audio_Manager(const bt_interface_t *bt_interface, config_t *config) {
+    is_a2dp_sink_split_enabled = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    "BtA2dpSinkSplitEnable", false);
     for(int i= 0 ; i < MAX_PROFILE_ENTRIES; i++) {
         audio_control_stack[i].profile_id =  PROFILE_ID_MAX;
         audio_control_stack[i].control_status = REQUEST_TYPE_DEFAULT;

@@ -93,6 +93,7 @@ const char *BT_SOCKET_ENABLED      = "BtSockInputEnabled";
 const char *BT_ENABLE_DEFAULT      = "BtEnableByDefault";
 const char *BT_USER_INPUT          = "UserInteractionNeeded";
 const char *BT_A2DP_SINK_ENABLED   = "BtA2dpSinkEnable";
+const char *BT_A2DP_SINK_SPLIT_ENABLED   = "BtA2dpSinkSplitEnable";
 const char *BT_A2DP_SOURCE_ENABLED = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED  = "BtHfClientEnable";
 const char *BT_HFP_AG_ENABLED      = "BtHfpAGEnable";
@@ -156,6 +157,8 @@ typedef enum {
     STOP,
     AVDT_START,
     AVDT_SUSPEND,
+    ACCEPT,
+    REJECT,
     FASTFORWARD,
     REWIND,
     FORWARD,
@@ -509,6 +512,10 @@ UserMenuList A2dpSinkMenu[] = {
     {PLAY,                  "play",             ONE_PARAM,    "play<space><bt_address>"},
     {PAUSE,                 "pause",            ONE_PARAM,    "pause<space><bt_address>"},
     {STOP,                  "stop",             ONE_PARAM,    "stop<space><bt_address>"},
+    {AVDT_START,            "avdt_start",       ONE_PARAM,    "avdt_start<space><bt_address> -->split"},
+    {AVDT_SUSPEND,          "avdt_suspend",     ONE_PARAM,    "avdt_suspend<space><bt_address> -->split"},
+    {ACCEPT,                "accept",           ZERO_PARAM,   "accept   -->split"},
+    {REJECT,                "reject",           ZERO_PARAM,   "reject   -->split"},
     {REWIND,                "rewind",           ONE_PARAM,    "rewind<space><bt_address>"},
     {FASTFORWARD,           "fastforward",      ONE_PARAM,    "fastforward<space><bt_address>"},
     {FORWARD,               "forward",          ONE_PARAM,    "forward<space><bt_address>"},
@@ -849,6 +856,7 @@ class BluetoothApp {
     bool is_user_input_enabled_;
     bool is_socket_input_enabled_;
     bool is_a2dp_sink_enabled_;
+    bool is_a2dp_sink_split_enabled_;
     bool is_avrcp_enabled_;
     bool is_a2dp_source_enabled_;
     bool is_hfp_client_enabled_;

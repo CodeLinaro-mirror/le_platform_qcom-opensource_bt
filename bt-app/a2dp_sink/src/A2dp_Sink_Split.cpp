@@ -35,21 +35,20 @@
 #include <hardware/hardware.h>
 #include <hardware/bt_av.h>
 #include "A2dp_Sink_Streaming.hpp"
-#include "A2dp_Sink.hpp"
+#include "A2dp_Sink_Split.hpp"
 #include "Avrcp.hpp"
 #include "Gap.hpp"
 #include "A2dp_Src.hpp"
 #include "hardware/bt_av_vendor.h"
 #include <algorithm>
 
-#define LOGTAG "A2DP_SINK"
+#define LOGTAG "A2DP_SINK_SPLIT"
 
 using namespace std;
 using std::list;
 using std::string;
 
-A2dp_Sink *pA2dpSink = NULL;
-A2dp_Sink_Streaming *pA2dpSinkStream;
+A2dp_Sink_Split *pA2dpSinkSplit = NULL;
 extern Avrcp *pAvrcp;
 extern void flush_relay_data(void);
 
@@ -228,30 +227,9 @@ const A2DP_SINK_VARIABLE variable_list[] = {
 #define ishyphon(c) (c == '-')
 #endif
 
-list<A2dp_Device>::iterator FindDeviceByAddr(list<A2dp_Device>& pA2dpDev, bt_bdaddr_t dev) {
-    list<A2dp_Device>::iterator p = pA2dpDev.begin();
-    while(p != pA2dpDev.end()) {
-        if (memcmp(&dev, &p->mDevice, sizeof(bt_bdaddr_t)) == 0) {
-            break;
-        }
-        p++;
-    }
-    return p;
-}
-
-int StrcompareInsensitiv(char const *p1,  char const *p2){
-    if((p1 != NULL) && (p2 != NULL)){
-      for (;;) {
-        char uc1 = std::toupper(*p1);
-        char uc2 = std::toupper(*p2);
-        if (uc1 < uc2) return -1;
-        if (uc1 > uc2) return 1;
-        if (uc1 == '\0') return 0;
-        p1++;
-        p2++;
-      }
-    }
-}
+extern bool GetCodecInfoByAddr(bt_bdaddr_t* bd_addr, uint16_t *dev_codec_type, btav_codec_config_t* codec_config);
+extern list<A2dp_Device>::iterator FindDeviceByAddr(list<A2dp_Device>& pA2dpDev, bt_bdaddr_t dev);
+extern int StrcompareInsensitiv(char const *p1,  char const *p2);
 
 static int find_str_in_list(const char *str, const char * const *list,
                                    int list_size)
@@ -326,6 +304,161 @@ static int ParseUserInput (char *input, char output[][COMMAND_ARG_SIZE]) {
     return param_count;
 }
 
+uint32_t get_a2dp_sbc_sampling_rate(uint8_t frequency) {
+    uint32_t freq = 48000;
+    switch (frequency) {
+        case SBC_SAMP_FREQ_16:
+            freq = 16000;
+            break;
+        case SBC_SAMP_FREQ_32:
+            freq = 32000;
+            break;
+        case SBC_SAMP_FREQ_44:
+            freq = 44100;
+            break;
+        case SBC_SAMP_FREQ_48:
+            freq = 48000;
+            break;
+    }
+    return freq;
+}
+
+uint8_t get_a2dp_sbc_channel_mode(uint8_t channeltype) {
+    uint8_t count = 1;
+    switch (channeltype) {
+        case SBC_CH_MONO:
+            count = 1;
+            break;
+        case SBC_CH_DUAL:
+        case SBC_CH_STEREO:
+        case SBC_CH_JOINT:
+            count = 2;
+            break;
+    }
+    return count;
+}
+
+uint32_t get_a2dp_aac_sampling_rate(uint16_t frequency) {
+    uint32_t freq = 0;
+    switch (frequency) {
+        case AAC_SAMP_FREQ_8000:
+            freq = 8000;
+            break;
+        case AAC_SAMP_FREQ_11025:
+            freq = 11025;
+            break;
+        case AAC_SAMP_FREQ_12000:
+            freq = 12000;
+            break;
+        case AAC_SAMP_FREQ_16000:
+            freq = 16000;
+            break;
+        case AAC_SAMP_FREQ_22050:
+            freq = 22050;
+            break;
+        case AAC_SAMP_FREQ_24000:
+            freq = 24000;
+            break;
+        case AAC_SAMP_FREQ_32000:
+            freq = 32000;
+            break;
+        case AAC_SAMP_FREQ_44100:
+            freq = 44100;
+            break;
+        case AAC_SAMP_FREQ_48000:
+            freq = 48000;
+            break;
+        case AAC_SAMP_FREQ_64000:
+            freq = 64000;
+            break;
+        case AAC_SAMP_FREQ_88200:
+            freq = 88200;
+            break;
+        case AAC_SAMP_FREQ_96000:
+            freq = 96000;
+            break;
+    }
+    return freq;
+}
+
+uint8_t get_a2dp_aac_channel_mode(uint8_t channel_count) {
+    uint8_t count = 1;
+    switch (channel_count) {
+        case AAC_CHANNELS_1:
+            count = 1;
+            break;
+        case AAC_CHANNELS_2:
+            count = 2;
+            break;
+    }
+    return count;
+}
+
+uint32_t get_a2dp_mp3_sampling_rate(uint16_t frequency) {
+    uint32_t freq = 0;
+    switch (frequency) {
+        case MP3_SAMP_FREQ_16000:
+            freq = 16000;
+            break;
+        case MP3_SAMP_FREQ_22050:
+            freq = 22050;
+            break;
+        case MP3_SAMP_FREQ_24000:
+            freq = 24000;
+            break;
+        case MP3_SAMP_FREQ_32000:
+            freq = 32000;
+            break;
+        case MP3_SAMP_FREQ_44100:
+            freq = 44100;
+            break;
+        case MP3_SAMP_FREQ_48000:
+            freq = 48000;
+            break;
+    }
+    return freq;
+}
+
+uint8_t get_a2dp_mp3_channel_mode(uint8_t channel_count) {
+    uint8_t count = 1;
+    switch (channel_count) {
+        case MP3_CHANNEL_MONO:
+            count = 1;
+            break;
+        case MP3_CHANNEL_DUAL:
+        case MP3_CHANNEL_STEREO:
+        case MP3_CHANNEL_JOINT_STEREO:
+            count = 2;
+            break;
+    }
+    return count;
+}
+
+uint32_t get_a2dp_aptx_sampling_rate(uint8_t frequency) {
+    uint32_t freq = 0;
+    switch (frequency) {
+        case APTX_SAMPLERATE_44100:
+            freq = 44100;
+            break;
+        case APTX_SAMPLERATE_48000:
+            freq = 48000;
+            break;
+    }
+    return freq;
+}
+
+uint8_t get_a2dp_aptx_channel_mode(uint8_t channel_count) {
+    uint8_t count = 1;
+    switch (channel_count) {
+        case APTX_CHANNELS_MONO:
+            count = 1;
+            break;
+        case APTX_CHANNELS_STEREO:
+            count = 2;
+            break;
+    }
+    return count;
+}
 
 /* This function is used for testing purpose. Parses string which represents codec list*/
 
@@ -459,10 +592,11 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
     return true;
 }
 
-void BtA2dpSinkMsgHandler(void *msg) {
+void BtA2dpSinkSplitMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
     BtEvent* pCleanupEvent = NULL;
     BtEvent *pCleanupSinkStreaming = NULL;
+    BtEvent *pReleaseControlReq = NULL;
     int num_codec_configs = 0;
     if(!msg) {
         printf("Msg is NULL, return.\n");
@@ -473,44 +607,104 @@ void BtA2dpSinkMsgHandler(void *msg) {
     switch(pEvent->event_id) {
         case PROFILE_API_START:
             ALOGD(LOGTAG " enable a2dp sink");
-            if (pA2dpSink) {
-                pA2dpSink->HandleEnableSink();
+            if (pA2dpSinkSplit) {
+                pA2dpSinkSplit->HandleEnableSink();
             }
             break;
         case PROFILE_API_STOP:
             ALOGD(LOGTAG " disable a2dp sink");
-            if (pA2dpSink) {
-                pA2dpSink->HandleDisableSink();
+            if (pA2dpSinkSplit) {
+                pA2dpSinkSplit->HandleDisableSink();
             }
             break;
-        case A2DP_SINK_CLEANUP_REQ:
+        case A2DP_SINK_CLEANUP_REQ://to do :check if any handling is needed here
             ALOGD(LOGTAG " cleanup a2dp sink");
-            pCleanupSinkStreaming = new BtEvent;
-            pCleanupSinkStreaming->a2dpSinkStreamingEvent.event_id =
-                    A2DP_SINK_STREAMING_CLEANUP_REQ;
-            if (pA2dpSinkStream) {
-                thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                pA2dpSinkStream->threadInfo.thread_handler, (void*)pCleanupSinkStreaming);
-            }
             pCleanupEvent = new BtEvent;
             pCleanupEvent->event_id = A2DP_SINK_CLEANUP_DONE;
             PostMessage(THREAD_ID_GAP, pCleanupEvent);
-            break;
-        case A2DP_SINK_STREAMING_DISABLE_DONE:
-            ALOGD(LOGTAG " a2dp sink streaming disable done");
-            if (pA2dpSink) {
-                pA2dpSink->HandleSinkStreamingDisableDone();
-            }
             break;
         case A2DP_SINK_CODEC_LIST:
             A2dpCodecList(pEvent->a2dpCodecListEvent.codec_list,
                 &num_codec_configs);
             if (num_codec_configs)
-                pA2dpSink->UpdateSupportedCodecs(num_codec_configs);
+                pA2dpSinkSplit->UpdateSupportedCodecs(num_codec_configs);
+            break;
+        case A2DP_SINK_ACCEPT_PENDING_COMMAND:
+            if(pA2dpSinkSplit){
+                ALOGD(LOGTAG " Accept pending command, start: %d, suspend:%d ",
+                    pA2dpSinkSplit->start_pending,pA2dpSinkSplit->suspend_pending);
+                if(pA2dpSinkSplit->start_pending)
+                    pA2dpSinkSplit->sBtA2dpSinkVendorInterface->start_ind_rsp(pA2dpSinkSplit->
+                            mPendingDevice,true);
+                else if(pA2dpSinkSplit->suspend_pending)
+                    pA2dpSinkSplit->sBtA2dpSinkVendorInterface->suspend_ind_rsp(pA2dpSinkSplit->
+                            mPendingDevice,true);
+            pA2dpSinkSplit->start_pending = false;
+            pA2dpSinkSplit->suspend_pending = false;
+            }
+            break;
+        case A2DP_SINK_REJECT_PENDING_COMMAND:
+            if(pA2dpSinkSplit){
+                ALOGD(LOGTAG " Accept pending command, start: %d, suspend:%d ",
+                    pA2dpSinkSplit->start_pending,pA2dpSinkSplit->suspend_pending);
+                if(pA2dpSinkSplit->start_pending)
+                    pA2dpSinkSplit->sBtA2dpSinkVendorInterface->start_ind_rsp(pA2dpSinkSplit->
+                            mPendingDevice,false);
+                else if(pA2dpSinkSplit->suspend_pending)
+                    pA2dpSinkSplit->sBtA2dpSinkVendorInterface->suspend_ind_rsp(pA2dpSinkSplit->
+                            mPendingDevice,false);
+            pA2dpSinkSplit->start_pending = false;
+            pA2dpSinkSplit->suspend_pending = false;
+            }
+            break;
+        case BT_AM_CONTROL_STATUS:
+            ALOGD(LOGTAG " BT_AM_CONTROL_STATUS");
+            if (pA2dpSinkSplit) {
+                ALOGD(LOGTAG " earlier status = %d  new status = %d", pA2dpSinkSplit->controlStatus,
+                        pEvent->btamControlStatus.status_type);
+                pA2dpSinkSplit->controlStatus = pEvent->btamControlStatus.status_type;
+                switch(pA2dpSinkSplit->controlStatus) {
+                    case STATUS_LOSS:
+                        // send pause to remote
+                        if (pAvrcp != NULL)
+                            pAvrcp->SendPassThruCommandNative(CMD_ID_PAUSE,
+                            &pA2dpSinkSplit->mStreamingDevice, 0);
+                        // release control
+                        pReleaseControlReq = new BtEvent;
+                        pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+                        pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+                        PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+                        break;
+                    case STATUS_LOSS_TRANSIENT:
+                        // send pause to remote
+                        if (pAvrcp != NULL) {
+                            ALOGD(LOGTAG " copy resuming device");
+                            memcpy(&pA2dpSinkSplit->mResumingDevice,
+                                &pA2dpSinkSplit->mStreamingDevice, sizeof(bt_bdaddr_t));
+                            ALOGD(LOGTAG " sending pause copy resuming device");
+                            pAvrcp->SendPassThruCommandNative(CMD_ID_PAUSE,
+                                &pA2dpSinkSplit->mStreamingDevice, 0);
+                        }
+                        break;
+                    case STATUS_GAIN:
+                        ALOGD(LOGTAG " STATUS_GAIN");
+                        break;
+                    case STATUS_REGAINED:
+                        ALOGD(LOGTAG " STATUS_REGAINED");
+                        // send play to remote
+                        if (pAvrcp != NULL && !bdaddr_is_empty(&pA2dpSinkSplit->mResumingDevice)) {
+                            ALOGD(LOGTAG " STATUS_REGAINED, sending play");
+                            pAvrcp->SendPassThruCommandNative(CMD_ID_PLAY,
+                                    &pA2dpSinkSplit->mResumingDevice, 1);
+                            memset(&pA2dpSinkSplit->mResumingDevice, 0, sizeof(bt_bdaddr_t));
+                        }
+                        break;
+                }
+            }
             break;
         default:
-            if(pA2dpSink) {
-               pA2dpSink->EventManager(( BtEvent *) msg, pEvent->a2dpSinkEvent.bd_addr);
+            if(pA2dpSinkSplit) {
+               pA2dpSinkSplit->EventManager(( BtEvent *) msg, pEvent->a2dpSinkEvent.bd_addr);
             }
             break;
     }
@@ -520,36 +714,6 @@ void BtA2dpSinkMsgHandler(void *msg) {
 #ifdef __cplusplus
 }
 #endif
-
-bool GetCodecInfoByAddr(bt_bdaddr_t* bd_addr, uint16_t *dev_codec_type, btav_codec_config_t* codec_config)
-{
-    ALOGD(LOGTAG "enter func GetCodecINfo ===>");
-    if(bd_addr == NULL)
-    {
-        bd_addr= &pA2dpSinkStream->mStreamingDevice;
-        ALOGD(LOGTAG " check the steramding device codec");
-        if (bdaddr_is_empty(&(pA2dpSinkStream->mStreamingDevice)))
-        {
-            ALOGD(LOGTAG " the steaming device is empty ");
-            return false;
-        }
-    }
-    list<A2dp_Device>::iterator iter = FindDeviceByAddr(pA2dpSink->pA2dpDeviceList, *bd_addr);
-    if(iter != pA2dpSink->pA2dpDeviceList.end())
-    {
-        ALOGD(LOGTAG " Audio Config CB: found matching device");
-        *dev_codec_type = iter->dev_codec_type;
-        memcpy((void*)codec_config,(void *) &iter->dev_codec_config, sizeof(iter->dev_codec_config));
-        //for(int i=0;i<7;i++)
-        ALOGE(LOGTAG "codec_type = %u", *dev_codec_type);
-        return true;
-    }
-    else
-    {
-        ALOGE(LOGTAG " ERROR: Audio Config CB: No matching device");
-        return false;
-    }
-}
 
 static void bta2dp_connection_state_callback(const RawAddress& bd_addr, btav_connection_state_t state) {
     ALOGD(LOGTAG " Connection State CB state = %d", state);
@@ -569,7 +733,7 @@ static void bta2dp_connection_state_callback(const RawAddress& bd_addr, btav_con
             pEvent->a2dpSinkEvent.event_id = A2DP_SINK_DISCONNECTING_CB;
         break;
     }
-    PostMessage(THREAD_ID_A2DP_SINK, pEvent);
+    PostMessage(THREAD_ID_A2DP_SINK_SPLIT, pEvent);
 }
 
 static void bta2dp_audio_state_callback(const RawAddress& bd_addr, btav_audio_state_t state) {
@@ -587,14 +751,14 @@ static void bta2dp_audio_state_callback(const RawAddress& bd_addr, btav_audio_st
             pEvent->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_STARTED;
         break;
     }
-    PostMessage(THREAD_ID_A2DP_SINK, pEvent);
+    PostMessage(THREAD_ID_A2DP_SINK_SPLIT, pEvent);
 }
 
 static void bta2dp_audio_config_callback(const RawAddress& bd_addr, uint32_t sample_rate,
         uint8_t channel_count) {
     ALOGD(LOGTAG " Audio Config CB sample_rate %d, channel_count %d", sample_rate, channel_count);
-    list<A2dp_Device>::iterator iter = FindDeviceByAddr(pA2dpSink->pA2dpDeviceList, bd_addr);
-    if(iter != pA2dpSink->pA2dpDeviceList.end())
+    list<A2dp_Device>::iterator iter = FindDeviceByAddr(pA2dpSinkSplit->pA2dpDeviceList, bd_addr);
+    if(iter != pA2dpSinkSplit->pA2dpDeviceList.end())
     {
         ALOGD(LOGTAG " Audio Config CB: found matching device");
         iter->av_config.sample_rate = sample_rate;
@@ -605,33 +769,18 @@ static void bta2dp_audio_config_callback(const RawAddress& bd_addr, uint32_t sam
         ALOGE(LOGTAG " ERROR: Audio Config CB: No matching device");
     }
 }
-
+// no changes before this
 static void bta2dp_audio_data_read_callback(bt_bdaddr_t *bd_addr) {
     ALOGD(LOGTAG " Audio Data Read Callback");
-    BtEvent *pA2dpDataRead = new BtEvent;
-    memcpy(&pA2dpDataRead->a2dpSinkEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-    if (pA2dpSinkStream && pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
-        pA2dpDataRead->a2dpSinkStreamingEvent.event_id =
-                A2DP_SINK_STREAMING_FETCH_PCM_DATA;
-        if (pA2dpSinkStream) {
-            thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                    pA2dpSinkStream->threadInfo.thread_handler, (void*)pA2dpDataRead);
-        }
-    } else {
-        pA2dpDataRead->a2dpSinkStreamingEvent.event_id = A2DP_SINK_FILL_COMPRESS_BUFFER;
-        if (pA2dpSinkStream) {
-            thread_post(pA2dpSinkStream->threadInfo.thread_id
-                    , pA2dpSinkStream->threadInfo.thread_handler, (void*)pA2dpDataRead);
-        }
-    }
+    //to do : check btif part for any changes here
 }
-
+// no chnages after this
 static void bta2dp_audio_focus_request_vendor_callback(bt_bdaddr_t *bd_addr) {
     ALOGD(LOGTAG " bta2dp_audio_focus_request_vendor_callback ");
     BtEvent *pEvent = new BtEvent;
     pEvent->a2dpSinkEvent.event_id = A2DP_SINK_FOCUS_REQUEST_CB;
     memcpy(&pEvent->a2dpSinkEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-    PostMessage(THREAD_ID_A2DP_SINK, pEvent);
+    PostMessage(THREAD_ID_A2DP_SINK_SPLIT, pEvent);
 }
 
 static void bta2dp_audio_codec_config_vendor_callback(bt_bdaddr_t *bd_addr, uint16_t codec_type,
@@ -645,11 +794,39 @@ static void bta2dp_audio_codec_config_vendor_callback(bt_bdaddr_t *bd_addr, uint
     pEvent->a2dpSinkEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->a2dpSinkEvent.buf_size);
     memcpy(pEvent->a2dpSinkEvent.buf_ptr, &codec_config, pEvent->a2dpSinkEvent.buf_size);
     pEvent->a2dpSinkEvent.arg1 = codec_type;
-    PostMessage(THREAD_ID_A2DP_SINK, pEvent);
+    PostMessage(THREAD_ID_A2DP_SINK_SPLIT, pEvent);
 }
 
 static void bta2dp_audio_registration_callback(bool state) {
     ALOGD(LOGTAG " Audio Registration Callback: state = %d", state);
+}
+
+static void bta2dp_audio_split_sink_start_ind_callback(const bt_bdaddr_t& bd_addr) {
+    int accepted = 1;
+    int length = 200;
+    char user_input[length] = {'\0'};
+    ALOGD(LOGTAG " bta2dp_audio_split_sink_start_ind_callback ");
+    fprintf(stdout, "\n*************************************************");
+    fprintf(stdout, "\n Recieved Start from Src device");
+    fprintf(stdout, "\n*************************************************\n");
+    fprintf(stdout, " ** Please enter accept / reject in a2dp_sink_menu **\n");
+    memcpy(&pA2dpSinkSplit->mPendingDevice, &bd_addr, sizeof(bt_bdaddr_t));
+    pA2dpSinkSplit->start_pending = true;
+    pA2dpSinkSplit->suspend_pending = false;
+}
+
+static void bta2dp_audio_split_sink_suspend_ind_callback(const bt_bdaddr_t& bd_addr) {
+    int accepted = 1;
+    int length = 200;
+    char user_input[length] = {'\0'};
+    ALOGD(LOGTAG " bta2dp_audio_split_sink_suspend_ind_callback ");
+    fprintf(stdout, "\n*************************************************");
+    fprintf(stdout, "\n Recieved Suspend from Src device");
+    fprintf(stdout, "\n*************************************************\n");
+    fprintf(stdout, " ** Please enter accept / reject in a2dp_sink_menu **\n");
+    memcpy(&pA2dpSinkSplit->mPendingDevice, &bd_addr, sizeof(bt_bdaddr_t));
+    pA2dpSinkSplit->suspend_pending = true;
+    pA2dpSinkSplit->start_pending = false;
 }
 
 static btav_sink_callbacks_t sBluetoothA2dpSinkCallbacks = {
@@ -665,14 +842,14 @@ static btav_sink_vendor_callbacks_t sBluetoothA2dpSinkVendorCallbacks = {
     bta2dp_audio_codec_config_vendor_callback,
     bta2dp_audio_data_read_callback,
     bta2dp_audio_registration_callback,
-    NULL,
-    NULL,
+    bta2dp_audio_split_sink_start_ind_callback,
+    bta2dp_audio_split_sink_suspend_ind_callback,
 };
 
-void A2dp_Sink::HandleEnableSink(void) {
+void A2dp_Sink_Split::HandleEnableSink(void) {
     ALOGD(LOGTAG " HandleEnableSink ");
 
-    uint8_t streaming_prarm = 0;
+    uint8_t streaming_param = 0;
     BtEvent *pEvent = new BtEvent;
     max_a2dp_conn = config_get_int (config,
             CONFIG_DEFAULT_SECTION, "BtMaxA2dpConn", 1);
@@ -680,11 +857,11 @@ void A2dp_Sink::HandleEnableSink(void) {
     if (bluetooth_interface != NULL)
     {
         sBtA2dpSinkInterface = (btav_sink_interface_t *)bluetooth_interface->
-                get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_SINK_ID);
+                get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_SINK_SPLIT_ID);
         sBtA2dpSinkVendorInterface = (btav_sink_vendor_interface_t *)bluetooth_interface->
-                get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_SINK_VENDOR_ID);
+                get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_SINK_SPLIT_VENDOR_ID);
 
-        if (sBtA2dpSinkInterface == NULL)
+        if (sBtA2dpSinkVendorInterface == NULL || sBtA2dpSinkInterface == NULL)
         {
              pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
              pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SINK;
@@ -692,67 +869,31 @@ void A2dp_Sink::HandleEnableSink(void) {
              PostMessage(THREAD_ID_GAP, pEvent);
              return;
         }
-        pA2dpSink->mSinkState = SINK_STATE_STARTED;
-        pA2dpSinkStream->fetch_rtp_info = config_get_bool (config,
-                         CONFIG_DEFAULT_SECTION, "BtFetchRTPForSink", false);
-        pA2dpSinkStream->sbc_decoding = config_get_bool (config,
-            CONFIG_DEFAULT_SECTION, "BtEnableSBCDecoding", true);
-        pA2dpSinkStream->enable_notification_cb = config_get_bool (config,
-                         CONFIG_DEFAULT_SECTION, "BtMediaNotificationCb", false);
-        ALOGD(LOGTAG " Fetch RTP Info %d, enable_notification_cb: %d",
-                pA2dpSinkStream->fetch_rtp_info, pA2dpSinkStream->enable_notification_cb);
+        pA2dpSinkSplit->mSinkState = SINK_STATE_STARTED;
 
-        pA2dpSinkStream->enable_delay_report = config_get_bool (config,CONFIG_DEFAULT_SECTION, "BtA2dpDelayReportEnable", false);
-        ALOGD(LOGTAG " ~~ enable_delay_report  %d ", pA2dpSinkStream->enable_delay_report);
 #ifdef USE_LIBHW_AOSP
         sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks);
 #else
         sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks, max_a2dp_conn, 0);
 #endif
-        if (pA2dpSinkStream->fetch_rtp_info)
-            streaming_prarm |= A2DP_SINK_RETREIVE_RTP_HEADER;
-        if(pA2dpSinkStream->sbc_decoding)
-            streaming_prarm |= A2DP_SINK_ENABLE_SBC_DECODING;
-        if (pA2dpSinkStream->enable_delay_report)
-            streaming_prarm |= A2DP_SINK_ENABLE_DELAY_REPORTING;
-        if (pA2dpSinkStream->enable_notification_cb)
-            streaming_prarm |= A2DP_SINK_ENABLE_NOTIFICATION_CB;
 
         sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
-                    max_a2dp_conn, 0,
-                    streaming_prarm);
+                    max_a2dp_conn, 0,streaming_param);
 
         pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
         pEvent->profile_start_event.profile_id = PROFILE_ID_A2DP_SINK;
         pEvent->profile_start_event.status = true;
-        pA2dpSinkStream->GetLibInterface(sBtA2dpSinkVendorInterface);
 
         PostMessage(THREAD_ID_GAP, pEvent);
     }
-    BtEvent *pEnableSinkStreaming = new BtEvent;
-    pEnableSinkStreaming->a2dpSinkStreamingEvent.event_id = A2DP_SINK_STREAMING_API_START;
-    if (pA2dpSinkStream) {
-        thread_post(pA2dpSinkStream->threadInfo.thread_id,
-        pA2dpSinkStream->threadInfo.thread_handler, (void*)pEnableSinkStreaming);
-    }
 }
 
-void A2dp_Sink::HandleDisableSink(void) {
+void A2dp_Sink_Split::HandleDisableSink(void) {
     ALOGD(LOGTAG " HandleDisableSink ");
-    pA2dpSink->mSinkState = SINK_STATE_NOT_STARTED;
+    pA2dpSinkSplit->mSinkState = SINK_STATE_NOT_STARTED;
 
-    BtEvent *pDisableSinkStreaming = new BtEvent;
-    pDisableSinkStreaming->a2dpSinkStreamingEvent.event_id = A2DP_SINK_STREAMING_API_STOP;
-    if (pA2dpSinkStream) {
-        thread_post(pA2dpSinkStream->threadInfo.thread_id,
-        pA2dpSinkStream->threadInfo.thread_handler, (void*)pDisableSinkStreaming);
-    }
-}
-
-void A2dp_Sink::HandleSinkStreamingDisableDone(void) {
-    ALOGD(LOGTAG " HandleSinkStreamingDisableDone ");
-    if (pA2dpSink->pA2dpDeviceList.size() != 0)
-        pA2dpSink->pA2dpDeviceList.clear();
+    if (pA2dpSinkSplit->pA2dpDeviceList.size() != 0)
+        pA2dpSinkSplit->pA2dpDeviceList.clear();
 
     if (sBtA2dpSinkInterface != NULL) {
         sBtA2dpSinkInterface->cleanup();
@@ -770,7 +911,7 @@ void A2dp_Sink::HandleSinkStreamingDisableDone(void) {
     PostMessage(THREAD_ID_GAP, pEvent);
 }
 
-void A2dp_Sink::ProcessEvent(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
+void A2dp_Sink_Split::ProcessEvent(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
     switch(iter->mSinkDeviceState) {
         case DEVICE_STATE_DISCONNECTED:
             state_disconnected_handler(pEvent, iter);
@@ -783,8 +924,8 @@ void A2dp_Sink::ProcessEvent(BtEvent* pEvent, list<A2dp_Device>::iterator iter) 
             break;
     }
 }
-
-void A2dp_Sink::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
+// no change before this
+void A2dp_Sink_Split::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
     ALOGD(LOGTAG " ConnectionManager ");
     A2dp_Device *newNode = NULL;
     list<A2dp_Device>::iterator iter;
@@ -871,10 +1012,6 @@ void A2dp_Sink::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
                 else
                 {
                     ALOGE(LOGTAG " found a match, disconnect this device iter = %x", iter);
-                    if (pA2dpSinkStream->relay_sink_data)
-                    {
-                        flush_relay_data();
-                    }
                 }
             }
             break;
@@ -882,10 +1019,10 @@ void A2dp_Sink::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
     ProcessEvent(pEvent, iter);
 }
 
-void A2dp_Sink::EventManager(BtEvent* pEvent, bt_bdaddr_t dev) {
+void A2dp_Sink_Split::EventManager(BtEvent* pEvent, bt_bdaddr_t dev) {
     ALOGD(LOGTAG " EventManager ");
 
-    if (pA2dpSink->mSinkState == SINK_STATE_NOT_STARTED)
+    if (pA2dpSinkSplit->mSinkState == SINK_STATE_NOT_STARTED)
     {
        ALOGE(LOGTAG " SINK STATE UNINITIALIZED, return");
        return;
@@ -909,7 +1046,7 @@ void A2dp_Sink::EventManager(BtEvent* pEvent, bt_bdaddr_t dev) {
     }
 }
 
-void A2dp_Sink::UpdateSupportedCodecs(uint8_t num_codec_configs) {
+void A2dp_Sink_Split::UpdateSupportedCodecs(uint8_t num_codec_configs) {
     bt_status_t status;
     int i;
     if (sBtA2dpSinkVendorInterface != NULL) {
@@ -922,14 +1059,14 @@ void A2dp_Sink::UpdateSupportedCodecs(uint8_t num_codec_configs) {
     }
 }
 
-bool A2dp_Sink::isConnectionEvent(BluetoothEventId event_id) {
+bool A2dp_Sink_Split::isConnectionEvent(BluetoothEventId event_id) {
     bool ret = false;
     if (event_id >= A2DP_SINK_API_CONNECT_REQ && event_id <= A2DP_SINK_DISCONNECTING_CB)
         ret = true;
     ALOGD(LOGTAG " isConnectionEvent: %d", ret);
     return ret;
 }
-char* A2dp_Sink::dump_message(BluetoothEventId event_id) {
+char* A2dp_Sink_Split::dump_message(BluetoothEventId event_id) {
     switch(event_id) {
     case A2DP_SINK_API_CONNECT_REQ:
         return"API_CONNECT_REQ";
@@ -956,8 +1093,8 @@ char* A2dp_Sink::dump_message(BluetoothEventId event_id) {
     }
     return "UNKNOWN";
 }
-
-void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
+// no change before this
+void A2dp_Sink_Split::state_disconnected_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
     char str[18];
     BtEvent *pOpenInputStream = NULL;
     ALOGD(LOGTAG "state_disconnected_handler Processing event %s", dump_message(pEvent->event_id));
@@ -981,20 +1118,13 @@ void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent, list<A2dp_Device>::i
             bdaddr_to_string(&iter->mConnectedDevice, str, 18);
             fprintf(stdout, "A2DP Sink Connected to %s\n", str);
             change_state(iter, DEVICE_STATE_CONNECTED);
-            pOpenInputStream = new BtEvent;
-            pOpenInputStream->a2dpSinkStreamingEvent.event_id =
-                    A2DP_SINK_STREAMING_OPEN_INPUT_STREAM;
-            if (pA2dpSinkStream) {
-                thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                pA2dpSinkStream->threadInfo.thread_handler, (void*)pOpenInputStream);
-            }
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 }
-void A2dp_Sink::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
+void A2dp_Sink_Split::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
     char str[18];
     bool is_valid_codec = true;
     BtEvent *pOpenInputStream = NULL;
@@ -1009,13 +1139,6 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterat
             bdaddr_to_string(&iter->mConnectedDevice, str, 18);
             fprintf(stdout,  "A2DP Sink Connected to %s\n", str);
             change_state(iter, DEVICE_STATE_CONNECTED);
-            pOpenInputStream = new BtEvent;
-            pOpenInputStream->a2dpSinkStreamingEvent.event_id =
-                    A2DP_SINK_STREAMING_OPEN_INPUT_STREAM;
-            if (pA2dpSinkStream) {
-                thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                pA2dpSinkStream->threadInfo.thread_handler, (void*)pOpenInputStream);
-            }
             break;
         case A2DP_SINK_DISCONNECTED_CB:
             fprintf(stdout, "A2DP Sink DisConnected\n");
@@ -1042,40 +1165,38 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterat
             bdaddr_to_string(&iter->mDevice, str, 18);
             fprintf(stdout, "Codec Configuration for device %s\n", str);
             switch (iter->dev_codec_type) {
-               case A2DP_SINK_AUDIO_CODEC_SBC:
-                   fprintf(stdout, "Codec type = SBC\n");
-                   iter->av_config.sample_rate = pA2dpSinkStream->
-                       get_a2dp_sbc_sampling_rate(iter->dev_codec_config.sbc_config.samp_freq);
-                   iter->av_config.channel_count = pA2dpSinkStream->
-                       get_a2dp_sbc_channel_mode(iter->dev_codec_config.sbc_config.ch_mode);
-                   break;
-               case A2DP_SINK_AUDIO_CODEC_MP3:
-                   fprintf(stdout, "Codec type = MP3\n");
-                   iter->av_config.sample_rate = pA2dpSinkStream->
-                       get_a2dp_mp3_sampling_rate(iter->dev_codec_config.mp3_config.sampling_freq);
-                   iter->av_config.channel_count = pA2dpSinkStream->
-                       get_a2dp_mp3_channel_mode(iter->dev_codec_config.mp3_config.channel_count);
-                   break;
-               case A2DP_SINK_AUDIO_CODEC_AAC:
-                   fprintf(stdout, "Codec type = AAC\n");
-                   iter->av_config.sample_rate = pA2dpSinkStream->
-                       get_a2dp_aac_sampling_rate(iter->dev_codec_config.aac_config.sampling_freq);
-                   iter->av_config.channel_count = pA2dpSinkStream->
-                       get_a2dp_aac_channel_mode(iter->dev_codec_config.aac_config.channel_count);
-                   break;
-               case A2DP_SINK_AUDIO_CODEC_APTX:
-                   fprintf(stdout, "Codec type = APTX\n");
-                   iter->av_config.sample_rate = pA2dpSinkStream->
-                       get_a2dp_aptx_sampling_rate(iter->dev_codec_config
-                       .aptx_config.sampling_freq);
-                   iter->av_config.channel_count = pA2dpSinkStream->
-                       get_a2dp_aptx_channel_mode(iter->dev_codec_config
-                       .aptx_config.channel_count);
-                   break;
-               default:
-                   is_valid_codec = false;
-                   ALOGE(LOGTAG " Invalid codec type %d ", iter->dev_codec_type);
-                   break;
+                case A2DP_SINK_AUDIO_CODEC_SBC:
+                    fprintf(stdout, "Codec type = SBC\n");
+                    iter->av_config.sample_rate = get_a2dp_sbc_sampling_rate(iter->dev_codec_config
+                        .sbc_config.samp_freq);
+                    iter->av_config.channel_count = get_a2dp_sbc_channel_mode(iter->dev_codec_config
+                        .sbc_config.ch_mode);
+                    break;
+                case A2DP_SINK_AUDIO_CODEC_MP3:
+                    fprintf(stdout, "Codec type = MP3\n");
+                    iter->av_config.sample_rate = get_a2dp_mp3_sampling_rate(iter->dev_codec_config
+                        .mp3_config.sampling_freq);
+                    iter->av_config.channel_count = get_a2dp_mp3_channel_mode(iter->dev_codec_config
+                        .mp3_config.channel_count);
+                    break;
+                case A2DP_SINK_AUDIO_CODEC_AAC:
+                    fprintf(stdout, "Codec type = AAC\n");
+                    iter->av_config.sample_rate = get_a2dp_aac_sampling_rate(iter->dev_codec_config
+                        .aac_config.sampling_freq);
+                    iter->av_config.channel_count = get_a2dp_aac_channel_mode(iter->dev_codec_config
+                        .aac_config.channel_count);
+                    break;
+                case A2DP_SINK_AUDIO_CODEC_APTX:
+                    fprintf(stdout, "Codec type = APTX\n");
+                    iter->av_config.sample_rate = get_a2dp_aptx_sampling_rate(iter->dev_codec_config
+                        .aptx_config.sampling_freq);
+                    iter->av_config.channel_count = get_a2dp_aptx_channel_mode(iter->dev_codec_config
+                        .aptx_config.channel_count);
+                    break;
+                default:
+                    is_valid_codec = false;
+                    ALOGE(LOGTAG " Invalid codec type %d ", iter->dev_codec_type);
+                    break;
             }
             if (is_valid_codec) {
                 fprintf(stdout, "Sample Rate = %d\n", iter->av_config.sample_rate);
@@ -1088,11 +1209,12 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterat
     }
 }
 
-void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
+void A2dp_Sink_Split::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
     char str[18];
     bool is_valid_codec = true;
     uint32_t pcm_data_read = 0;
     BtEvent *pAMReleaseControl = NULL, *pCloseAudioStream = NULL, *pAMRequestControl = NULL;
+    BtEvent *pControlRequest = NULL, *pReleaseControlReq = NULL;
     ALOGD(LOGTAG " state_connected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SINK_API_CONNECT_REQ:
@@ -1100,15 +1222,13 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
             fprintf(stdout, "A2DP Sink Connected to %s\n", str);
             break;
         case A2DP_SINK_API_DISCONNECT_REQ:
-            if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
+            if (!memcmp(&pA2dpSinkSplit->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
             {
-                pCloseAudioStream = new BtEvent;
-                pCloseAudioStream->a2dpSinkStreamingEvent.event_id =
-                        A2DP_SINK_STREAMING_CLOSE_AUDIO_STREAM;
-                if (pA2dpSinkStream) {
-                    thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                    pA2dpSinkStream->threadInfo.thread_handler, (void*)pCloseAudioStream);
-                }
+                //release control
+                pReleaseControlReq = new BtEvent;
+                pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+                pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+                PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
             }
             bdaddr_to_string(&iter->mConnectedDevice, str, 18);
             fprintf(stdout, "A2DP Sink DisConnecting from %s\n", str);
@@ -1120,16 +1240,22 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
             }
             change_state(iter, DEVICE_STATE_PENDING);
             break;
+        case A2DP_SINK_AUDIO_START_REQ:
+            ALOGD(LOGTAG "A2DP_SINK_AUDIO_START_REQ");
+            sBtA2dpSinkVendorInterface->start_req(iter->mDevice);
+            break;
+        case A2DP_SINK_AUDIO_SUSPEND_REQ:
+        ALOGD(LOGTAG "A2DP_SINK_AUDIO_SUSPEND_REQ");
+            sBtA2dpSinkVendorInterface->suspend_req(iter->mDevice);
+            break;
         case A2DP_SINK_DISCONNECTED_CB:
-            if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
+            if (!memcmp(&pA2dpSinkSplit->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
             {
-                pCloseAudioStream = new BtEvent;
-                pCloseAudioStream->a2dpSinkStreamingEvent.event_id =
-                        A2DP_SINK_STREAMING_CLOSE_AUDIO_STREAM;
-                if (pA2dpSinkStream) {
-                    thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                    pA2dpSinkStream->threadInfo.thread_handler, (void*)pCloseAudioStream);
-                }
+                //release control
+                pReleaseControlReq = new BtEvent;
+                pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+                pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+                PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
             }
             memset(&iter->mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&iter->mConnectingDevice, 0, sizeof(bt_bdaddr_t));
@@ -1137,59 +1263,55 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
             change_state(iter, DEVICE_STATE_DISCONNECTED);
             break;
         case A2DP_SINK_DISCONNECTING_CB:
-            if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
+            if (!memcmp(&pA2dpSinkSplit->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
             {
-                pCloseAudioStream = new BtEvent;
-                pCloseAudioStream->a2dpSinkStreamingEvent.event_id =
-                        A2DP_SINK_STREAMING_CLOSE_AUDIO_STREAM;
-                if (pA2dpSinkStream) {
-                    thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                    pA2dpSinkStream->threadInfo.thread_handler, (void*)pCloseAudioStream);
-                }
+                //release control
+                pReleaseControlReq = new BtEvent;
+                pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+                pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+                PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
             }
             fprintf(stdout, "A2DP Sink DisConnecting\n");
             change_state(iter, DEVICE_STATE_PENDING);
             break;
         case A2DP_SINK_CODEC_CONFIG:
-             iter->dev_codec_type = pEvent->a2dpSinkEvent.arg1;
-             if (pEvent->a2dpSinkEvent.buf_ptr == NULL) {
-                 break;
-             }
-             memcpy(&iter->dev_codec_config, pEvent->a2dpSinkEvent.buf_ptr,
-                     pEvent->a2dpSinkEvent.buf_size);
-             osi_free(pEvent->a2dpSinkEvent.buf_ptr);
-             memcpy(&iter->mDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
-             bdaddr_to_string(&iter->mDevice, str, 18);
-             fprintf(stdout, "Codec Configuration for device %s\n", str);
-             switch (iter->dev_codec_type) {
+            iter->dev_codec_type = pEvent->a2dpSinkEvent.arg1;
+            if (pEvent->a2dpSinkEvent.buf_ptr == NULL) {
+                break;
+            }
+            memcpy(&iter->dev_codec_config, pEvent->a2dpSinkEvent.buf_ptr,
+                    pEvent->a2dpSinkEvent.buf_size);
+            osi_free(pEvent->a2dpSinkEvent.buf_ptr);
+            memcpy(&iter->mDevice, &pEvent->a2dpSinkEvent.bd_addr, sizeof(bt_bdaddr_t));
+            bdaddr_to_string(&iter->mDevice, str, 18);
+            fprintf(stdout, "Codec Configuration for device %s\n", str);
+            switch (iter->dev_codec_type) {
                 case A2DP_SINK_AUDIO_CODEC_SBC:
                     fprintf(stdout, "Codec type = SBC\n");
-                    iter->av_config.sample_rate = pA2dpSinkStream->
-                        get_a2dp_sbc_sampling_rate(iter->dev_codec_config.sbc_config.samp_freq);
-                    iter->av_config.channel_count = pA2dpSinkStream->
-                        get_a2dp_sbc_channel_mode(iter->dev_codec_config.sbc_config.ch_mode);
+                    iter->av_config.sample_rate = get_a2dp_sbc_sampling_rate(iter->dev_codec_config
+                        .sbc_config.samp_freq);
+                    iter->av_config.channel_count = get_a2dp_sbc_channel_mode(iter->dev_codec_config
+                        .sbc_config.ch_mode);
                     break;
                 case A2DP_SINK_AUDIO_CODEC_MP3:
                     fprintf(stdout, "Codec type = MP3\n");
-                    iter->av_config.sample_rate = pA2dpSinkStream->
-                        get_a2dp_mp3_sampling_rate(iter->dev_codec_config.mp3_config.sampling_freq);
-                    iter->av_config.channel_count = pA2dpSinkStream->
-                        get_a2dp_mp3_channel_mode(iter->dev_codec_config.mp3_config.channel_count);
+                    iter->av_config.sample_rate = get_a2dp_mp3_sampling_rate(iter->dev_codec_config
+                        .mp3_config.sampling_freq);
+                    iter->av_config.channel_count = get_a2dp_mp3_channel_mode(iter->dev_codec_config
+                        .mp3_config.channel_count);
                     break;
                 case A2DP_SINK_AUDIO_CODEC_AAC:
                     fprintf(stdout, "Codec type = AAC\n");
-                    iter->av_config.sample_rate = pA2dpSinkStream->
-                        get_a2dp_aac_sampling_rate(iter->dev_codec_config.aac_config.sampling_freq);
-                    iter->av_config.channel_count = pA2dpSinkStream->
-                        get_a2dp_aac_channel_mode(iter->dev_codec_config.aac_config.channel_count);
+                    iter->av_config.sample_rate = get_a2dp_aac_sampling_rate(iter->dev_codec_config
+                        .aac_config.sampling_freq);
+                    iter->av_config.channel_count = get_a2dp_aac_channel_mode(iter->dev_codec_config
+                        .aac_config.channel_count);
                     break;
                 case A2DP_SINK_AUDIO_CODEC_APTX:
                     fprintf(stdout, "Codec type = APTX\n");
-                    iter->av_config.sample_rate = pA2dpSinkStream->
-                        get_a2dp_aptx_sampling_rate(iter->dev_codec_config
+                    iter->av_config.sample_rate = get_a2dp_aptx_sampling_rate(iter->dev_codec_config
                         .aptx_config.sampling_freq);
-                    iter->av_config.channel_count = pA2dpSinkStream->
-                        get_a2dp_aptx_channel_mode(iter->dev_codec_config
+                    iter->av_config.channel_count = get_a2dp_aptx_channel_mode(iter->dev_codec_config
                         .aptx_config.channel_count);
                     break;
                 default:
@@ -1197,92 +1319,62 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
                     ALOGE(LOGTAG " Invalid codec type %d ", iter->dev_codec_type);
                     break;
              }
-             if (is_valid_codec) {
-                 fprintf(stdout, "Sample Rate = %d\n", iter->av_config.sample_rate);
-                 fprintf(stdout, "Channel Mode = %d\n", iter->av_config.channel_count);
-             }
-             break;
+            if (is_valid_codec) {
+                fprintf(stdout, "Sample Rate = %d\n", iter->av_config.sample_rate);
+                fprintf(stdout, "Channel Mode = %d\n", iter->av_config.channel_count);
+            }
+            break;
         case A2DP_SINK_AUDIO_STARTED:
         case A2DP_SINK_FOCUS_REQUEST_CB:
-            bdaddr_to_string(&pA2dpSinkStream->mStreamingDevice, str, 18);
+            bdaddr_to_string(&pA2dpSinkSplit->mStreamingDevice, str, 18);
             ALOGD(LOGTAG " current streaming device %s", str);
 
-            if (!(bdaddr_is_empty(&pA2dpSinkStream->mStreamingDevice)) &&
-                    memcmp(&pA2dpSinkStream->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
+            if (!(bdaddr_is_empty(&pA2dpSinkSplit->mStreamingDevice)) &&
+                    memcmp(&pA2dpSinkSplit->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
             {
                 ALOGD(LOGTAG " another dev started streaming, pause previous one");
-                if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
-                    pA2dpSinkStream->StopDataFetchTimer();
-                    sBtA2dpSinkVendorInterface->update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
-                    ALOGI(LOGTAG "in %s : StopDataFetchTimer() for dualsink SBC codec", __func__);
-                    fprintf(stdout, "in %s : StopDataFetchTimer() for dualsink SBC codec", __func__);
-                }
                 if (pAvrcp != NULL)
                     pAvrcp->SendPassThruCommandNative(CMD_ID_PAUSE,
-                            &pA2dpSinkStream->mStreamingDevice, 1);
-                if (pA2dpSinkStream && !pA2dpSinkStream->use_bt_a2dp_hal)
-                {
-                    memset(&pA2dpSinkStream->mStreamingDevice, 0, sizeof(bt_bdaddr_t));
-                    pAMReleaseControl = new BtEvent;
-                    pAMReleaseControl->a2dpSinkStreamingEvent.event_id =
-                            A2DP_SINK_STREAMING_AM_RELEASE_CONTROL;
-                    if (pA2dpSinkStream) {
-                        thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                        pA2dpSinkStream->threadInfo.thread_handler, (void*)pAMReleaseControl);
-                    }
-                }
-                else
-                {
-                    pCloseAudioStream = new BtEvent;
-                    pCloseAudioStream->a2dpSinkStreamingEvent.event_id =
-                            A2DP_SINK_STREAMING_CLOSE_AUDIO_STREAM;
-                    if (pA2dpSinkStream) {
-                        thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                        pA2dpSinkStream->threadInfo.thread_handler, (void*)pCloseAudioStream);
-                    }
-                }
+                            &pA2dpSinkSplit->mStreamingDevice, 1);
+                    // release control
+                    pReleaseControlReq = new BtEvent;
+                    pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+                    pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+                    PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
             }
             ALOGE(LOGTAG " updating avconfig parameters for this device");
-            if (iter->dev_codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
-                pA2dpSinkStream->sample_rate = iter->av_config.sample_rate;
-                pA2dpSinkStream->channel_count = iter->av_config.channel_count;
-            }
-            pA2dpSinkStream->codec_type = iter->dev_codec_type;
-            memcpy(&pA2dpSinkStream->codec_config, &iter->dev_codec_config,
-                    sizeof(btav_codec_config_t));
 
-            memcpy(&pA2dpSinkStream->mStreamingDevice, &pEvent->a2dpSinkEvent.bd_addr,
+            memcpy(&pA2dpSinkSplit->mStreamingDevice, &pEvent->a2dpSinkEvent.bd_addr,
                     sizeof(bt_bdaddr_t));
-            bdaddr_to_string(&pA2dpSinkStream->mStreamingDevice, str, 18);
+            bdaddr_to_string(&pA2dpSinkSplit->mStreamingDevice, str, 18);
             ALOGD(LOGTAG " A2DP_SINK_AUDIO_STARTED - set current streaming device as %s", str);
 
             sBtA2dpSinkVendorInterface->
-                    update_streaming_device_vendor(&pA2dpSinkStream->mStreamingDevice);
+                    update_streaming_device_vendor(&pA2dpSinkSplit->mStreamingDevice);
 
-            pAMRequestControl = new BtEvent;
-            pAMRequestControl->a2dpSinkStreamingEvent.event_id =
-                    A2DP_SINK_STREAMING_AM_REQUEST_CONTROL;
-            if (pA2dpSinkStream) {
-                thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                pA2dpSinkStream->threadInfo.thread_handler, (void*)pAMRequestControl);
-            }
+            ALOGD(LOGTAG " BT_AM_REQUEST_CONTROL");
+            pControlRequest = new BtEvent;
+            pControlRequest->btamControlReq.event_id = BT_AM_REQUEST_CONTROL;
+            pControlRequest->btamControlReq.profile_id = PROFILE_ID_A2DP_SINK;
+            pControlRequest->btamControlReq.request_type = REQUEST_TYPE_PERMANENT;
+            //TODO: check why this is causing crash
+            //PostMessage(THREAD_ID_BT_AM, pControlRequest);
             break;
         case A2DP_SINK_AUDIO_SUSPENDED:
         case A2DP_SINK_AUDIO_STOPPED:
-            if(memcmp(&pA2dpSinkStream->mStreamingDevice, &pEvent->a2dpSinkEvent.bd_addr,
+            if(memcmp(&pA2dpSinkSplit->mStreamingDevice, &pEvent->a2dpSinkEvent.bd_addr,
                     sizeof(bt_bdaddr_t)))
             {
                 ALOGD(LOGTAG " A2DP_SINK_AUDIO_SUSPENDED/STOPPED for non streaming device, ignore");
                 break;
             }
-            memset(&pA2dpSinkStream->mStreamingDevice, 0, sizeof(bt_bdaddr_t));
+            memset(&pA2dpSinkSplit->mStreamingDevice, 0, sizeof(bt_bdaddr_t));
 
-            pAMReleaseControl = new BtEvent;
-            pAMReleaseControl->a2dpSinkStreamingEvent.event_id =
-                    A2DP_SINK_STREAMING_AM_RELEASE_CONTROL;
-            if (pA2dpSinkStream) {
-                thread_post(pA2dpSinkStream->threadInfo.thread_id,
-                pA2dpSinkStream->threadInfo.thread_handler, (void*)pAMReleaseControl);
+            if (pA2dpSinkSplit && pA2dpSinkSplit->controlStatus != STATUS_LOSS_TRANSIENT) {
+                pReleaseControlReq = new BtEvent;
+                pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+                pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+                PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
             }
             break;
         default:
@@ -1291,24 +1383,16 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
     }
 }
 
-void A2dp_Sink::change_state(list<A2dp_Device>::iterator iter, A2dpSinkDeviceState mState) {
-   BtEvent *pA2dpSinkDisconnected = NULL;
+void A2dp_Sink_Split::change_state(list<A2dp_Device>::iterator iter, A2dpSinkDeviceState mState) {
+   BtEvent *pA2dpSinkSplitDisconnected = NULL;
    ALOGD(LOGTAG " current State = %d, new state = %d", iter->mSinkDeviceState, mState);
    pthread_mutex_lock(&lock);
    iter->mSinkDeviceState = mState;
    if (iter->mSinkDeviceState == DEVICE_STATE_DISCONNECTED)
    {
-       if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
+       if (!memcmp(&pA2dpSinkSplit->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
        {
-           memset(&pA2dpSinkStream->mStreamingDevice, 0, sizeof(bt_bdaddr_t));
-
-           pA2dpSinkDisconnected = new BtEvent;
-           pA2dpSinkDisconnected->a2dpSinkStreamingEvent.event_id =
-                   A2DP_SINK_STREAMING_DISCONNECTED;
-           if (pA2dpSinkStream) {
-               thread_post(pA2dpSinkStream->threadInfo.thread_id,
-               pA2dpSinkStream->threadInfo.thread_handler, (void*)pA2dpSinkDisconnected);
-           }
+           memset(&pA2dpSinkSplit->mStreamingDevice, 0, sizeof(bt_bdaddr_t));
        }
        pA2dpDeviceList.erase(iter);
        ALOGD(LOGTAG " iter %x deleted from list", iter);
@@ -1317,37 +1401,21 @@ void A2dp_Sink::change_state(list<A2dp_Device>::iterator iter, A2dpSinkDeviceSta
    pthread_mutex_unlock(&lock);
 }
 
-A2dp_Sink :: A2dp_Sink(const bt_interface_t *bt_interface, config_t *config) {
-
+A2dp_Sink_Split :: A2dp_Sink_Split(const bt_interface_t *bt_interface, config_t *config) {
+    controlStatus = STATUS_LOSS;
     this->bluetooth_interface = bt_interface;
     this->config = config;
     sBtA2dpSinkInterface = NULL;
     mSinkState = SINK_STATE_NOT_STARTED;
     pthread_mutex_init(&this->lock, NULL);
-    pA2dpSinkStream = new A2dp_Sink_Streaming(config);
-    pA2dpSinkStream->threadInfo.thread_id = thread_new (pA2dpSinkStream->threadInfo.thread_name);
     max_a2dp_conn = 0;
+    start_pending = false;
+    suspend_pending = false;
+    memset(&mStreamingDevice, 0, sizeof(bt_bdaddr_t));
+    memset(&mResumingDevice, 0, sizeof(bt_bdaddr_t));
+    memset(&mPendingDevice, 0, sizeof(bt_bdaddr_t));
 }
 
-A2dp_Sink :: ~A2dp_Sink() {
+A2dp_Sink_Split :: ~A2dp_Sink_Split() {
     pthread_mutex_destroy(&lock);
 }
-
-A2dp_Device :: A2dp_Device(config_t *config, bt_bdaddr_t dev) {
-    this->config = config;
-    memset(&mDevice, 0, sizeof(bt_bdaddr_t));
-    memcpy(&mDevice, &dev, sizeof(bt_bdaddr_t));
-    memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
-    memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
-    mSinkDeviceState = DEVICE_STATE_DISCONNECTED;
-    memset(&av_config, 0, sizeof(A2dpSinkConfig_t));
-    pthread_mutex_init(&this->lock, NULL);
-    mAvrcpConnected = false;
-    mNotificationLabel = -1;
-    mAbsVolNotificationRequested = false;
-}
-
-A2dp_Device :: ~A2dp_Device() {
-    pthread_mutex_destroy(&lock);
-}
-

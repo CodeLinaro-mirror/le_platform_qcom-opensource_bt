@@ -61,6 +61,7 @@ using std::string;
 
 Gap *g_gap = NULL;
 
+static bool is_a2dp_split_sink_enabled;
 
 #ifdef __cplusplus
 extern "C" {
@@ -712,9 +713,13 @@ void Gap::ProcessEvent(BtEvent* event) {
             }
             if (profile_config[PROFILE_ID_A2DP_SINK].is_enabled)
             {
+                ALOGD(LOGTAG " Killing the proces due to timeout %d", event->event_id);
                 bt_event = new BtEvent;
                 bt_event->event_id = A2DP_SINK_CLEANUP_REQ;
-                PostMessage(THREAD_ID_A2DP_SINK, bt_event);
+                if(is_a2dp_split_sink_enabled)
+                    PostMessage(THREAD_ID_A2DP_SINK_SPLIT, bt_event);
+                else
+                    PostMessage(THREAD_ID_A2DP_SINK, bt_event);
                 break;
             }
 
@@ -847,6 +852,8 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
     supported_profiles_count = 0;
 
     //checking for user input
+    is_a2dp_split_sink_enabled = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    "BtA2dpSinkSplitEnable", false);
     is_user_input_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_USR_INPUT, false);
 
@@ -875,8 +882,12 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
         if(profile_id == PROFILE_ID_BT_AM)
             this->profile_config[profile_id].thread_id = THREAD_ID_BT_AM;
-        else if(profile_id == PROFILE_ID_A2DP_SINK)
-            this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK;
+        else if(profile_id == PROFILE_ID_A2DP_SINK){
+            if(is_a2dp_split_sink_enabled)
+                this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK_SPLIT;
+            else
+                this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK;
+        }
         else if(profile_id == PROFILE_ID_A2DP_SOURCE)
             this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SOURCE;
         else if(profile_id == PROFILE_ID_HFP_CLIENT)

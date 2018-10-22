@@ -37,6 +37,7 @@
 #include "Main.hpp"
 #include "SdpClient.hpp"
 #include "A2dp_Sink.hpp"
+#include "A2dp_Sink_Split.hpp"
 #include "Hid.hpp"
 #include "HfpClient.hpp"
 #include "Pan.hpp"
@@ -74,6 +75,7 @@ bool file_read = 0;
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
+extern A2dp_Sink_Split *pA2dpSinkSplit;
 extern HidH *pHid;
 extern A2dp_Source *pA2dpSource;
 extern Pan *g_pan;
@@ -111,6 +113,7 @@ extern "C"
 #endif
 
 thread_t *test_thread_id = NULL;
+ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,split
 static void SendDisableCmdToGap();
 void opensocket()
 {
@@ -549,7 +552,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             memset(event, 0, sizeof(BtEvent));
             event->a2dpSinkEvent.event_id = A2DP_SINK_API_CONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            PostMessage (thread_id, event);
             break;
         }
         case DISCONNECT:
@@ -557,7 +560,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             memset(event, 0, sizeof(BtEvent));
             event->a2dpSinkEvent.event_id = A2DP_SINK_API_DISCONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            PostMessage (thread_id, event);
             break;
         case PLAY:
             event = new BtEvent;
@@ -582,6 +585,32 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event->avrcpCtrlPassThruEvent.key_id = CMD_ID_STOP;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case AVDT_START:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_START_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
+            PostMessage (thread_id, event);
+            break;
+        case AVDT_SUSPEND:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_SUSPEND_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
+            PostMessage (thread_id, event);
+            break;
+        case ACCEPT:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->a2dpSinkEvent.event_id = A2DP_SINK_ACCEPT_PENDING_COMMAND;
+            PostMessage (thread_id, event);
+            break;
+        case REJECT:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->a2dpSinkEvent.event_id = A2DP_SINK_REJECT_PENDING_COMMAND;
+            PostMessage (thread_id, event);
             break;
         case FASTFORWARD:
             event = new BtEvent;
@@ -838,7 +867,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                 sizeof(event->a2dpCodecListEvent.codec_list));
             strlcpy(event->a2dpCodecListEvent.codec_list, user_cmd[ONE_PARAM],
                 COMMAND_SIZE);
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            PostMessage (thread_id, event);
             break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
@@ -3438,11 +3467,22 @@ void BluetoothApp :: InitHandler (void) {
     }
 
     if(is_a2dp_sink_enabled_) {
-        threadInfo[THREAD_ID_A2DP_SINK].thread_id = thread_new (
-                threadInfo[THREAD_ID_A2DP_SINK].thread_name);
+        if(is_a2dp_sink_split_enabled_){
+            thread_id = THREAD_ID_A2DP_SINK_SPLIT;
+            threadInfo[THREAD_ID_A2DP_SINK_SPLIT].thread_id = thread_new (
+                    threadInfo[THREAD_ID_A2DP_SINK_SPLIT].thread_name);
 
-        if (threadInfo[THREAD_ID_A2DP_SINK].thread_id) {
-            pA2dpSink = new A2dp_Sink (bt_interface, config);
+            if (threadInfo[THREAD_ID_A2DP_SINK_SPLIT].thread_id) {
+                pA2dpSinkSplit = new A2dp_Sink_Split (bt_interface, config);
+            }
+        }else{
+            thread_id = THREAD_ID_A2DP_SINK;
+            threadInfo[THREAD_ID_A2DP_SINK].thread_id = thread_new (
+                    threadInfo[THREAD_ID_A2DP_SINK].thread_name);
+
+            if (threadInfo[THREAD_ID_A2DP_SINK].thread_id) {
+                pA2dpSink = new A2dp_Sink (bt_interface, config);
+            }
         }
     }
 
@@ -3608,6 +3648,11 @@ void BluetoothApp :: DeInitHandler (void) {
             thread_free (threadInfo[THREAD_ID_A2DP_SINK].thread_id);
             if ( pA2dpSink != NULL)
                 delete pA2dpSink;
+        }
+        if (threadInfo[THREAD_ID_A2DP_SINK_SPLIT].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_A2DP_SINK_SPLIT].thread_id);
+            if ( pA2dpSinkSplit != NULL)
+                delete pA2dpSinkSplit;
         }
     }
 
@@ -3814,6 +3859,11 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for a2dp sink
     is_a2dp_sink_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_A2DP_SINK_ENABLED, false);
+
+    //checking for a2dp sink split
+    is_a2dp_sink_split_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_A2DP_SINK_SPLIT_ENABLED, false);
+
     //checking for avrcp
     is_avrcp_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_AVRCP_ENABLED, false);

@@ -86,6 +86,7 @@ typedef enum {
     THREAD_ID_MAIN = 0,
     THREAD_ID_GAP,
     THREAD_ID_A2DP_SINK,
+    THREAD_ID_A2DP_SINK_SPLIT,
     THREAD_ID_HFP_CLIENT,
     THREAD_ID_PAN,
     THREAD_ID_GATT,
@@ -189,6 +190,10 @@ typedef enum {
     A2DP_SINK_AUDIO_SUSPENDED,
     A2DP_SINK_AUDIO_STOPPED,
     A2DP_SINK_AUDIO_STARTED,
+    A2DP_SINK_AUDIO_START_REQ,
+    A2DP_SINK_AUDIO_SUSPEND_REQ,
+    A2DP_SINK_ACCEPT_PENDING_COMMAND,
+    A2DP_SINK_REJECT_PENDING_COMMAND,
     A2DP_SINK_CODEC_CONFIG,
     A2DP_SINK_FETCH_PCM_DATA,
     A2DP_SINK_FILL_COMPRESS_BUFFER,
@@ -1809,6 +1814,7 @@ void BtGapMsgHandler(void *context);
 void BtMainMsgHandler(void *context);
 void BtSocketMsgHandler (void *context);
 void BtA2dpSinkMsgHandler(void *msg);
+void BtA2dpSinkSplitMsgHandler(void *msg);
 void BtPanMsgHandler(void *context);
 #ifdef USE_GEN_GATT
 void BtGattMsgHandler(void *context);

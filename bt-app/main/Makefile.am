@@ -70,6 +70,7 @@ cpp_sources = ../utils/src/utils.cc \
             ../gap/src/RemoteDevices.cpp \
             ../sdp_client/src/SdpClient.cpp\
             ../a2dp_sink/src/A2dp_Sink.cpp \
+            ../a2dp_sink/src/A2dp_Sink_Split.cpp \
             ../a2dp_src/src/A2dp_Src.cpp \
             ../a2dp_sink/src/A2dp_Sink_Streaming.cpp \
             ../avrcp/src/Avrcp.cpp \
