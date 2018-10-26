@@ -66,7 +66,7 @@ void GattClient::onClientRegistered(int status, int clientIf)
   }
 
   try {
-    if(!mService)
+    if(mService != nullptr)
       mService->clientConnect(mClientIf, mDeviceAddress,
                             !mAutoConnect, mTransport, mOpportunistic,
                             mPhy); // autoConnect is inverse of "isDirect"
