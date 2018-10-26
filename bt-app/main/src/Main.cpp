@@ -1702,6 +1702,20 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 fprintf( stdout,"Inquiry is not started, ignoring the stop inquiry\n");
             }
             break;
+        case GET_REMOTE_DI:
+            if (g_bt_app->bt_state == BT_STATE_ON) {
+                if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                    event = new BtEvent;
+                    event->event_id = GAP_API_GET_REMOTE_DI_INFO;
+                    string_to_bdaddr(user_cmd[ONE_PARAM], &event->di_device.bd_addr);
+                    PostMessage (THREAD_ID_GAP, event);
+                } else {
+                 fprintf( stdout, " BD address is NULL/Invalid \n");
+                }
+            } else {
+                fprintf( stdout, " Currently BT is OFF\n");
+            }
+            break;
 
         case START_PAIR:
             if ((g_bt_app->status.pairing_cmd != COMMAND_INPROGRESS) &&

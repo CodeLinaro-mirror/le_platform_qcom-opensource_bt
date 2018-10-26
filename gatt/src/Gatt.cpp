@@ -2419,3 +2419,9 @@ bt_status_t Gatt:: send_response(int conn_id, int trans_id,
 
 }
 
+bt_status_t Gatt:: service_changed() {
+        if (gatt_interface) {
+            return gatt_interface->server->service_changed();
+        }
+
+}
