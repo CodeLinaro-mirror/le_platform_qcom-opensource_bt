@@ -3238,7 +3238,7 @@ MediaPlayerInfo :: MediaPlayerInfo(short playerId, char majorPlayerType, int pla
     mDisplayableNameLength = displayableNameLength;
     memcpy(&mDisplayableName, &displayableName, strlen(displayableName)+1);
     memcpy(&mPlayerPackageName, &playerPackageName, strlen(playerPackageName)+1);
-    ALOGD(LOGTAG_AVRCP "  %s %s", mDisplayableName, mPlayerPackageName);
+    //ALOGD(LOGTAG_AVRCP "  %s %s", mDisplayableName, mPlayerPackageName);
 
     mIsAvailable = isAvailable;
     mIsFocussed = isFocussed;
