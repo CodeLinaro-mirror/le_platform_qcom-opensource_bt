@@ -1683,7 +1683,8 @@ void BtSocketDataHandler (void *context) {
 
 void BtSocketListenHandler (void *context) {
     struct sockaddr_un cliaddr;
-    int length;
+    int length = sizeof(cliaddr);
+
 
     if(g_bt_app->client_socket_ == -1) {
         g_bt_app->client_socket_ = accept(g_bt_app->listen_socket_local_,

@@ -31,7 +31,10 @@
 #include "osi/include/config.h"
 #include "osi/include/list.h"
 #include "osi/include/log.h"
-
+#ifdef __GLIBC__
+#define strlcat g_strlcat
+#define strlcpy g_strlcpy
+#endif
 typedef struct {
   char *key;
   char *value;
@@ -75,7 +78,7 @@ config_t *config_new_empty(void) {
   return config;
 
 error:;
-  config_free(config);
+  config_remove(config);
   return NULL;
 }
 
@@ -89,7 +92,7 @@ config_t *config_new(const char *filename) {
   FILE *fp = fopen(filename, "rt");
   if (!fp) {
     LOG_ERROR("%s unable to open file '%s': %s", __func__, filename, strerror(errno));
-    config_free(config);
+    config_remove(config);
     return NULL;
   }
   config_parse(fp, config);
@@ -97,7 +100,7 @@ config_t *config_new(const char *filename) {
   return config;
 }
 
-void config_free(config_t *config) {
+void config_remove(config_t *config) {
   if (!config)
     return;
 
@@ -264,8 +267,8 @@ bool config_save(const config_t *config, const char *filename) {
     return false;
   }
 
-  strcpy(temp_filename, filename);
-  strcat(temp_filename, ".new");
+  strlcpy(temp_filename, filename, strlen(filename) + 5);
+  strlcat(temp_filename, ".new", strlen(filename) + 5);
 
   FILE *fp = fopen(temp_filename, "wt");
   if (!fp) {
@@ -342,7 +345,7 @@ static void config_parse(FILE *fp, config_t *config) {
   int line_num = 0;
   char line[1024];
   char section[1024];
-  strcpy(section, CONFIG_DEFAULT_SECTION);
+  strlcpy(section, CONFIG_DEFAULT_SECTION, 1024);
 
   while (fgets(line, sizeof(line), fp)) {
     char *line_ptr = trim(line);
@@ -358,8 +361,7 @@ static void config_parse(FILE *fp, config_t *config) {
         LOG_DEBUG("%s unterminated section name on line %d.", __func__, line_num);
         continue;
       }
-      strncpy(section, line_ptr + 1, len - 2);
-      section[len - 2] = '\0';
+      strlcpy(section, line_ptr + 1, len - 1);
     } else {
       char *split = strchr(line_ptr, '=');
       if (!split) {
