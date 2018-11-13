@@ -1239,6 +1239,8 @@ void Opp :: AddSdpRecord()
     sdp_search_event->sdp_client_event.record.ops.hdr.l2cap_psm = L2CAP_PREF_OPP_SRV;
     memset(sdp_search_event->sdp_client_event.record.ops.supported_formats_list,
         0, sizeof(OPP_FORMAT_ALL));
+    memcpy(sdp_search_event->sdp_client_event.record.ops.supported_formats_list,
+        OPP_FORMAT_ALL, 7 * sizeof(OPP_FORMAT_ALL));
     sdp_search_event->sdp_client_event.record.ops.supported_formats_list_len =
         sizeof(OPP_FORMAT_ALL);
     sdp_search_event->sdp_client_event.addRecordCb = &sdp_add_record_callback;
