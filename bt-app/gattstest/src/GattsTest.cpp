@@ -62,6 +62,23 @@ using namespace gatt;
 #define TRANSPORT 0
 #define MAX_SERVER_INSTANCE 20
 #define MAX_SERVICE_INSTANCE 5
+#define INVALID_VALUE -1
+#define VALID_VALUE 0
+#define PERIODIC_INTERVAL 200
+#define PHY_LE_1M 1
+#define PHY_LE_2M 2
+#define PHY_LE_CODED 3
+#define PROPERTY_READ 2
+#define SERVICE_LINE_MIN 0
+#define SERVICE_LINE_MAX 4
+#define MANUFACTURER_ID_LINE 5
+#define MANUFACTURER_DATA_LINE 6
+#define SERVICE_1 1
+#define SERVICE_2 2
+#define SERVICE_3 3
+#define SERVICE_4 4
+#define SERVICE_5 5
+
 
 GattsTest *gattstest = NULL;
 extern GattLibService *g_gatt;
@@ -142,7 +159,6 @@ void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int 
     }
     for(ptr = servCBInstanceMap.begin(); ptr != servCBInstanceMap.end() ; ++ptr ) {
       if(ptr->first == gattstestServerCb) {
-        ALOGD(LOGTAG"ptr->first == gattstestServerCb");
         connected = true;
         break;
       }
@@ -163,47 +179,35 @@ void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int 
     }
     for(it = connectedDevices.begin(); it != connectedDevices.end() ; ++it ) {
       if(*it == deviceAddress) {
-        ALOGD(LOGTAG"*itr == deviceAddress  %s == %s", (*it).c_str(),deviceAddress.c_str());
+        ALOGD(LOGTAG"deviceAddress:  %s", (*it).c_str());
         connectedDevices.erase(it);
         break;
       }
     }
   }
-  ALOGD(LOGTAG"Connected Device list :");
-  for(it = connectedDevices.begin(); it != connectedDevices.end() ; ++it ) {
-    ALOGD(LOGTAG"deviceAddress: %s", (*it).c_str());
+  if(connectedDevices.size() != 0) {
+    ALOGD(LOGTAG"Connected Device list :");
+    for(it = connectedDevices.begin(); it != connectedDevices.end() ; ++it ) {
+      ALOGD(LOGTAG"deviceAddress: %s", (*it).c_str());
+    }
   }
 }
 
 void gattstestServerCallback::onServiceAdded(int status,GattService *service)
 {
-  ALOGD(LOGTAG"%s",__FUNCTION__);
-  if (status == GATT_SUCCESS) {
-    ALOGD(LOGTAG"%s Service Added successfully",__FUNCTION__);
-    ALOGD(LOGTAG"The Service has a UUID: %s IsAdvertisePreferred: %d instanceid: %d", service->getUuid().ToString().c_str(),
-          service->isAdvertisePreferred(), service->getInstanceId());
-    int type = service->getType();
-    if(type) {
-      ALOGD(LOGTAG"Service is of Type - Secondary");
-    } else {
-      ALOGD(LOGTAG"Service is of Type - Primary");
-    }
-  } else {
-    ALOGD(LOGTAG "%s Failed to Add Service instance id: %d ", __FUNCTION__, service->getInstanceId());
-  }
+  ALOGD(LOGTAG"%s status: %d",__FUNCTION__,status);
 }
 
 void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, int requestId,
                                           int offset, GattCharacteristic *characteristic)
 {
-  ALOGD(LOGTAG"%s address = %s requestId = %d offset = %d",__FUNCTION__,deviceAddress.c_str(),requestId,offset);
+  ALOGD(LOGTAG"%s ",__FUNCTION__);
   uint8_t *value = NULL;
   value = characteristic->getValue();
   GattService *mService = characteristic->getService();
   Uuid s_uuid = mService->getUuid();
   Uuid c_uuid = characteristic->getUuid();
   ALOGD(LOGTAG"%s value = %s", __FUNCTION__, value);
-  ALOGD(LOGTAG"%s characteristic = %p", __FUNCTION__, *characteristic);
   ALOGD(LOGTAG"%s service Uuid = %s", __FUNCTION__, s_uuid.ToString().c_str());
   ALOGD(LOGTAG"%s characteristic uuid = %s", __FUNCTION__, c_uuid.ToString().c_str());
   GattServer *mServer = NULL;
@@ -216,7 +220,6 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
     }
   }
   mServer= str->second;
-  ALOGD(LOGTAG"str->first %p  str->second %p", str->first, str->second);
   bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value);
   if(status) {
     ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
@@ -224,13 +227,10 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
 }
 
 void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,int requestId,
-                                      GattCharacteristic *characteristic,bool preparedWrite,bool responseNeeded,
-                                      int offset,uint8_t* value)
+                            GattCharacteristic *characteristic,bool preparedWrite,bool responseNeeded,
+                            int offset,uint8_t* value)
 {
-  ALOGD(LOGTAG"%s address:%s requestId: %d offset: %d preparedWrite = %d, responseNeeded = %d", __FUNCTION__, deviceAddress.c_str(),
-       requestId,offset,preparedWrite,responseNeeded);
-  ALOGD(LOGTAG"%s uuid: %s ", __FUNCTION__, characteristic->getUuid().ToString().c_str());
-  ALOGD(LOGTAG"%s value: %s ", __FUNCTION__,value);
+  ALOGD(LOGTAG"%s ",__FUNCTION__);
   characteristic->setValue(value);
   GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
@@ -256,9 +256,10 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
   }
 }
 
-void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int requestId, int offset, GattDescriptor *descriptor)
+void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int requestId,
+                                                              int offset, GattDescriptor *descriptor)
 {
-  ALOGD(LOGTAG"%s address = %s requestId = %d offset = %d", __FUNCTION__, deviceAddress.c_str(), requestId, offset);
+  ALOGD(LOGTAG"%s ",__FUNCTION__);
   uint8_t *value = NULL;
   Uuid desc_uuid = descriptor->getUuid();
   value = descriptor->getValue();
@@ -268,7 +269,6 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
     gattstestServerCb = this;
     for(str = servCBInstanceMap.begin(); str != servCBInstanceMap.end() ; ++str ) {
     if(str->first == gattstestServerCb)
-        ALOGD(LOGTAG"str->first == gattstestServerCb");
         break;
     }
     mServer= str->second;
@@ -282,9 +282,7 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
                                                     GattDescriptor *descriptor,bool preparedWrite,
                                                     bool responseNeeded, int offset, uint8_t * value)
 {
-  ALOGD(LOGTAG"%s address: %s requestID: %d preparedWrite: %d  responseNeeded: \
-              %d offset: %d", __FUNCTION__, deviceAddress.c_str(), requestId,
-              preparedWrite, responseNeeded, offset);
+  ALOGD(LOGTAG"%s ",__FUNCTION__);
   GattCharacteristic *characteristic = descriptor->getCharacteristic();
   Uuid d_uid = descriptor->getUuid();
   Uuid c_uid = characteristic->getUuid();
@@ -296,7 +294,6 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
   gattstestServerCb = this;
   for(str = servCBInstanceMap.begin(); str != servCBInstanceMap.end() ; ++str ) {
     if(str->first == gattstestServerCb) {
-      ALOGD(LOGTAG"str->first == gattstestServerCb");
       break;
     }
   }
@@ -311,46 +308,38 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
 
 void gattstestServerCallback::onExecuteWrite(string deviceAddress, int requestId, bool execute)
 {
-  ALOGD(LOGTAG"%s deviceAddress: %s, requestID: %d execute %d", __FUNCTION__, deviceAddress,
+  ALOGD(LOGTAG"%s deviceAddress: %s, requestID: %d execute %d", __FUNCTION__, deviceAddress.c_str(),
                                                               requestId, execute);
 }
 
 void gattstestServerCallback::onNotificationSent(string deviceAddress, int status)
 {
   ALOGD(LOGTAG"%s deviceAddress %s status %d", __FUNCTION__, deviceAddress.c_str(), status);
-  if (status == GATT_SUCCESS)
-    ALOGD(LOGTAG"Notification sent Successfully");
 }
 
 void gattstestServerCallback::onMtuChanged(string deviceAddress, int mtu)
 {
-  ALOGD(LOGTAG"%s deviceAddress: %s mtu %d", deviceAddress.c_str(), mtu);
+  ALOGD(LOGTAG"%s deviceAddress: %s mtu %d",__FUNCTION__,deviceAddress.c_str(), mtu);
 }
 
 void gattstestServerCallback::onPhyUpdate(string deviceAddress,int txPhy, int rxPhy, int status)
 {
-  ALOGD(LOGTAG"%s deviceAddress: %s txphy: %d rxPhy: %d   status: %d", __FUNCTION__,
-                                          deviceAddress.c_str(), txPhy, rxPhy, status);
-  if (status == GATT_SUCCESS)
-    ALOGD(LOGTAG"Phy Update Sucessful");
+  ALOGD(LOGTAG"%s deviceAddress: %s txphy: %d rxPhy: %d   status: %d",__FUNCTION__,
+                                                    deviceAddress.c_str(),txPhy,rxPhy,status);
 }
 
 void gattstestServerCallback::onPhyRead(string deviceAddress,int txPhy,int rxPhy,int status)
 {
-  fprintf(stdout,"%s deviceAddress: %s, txPhy: %d rxPhy: %d status: %d \n", __FUNCTION__,
+  fprintf(stdout,"%s deviceAddress: %s, txPhy: %d rxPhy: %d status: %d", __FUNCTION__,
                                                     deviceAddress.c_str(), txPhy, rxPhy, status);
   ALOGD(LOGTAG"%s deviceAddress: %s, txPhy: %d rxPhy: %d status: %d",__FUNCTION__,
                                                     deviceAddress.c_str(), txPhy, rxPhy, status);
-  if (status == GATT_SUCCESS)
-    ALOGD(LOGTAG"Phy Read Sucessful");
 }
 
 void gattstestServerCallback::onConnectionUpdated(string deviceAddress,int interval,int latency,int timeout,int status)
 {
   ALOGD(LOGTAG"%s deviceAddress: %s,interval: %d,latency %d,timeout %d, status:%d", __FUNCTION__,
                                         deviceAddress.c_str(), interval, latency, timeout, status);
-  if (status == GATT_SUCCESS)
-    ALOGD(LOGTAG"Connection updated Successfully");
 }
 
 
@@ -398,8 +387,7 @@ class gattstestAdvertiserCallback  :public AdvertisingSetCallback
 
   void onAdvertisingSetStopped (AdvertisingSet *advertisingSet)
   {
-    ALOGD(LOGTAG"%s",__FUNCTION__);
-    ALOGD(LOGTAG"Advertiser ID  %d", advertisingSet->getAdvertiserId());
+    ALOGD(LOGTAG"%s Advertiser ID  %d",__FUNCTION__,advertisingSet->getAdvertiserId());
   }
 
   void onAdvertisingEnabled (AdvertisingSet *advertisingSet, bool enable, int status)
@@ -413,43 +401,33 @@ class gattstestAdvertiserCallback  :public AdvertisingSetCallback
   void onScanResponseDataSet (AdvertisingSet *advertisingSet, int status)
   {
     ALOGD(LOGTAG"onScanResponseDataSet status: %d", status);
-    if (status == AdvertisingSetCallback::ADVERTISE_SUCCESS) {
-      ALOGD(LOGTAG"Advertiser id: %d Scan response Data set successfully", advertisingSet->getAdvertiserId());
-    }
   }
 
   void onAdvertisingParametersUpdated (AdvertisingSet *advertisingSet, int txPower, int status)
   {
     ALOGD(LOGTAG"onAdvertisingParametersUpdated txpower: %d status %d", txPower, status);
-    if (status == 0) {
-      ALOGD(LOGTAG"Advertiser Id: %d Advertising Parameters Updated Succesfully", advertisingSet->getAdvertiserId());
-     }
   }
 
   void onPeriodicAdvertisingParametersUpdated (AdvertisingSet *advertisingSet, int status)
   {
     ALOGD(LOGTAG"onPeriodicParametersUpdated  status: %d", status);
-    if (status == 0) {
-      ALOGD(LOGTAG"Advertiser id: %d Periodic Parameters Updated Succesfully", advertisingSet->getAdvertiserId());
-    }
   }
 
   void onPeriodicAdvertisingDataSet (AdvertisingSet *advertisingSet, int status)
   {
     ALOGD(LOGTAG"onPeriodicAAdvertisingDataSet status: %d", status);
-    if (status == 0) {
-      ALOGD(LOGTAG"Advertiser Id: %d Periodic advertising data Updated Succesfully", advertisingSet->getAdvertiserId());
-    }
   }
 
   void onPeriodicAdvertisingEnabled (AdvertisingSet *advertisingSet, bool enable, int status)
   {
-    ALOGD(LOGTAG"onPeriodicAdvertisingEnabled enable : %d status: %d Advertiser id: %d", enable, status, advertisingSet->getAdvertiserId());
+    ALOGD(LOGTAG"onPeriodicAdvertisingEnabled enable : %d status: %d Advertiser id: %d", enable,
+                                                      status, advertisingSet->getAdvertiserId());
   }
 
   void onOwnAddressRead (AdvertisingSet *advertisingSet, int addressType, string address)
   {
-    ALOGD(LOGTAG"onOwnAddressRead  addressType: %d  address: %s advertiser id: %d", addressType, address, advertisingSet->getAdvertiserId());
+    ALOGD(LOGTAG"onOwnAddressRead  addressType: %d  address: %s advertiser id: %d", addressType, 
+                                                address.c_str(), advertisingSet->getAdvertiserId());
   }
 
   void onStartSuccess(AdvertiseSettings *settingsInEffect)
@@ -490,7 +468,7 @@ void GattsTest::ReadServerConfigurationFile()
   int line_num = 0;
   int desired_line = 7;
   bool status = false;
-  std::ifstream infile(SERVER_CFG_FILE_PATH);
+  std::ifstream infile(SERVER_CFG_FILE_PATH,std::ios::binary);
   //check whether file exists
   if(!infile) {
     ALOGD(LOGTAG"Error opening file");
@@ -498,19 +476,20 @@ void GattsTest::ReadServerConfigurationFile()
   }
 
   while(!infile.eof()) {
-    getline(infile,ch,'\n');
+    getline(infile,ch,'\r');
     if(std::regex_search(ch,std::regex("\\bServer[1-9]|Server[1-9][0-9]\\b"))) {
       while(line_num < desired_line) {
-        getline(infile,ch,'\n');
-        status = ParseServiceDetails(ch);
+        getline(infile,ch,'\r');
+        status = ParseServiceDetails(ch,line_num);
         if(!status) {
           fprintf(stdout,"Service Records are not consistent \n");
           break;
         }
         line_num++;
       }
-      } else {
+    } else {
         fprintf(stdout,"Server Config File is incorrect \n");
+        break;
       }
       line_num = 0;
     }
@@ -519,65 +498,40 @@ void GattsTest::ReadServerConfigurationFile()
   infile.close();
 }
 
-bool GattsTest::ParseServiceDetails(string temp)
+bool GattsTest::ParseServiceDetails(string temp,int line_num)
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   int pos=0;
-  int i =0;
   int manuID;
   string manuData;
   bool status = false;
-  if(regex_search(temp,regex("\\bService1\\b"))) {
-    i = 1;
-  }
-  if(regex_search(temp,regex("\\bService2\\b"))){
-    i = 2;
-  }
-  if(regex_search(temp,regex("\\bService3\\b"))) {
-    i = 3;
-  }
-  if(regex_search(temp,regex("\\bService4\\b"))) {
-    i = 4;
-  }
-  if(regex_search(temp,regex("\\bService5\\b"))) {
-    i = 5;
-  }
-  if(regex_search(temp,regex("\\bManufacturerId\\b"))) {
-    i = 6;
-  }
-  if(regex_search(temp,regex("\\bManufacturerData\\b"))) {
-    i = 7;
-  }
-  pos = temp.find(":");
-  temp = temp.substr(pos + 1);
-  stringstream ss(temp);
-  ss >> temp;
-  if(i == 6) {
-    istringstream(temp) >> manuID;
-    manufacturerId_list.push_back(manuID);
-    return true;
-  } else if (i == 7) {
-    manufacturerData_list.push_back(temp);
-    return true;
-  } else if (i <= 5 && i >= 1) {
-    status = split(temp,',',service_field);
-    if(status) {
-      ALOGD(LOGTAG"%s  status: %d", __FUNCTION__, status);
-      ParseServiceElement(i);
-      service_field.clear();
-      return true;
-    } else {
-      if (temp.empty()) {
-        ALOGD(LOGTAG" No Service UUID is present for service%d record",i);
+  static int rec = 0;
+  if (!regex_search(temp,regex("\\bService[1-5]|ManufacturerId|ManufacturerData\\b"))) {
+      fprintf(stdout,"record incorrect \n");
+      return false;
+  } else {
+    pos = temp.find(":");
+    temp = temp.substr(pos + 1);
+    stringstream ss(temp);
+    ss >> temp;
+    if(line_num == MANUFACTURER_ID_LINE) {
+        istringstream(temp) >> manuID;
+        manufacturerId_list.push_back(manuID);
         return true;
-      } else {
-        ALOGD(LOGTAG"Invalid service entry");
-        return false;
-      }
+    } else if(line_num == MANUFACTURER_DATA_LINE) {
+      manufacturerData_list.push_back(temp);
+      return true;
+    } else if(line_num >= SERVICE_LINE_MIN && line_num <= SERVICE_LINE_MAX) {
+        status = split(temp,',',service_field);
+        if(status) {
+          ParseServiceElement(line_num);
+          service_field.clear();
+          return true;
+        } else {
+          ALOGD(LOGTAG"Invalid service entry");
+          return false;
+        }
     }
-  } else if (i == 0) {
-    fprintf(stdout,"No Service record");
-    return false;
   }
 }
 
@@ -591,47 +545,38 @@ void GattsTest::ParseServiceElement(int instance)
   service_temp->s_uuid = "";
   service_temp->c_uuid = "";
   service_temp->d_uuid = "";
-  service_temp->c_property = -1;
-  service_temp->c_permissions = -1;
-  service_temp->d_permissions = -1;
+  service_temp->c_property = INVALID_VALUE;
+  service_temp->c_permissions = INVALID_VALUE;
+  service_temp->d_permissions = INVALID_VALUE;
   int len = service_field.size();
-  if(instance >= 1 && instance <= 5) {
-    if(len >= 1) {
-      service_temp->s_uuid = service_field[0];
-    }
-    if(len >= 2) {
-      service_temp->c_uuid = service_field[1];
-    }
-    if(len >= 3) {
-      istringstream(service_field[2]) >> property;
-      service_temp->c_property = property;
-    }
-    if(len >= 4) {
-      istringstream(service_field[3]) >> permissions;
-      service_temp->c_permissions = permissions;
-    }
-    if(len >= 5) {
-      service_temp->d_uuid = service_field[4];
-    }
-    if(len >= 5) {
-      istringstream(service_field[5]) >> permissions;
-      service_temp->d_permissions = permissions;
-    }
-  }
-  if(instance == 1) {
-    service1_list.push_back(service_temp);
-  }
-  if(instance == 2) {
-    service2_list.push_back(service_temp);
-  }
-  if(instance == 3) {
-    service3_list.push_back(service_temp);
-  }
-  if(instance == 4) {
-    service4_list.push_back(service_temp);
-  }
-  if(instance == 5) {
-    service5_list.push_back(service_temp);
+  if(instance >= SERVICE_LINE_MIN && instance <= SERVICE_LINE_MAX) {
+      if(service_field[0].empty()) {
+        ALOGD(LOGTAG"Service details are empty");
+        service_temp = NULL;
+      } else {
+        if(len >= 1) {
+          service_temp->s_uuid = service_field[0];
+        }
+        if(len >= 2) {
+          service_temp->c_uuid = service_field[1];
+        }
+        if(len >= 3) {
+          istringstream(service_field[2]) >> property;
+          service_temp->c_property = property;
+        }
+        if(len >= 4) {
+          istringstream(service_field[3]) >> permissions;
+          service_temp->c_permissions = permissions;
+        }
+        if(len >= 5) {
+          service_temp->d_uuid = service_field[4];
+        }
+        if(len >= 6) {
+          istringstream(service_field[5]) >> permissions;
+          service_temp->d_permissions = permissions;
+        }
+      }
+      service_list[instance].push_back(service_temp);
   }
 }
 
@@ -653,7 +598,6 @@ void GattsTest::AddServer()
   } else {
     fprintf(stdout,"The number of servers that can be created has reached it's limit of 20 \n");
     ALOGD(LOGTAG"Server Not created");
-    num_of_server = 20;
   }
 }
 
@@ -682,48 +626,40 @@ bool GattsTest::AddService(string server_instance,string service_instance)
     return false;
   } else if (service_inst < 6) {
     mServer = servInstanceMap[server_inst];
-    if(service_inst == 1) {
-      service_temp = service1_list[server_inst - 1];
-    }
-    if(service_inst == 2) {
-      service_temp = service2_list[server_inst - 1];
-    }
-    if(service_inst == 3) {
-      service_temp = service3_list[server_inst - 1];
-    }
-    if(service_inst == 4) {
-      service_temp = service4_list[server_inst - 1];
-    }
-    if(service_inst == 5) {
-      service_temp = service5_list[server_inst - 1];
-    }
-    uid = service_temp->s_uuid;
-    temp_UUID = Uuid::FromString(uid);
-    mService  = new GattService(temp_UUID,GattService::SERVICE_TYPE_PRIMARY);
-    uid = service_temp->c_uuid;
-    if(uid != "") {
-      temp_UUID = Uuid::FromString(uid);
-      property = service_temp->c_property;
-      if(property == -1) {
-        property = 2;
-      }
-      permissions = service_temp->c_permissions;
-      if(permissions == -1) {
-        permissions = 1;
-      }
-      AddCharacteristics(temp_UUID,property,permissions,char_val);
-      uid = service_temp->d_uuid;
-      if(uid != "") {
-        temp_UUID = Uuid::FromString(uid);
-        permissions = service_temp->d_permissions;
-        AddDescriptors(temp_UUID,permissions,desc_val);
-        mgattCharacteristic->addDescriptor(mgattDescriptor);
-      } else {
-        ALOGD(LOGTAG,"No descriptor added\n");
-      }
-      mService->addCharacteristic(mgattCharacteristic);
+    service_temp = service_list[service_inst - 1][server_inst -1];
+    if(service_temp == NULL) {
+      fprintf(stdout,"Service details are not available, service cannot be added \n");
+      ALOGE(LOGTAG"Service details are not available, service cannot be added ");
+      return false;
     } else {
-      ALOGD(LOGTAG,"No Characteristics added \n");
+      uid = service_temp->s_uuid;
+      temp_UUID = Uuid::FromString(uid);
+      mService  = new GattService(temp_UUID,GattService::SERVICE_TYPE_PRIMARY);
+      uid = service_temp->c_uuid;
+      if(!uid.empty()) {
+        temp_UUID = Uuid::FromString(uid);
+        property = service_temp->c_property;
+        if(property == INVALID_VALUE) {
+          property = 2;
+        }
+        permissions = service_temp->c_permissions;
+        if(permissions == INVALID_VALUE) {
+          permissions = 1;
+        }
+        AddCharacteristics(temp_UUID,property,permissions,char_val);
+        uid = service_temp->d_uuid;
+        if(!uid.empty()) {
+          temp_UUID = Uuid::FromString(uid);
+          permissions = service_temp->d_permissions;
+          AddDescriptors(temp_UUID,permissions,desc_val);
+          mgattCharacteristic->addDescriptor(mgattDescriptor);
+        } else {
+          ALOGD(LOGTAG"No descriptor added");
+        }
+        mService->addCharacteristic(mgattCharacteristic);
+        } else {
+        ALOGD(LOGTAG"No Characteristics added");
+      }
     }
   }
   mServer->addService(*mService);
@@ -746,18 +682,18 @@ bool GattsTest::ReadAdvertiserConfigFile()
     getline(infile,ch,'\n');
     if(regex_search(ch,regex("\\bAdvertisingSet[1-9]|AdvertisingSet[1-9][0-9]\\b"))) {
       set_temp = new AdvertiseSet;
-      set_temp->tx_power = -1;
-      set_temp->legacyflag = -1;
-      set_temp->periodicflag = -1;
-      set_temp->connectableflag = -1;
-      set_temp->scannableflag = -1;
-      set_temp->anonymousflag = -1;
-      set_temp->includeTxPowerflag= -1;
-      set_temp->primary_phy= -1;
-      set_temp->secondary_phy= -1;
-      set_temp->interval = -1;
-      set_temp->timeout_legacy= -1;
-      set_temp->advertise_mode= -1;
+      set_temp->tx_power = INVALID_VALUE;
+      set_temp->legacyflag = INVALID_VALUE;
+      set_temp->periodicflag = INVALID_VALUE;
+      set_temp->connectableflag = INVALID_VALUE;
+      set_temp->scannableflag = INVALID_VALUE;
+      set_temp->anonymousflag = INVALID_VALUE;
+      set_temp->includeTxPowerflag= INVALID_VALUE;
+      set_temp->primary_phy= INVALID_VALUE;
+      set_temp->secondary_phy= INVALID_VALUE;
+      set_temp->interval = INVALID_VALUE;
+      set_temp->timeout_legacy= INVALID_VALUE;
+      set_temp->advertise_mode= INVALID_VALUE;
       while(line_num < desired_line) {
         ALOGD(LOGTAG"line_num < desired_line  %d < %d", line_num, desired_line);
         getline(infile,ch,'\n');
@@ -787,51 +723,28 @@ void GattsTest::ParseAdvertiserDetails(string temp)
   data = temp.substr(pos + 1);
   istringstream(data) >> parameter;
   if(regex_search(temp,regex("\\bTxPower\\b"))){
-    ALOGD(LOGTAG"%s Found Tx Power",__FUNCTION__);
     set_temp->tx_power = parameter;
-  }
-  if(regex_search(temp,regex("\\bLegacyFlag\\b"))) {
-    ALOGD(LOGTAG"%s Found LegacyFlag",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bLegacyFlag\\b"))) {
     set_temp->legacyflag = parameter;
-  }
-  if(regex_search(temp,regex("\\bPeriodicFlag\\b"))) {
-    ALOGD(LOGTAG"%s Found PeriodicFlag",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bPeriodicFlag\\b"))) {
     set_temp->periodicflag = parameter;
-  }
-  if(regex_search(temp,regex("\\bConnectableFlag\\b"))) {
-    ALOGD(LOGTAG"%s Found ConnectableFlag",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bConnectableFlag\\b"))) {
     set_temp->connectableflag = parameter;
-  }
-  if(regex_search(temp,regex("\\bScannableFlag\\b"))) {
-    ALOGD(LOGTAG"%s Found ScannableFlag",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bScannableFlag\\b"))) {
     set_temp->scannableflag = parameter;
-  }
-  if(regex_search(temp,regex("\\bAnonymousFlag\\b"))) {
-    ALOGD(LOGTAG"%s Found AnonymousFlag",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bAnonymousFlag\\b"))) {
     set_temp->anonymousflag = parameter;
-  }
-  if(regex_search(temp,regex("\\bIncludePower\\b"))) {
-    ALOGD(LOGTAG"%s Found IncludePower",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bIncludePower\\b"))) {
     set_temp->includeTxPowerflag= parameter;
-  }
-  if(regex_search(temp,regex("\\bPrimaryPhy\\b"))) {
-    ALOGD(LOGTAG"%s Found PrimaryPhy",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bPrimaryPhy\\b"))) {
     set_temp->primary_phy= parameter;
-  }
-  if(regex_search(temp,regex("\\bSecondaryPhy\\b"))) {
-    ALOGD(LOGTAG"%s Found SecondaryPhy",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bSecondaryPhy\\b"))) {
     set_temp->secondary_phy= parameter;
-  }
-  if(regex_search(temp,regex("\\bInterval\\b"))) {
-    ALOGD(LOGTAG"%s Found Interval",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bInterval\\b"))) {
     set_temp->interval = parameter;
-  }
-  if(regex_search(temp,regex("\\bTimeOutLegacy\\b"))) {
-    ALOGD(LOGTAG"%s Found TimeOutLegacy",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bTimeOutLegacy\\b"))) {
     set_temp->timeout_legacy= parameter;
-  }
-  if(regex_search(temp,regex("\\bAdvertiseMode\\b"))) {
-    ALOGD(LOGTAG"%s Found AdvertiseMode",__FUNCTION__);
+  } else if(regex_search(temp,regex("\\bAdvertiseMode\\b"))) {
     set_temp->advertise_mode= parameter;
   }
 }
@@ -918,15 +831,18 @@ bool GattsTest::BuildAdvertisingParameters(int instance)
   }
   legacyflag = temp->legacyflag;
   //input validation
-  if (legacyflag < 0 && connectableflag < 0 && scannableflag < 0 && periodicflag < 0 && anonymousflag < 0 && includeTxPowerflag < 0 &&
-        primary_phy < 0 && secondary_phy < 0 && interval < 0 && tx_power < 0 && power_mode < 0 && timeout_legacy < 0 && advertise_mode < 0) {
-    fprintf(stdout,"Incorrect value of legacy flag\n");
+  if (legacyflag < VALID_VALUE && connectableflag < VALID_VALUE && scannableflag < VALID_VALUE &&
+      periodicflag < VALID_VALUE && anonymousflag < VALID_VALUE && includeTxPowerflag < VALID_VALUE &&
+      primary_phy < VALID_VALUE && secondary_phy < VALID_VALUE && interval < VALID_VALUE &&
+      power_mode < VALID_VALUE && timeout_legacy < VALID_VALUE && advertise_mode < VALID_VALUE) {
+    fprintf(stdout,"Incorrect flag value \n");
     return false;
   }
   if (legacyflag > 1 && connectableflag > 1 && scannableflag > 1 && periodicflag > 1 && anonymousflag > 1 && includeTxPowerflag > 1) {
     fprintf(stdout,"Flags values set incorrectly, Please check 'legacyflag' 'connectableflag' 'scannableflag' periodicflag' 'anonymousflag' includetxpowerflag' \n");
     return false;
   }
+
   try {
     if(legacyflag) {
       ALOGD(LOGTAG" Legacy Advertising will be used \n");
@@ -1005,8 +921,8 @@ bool GattsTest::BuildAdvertisingData(int instance) {
       std::vector<uint8_t> vec(mManufacturerData.begin(), mManufacturerData.end());
       builder.addManufacturerData(id,vec);
     }
-    temp= service1_list[instance -1];
-    if(temp->s_uuid.empty()) {
+    temp= service_list[SERVICE_1][instance -1];
+    if(!temp->s_uuid.empty()) {
       mUuid = btapp::Uuid::FromString(temp->s_uuid);
       builder.addServiceUuid(mUuid);
       mUuid = btapp::Uuid::FromString(service_data_uuid);
@@ -1057,7 +973,7 @@ bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
   }
   periodic_flag = temp->periodicflag;
   int include_txpower;
-  int periodic_interval = 200;
+  int periodic_interval = PERIODIC_INTERVAL;
   include_txpower = temp->includeTxPowerflag;
 
   if(periodic_flag) {
@@ -1133,9 +1049,9 @@ bool GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, strin
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   mgattCharacteristic = new GattCharacteristic(uid,property,permissions);
-  uint8_t c_val1[val.length()+1];
-  std::copy(val.begin(),val.end(),c_val1);
-  mgattCharacteristic->setValue(c_val1);
+  uint8_t char_val[val.length()+1];
+  std::copy(val.begin(),val.end(),char_val);
+  mgattCharacteristic->setValue(char_val);
   ALOGD(LOGTAG"CharacteristicUUID: %s  ", uid.ToString().c_str());
   ALOGD(LOGTAG"Characteristic Property: %d ", mgattCharacteristic->getProperties());
   ALOGD(LOGTAG"characteristic Permissions: %d ", mgattCharacteristic->getPermissions());
@@ -1147,9 +1063,9 @@ bool GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
   ALOGD(LOGTAG"%s",__FUNCTION__);
   ALOGD(LOGTAG"string value =  %s", value.c_str());
   mgattDescriptor = new GattDescriptor(uid,permissions);
-  uint8_t d_val1[value.length()+1];
-  std::copy(value.begin(),value.end(),d_val1);
-  mgattDescriptor->setValue(d_val1);
+  uint8_t dsc_val[value.length()+1];
+  std::copy(value.begin(),value.end(),dsc_val);
+  mgattDescriptor->setValue(dsc_val);
   ALOGD(LOGTAG"Descriptor UUID: %s  ", uid.ToString().c_str());
   ALOGD(LOGTAG"Descriptor Permissions: %d ", mgattDescriptor->getPermissions());
 }
@@ -1163,7 +1079,7 @@ bool GattsTest::ReadPhy(string instance,string deviceAddress)
   istringstream(instance) >> instanceId;
   GattServer *mServer;
 
-  if(instanceId <=0 || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if(instanceId <=VALID_VALUE || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   } else {
@@ -1197,15 +1113,15 @@ bool GattsTest::SetPreferredPhy(string deviceAddress,string instance,string txPh
   GattServer *mServer;
   vector <string> ::iterator str;
   bool connected= false;
-  if (instanceId <=0 || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if (instanceId <= VALID_VALUE || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   } else {
-    if((tx_phy != 1) && (tx_phy != 2) && (tx_phy != 3)) {
+    if((tx_phy != PHY_LE_1M) && (tx_phy != PHY_LE_2M) && (tx_phy != PHY_LE_CODED)) {
       fprintf(stdout,"Enter a valid tx phy option \n");
       return false;
   }
-  if((rx_phy != 1) && (rx_phy != 2) && (rx_phy != 3)) {
+  if((rx_phy != PHY_LE_1M) && (rx_phy != PHY_LE_2M) && (rx_phy != PHY_LE_CODED)) {
     fprintf(stdout,"Enter a valid rx phy option \n");
     return false;
   }

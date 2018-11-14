@@ -2081,8 +2081,8 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                         gattstest = new GattsTest(g_gatt);
                         if (gattstest) {
                             fprintf(stdout,"Reading Server Configuration File .... \n");
-                             gattstest->ReadServerConfigurationFile();
-                             init_server_file = true;
+                            gattstest->ReadServerConfigurationFile();
+                            init_server_file = true;
                         } else {
                             fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
                         }

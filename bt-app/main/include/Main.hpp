@@ -452,7 +452,7 @@ UserMenuList GattsTestMenu[] = {
     {GATTSTEST_ADDSERVICES,        "gattstest_addservices",        TWO_PARAM,     "gattstest_addservices<space><server instance><space><service instance>"},
     {GATTSTEST_INIT_ADVERTISER,    "gattstest_init_advertiser",    ZERO_PARAM,    "gattstest_init_advertiser initialzes advertiser"},
     {GATTSTEST_START_ADVERTISER,   "gattstest_start_advertiser",   ONE_PARAM,     "gattstest_start_advertiser<space><server instance>"},
-    {GATTSTEST_READPHY,            "gattstest_readphy",            ONE_PARAM,     "gattstest_readphy<space><remote address><server instance>"},
+    {GATTSTEST_READPHY,            "gattstest_readphy",            TWO_PARAM,     "gattstest_readphy<space><remote address><server instance>"},
     {GATTSTEST_SET_PREFERRED_PHY,  "gattstest_set_preferred_phy",  FOUR_PARAM,    "gattstest_set_preferred_phy<space><remote address><space><server instance><space><tx phy><space><rx phy>"},
     {GATTSTEST_STOP,               "gattstest_stop",               ONE_PARAM,     "gattstest_stop<space><server_instance>"},
     {GATTSTEST_DISABLE,             "gattstest_disable",         ZERO_PARAM,     "gattstest_disable"},

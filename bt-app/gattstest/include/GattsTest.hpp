@@ -83,11 +83,7 @@ class GattsTest {
 
     vector <AdvertiseSet*> AdvSet_list;
     AdvertiseSet *set_temp= NULL;
-    vector <Service*> service1_list;
-    vector <Service*> service2_list;
-    vector <Service*> service3_list;
-    vector <Service*> service4_list;
-    vector <Service*> service5_list;
+    vector <Service*> service_list[5];
     vector <int> manufacturerId_list;
     vector <string> manufacturerData_list;
     GattCharacteristic *mgattCharacteristic = NULL;
@@ -100,7 +96,7 @@ class GattsTest {
     GattsTest(GattLibService* );
     ~GattsTest();
     void ReadServerConfigurationFile();
-    bool ParseServiceDetails(string);
+    bool ParseServiceDetails(string,int);
     void ParseServiceElement(int);
     void AddServer();
     bool ReadAdvertiserConfigFile();
