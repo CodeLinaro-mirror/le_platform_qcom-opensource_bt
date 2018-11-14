@@ -740,9 +740,9 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                     {
                         event->avrcpCtrlEvent.num_attrb = num_Attr;
                         event->avrcpCtrlEvent.buf_ptr32 = pAttr32;
-                        PostMessage (THREAD_ID_AVRCP, event);
                     }
                 }
+                PostMessage (THREAD_ID_AVRCP, event);
                 break;
             }
         case GET_PLAY_STATUS:
