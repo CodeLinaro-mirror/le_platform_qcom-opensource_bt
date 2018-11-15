@@ -851,7 +851,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event->avrcpCtrlEvent.arg3 = length;
             event->avrcpCtrlEvent.buf_ptr = new uint8_t[length+1];
             memset(event->avrcpCtrlEvent.buf_ptr, 0, length+1);
-            strlcpy((char*)event->avrcpCtrlEvent.buf_ptr,user_cmd[THREE_PARAM],length);
+            strlcpy((char*)event->avrcpCtrlEvent.buf_ptr,user_cmd[THREE_PARAM],length+1);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
             }
