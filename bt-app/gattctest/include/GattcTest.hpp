@@ -61,6 +61,15 @@ class GattcTest {
         bool isOpportunistic;
         int phy;
         bool isAuto;
+        static int settingMask;
+        static int mScanMode;
+        static int mCallbackType;
+        static int mScanResultType;
+        static long mReportDelayMillis;
+        static int mMatchMode;
+        static int mNumOfMatchesPerFilter;
+        static bool mLegacy;
+        static int mPhy;
 /***************************/
     public:
         GattcTest(GattLibService *);

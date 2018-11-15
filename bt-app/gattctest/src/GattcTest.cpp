@@ -106,6 +106,8 @@ class gattctestClientCallback:public GattClientCallback
         if (newState == GattDevice::STATE_CONNECTED) {
           ALOGE("OnConnectionStateChange device Connected to Rem Dev:%s",
               gatt->getDeviceAddress().c_str());
+          fprintf(stdout, "OnConnectionStateChange device Connected to Rem Dev:%s\n",
+              gatt->getDeviceAddress().c_str());
           mDeviceMap.add(gatt->getDeviceAddress(), gatt);
           gatt->discoverServices();
         }
@@ -113,6 +115,8 @@ class gattctestClientCallback:public GattClientCallback
           mDeviceMap.remove(gatt->getDeviceAddress());
           ALOGE("OnConnectionStateChange device disconnected "
               "From Rem Dev:%s", gatt->getDeviceAddress().c_str());
+        fprintf(stdout, "OnConnectionStateChange device disconnected to Rem Dev:%s\n",
+              gatt->getDeviceAddress().c_str());
           gatt->close();
         }
       } else {
@@ -148,7 +152,7 @@ class gattctestClientCallback:public GattClientCallback
 
     void onServicesDiscovered (GattClient *gatt, int status)
     {
-      ALOGD(LOGTAG "JANA onServiceDiscovered status : %d", status);
+      ALOGD(LOGTAG " onServiceDiscovered status : %d", status);
 
       if ((status == GattClient::GATT_SUCCESS)) {
         std::list<GattService*> list_services = gatt->getServices();
@@ -1346,8 +1350,30 @@ enum settingCbValue
   SENSOR_TYPE
 };
 
+enum settingTypeMask {
+  NO_SCAN_SETTING_MASK,
+  SCAN_MODE_MASK,
+  CALLBACK_TYPE_MASK,
+  SCANRESULT_TYPE_MASK,
+  PHY_TYPE_MASK,
+  SET_LEGACY_MASK,
+  REPORT_DELAY_MILLS_MASK,
+  MATCH_ADVS_MASK,
+  END_MASK
+};
+
 enum filterTypes mFilterTypes = NO_FILTER_SET;
 enum settingType mscanSettings = NO_SCAN_SETTING;
+
+int GattcTest::settingMask = 0;
+int GattcTest::mScanMode = 0; //SCAN_MODE_LOW_POWER
+int GattcTest::mCallbackType = 1; //CALLBACK_TYPE_ALL_MATCHES
+int GattcTest::mScanResultType = 0; //SCAN_RESULT_TYPE_FULL
+long GattcTest::mReportDelayMillis = 0;
+int GattcTest::mMatchMode = 1; //MATCH_MODE_AGGRESSIVE
+int GattcTest::mNumOfMatchesPerFilter = 3; //MATCH_NUM_MAX_ADVERTISEMENT
+bool GattcTest::mLegacy = true;
+int GattcTest::mPhy = 255; //PHY_LE_ALL_SUPPORTED
 
 bool GattcTest :: scanFilter(int filterType, string value)
 {
@@ -1475,9 +1501,8 @@ bool GattcTest :: scanSettings(int scanType, int value)
       {
         fprintf(stdout, "SCAN_MODE value : %d\n", value);
         if ((value >= 0) && (value < 3)) {
-          gattctest->setting = ScanSettings::Builder()
-            .setScanMode(value)
-            .build();
+            mScanMode = value;
+            settingMask |= (1 << SCAN_MODE_MASK);
         } else {
           fprintf(stdout, "Enter the correct scan mode value\n");
           return false;
@@ -1492,24 +1517,21 @@ bool GattcTest :: scanSettings(int scanType, int value)
         switch (value) {
           case settingCbValue::ALL_TYPES:
           {
-            gattctest->setting = ScanSettings::Builder()
-                .setCallbackType(ScanSettings::CALLBACK_TYPE_ALL_MATCHES)
-                .build();
+            mCallbackType = ScanSettings::CALLBACK_TYPE_ALL_MATCHES;
+            settingMask |= (1 << CALLBACK_TYPE_MASK);
           }
           break;
           case settingCbValue::ON_LOST_ON_FOUND:
           {
-            gattctest->setting = ScanSettings::Builder()
-                .setCallbackType(ScanSettings::CALLBACK_TYPE_FIRST_MATCH|
-                ScanSettings::CALLBACK_TYPE_MATCH_LOST)
-                .build();
+            mCallbackType = (ScanSettings::CALLBACK_TYPE_FIRST_MATCH|
+                ScanSettings::CALLBACK_TYPE_MATCH_LOST);
+            settingMask |= (1 << CALLBACK_TYPE_MASK);
           }
           break;
           case settingCbValue::SENSOR_TYPE:
           {
-            gattctest->setting = ScanSettings::Builder()
-                .setCallbackType(ScanSettings::CALLBACK_TYPE_SENSOR_ROUTING)
-                .build();
+            mCallbackType =ScanSettings::CALLBACK_TYPE_SENSOR_ROUTING;
+            settingMask |= (1 << CALLBACK_TYPE_MASK);
           }
           break;
           default:
@@ -1526,9 +1548,8 @@ bool GattcTest :: scanSettings(int scanType, int value)
       {
         fprintf(stdout, "MATCH_ADVS value : %d\n", value);
         if ((value > 0) && (value <= 3)) {
-          gattctest->setting = ScanSettings::Builder()
-            .setNumOfMatches(value)
-            .build();
+          mNumOfMatchesPerFilter = value;
+          settingMask |= (1 << MATCH_ADVS_MASK);
         } else {
           ALOGE(LOGTAG "Enter the correct no of matches value(1/2/3)");
           fprintf(stdout, "Enter the correct no of matches"
@@ -1542,9 +1563,8 @@ bool GattcTest :: scanSettings(int scanType, int value)
       {
         fprintf(stdout, "PHY_TYPE value : %d\n", value);
         if (value == 255) {
-          gattctest->setting = ScanSettings::Builder()
-            .setPhy(value)
-            .build();
+          mPhy = value;
+          settingMask |= (1 << PHY_TYPE_MASK);
         } else {
           ALOGE(LOGTAG "set the correct phy value(255)");
           fprintf(stdout, "set the correct phy value(255)\n");
@@ -1557,9 +1577,8 @@ bool GattcTest :: scanSettings(int scanType, int value)
       {
         fprintf(stdout, "SET_LEGACY value : %d\n", value);
         if ((value == 0) || (value == 1)) {
-          gattctest->setting = ScanSettings::Builder()
-            .setLegacy((bool)value)
-            .build();
+          mLegacy = (bool)value;
+          settingMask |= (1 << SET_LEGACY_MASK);
         } else {
           fprintf(stdout, "set or reset the legacy scan type (0/1)\n");
           return false;
@@ -1571,9 +1590,8 @@ bool GattcTest :: scanSettings(int scanType, int value)
       {
         fprintf(stdout, "REPORT_DELAY_MILLS value : %d\n", value);
         if ((value >= 5000) && (value <= BATCH_SCAN_REPORT_DELAY_MILLIS)) {
-          gattctest->setting = ScanSettings::Builder()
-            .setReportDelay(value)
-            .build();
+          mReportDelayMillis = value;
+          settingMask |= (1 << REPORT_DELAY_MILLS_MASK);
         } else {
           fprintf(stdout, "set proper values for report delays"
               "(5000 -1000)\n");
@@ -1582,11 +1600,36 @@ bool GattcTest :: scanSettings(int scanType, int value)
         mscanSettings = settingType::REPORT_DELAY_MILLS;
         break;
       }
+      case settingType::SCANRESULT_TYPE:
+      {
+        fprintf(stdout, "SCANRESULT_TYPE value : %d\n", value);
+        if ((value == 0) || (value == 1)) {
+          mScanResultType = value;
+          settingMask |= (1 << SCANRESULT_TYPE_MASK);
+        } else {
+          fprintf(stdout, "set or reset the scan result type (0/1)\n");
+          return false;
+        }
+      }
+        mscanSettings = settingType::SCANRESULT_TYPE;
+        break;
       default:
         fprintf(stdout, "Enter correct scan setting type\n");
         return false;
     }
+   } else {
+    settingMask = 0; // NO_SCAN_SETTING
+    mScanMode = 0; //SCAN_MODE_LOW_POWER
+    mCallbackType = 1; //CALLBACK_TYPE_ALL_MATCHES
+    mScanResultType = 0; //SCAN_RESULT_TYPE_FULL
+    mReportDelayMillis = 0;
+    mMatchMode = 1; //MATCH_MODE_AGGRESSIVE
+    mNumOfMatchesPerFilter = 3; //MATCH_NUM_MAX_ADVERTISEMENT
+    mLegacy = true;
+    mPhy = 255; //PHY_LE_ALL_SUPPORTED
+    mscanSettings = settingType::NO_SCAN_SETTING;
   }
+
   return true;
 }
 
@@ -1594,7 +1637,51 @@ void GattcTest :: startScan()
 {
   ALOGD(LOGTAG "startScan");
 
-  if (gattctest->setting != NULL) {
+  if (mscanSettings != settingType::NO_SCAN_SETTING) {
+    ALOGD(LOGTAG "SCAN_SETTING present mask (%d) \n", settingMask);
+    ScanSettings::Builder builder = ScanSettings::Builder();
+    for (auto type = SCAN_MODE_MASK; type < END_MASK; type = settingTypeMask(type+1)) {
+      if ((settingMask >> type) & 1) {
+        switch(type) {
+          case SCAN_MODE_MASK:
+            builder.setScanMode(mScanMode);
+            break;
+          case CALLBACK_TYPE_MASK:
+            builder.setCallbackType(mCallbackType);
+            break;
+          case SCANRESULT_TYPE_MASK:
+            builder.setScanResultType(mScanResultType);
+            break;
+          case PHY_TYPE_MASK:
+            builder.setPhy(mPhy);
+            break;
+          case SET_LEGACY_MASK:
+            builder.setLegacy(mLegacy);
+            break;
+          case REPORT_DELAY_MILLS_MASK:
+            builder.setReportDelay(mReportDelayMillis);
+            break;
+          case MATCH_ADVS_MASK:
+            builder.setNumOfMatches(mNumOfMatchesPerFilter);
+            break;
+          default:
+            ALOGE(LOGTAG "Scan Setting Type not valid\n");
+            break;
+        }
+      }
+    }
+    gattctest->setting = builder.build();
+    ALOGD(LOGTAG " ScanSettings matchMode (%d), MatchAdv (%d),\
+                  ScanMode (%d) CallbackType (%d) ScanResultType (%d)\
+                  legacy (%d), Phy (%d), ReportDelay (%d)",
+                  gattctest->setting->getMatchMode(),
+                  gattctest->setting->getNumOfMatches(),
+                  gattctest->setting->getScanMode(),
+                  gattctest->setting->getCallbackType(),
+                  gattctest->setting->getScanResultType(),
+                  gattctest->setting->getLegacy(),
+                  gattctest->setting->getPhy(),
+                  gattctest->setting->getReportDelayMillis());
     mscan->startScan(gattctest->filters, gattctest->setting,
         mscan_callback);
   } else {
@@ -1607,6 +1694,7 @@ void GattcTest :: stopScan()
   ALOGD(LOGTAG "StopScan");
   fprintf(stdout, "stopping scan results\n");
   gattctest->setting = NULL;
+  settingMask = 0;
   gattctest->filters.clear();
   mscan->stopScan(mscan_callback);
 }
