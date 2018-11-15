@@ -674,7 +674,7 @@ static void LowerTransportDisconnectInd(OI_OBEX_LOWER_CONNECTION connectionHandl
         OI_EVENTLOOP_Wakeup();
         int closeRet = close(connectionHandle->lowerPrivate->socket);
         if (closeRet) {
-            OI_DBGTRACE(("Could not close socket. Error info: ", strerror(errno)));
+            OI_DBGTRACE(("Could not close socket. Error info: %s", strerror(errno)));
         }
     }
 
@@ -762,7 +762,7 @@ static OI_BOOL LowerTransportRecvDataInd(OI_OBEX_LOWER_CONNECTION connectionHand
                                    errno,
                                    connectionHandle->lowerPrivate->socket));
             // strerror() isn't thread safe, so let's not use it in release mode
-            OI_DBGTRACE(("Error info: ", strerror(errno)));
+            OI_DBGTRACE(("Error info: %s", strerror(errno)));
             LowerTransportDisconnectInd(connectionHandle);
             return FALSE;
         }
@@ -814,7 +814,7 @@ static OI_BOOL LowerTransportRecvDataInd(OI_OBEX_LOWER_CONNECTION connectionHand
             OI_SLOG_ERROR(status, ("Error %d reading socket %d",
                                    errno,
                                    connectionHandle->lowerPrivate->socket));
-            OI_DBGTRACE(("Error info: ", strerror(errno)));
+            OI_DBGTRACE(("Error info: %s", strerror(errno)));
             LowerTransportDisconnectInd(connectionHandle);
             return FALSE;
         }
