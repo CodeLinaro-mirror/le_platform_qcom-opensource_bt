@@ -183,12 +183,14 @@ void RemoteDevices::DeviceFound(DeviceFoundEventInt *dev_found) {
 void RemoteDevices::RemoteDeviceProperties(RemotePropertiesEvent *event) {
     DeviceProperties *rem_dev_prop = NULL;
     BtEvent *bt_event;
+    char old_name[sizeof(rem_dev_prop->name)];
 
     rem_dev_prop = GetDeviceProperties (event->bd_addr);
     if (!rem_dev_prop) {
         rem_dev_prop = AddDeviceProperties(event->bd_addr);
     }
 
+    memcpy(old_name, rem_dev_prop->name, sizeof(rem_dev_prop->name));
     memset(rem_dev_prop->name, 0, sizeof(rem_dev_prop->name));
     GetValueFromPropertyList(event->num_properties, event->properties,
             BT_PROPERTY_BDADDR, &rem_dev_prop->address);
@@ -196,9 +198,10 @@ void RemoteDevices::RemoteDeviceProperties(RemotePropertiesEvent *event) {
     GetValueFromPropertyList(event->num_properties, event->properties,
             BT_PROPERTY_BDNAME, rem_dev_prop->name);
 
-    if( (rem_dev_prop->name[0] != '\0') &&
+    if ((rem_dev_prop->name[0] != '\0') &&
             (rem_dev_prop->bond_state == BT_BOND_STATE_BONDED) &&
-            (rem_dev_prop->broadcast == true)) {
+            ((rem_dev_prop->broadcast == true) ||
+            memcmp(old_name, rem_dev_prop->name, sizeof(rem_dev_prop->name)))) {
         bt_event = new BtEvent;
         bt_event->event_id = MAIN_EVENT_BOND_STATE;
         bt_event->bond_state_event.state = BT_BOND_STATE_BONDED;
