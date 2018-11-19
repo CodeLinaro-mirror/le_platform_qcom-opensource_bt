@@ -84,6 +84,12 @@ AC_ARG_WITH([btobex],
 
 AM_CONDITIONAL(USE_BT_OBEX, test "x${with_btobex}" = "xyes")
 
+AC_ARG_WITH([gengatt],
+     AC_HELP_STRING([--with-gengatt],
+        [enable gengatt, building BT-APP which uses GEN GATT]))
+
+AM_CONDITIONAL(USE_GEN_GATT, test "x${with_gengatt}" = "xyes")
+
 AC_ARG_ENABLE(target,
   [AS_HELP_STRING([--enable-target=TARGET], [Specify the target product to build])],
   [TARGET=$enableval],
@@ -96,5 +102,7 @@ AC_SUBST([CFLAGS])
 AC_SUBST([CC])
 AC_CONFIG_FILES([Makefile\
     osi/Makefile\
-    main/Makefile])
+    utils/Makefile\
+    main/Makefile\
+    gatt/Makefile])
 AC_OUTPUT

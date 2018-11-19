@@ -294,6 +294,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     pA2dpSinkStream->SuspendInputStream();
                 }
                 if (pA2dpSinkStream->controlStatus != STATUS_LOSS_TRANSIENT) {
+                    ALOGD("A2DP_SINK_STREAMING_AM_RELEASE_CONTROL pA2dpSinkStream->controlStatus %d", pA2dpSinkStream->controlStatus);
                     pReleaseControlReq = new BtEvent;
                     pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
                     pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
@@ -309,6 +310,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 pA2dpSinkStream->controlStatus = pEvent->btamControlStatus.status_type;
                 switch(pA2dpSinkStream->controlStatus) {
                     case STATUS_LOSS:
+                    ALOGD(LOGTAG " BT_AM_CONTROL_STATUS, STATUS_LOSS");
                          // inform bluedroid
                         if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL) {
                             pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
@@ -327,6 +329,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         pA2dpSinkStream->StopDataFetchTimer();
                         break;
                     case STATUS_LOSS_TRANSIENT:
+                    ALOGD(LOGTAG " BT_AM_CONTROL_STATUS, STATUS_LOSS_TRANSIENT");
                         // inform bluedroid
                         if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL) {
                             pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
@@ -345,6 +348,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         pA2dpSinkStream->StopDataFetchTimer();
                         break;
                     case STATUS_GAIN:
+                    ALOGD(LOGTAG " BT_AM_CONTROL_STATUS, STATUS_GAIN");
                         // inform bluedroid
                         if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL) {
                             pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
@@ -365,7 +369,7 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         break;
                     case STATUS_REGAINED:
                         // inform bluedroid
-                        ALOGD(LOGTAG " STATUS_REGAINED");
+                        ALOGD(LOGTAG " BT_AM_CONTROL_STATUS, STATUS_REGAINED");
                         if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL) {
                             pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
                             audio_focus_state_vendor(3, &pA2dpSinkStream->mStreamingDevice);
@@ -726,6 +730,40 @@ void A2dp_Sink_Streaming::StopDataFetchTimer() {
         pcm_timer = false;
     } else {
         StopCompressAudioFeedTimer();
+    }
+}
+
+void remote_suspend_wait_timer_handler(void *context) {
+    ALOGD(LOGTAG " remote_suspend_wait_timer_handler ");
+    bt_bdaddr_t bd_addr;
+    pA2dpSinkStream->suspend_wait_timer = false;
+    memcpy(&bd_addr, (bt_bdaddr_t *)context, sizeof(bt_bdaddr_t));
+    if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &bd_addr, sizeof(bt_bdaddr_t))) {
+        ALOGD(LOGTAG " remote_suspend_wait_timer_handler pA2dpSinkStream->StartPcmTimer()");
+        pA2dpSinkStream->StartPcmTimer();
+        qahw_out_resume(pA2dpSinkStream->out_stream);
+    }
+}
+
+void A2dp_Sink_Streaming::StartRemoteSuspendWaitTimer() {
+    char str[18];
+    bdaddr_to_string(&pA2dpSinkStream->mStreamingDevice, str, 18);
+    ALOGD("StartRemoteSuspendWaitTimer %s ", str);
+    if(suspend_wait_timer) {
+        ALOGD(LOGTAG " Remote Suspend Wait Timer still running + ");
+        return;
+    }
+    alarm_set(remote_suspend_wait_timer, A2DP_SINK_REMOTE_SUSPEND_WAIT_TIMER_DURATION,
+           remote_suspend_wait_timer_handler, &mStreamingDevice);
+    suspend_wait_timer = true;
+}
+
+void A2dp_Sink_Streaming::StopRemoteSuspendWaitTimer() {
+    ALOGD(LOGTAG " StopRemoteSuspendWaitTimer ");
+    if((remote_suspend_wait_timer != NULL) && (suspend_wait_timer)) {
+        ALOGD(LOGTAG " Cancelling remote_suspend_wait_timer");
+        alarm_cancel(remote_suspend_wait_timer);
+        suspend_wait_timer = false;
     }
 }
 
@@ -1261,6 +1299,7 @@ A2dp_Sink_Streaming :: A2dp_Sink_Streaming( config_t *config) {
     memset(&mResumingDevice, 0, sizeof(bt_bdaddr_t));
     pthread_mutex_init(&this->lock, NULL);
     pcm_data_fetch_timer = alarm_new();
+    remote_suspend_wait_timer = alarm_new();
     compress_audio_feed_timer = alarm_new();
     pcm_buf = NULL;
     pcm_timer = false;
@@ -1292,8 +1331,10 @@ A2dp_Sink_Streaming :: ~A2dp_Sink_Streaming() {
     threadInfo.thread_handler = &BtA2dpSinkStreamingMsgHandler;
     threadInfo.thread_name = "A2dp_Sink_Streaming_Thread";
     alarm_free(pcm_data_fetch_timer);
+    alarm_free(remote_suspend_wait_timer);
     alarm_free(compress_audio_feed_timer);
     pcm_data_fetch_timer = NULL;
+    remote_suspend_wait_timer = NULL;
     compress_audio_feed_timer = NULL;
     memset(&mStreamingDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mResumingDevice, 0, sizeof(bt_bdaddr_t));

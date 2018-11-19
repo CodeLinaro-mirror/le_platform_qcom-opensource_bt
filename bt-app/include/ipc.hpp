@@ -22,11 +22,14 @@
 
 #include "osi/include/thread.h"
 #include <hardware/bluetooth.h>
-#include <hardware/bt_gatt.h>
-#include <hardware/bt_gatt_types.h>
 #include <hardware/bt_sdp.h>
 #include <hardware/bt_rc.h>
 
+#ifdef USE_GEN_GATT
+#include "GattNativeDefines.hpp"
+#endif
+
+using std::string;
 
 extern thread_t *g_gap_thread;
 extern thread_t *g_main_thread;
@@ -83,6 +86,7 @@ typedef enum {
     THREAD_ID_MAIN = 0,
     THREAD_ID_GAP,
     THREAD_ID_A2DP_SINK,
+    THREAD_ID_A2DP_SINK_SPLIT,
     THREAD_ID_HFP_CLIENT,
     THREAD_ID_PAN,
     THREAD_ID_GATT,
@@ -186,6 +190,10 @@ typedef enum {
     A2DP_SINK_AUDIO_SUSPENDED,
     A2DP_SINK_AUDIO_STOPPED,
     A2DP_SINK_AUDIO_STARTED,
+    A2DP_SINK_AUDIO_START_REQ,
+    A2DP_SINK_AUDIO_SUSPEND_REQ,
+    A2DP_SINK_ACCEPT_PENDING_COMMAND,
+    A2DP_SINK_REJECT_PENDING_COMMAND,
     A2DP_SINK_CODEC_CONFIG,
     A2DP_SINK_FETCH_PCM_DATA,
     A2DP_SINK_FILL_COMPRESS_BUFFER,
@@ -391,6 +399,7 @@ typedef enum {
     GAP_API_SSP_REPLY,
     GAP_API_PIN_REPLY,
     GAP_API_SET_BDNAME,
+    GAP_API_SET_SCAN_MODE,
 
     GAP_EVENT_ADAPTER_STATE,
     GAP_EVENT_ACL_STATE_CHANGED,
@@ -426,6 +435,7 @@ typedef enum {
     PAN_EVENT_DEVICE_CONNECTED_LIST_REQ,
     PAN_EVENT_API_DISABLE,
 
+#ifdef USE_GEN_GATT
     //GATTS EVENTS
     BTGATTS_REGISTER_APP_EVENT = GATT_MSG_BASE,
     BTGATTS_CONNECTION_EVENT,
@@ -436,17 +446,21 @@ typedef enum {
     BTGATTS_SERVICE_STARTED_EVENT,
     BTGATTS_SERVICE_STOPPED_EVENT,
     BTGATTS_SERVICE_DELETED_EVENT,
-    BTGATTS_REQUEST_READ_EVENT,
-    BTGATTS_REQUEST_WRITE_EVENT,
+    BTGATTS_REQUEST_READ_CHARACTERISTIC_EVENT,
+    BTGATTS_REQUEST_READ_DESCRIPTOR_EVENT,
+    BTGATTS_REQUEST_WRITE_CHARACTERISTIC_EVENT,
+    BTGATTS_REQUEST_WRITE_DESCRIPTOR_EVENT,
     BTGATTS_REQUEST_EXEC_WRITE_EVENT,
     BTGATTS_RESPONSE_CONFIRMATION_EVENT,
     BTGATTS_INDICATION_SENT_EVENT,
     BTGATTS_CONGESTION_EVENT,
     BTGATTS_MTU_CHANGED_EVENT,
+    BTGATTS_PHY_UPDATED_EVENT,
+    BTGATTS_CONN_UPDATED_EVENT,
+    BTGATTS_READ_PHY_EVENT,
 
     //GATTC EVENTS
     BTGATTC_REGISTER_APP_EVENT,
-    BTGATTC_SCAN_RESULT_EVENT,
     BTGATTC_OPEN_EVENT,
     BTGATTC_CLOSE_EVENT,
     BTGATTC_SEARCH_COMPLETE_EVENT,
@@ -462,26 +476,43 @@ typedef enum {
     BTGATTC_WRITE_DESCRIPTOR_EVENT,
     BTGATTC_EXECUTE_WRITE_EVENT,
     BTGATTC_REMOTE_RSSI_EVENT,
-    BTGATTC_ADVERTISE_EVENT,
     BTGATTC_CONFIGURE_MTU_EVENT,
-    BTGATTC_SCAN_FILTER_CFG_EVENT,
-    BTGATTC_SCAN_FILTER_PARAM_EVENT,
-    BTGATTC_SCAN_FILTER_STATUS_EVENT,
-    BTGATTC_MULTIADV_ENABLE_EVENT,
-    BTGATTC_MULTIADV_UPDATE_EVENT,
-    BTGATTC_MULTIADV_SETADV_DATA_EVENT,
-    BTGATTC_MULTIADV_DISABLE_EVENT,
     BTGATTC_CONGESTION_EVENT,
-    BTGATTC_BATCHSCAN_CFG_STORAGE_EVENT,
-    BTGATTC_BATCHSCAN_STARTSTOP_EVENT,
-    BTGATTC_BATCHSCAN_REPORTS_EVENT,
-    BTGATTC_BATCHSCAN_THRESHOLD_EVENT,
-    BTGATTC_TRACK_ADV_EVENT_EVENT,
-    BTGATTC_SCAN_PARAMETER_SETUP_COMPLETED_EVENT,
     BTGATTC_GET_GATT_DB_EVENT,
+    BTGATTC_PHY_UPDATED_EVENT,
+    BTGATTC_CONN_UPDATED_EVENT,
+    BTGATTC_READ_PHY_EVENT,
 
+    BLEADVERTISER_SET_ADVERTISING_DATA_EVENT,
+    BLEADVERTISER_SET_SCAN_RESPONSE_DATA_EVENT,
+    BLEADVERTISER_SET_PERIODIC_ADVERTISING_DATA_EVENT,
+    BLEADVERTISER_SET_PERIODIC_ADVERTISING_PARAMETER_EVENT,
+    BLEDAVERTISER_GET_OWN_ADDRESS_EVENT,
+    BLEDAVERTISER_ADVERTISING_SET_ENABLE_EVENT,
+    BLEADVERTISER_ADVERTISING_PARAMETER_UPDATED_EVENT,
+    BLEDAVERTISER_ADVERTISING_SET_START_EVENT,
+    BLEDAVERTISER_PERIODIC_ADVERTISING_SET_ENABLE_EVENT,
+
+    BLESCANNER_REGISTER_SCANNER_EVENT,
+    BLESCANNER_SCAN_PARAMS_COMPLETE_EVENT,
+    BLESCANNER_SCAN_RESULT_EVENT,
+    BLESCANNER_SCAN_FILTER_CFG_EVENT,
+    BLESCANNER_SCAN_FILTER_PARAM_EVENT,
+    BLESCANNER_SCAN_FILTER_STATUS_EVENT,
+    BLESCANNER_BATCHSCAN_CFG_STORAGE_EVENT,
+    BLESCANNER_BATCHSCAN_START_EVENT,
+    BLESCANNER_BATCHSCAN_STOP_EVENT,
+    BLESCANNER_BATCHSCAN_REPORTS_EVENT,
+    BLESCANNER_BATCHSCAN_THRESHOLD_EVENT,
+    BLESCANNER_TRACK_ADV_EVENT_EVENT,
+    BLESCANNER_PERIODIC_ADVERTISING_SYNC_START_EVENT,
+    BLESCANNER_PERIODIC_ADVERTISING_SYNC_LOST_EVENT,
+    BLESCANNER_PERIODIC_ADVERTISING_SYNC_REPORT_EVENT,
+
+    GATT_EVENT_ADAPTER_PROPERTIES,
     RSP_ENABLE_EVENT = RSP_MSG_BASE,
     RSP_DISABLE_EVENT,
+#endif
 
     SDP_CLIENT_SEARCH = SDP_CLIENT_MSG_BASE,
     SDP_CLIENT_ADD_RECORD,
@@ -752,6 +783,16 @@ typedef struct {
     BluetoothEventId event_id;
     bt_property_t prop;
 } SetDeviceName;
+
+/**
+ * API to set BT SCAN mode
+ */
+typedef struct {
+    BluetoothEventId event_id;
+    bt_property_t prop;
+} SetScanMode;
+
+
 /**
  * Event for notifying Profile stop status
  */
@@ -919,6 +960,7 @@ typedef struct {
     BluetoothEventId event_id;
 } PanDeviceConnectedListEvent;
 
+#ifdef USE_GEN_GATT
 /**
  * GATT client  Structures
  */
@@ -926,22 +968,16 @@ typedef struct{
     BluetoothEventId event_id;
     int status;
     int clientIf;
-    bt_uuid_t app_uuid;
+    btapp::Uuid app_uuid;
 } GattcRegisterAppEvent;
 
-typedef struct{
-    BluetoothEventId event_id;
-    bt_bdaddr_t bda;
-    int rssi;
-    uint8_t adv_data;
-} GattcScanResultEvent;
 
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
     int clientIf;
-    bt_bdaddr_t bda;
+    string *bda;
 } GattcOpenEvent;
 
 typedef struct{
@@ -949,7 +985,7 @@ typedef struct{
     int conn_id;
     int status;
     int clientIf;
-    bt_bdaddr_t bda;
+    string *bda;
 } GattcCloseEvent;
 
 typedef struct{
@@ -961,15 +997,15 @@ typedef struct{
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
-    btgatt_srvc_id_t srvc_id;
+    gatt::gatt_srvc_id_t srvc_id;
 } GattcSearchResultEvent;
 
 typedef struct{
    BluetoothEventId event_id;
    int conn_id;
    int status;
-   btgatt_srvc_id_t srvc_id;
-   btgatt_gatt_id_t char_id;
+   gatt::gatt_srvc_id_t srvc_id;
+   gatt::gatt_id_t char_id;
    int char_prop;
 } GattcGetCharacteristicEvent;
 
@@ -977,17 +1013,17 @@ typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_srvc_id_t srvc_id;
-    btgatt_gatt_id_t char_id;
-    btgatt_gatt_id_t descr_id;
+    gatt::gatt_srvc_id_t srvc_id;
+    gatt::gatt_id_t char_id;
+    gatt::gatt_id_t descr_id;
 } GattcGetDescriptorEvent;
 
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_srvc_id_t srvc_id;
-    btgatt_srvc_id_t incl_srvc_id;
+    gatt::gatt_srvc_id_t srvc_id;
+    gatt::gatt_srvc_id_t incl_srvc_id;
 } GattcGetIncludedServiceEvent;
 
 typedef struct{
@@ -1001,14 +1037,14 @@ typedef struct{
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
-    btgatt_notify_params_t p_data;
+    gatt::gatt_notify_params_t p_data;
 } GattcNotifyEvent;
 
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_read_params_t p_data;
+    gatt::gatt_read_params_t p_data;
 } GattcReadCharacteristicEvent;
 
 typedef struct{
@@ -1028,7 +1064,7 @@ typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_read_params_t p_data;
+    gatt::gatt_read_params_t p_data;
 } GattcReadDescriptorEvent;
 
 typedef struct{
@@ -1041,7 +1077,7 @@ typedef struct{
 typedef struct{
     BluetoothEventId event_id;
     int client_if;
-    bt_bdaddr_t bda;
+    string *bda;
     int rssi;
     int status;
 } GattcRemoteRssiEvent;
@@ -1061,109 +1097,46 @@ typedef struct{
 
 typedef struct{
     BluetoothEventId event_id;
-    int action;
-    int client_if;
-    int status;
-    int filt_type;
-    int avbl_space;
-} GattcScanFilterCfgEvent;
-
-typedef struct{
-    BluetoothEventId event_id;
-    int action;
-    int client_if;
-    int status;
-    int avbl_space;
-} GattcScanFilterParamEvent;
-
-typedef struct{
-    BluetoothEventId event_id;
-    int action;
-    int client_if;
-    int status;
-} GattcScanFilterStatusEvent;
-
-typedef struct{
-    BluetoothEventId event_id;
-    int client_if;
-    int status;
-} GattcMultiadvEnableEvent;
-
-typedef struct{
-    BluetoothEventId event_id;
-    int client_if;
-    int status;
-}GattcMultiadvUpdateEvent;
-
-typedef struct{
-    BluetoothEventId event_id;
-    int client_if;
-    int status;
-} GattcMultiadvSetadvDataEvent;
-
-typedef struct{
-    BluetoothEventId event_id;
-    int client_if;
-    int status;
-} GattcMultiadvDisableEvent;
-
-typedef struct{
-    BluetoothEventId event_id;
     int conn_id;
     bool congested;
 } GattcCongestionEvent;
 
-typedef struct{
-    BluetoothEventId event_id;
-    int client_if;
-    int status;
-} GattcBatchscanCfgStorageEvent;
-
 typedef struct
 {
     BluetoothEventId event_id;
-    int startstop_action;
-    int client_if;
-    int status;
-} GattcBatchscanStartstopEvent;
-
-typedef struct
-{
-    BluetoothEventId event_id;
-    int client_if;
-    int status;
-    int report_format;
-    int num_records;
-    int data_len;
-    uint8_t p_rep_data;
-} GattcBatchscanReportsEvent;
-
-typedef struct
-{
-    BluetoothEventId event_id;
-    int client_if;
-} GattcBatchscanThresholdEvent;
-
-typedef struct
-{
-    BluetoothEventId event_id;
-    btgatt_track_adv_info_t p_adv_track_info;
-} GattcTrackAdvEventEvent;
-
-typedef struct
-{
-    BluetoothEventId event_id;
-    int client_if;
-    btgattc_error_t status;
-} GattcScanParameterSetupCompletedEvent;
+    int conn_id;
+    gatt::gatt_db_element_t *db;
+    int count;
+} GattcGetGattDbEvent;
 
 typedef struct
 {
     BluetoothEventId event_id;
     int conn_id;
-    btgatt_db_element_t *db;
-    int count;
-} GattcGetGattDbEvent;
+    uint8_t tx_phy;
+    uint8_t rx_phy;
+    uint8_t status;
+} GattcPhyUpdatedEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int conn_id;
+    uint16_t interval;
+    uint16_t latency;
+    uint16_t timeout;
+    uint8_t status;
+} GattcConnUpdatedEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int clientIf;
+    string *bda;
+    uint8_t tx_phy;
+    uint8_t rx_phy;
+    uint8_t status;
+} GattcReadPhyEvent;
 
 typedef struct{
     BluetoothEventId event_id;
@@ -1174,7 +1147,7 @@ typedef struct {
     BluetoothEventId event_id;
     int status;
     int server_if;
-    bt_uuid_t uuid;
+    btapp::Uuid uuid;
 } GattsRegisterAppEvent;
 
 typedef struct {
@@ -1182,15 +1155,14 @@ typedef struct {
     int conn_id;
     int server_if;
     int connected;
-    bt_bdaddr_t bda;
+    string *bda;
 } GattsConnectionEvent;
 
 typedef struct {
     BluetoothEventId event_id;
     int status;
     int server_if;
-    btgatt_srvc_id_t srvc_id;
-    int srvc_handle;
+    std::vector<gatt::gatt_db_element_t> *service;
 } GattsServiceAddedEvent;
 
 typedef struct
@@ -1207,7 +1179,7 @@ typedef struct
     BluetoothEventId event_id;
     int status;
     int server_if;
-    bt_uuid_t char_id;
+    btapp::Uuid char_id;
     int srvc_handle;
     int char_handle;
 } GattsCharacteristicAddedEvent;
@@ -1217,7 +1189,7 @@ typedef struct
     BluetoothEventId event_id;
     int status;
     int server_if;
-    bt_uuid_t descr_id;
+    btapp::Uuid descr_id;
     int srvc_handle;
     int descr_handle;
 } GattsDescriptorAddedEvent;
@@ -1251,32 +1223,55 @@ typedef struct
     BluetoothEventId event_id;
     int conn_id;
     int trans_id;
-    bt_bdaddr_t bda;
+    string *bda;
     int attr_handle;
     int offset;
     bool is_long;
-} GattsRequestReadEvent;
+} GattsRequestReadCharacteristicEvent;
 
 typedef struct
 {
     BluetoothEventId event_id;
     int conn_id;
     int trans_id;
-    bt_bdaddr_t bda;
+    string *bda;
     int attr_handle;
     int offset;
-    int length;
-    bool need_rsp;
-    bool is_prep;
-    uint8_t *value;
-} GattsRequestWriteEvent;
+    bool is_long;
+} GattsRequestReadDescriptorEvent;
 
 typedef struct
 {
     BluetoothEventId event_id;
     int conn_id;
     int trans_id;
-    bt_bdaddr_t bda;
+    string *bda;
+    int attr_handle;
+    int offset;
+    bool need_rsp;
+    bool is_prep;
+    std::vector<uint8_t> *value;
+} GattsRequestWriteCharacteristicEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int conn_id;
+    int trans_id;
+    string *bda;
+    int attr_handle;
+    int offset;
+    bool need_rsp;
+    bool is_prep;
+    std::vector<uint8_t> *value;
+} GattsRequestWriteDescriptorEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int conn_id;
+    int trans_id;
+    string *bda;
     int exec_write;
 } GattsRequestExecWriteEvent;
 
@@ -1308,14 +1303,241 @@ typedef struct
     int mtu;
 } GattsMTUchangedEvent;
 
+typedef struct
+{
+    BluetoothEventId event_id;
+    int conn_id;
+    uint8_t tx_phy;
+    uint8_t rx_phy;
+    uint8_t status;
+} GattsPhyUpdatedEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int conn_id;
+    uint16_t interval;
+    uint16_t latency;
+    uint16_t timeout;
+    uint8_t status;
+} GattsConnUpdatedEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int serverIf;
+    string *bda;
+    uint8_t tx_phy;
+    uint8_t rx_phy;
+    uint8_t status;
+} GattsReadPhyEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    uint8_t advertiser_id;
+    uint8_t status;
+} BleAdvertiserSetAdvDataEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    uint8_t advertiser_id;
+    uint8_t status;
+} BleAdvertiserSetScanRespEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    uint8_t advertiser_id;
+    uint8_t status;
+} BleAdvertiserSetPeriodicAdvDataEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    uint8_t advertiser_id;
+    uint8_t status;
+} BleAdvertiserSetPeriodicAdvParamEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    uint8_t advertiser_id;
+    uint8_t address_type;
+    string *bda;
+} BleAdvertiserGetOwnAddressEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int reg_id;
+    uint8_t advertiser_id;
+    int8_t tx_power;
+    uint8_t status;
+} BleAdvertiserAdvSetStartEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    uint8_t advertiser_id;
+    uint8_t status;
+    bool isEnabled;
+} BleAdvertiserAdvSetEnableEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    uint8_t advertiser_id;
+    int8_t tx_power;
+    uint8_t status;
+} BleAdvertiserAdvSetParamUpdateEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    uint8_t advertiser_id;
+    uint8_t status;
+    bool isEnabled;
+} BleAdvertiserPeriodicAdvSetEnableEvent;
+
+typedef struct{
+    BluetoothEventId event_id;
+    btapp::Uuid app_uuid;
+    uint8_t scannerId;
+    uint8_t status;
+} BleScannerRegisterScannerEvent;
+
+typedef struct{
+    BluetoothEventId event_id;
+    int client_if;
+    uint8_t status;
+} BleScannerScanParamCompleteEvent;
+
+typedef struct{
+    BluetoothEventId event_id;
+    uint16_t event_type;
+    uint8_t addr_type;
+    string *bda;
+    uint8_t primary_phy;
+    uint8_t secondary_phy;
+    uint8_t advertising_sid;
+    int8_t tx_power;
+    int8_t rssi;
+    uint16_t periodic_adv_int;
+    std::vector<uint8_t> *adv_data;
+} BleScannerScanResultEvent;
+
+typedef struct{
+    BluetoothEventId event_id;
+    int action;
+    int client_if;
+    int status;
+    int filt_type;
+    int avbl_space;
+} BleScannerScanFilterCfgEvent;
+
+typedef struct{
+    BluetoothEventId event_id;
+    int action;
+    int client_if;
+    int status;
+    int avbl_space;
+} BleScannerScanFilterParamEvent;
+
+typedef struct{
+    BluetoothEventId event_id;
+    int action;
+    int client_if;
+    int status;
+} BleScannerScanFilterStatusEvent;
+
+typedef struct{
+    BluetoothEventId event_id;
+    int client_if;
+    int status;
+}BleScannerBatchscanCfgStorageEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int client_if;
+    int status;
+} BleScannerBatchscanStartEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int client_if;
+    int status;
+} BleScannerBatchscanStopEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int client_if;
+    int status;
+    int report_format;
+    int num_records;
+    std::vector<uint8_t> *data;
+} BleScannerBatchscanReportsEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int client_if;
+} BleScannerBatchscanThresholdEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    gatt::gatt_track_adv_info_t p_adv_track_info;
+} BleScannerTrackAdvEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int reg_id;
+    uint8_t status;
+    uint16_t sync_handle;
+    uint8_t sid;
+    uint8_t address_type;
+    string *bda;
+    uint8_t phy;
+    uint16_t interval;
+} BleScannerPeriodicAdvSyncStartEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    uint16_t sync_handle;
+} BleScannerPeriodicAdvSyncLostEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    uint16_t sync_handle;
+    int8_t tx_power;
+    int8_t rssi;
+    uint8_t data_status;
+    std::vector<uint8_t> *data;
+} BleScannerPeriodicAdvSyncReportEvent;
+
+typedef struct {
+  BluetoothEventId event_id;
+  int type;
+  int len;
+  void *val;
+}GattAdapterPropertyEvent;
+
 /* Remote start profile support */
 typedef struct {
     BluetoothEventId event_id;
-    bt_uuid_t server_uuid;
-    bt_uuid_t client_uuid;
-    bt_uuid_t service_uuid;
-    bt_uuid_t characteristics_uuid;
-    bt_uuid_t descriptor_uuid;
+    btapp::Uuid server_uuid;
+    btapp::Uuid client_uuid;
+    btapp::Uuid service_uuid;
+    btapp::Uuid characteristics_uuid;
+    btapp::Uuid descriptor_uuid;
 } RspEnableEvent;
 
 typedef struct {
@@ -1327,6 +1549,7 @@ typedef struct {
     BluetoothEventId event_id;
     int server_if;
 } RspAddServiceEvent;
+#endif
 
 /** Callback for SDP search */
 typedef void (*SdpSearchCb)(bt_status_t status, bt_bdaddr_t *bd_addr, uint8_t* uuid,
@@ -1424,6 +1647,7 @@ typedef union {
     DeviceFoundEvent                        device_found_event;
     DeviceFoundEventInt                     device_found_event_int;
     SetDeviceName                           set_device_name_event;
+    SetScanMode                             set_scan_mode_event;
     RemotePropertiesEvent                   remote_properties_event;
     AdapterPropertiesEvent                  adapater_properties_event;
     DeviceDiscoverRequest                   discover_request;
@@ -1453,6 +1677,7 @@ typedef union {
     PanDeviceConnectEvent                   pan_device_connect_event;
     PanDeviceConnectedListEvent             pan_device_connected_list_event;
 
+#ifdef USE_GEN_GATT
     GattsRegisterAppEvent                   gatts_register_app_event;
     GattsConnectionEvent                    gatts_connection_event;
     GattsServiceAddedEvent                  gatts_service_added_event;
@@ -1462,16 +1687,20 @@ typedef union {
     GattsServiceStartedEvent                gatts_service_started_event;
     GattsServiceStoppedEvent                gatts_service_stopped_event;
     GattsServiceDeletedEvent                gatts_service_deleted_event;
-    GattsRequestReadEvent                   gatts_request_read_event;
-    GattsRequestWriteEvent                  gatts_request_write_event;
+    GattsRequestReadCharacteristicEvent     gatts_request_read_characteristic_event;
+    GattsRequestReadDescriptorEvent         gatts_request_read_descriptor_event;
+    GattsRequestWriteCharacteristicEvent    gatts_request_write_characteristic_event;
+    GattsRequestWriteDescriptorEvent        gatts_request_write_descriptor_event;
     GattsRequestExecWriteEvent              gatts_request_exec_write_event;
     GattsResponseConfirmationEvent          gatts_response_confirmation_event;
     GattsIndicationSentEvent                gatts_indication_sent_event;
     GattsCongestionEvent                    gatts_congestion_event;
     GattsMTUchangedEvent                    gatts_mtu_changed_event;
+    GattsPhyUpdatedEvent                    gatts_phy_updated_event;
+    GattsConnUpdatedEvent                   gatts_conn_updated_event;
+    GattsReadPhyEvent                       gatts_read_phy_event;
 
     GattcRegisterAppEvent                   gattc_register_app_event;
-    GattcScanResultEvent                    gattc_scan_result_event;
     GattcOpenEvent                          gattc_open_event;
     GattcCloseEvent                         gattc_close_event;
     GattcSearchCompleteEvent                gattc_search_complete_event;
@@ -1489,25 +1718,46 @@ typedef union {
     GattcRemoteRssiEvent                    gattc_remote_rssi_event;
     GattcAdvertiseEvent                     gattc_advertise_event;
     GattcConfigureMtuEvent                  gattc_configure_mtu_event;
-    GattcScanFilterCfgEvent                 gattc_scan_filter_cfg_event;
-    GattcScanFilterParamEvent               gattc_scan_filter_param_event;
-    GattcScanFilterStatusEvent              gattc_scan_filter_status_event;
-    GattcMultiadvEnableEvent                gattc_multiadv_enable_event;
-    GattcMultiadvUpdateEvent                gattc_multiadv_update_event;
-    GattcMultiadvSetadvDataEvent            gattc_multiadv_setadv_data_event;
-    GattcMultiadvDisableEvent               gattc_multiadv_disable_event;
     GattcCongestionEvent                    gattc_congestion_event;
-    GattcBatchscanCfgStorageEvent           gattc_batchscan_cfg_storage_event;
-    GattcBatchscanStartstopEvent            gattc_batchscan_startstop_event;
-    GattcBatchscanReportsEvent              gattc_batchscan_reports_event;
-    GattcBatchscanThresholdEvent            gattc_batchscan_threshold_event;
-    GattcTrackAdvEventEvent                 gattc_track_adv_event_event;
-    GattcScanParameterSetupCompletedEvent   gattc_scan_parameter_setup_completed_event;
     GattcGetGattDbEvent                     gattc_get_gatt_db_event;
+    GattcPhyUpdatedEvent                    gattc_phy_updated_event;
+    GattcConnUpdatedEvent                   gattc_conn_updated_event;
+    GattcReadPhyEvent                       gattc_read_phy_event;
 
+    BleAdvertiserSetAdvDataEvent            bleadverister_set_adv_data_event;
+    BleAdvertiserSetScanRespEvent           bleadverister_set_scan_resp_event;
+    BleAdvertiserSetPeriodicAdvDataEvent    bleadverister_set_periodic_adv_data_event;
+    BleAdvertiserSetPeriodicAdvParamEvent   bleadverister_set_periodic_adv_param_event;
+    BleAdvertiserGetOwnAddressEvent         bleadvertiser_get_own_address_event;
+    BleAdvertiserAdvSetEnableEvent          bleadvertiser_adv_set_enable_event;
+    BleAdvertiserAdvSetStartEvent           bleadvertiser_adv_set_start_event;
+    BleAdvertiserAdvSetParamUpdateEvent     bleadvertiser_adv_set_param_update_event;
+    BleAdvertiserPeriodicAdvSetEnableEvent  bleadverister_periodic_adv_set_enable_event;
+
+    BleScannerRegisterScannerEvent          blescanner_register_scanner_event;
+    BleScannerScanParamCompleteEvent        blescanner_scan_param_complete_event;
+    BleScannerScanResultEvent               blescanner_scan_result_event;
+    BleScannerScanFilterCfgEvent            blescanner_scan_filter_cfg_event;
+    BleScannerScanFilterParamEvent          blescanner_scan_filter_param_event;
+    BleScannerScanFilterStatusEvent         blescanner_scan_filter_status_event;
+    BleScannerBatchscanCfgStorageEvent      blescanner_batchscan_cfg_storage_event;
+    BleScannerBatchscanStartEvent           blescanner_batchscan_start_event;
+    BleScannerBatchscanStopEvent            blescanner_batchscan_stop_event;
+    BleScannerBatchscanReportsEvent         blescanner_batchscan_reports_event;
+    BleScannerBatchscanThresholdEvent       blescanner_batchscan_threshold_event;
+    BleScannerTrackAdvEvent                 blescanner_track_adv_event;
+    BleScannerPeriodicAdvSyncStartEvent     blescanner_periodic_adv_sync_start_event;
+    BleScannerPeriodicAdvSyncLostEvent      blescanner_periodic_adv_sync_lost_event;
+    BleScannerPeriodicAdvSyncReportEvent    blescanner_periodic_adv_sync_report_event;
+#ifdef USE_GEN_GATT
+    GattAdapterPropertyEvent                gatt_adapter_property_event;
+#endif
     RspEnableEvent                          rsp_enable_event;
     RspDisableEvent                         rsp_disable_event;
+#endif
+
     SdpClientEvent                          sdp_client_event;
+
 #ifdef USE_BT_OBEX
     PbapClientEvent                         pbap_client_event;
     OppEvent                                opp_event;
@@ -1564,8 +1814,11 @@ void BtGapMsgHandler(void *context);
 void BtMainMsgHandler(void *context);
 void BtSocketMsgHandler (void *context);
 void BtA2dpSinkMsgHandler(void *msg);
+void BtA2dpSinkSplitMsgHandler(void *msg);
 void BtPanMsgHandler(void *context);
+#ifdef USE_GEN_GATT
 void BtGattMsgHandler(void *context);
+#endif
 void BtHfpClientMsgHandler (void *context);
 void BtHfpAgMsgHandler (void *context);
 void BtAudioManagerHandler(void *msg);

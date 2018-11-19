@@ -41,7 +41,7 @@
 #include "osi/include/reactor.h"
 #include "osi/include/alarm.h"
 #include "osi/include/config.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "utils.h"
 #include "hardware/bt_rc.h"
 #include "hardware/bt_rc_vendor.h"

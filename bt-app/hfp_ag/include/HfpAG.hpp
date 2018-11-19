@@ -39,7 +39,7 @@
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "utils.h"
 #include "hardware/bt_hf_vendor.h"
 

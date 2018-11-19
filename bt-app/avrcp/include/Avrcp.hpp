@@ -40,7 +40,7 @@
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "osi/include/allocator.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "utils.h"
 #include "hardware/bt_rc_vendor.h"
 #include <list>

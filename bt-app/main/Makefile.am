@@ -24,13 +24,15 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/pan/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hid/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/rsp/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/native/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/framework/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/lib/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattctest/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattstest/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_client/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_ag/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
-               -I${WORKSPACE}/qcom-opensource/bt/gatt/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
                -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
@@ -68,18 +70,20 @@ cpp_sources = ../utils/src/utils.cc \
             ../gap/src/RemoteDevices.cpp \
             ../sdp_client/src/SdpClient.cpp\
             ../a2dp_sink/src/A2dp_Sink.cpp \
+            ../a2dp_sink/src/A2dp_Sink_Split.cpp \
             ../a2dp_src/src/A2dp_Src.cpp \
             ../a2dp_sink/src/A2dp_Sink_Streaming.cpp \
             ../avrcp/src/Avrcp.cpp \
             ../audio_manager/src/Audio_Manager.cpp \
             ../hfp_client/src/HfpClient.cpp \
             ../hfp_ag/src/HfpAG.cpp \
-            ../pan/src/Pan.cpp
+            ../gattctest/src/GattcTest.cpp \
+            ../pan/src/Pan.cpp \
+            ../gattstest/src/GattsTest.cpp
 
 #Uncomment after enabling profiles
 #cpp_sources += \
-#            ../rsp/src/Rsp.cpp \
-#            ../gattstest/src/GattsTest.cpp
+#            ../rsp/src/Rsp.cpp
 
 if USE_BT_OBEX
 cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
@@ -87,12 +91,15 @@ cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
 endif
 
 if USE_GST
-requiredlibs = ../osi/libgstbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes
+requiredlibs = ../osi/libgstbtapposi.la ../utils/libgstbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
 else
-requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes
+requiredlibs = ../osi/libbtapposi.la ../utils/libbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
 endif
 
-requiredlibs += -lgengatt -lcutils
+if USE_GEN_GATT
+requiredlibs += ../gatt/libgengatt.la
+endif
+
 if AUDIO_HAL_SUPPORTED
 requiredlibs += -lqahw
 endif

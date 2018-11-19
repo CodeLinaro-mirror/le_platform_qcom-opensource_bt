@@ -46,7 +46,7 @@
 #include "osi/include/config.h"
 #include "osi/include/allocator.h"
 #include "osi/include/alarm.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "utils.h"
 #include "hardware/bt_av_vendor.h"
 
@@ -60,6 +60,7 @@ typedef struct {
 } A2dpSinkStreamingThreadInfo;
 
 #define A2DP_SINK_PCM_FETCH_TIMER_DURATION         35
+#define A2DP_SINK_REMOTE_SUSPEND_WAIT_TIMER_DURATION 5000
 #define A2DP_SINK_COMPRESS_FEED_TIMER_DURATION     40
 #define A2DP_SINK_GBUF_MAX_SIZE 65535
 #define OUT_DEVICE_SPEAKER                         2
@@ -85,6 +86,7 @@ class A2dp_Sink_Streaming {
     uint32_t sample_rate;
     uint8_t channel_count;
     alarm_t *pcm_data_fetch_timer;
+    alarm_t *remote_suspend_wait_timer;
     alarm_t *compress_audio_feed_timer;
 #if (defined BT_AUDIO_HAL_INTEGRATION)
     // structure for output stream
@@ -120,9 +122,12 @@ class A2dp_Sink_Streaming {
     size_t residual_compress_data;
     uint8_t* pcm_buf;
     bool pcm_timer;
+    bool suspend_wait_timer;
     bool compress_offload_timer;
     void StartPcmTimer();
     void StopDataFetchTimer();
+    void StartRemoteSuspendWaitTimer();
+    void StopRemoteSuspendWaitTimer ();
     void OnDisconnected();
     void GetLibInterface(const btav_sink_vendor_interface_t *sBtA2dpSinkStrVendorInterface);
     uint16_t codec_type;

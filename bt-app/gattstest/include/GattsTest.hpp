@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-18, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -32,205 +32,118 @@
 
 #pragma once
 
-#include <hardware/bluetooth.h>
+#include <vector>
+#include <string>
+#include <map>
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
-#include <stdio.h>
 #include "osi/include/config.h"
-#include "ipc.h"
-#include "GattsTest.hpp"
-#include "Gatt.hpp"
-
-#define GATTSTEST_MIN_CI           (100)
-#define GATTSTEST_MAX_CI           (1000)
-
-#define GATT_PROP_READ       (0x02)
-#define GATT_PROP_WRITE      (0x08)
-
-#define GATT_PERM_READ       (0x01)
-#define GATT_PERM_WRITE      (0x10)
-
+#include "ipc.hpp"
+#include "GattServer.hpp"
+#include "GattServerCallback.hpp"
+#include "uuid.h"
+#include "GattDescriptor.hpp"
 
 
 #define LOGTAG "GATTSTEST "
 
+using namespace std;
+using namespace gatt;
 
-static char *arr_to_string(const uint8_t *v, int size, char *buf, int out_size)
-{
-int limit = size;
-int i;
-
-if (out_size > 0) {
-*buf = '\0';
-if (size >= 2 * out_size)
-limit = (out_size - 2) / 2;
-
-for (i = 0; i < limit; ++i)
-snprintf(buf + 2 * i,200, "%02x", v[i]);
-
-/* output buffer not enough to hold whole field fill with ...*/
-if (limit < size)
-snprintf(buf + 2 * i,200, "...");
-}
-
-fprintf(stdout,"\nconverted to %s \n",buf);
-return buf;
-}
-
-
-/* Remote start profile support */
-typedef struct {
-    int event_id;
-    bt_uuid_t server_uuid;
-    bt_uuid_t client_uuid;
-    bt_uuid_t service_uuid;
-    bt_uuid_t characteristics_uuid;
-    bt_uuid_t descriptor_uuid;
-} GattsTestEnableEvent;
-
-
-class Gatt;
+bool split (const string &s, char c,vector<string> &v);
 class GattsTest {
-    private:
-        config_t *config;
-        int wlan_state;
-        bool isAdvertising;
+  private:
+    GattLibService *mlibservice;
+    list <GattService> mServiceList;
 
-        GattsTestEnableEvent attr;
-        GattcRegisterAppEvent app_client_if;
-        GattsRegisterAppEvent app_if;
-        GattsServiceAddedEvent srvc_data;
-        GattsCharacteristicAddedEvent char_data;
-        GattsDescriptorAddedEvent desc_data;
-        GattsConnectionEvent conn_data;
-        GattsOpenEvent client_conn_data;
-        btgatt_interface_t *gatt_interface;
-        Gatt *app_gatt;
-        bool isClientRegistered;
-        bool isServerRegistered;
+    struct Service {
+      string s_uuid;
+      string c_uuid;
+      int c_property;
+      int c_permissions;
+      string d_uuid;
+      int d_permissions;
+    };
 
-    public:
-        GattsTest(btgatt_interface_t *, Gatt *);
-        ~GattsTest();
+    struct AdvertiseSet {
+      int tx_power;
+      int legacyflag;
+      int periodicflag;
+      int connectableflag;
+      int scannableflag;
+      int anonymousflag;
+      int includeTxPowerflag;
+      int primary_phy;
+      int secondary_phy;
+      int interval;
+      int timeout_legacy;
+      int advertise_mode;
+    };
 
-        bool EnableGATTSTEST();
-        bool DisableGATTSTEST();
-        inline btgatt_interface_t* GetGattInterface()
-        {
-            return gatt_interface;
-        }
-        inline int GetDeviceState()
-        {
-            fprintf(stdout, "(%s) WLAN Current State (%d) \n",__FUNCTION__, wlan_state);
-            return wlan_state;
-        }
-        inline void SetDeviceState(int currentstate)
-        {
-            fprintf(stdout, "(%s) WLAN Prev State (%d) New State(%d) \n"
-                   ,__FUNCTION__, wlan_state, currentstate);
-            wlan_state = currentstate;
-        }
-        inline void SetGATTSTESTClientAppData(GattcRegisterAppEvent *event)
-        {
-            memset(&app_client_if, 0, sizeof(app_client_if));
-            memcpy(&app_client_if, event, sizeof(GattcRegisterAppEvent));
-        }
-        inline GattcRegisterAppEvent* GetGATTSTESTClientAppData()
-        {
-            return &app_client_if;
-        }
-        inline void SetGATTSTESTAttrData(GattsTestEnableEvent *attrib)
-        {
-            memset (&attr, 0, sizeof(GattsTestEnableEvent));
-            memcpy (&attr, attrib, sizeof(GattsTestEnableEvent));
-        }
-        inline GattsTestEnableEvent* GetGATTSTESTAttrData()
-        {
-            return &attr;
-        }
-        inline void SetGATTSTESTAppData(GattsRegisterAppEvent *event)
-        {
-            memset(&app_if, 0, sizeof(GattsRegisterAppEvent));
-            memcpy(&app_if, event, sizeof(GattsRegisterAppEvent));
-        }
-        inline GattsRegisterAppEvent* GetGATTSTESTAppData()
-        {
-            return &app_if;
-        }
-        inline void SetGATTSTESTSrvcData(GattsServiceAddedEvent *event)
-        {
-            memset(&srvc_data, 0, sizeof(GattsServiceAddedEvent));
-            memcpy(&srvc_data, event, sizeof(GattsServiceAddedEvent));
-        }
-        inline GattsServiceAddedEvent* GetGattsTestSrvcData()
-        {
-            return &srvc_data;
-        }
-        inline void SetGATTSTESTCharacteristicData(GattsCharacteristicAddedEvent
-                *event)
-        {
-            memset(&char_data, 0, sizeof(GattsCharacteristicAddedEvent));
-            memcpy(&char_data, event, sizeof(GattsCharacteristicAddedEvent));
-        }
-        inline GattsCharacteristicAddedEvent* GetGATTSTESTCharacteristicData()
-        {
-            return &char_data;
-        }
-        inline void SetGATTSTESTDescriptorData(GattsDescriptorAddedEvent *event)
-        {
-            memset(&desc_data, 0, sizeof(GattsDescriptorAddedEvent));
-            memcpy(&desc_data, event, sizeof(GattsDescriptorAddedEvent));
-        }
-        inline GattsDescriptorAddedEvent* GetGATTSTESTDescriptorData()
-        {
-            return &desc_data;
-        }
-        inline void SetGATTSTESTConnectionData(GattsConnectionEvent *event)
-        {
-            memset(&conn_data, 0, sizeof(GattsConnectionEvent));
-            memcpy(&conn_data, event, sizeof(GattsConnectionEvent));
-        }
-        inline GattsConnectionEvent* GetGATTSTESTConnectionData()
-        {
-            return &conn_data;
-        }
-        inline void SetGATTSTESTClientConnectionData(GattsOpenEvent *event)
-        {
-            memset(&client_conn_data, 0, sizeof(GattsOpenEvent));
-            memcpy(&client_conn_data, event, sizeof(GattsOpenEvent));
-        }
-        inline GattsOpenEvent* GetGATTSTESTClientConnectionData()
-        {
-            return &client_conn_data;
-        }
+    vector <AdvertiseSet*> AdvSet_list;
+    AdvertiseSet *set_temp= NULL;
+    vector <Service*> service_list[5];
+    vector <int> manufacturerId_list;
+    vector <string> manufacturerData_list;
+    GattCharacteristic *mgattCharacteristic = NULL;
+    GattDescriptor *mgattDescriptor = NULL;
+    string manufacturer_ID;
+    string manufacturer_data;
+    int manufacturerID;
 
-        bool SendResponse(GattsRequestWriteEvent *);
-        bool CopyUUID(bt_uuid_t *);
-        bool CopyClientUUID(bt_uuid_t *);
-        bool CopyAlertServUUID(bt_uuid_t *);
-        bool CopyAlertCharUUID(bt_uuid_t *);
-        bool CopyAlertDescUUID(bt_uuid_t *);
-        bool ClientSetAdvData(char *);
-        bool CopyParams(bt_uuid_t *, bt_uuid_t *);
-        bool MatchParams(bt_uuid_t *, bt_uuid_t *);
-        bool RegisterApp(void);
-        bool DisconnectServer(void);
-        bool UnregisterServer(int);
-        bool RegisterClient(void);
-        bool UnregisterClient(int);
-        bool StartAdvertisement(void);
-        bool StopAdvertisement(void);
-        bool AddService(void);
-        bool AddCharacteristics(void);
-        bool AddDescriptor(void);
-        bool StartService(void);
-        bool StopService(void);
-        bool DeleteService(void);
-        bool HandleWlanOn(void);
-        void CleanUp(int);
-        bool getIsAdvertising();
-        void setIsAdvertising(bool);
+  public:
+    GattsTest(GattLibService* );
+    ~GattsTest();
+    void ReadServerConfigurationFile();
+    bool ParseServiceDetails(string,int);
+    void ParseServiceElement(int);
+    void AddServer();
+    bool ReadAdvertiserConfigFile();
+    void ParseAdvertiserDetails(string);
+    bool DisableGATTSTEST();
+    bool StartAdvertisement(string);
+    bool BuildAdvertisingParameters(int);
+    bool BuildAdvertisingData(int);
+    bool StopAdvertisement(string);
+    bool UnregisterServer(string);
+    bool AddService(string,string);
+    bool AddCharacteristics(Uuid,int,int,string);
+    bool AddDescriptors(Uuid,int,string);
+    bool SetPreferredPhy(string,string,string,string,int);
+    bool ReadPhy(string,string);
+    bool EnablePeriodicAdvertising(bool);
+    bool SetPeriodicAdvertisingData(int);
+    bool SetPeriodicAdvertisingParameters(int);
+    bool SetScanResponseData(int);
+    void CancelConnection(string);
 };
+
+
+class gattstestServerCallback :public GattServerCallback
+{
+
+  public:
+  void onConnectionStateChange(string deviceAddress, int status, int newState);
+  void onServiceAdded(int status,GattService *service);
+  void onCharacteristicReadRequest(string deviceAddress, int requestId, int offset,
+                                      GattCharacteristic *characteristic);
+  void onCharacteristicWriteRequest(string deviceAddress,int requestId,
+                                      GattCharacteristic *characteristic,bool preparedWrite,
+                                      bool responseNeeded,int offset,uint8_t* value);
+  void onDescriptorReadRequest(string deviceAddress, int requestId, int offset,
+                                      GattDescriptor *descriptor);
+  void onDescriptorWriteRequest(string deviceAddress, int requestId,
+                                      GattDescriptor *descriptor,bool preparedWrite,
+                                      bool responseNeeded, int offset, uint8_t * value);
+  void onExecuteWrite(string deviceAddress, int requestId, bool execute);
+  void onNotificationSent(string deviceAddress, int status);
+  void onMtuChanged(string deviceAddress, int mtu);
+  void onPhyUpdate(string deviceAddress,int txPhy, int rxPhy, int status);
+  void onPhyRead(string deviceAddress,int txPhy,int rxPhy,int status);
+  void onConnectionUpdated(string deviceAddress,int interval,int latency,
+                                    int timeout,int status);
+};
+
 #endif
 

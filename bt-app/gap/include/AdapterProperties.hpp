@@ -27,7 +27,7 @@
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include <list>
 #include "RemoteDevices.hpp"
 
@@ -35,6 +35,11 @@
  * @file AdapterProperties.hpp
  * @brief Adapter Properties header file
  */
+#define CHECK_PARAM_VOID(x)                                                   \
+if (!x) {                                                                     \
+    ALOGE("'%s' Void Param is NULL - exiting from function ", __FUNCTION__);  \
+    return ;                                                                  \
+}
 
 /**
  * Bluetooth Address length
@@ -201,6 +206,15 @@ class AdapterProperties {
          * @return status
          */
         int SetBtName(bt_property_t *prop);
+
+        /**
+         * @brief SetScanMode
+         *
+         * It will set the  SCAN Mode
+         *
+         * @return status
+         */
+        int SetScanMode(bt_property_t *prop);
 
         /**
          * @brief IsDeviceBonded

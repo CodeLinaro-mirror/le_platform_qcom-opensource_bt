@@ -29,7 +29,7 @@
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "osi/include/alarm.h"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "AdapterProperties.hpp"
 #include "RemoteDevices.hpp"
 
@@ -308,6 +308,15 @@ class Gap {
      * @return status
      */
     int SetBtName(bt_property_t *prop);
+
+    /**
+     * @brief SetScanMode
+     *
+     * It will set the Scan Mode
+     *
+     * @return status
+     */
+    int SetScanMode(bt_property_t *prop);
 
     /**
      * @brief IsDeviceBonded

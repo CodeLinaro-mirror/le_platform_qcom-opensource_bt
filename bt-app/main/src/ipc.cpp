@@ -18,7 +18,7 @@
  *
  ******************************************************************************/
 
-#include "ipc.h"
+#include "ipc.hpp"
 #include "osi/include/thread.h"
 #include "osi/include/log.h"
 
@@ -27,9 +27,12 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     { NULL ,    THREAD_ID_MAIN,        &BtMainMsgHandler,        "Main_Thread" } ,
     { NULL ,    THREAD_ID_GAP,         &BtGapMsgHandler,         "Gap_Thread" } ,
     { NULL ,    THREAD_ID_A2DP_SINK,   &BtA2dpSinkMsgHandler,    "A2dp_Sink_Thread" } ,
+    { NULL ,    THREAD_ID_A2DP_SINK_SPLIT,   &BtA2dpSinkSplitMsgHandler,    "A2dp_Sink_Split_Thread" } ,
     { NULL ,    THREAD_ID_HFP_CLIENT,  &BtHfpClientMsgHandler,   "Hfp_Client_Thread" } ,
     { NULL ,    THREAD_ID_PAN,         &BtPanMsgHandler,         "Pan_Thread" } ,
-    { NULL ,    THREAD_ID_GATT,        NULL,        "Gatt_Thread" } ,
+#ifdef USE_GEN_GATT
+    { NULL ,    THREAD_ID_GATT,        &BtGattMsgHandler,        "Gatt_Thread" } ,
+#endif
     { NULL ,    THREAD_ID_BT_AM,       &BtAudioManagerHandler,   "BT_AUDIO_MANAGER_Thread" } ,
     { NULL ,    THREAD_ID_SDP_CLIENT,  &BtSdpClientMsgHandler,   "Sdp_Client_Thread" } ,
 #ifdef USE_BT_OBEX

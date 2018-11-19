@@ -42,7 +42,7 @@
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "osi/include/alarm.h"
-#include "ipc.h"
+#include "ipc.hpp"
 
 #define SDP_SEARCH_TIMEOUT_DELAY     (6000)
 

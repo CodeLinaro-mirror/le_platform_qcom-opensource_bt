@@ -228,6 +228,16 @@ const A2DP_SINK_VARIABLE variable_list[] = {
 #define ishyphon(c) (c == '-')
 #endif
 
+list<A2dp_Device>::iterator FindDeviceByAddr(list<A2dp_Device>& pA2dpDev, bt_bdaddr_t dev) {
+    list<A2dp_Device>::iterator p = pA2dpDev.begin();
+    while(p != pA2dpDev.end()) {
+        if (memcmp(&dev, &p->mDevice, sizeof(bt_bdaddr_t)) == 0) {
+            break;
+        }
+        p++;
+    }
+    return p;
+}
 
 int StrcompareInsensitiv(char const *p1,  char const *p2){
     if((p1 != NULL) && (p2 != NULL)){
@@ -511,17 +521,6 @@ void BtA2dpSinkMsgHandler(void *msg) {
 }
 #endif
 
-list<A2dp_Device>::iterator FindDeviceByAddr(list<A2dp_Device>& pA2dpDev, bt_bdaddr_t dev) {
-    list<A2dp_Device>::iterator p = pA2dpDev.begin();
-    while(p != pA2dpDev.end()) {
-        if (memcmp(&dev, &p->mDevice, sizeof(bt_bdaddr_t)) == 0) {
-            break;
-        }
-        p++;
-    }
-    return p;
-}
-
 bool GetCodecInfoByAddr(bt_bdaddr_t* bd_addr, uint16_t *dev_codec_type, btav_codec_config_t* codec_config)
 {
     ALOGD(LOGTAG "enter func GetCodecINfo ===>");
@@ -666,6 +665,8 @@ static btav_sink_vendor_callbacks_t sBluetoothA2dpSinkVendorCallbacks = {
     bta2dp_audio_codec_config_vendor_callback,
     bta2dp_audio_data_read_callback,
     bta2dp_audio_registration_callback,
+    NULL,
+    NULL,
 };
 
 void A2dp_Sink::HandleEnableSink(void) {
@@ -1254,7 +1255,8 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
                     sizeof(bt_bdaddr_t));
             bdaddr_to_string(&pA2dpSinkStream->mStreamingDevice, str, 18);
             ALOGD(LOGTAG " A2DP_SINK_AUDIO_STARTED - set current streaming device as %s", str);
-
+            if(pA2dpSinkStream->suspend_wait_timer)
+                pA2dpSinkStream->StopRemoteSuspendWaitTimer();
             sBtA2dpSinkVendorInterface->
                     update_streaming_device_vendor(&pA2dpSinkStream->mStreamingDevice);
 
@@ -1267,6 +1269,9 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
             }
             break;
         case A2DP_SINK_AUDIO_SUSPENDED:
+            if((!memcmp(&pA2dpSinkStream->mStreamingDevice, &pEvent->a2dpSinkEvent.bd_addr,
+                    sizeof(bt_bdaddr_t)))&&(pA2dpSinkStream->suspend_wait_timer))
+                pA2dpSinkStream->StopRemoteSuspendWaitTimer();
         case A2DP_SINK_AUDIO_STOPPED:
             if(memcmp(&pA2dpSinkStream->mStreamingDevice, &pEvent->a2dpSinkEvent.bd_addr,
                     sizeof(bt_bdaddr_t)))

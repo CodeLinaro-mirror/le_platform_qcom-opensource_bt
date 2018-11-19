@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
+#include <sstream>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -36,17 +37,22 @@
 #include "Main.hpp"
 #include "SdpClient.hpp"
 #include "A2dp_Sink.hpp"
+#include "A2dp_Sink_Split.hpp"
 #include "Hid.hpp"
 #include "HfpClient.hpp"
 #include "Pan.hpp"
-/*#include "Gatt.hpp"*/
+#ifdef USE_GEN_GATT
+#include "GattLibService.hpp"
+#include "GattcTest.hpp"
+#include "GattsTest.hpp"
+#endif
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
+
 //#include "Rsp.hpp"
 #include "A2dp_Src.hpp"
 #include "Avrcp.hpp"
-/*#include "GattcTest.hpp"
-#include "GattsTest.hpp"*/
+
 #ifdef USE_BT_OBEX
 #include "PbapClient.hpp"
 #include "Opp.hpp"
@@ -56,25 +62,29 @@
 
 #include "utils.h"
 
+#ifdef USE_GEN_GATT
+using namespace gatt;
+using namespace btapp;
+#endif
 #define LOGTAG  "MAIN "
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
 #define SOCKETNAME  "/data/misc/bluetooth/btprop"
 static int bt_prop_socket;
+int server_num;
+bool file_read = 0;
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
+extern A2dp_Sink_Split *pA2dpSinkSplit;
 extern HidH *pHid;
 extern A2dp_Source *pA2dpSource;
 extern Pan *g_pan;
-/*extern Gatt *g_gatt;*/
 extern BT_Audio_Manager *pBTAM;
-/*extern Rsp *rsp;
-extern GattcTest *gattctest;
-extern GattsTest *gattstest;*/
 extern Hfp_Client *pHfpClient;
 extern Hfp_Ag *pHfpAG;
 extern Avrcp *pAvrcp;
 bool gattsEnabled = false;
+
 extern const char *BT_PAN_ENABLED;
 extern SdpClient *g_sdpClient;
 #ifdef USE_BT_OBEX
@@ -90,12 +100,20 @@ static alarm_t *opp_incoming_file_accept_timer = NULL;
 #define USER_ACCEPTANCE_TIMEOUT 25000
 #endif
 
+#ifdef USE_GEN_GATT
+GattLibService *g_gatt;
+extern const char *BT_GATT_ENABLED;
+extern GattcTest *gattctest;
+extern GattsTest *gattstest;
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
 thread_t *test_thread_id = NULL;
+ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,split
 static void SendDisableCmdToGap();
 void opensocket()
 {
@@ -201,6 +219,8 @@ int main (int argc, char *argv[]) {
     return 0;
 }
 
+
+
 static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
                                                           MenuType menu_type) {
     char user_input[COMMAND_SIZE] = {'\0'};
@@ -238,15 +258,17 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
 /*         case RSP_MENU:
             menu = &RspMenu[0];
             num_cmds  = NO_OF_COMMANDS(RspMenu);
-            break;
-        case GATTCTEST_MENU:
+           break;*/
+#ifdef USE_GEN_GATT
+        case GATTC_TEST_MENU:
             menu = &GattcTestMenu[0];
             num_cmds  = NO_OF_COMMANDS(GattcTestMenu);
             break;
         case GATTSTEST_MENU:
             menu = &GattsTestMenu[0];
             num_cmds  = NO_OF_COMMANDS(GattsTestMenu);
-            break;*/
+            break;
+#endif
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
             num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
@@ -351,6 +373,16 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &RspMenu[0];
             num_cmds  = NO_OF_COMMANDS(RspMenu);
             break;*/
+#ifdef USE_GEN_GATT
+        case GATTC_TEST_MENU:
+            menu = &GattcTestMenu[0];
+            num_cmds = NO_OF_COMMANDS(GattcTestMenu);
+            break;
+        case GATTSTEST_MENU:
+            menu = &GattsTestMenu[0];
+            num_cmds  = NO_OF_COMMANDS(GattsTestMenu);
+            break;
+#endif
         case MAIN_MENU:
             menu = &MainMenu[0];
             num_cmds  = NO_OF_COMMANDS(MainMenu);
@@ -520,7 +552,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             memset(event, 0, sizeof(BtEvent));
             event->a2dpSinkEvent.event_id = A2DP_SINK_API_CONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            PostMessage (thread_id, event);
             break;
         }
         case DISCONNECT:
@@ -528,7 +560,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             memset(event, 0, sizeof(BtEvent));
             event->a2dpSinkEvent.event_id = A2DP_SINK_API_DISCONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            PostMessage (thread_id, event);
             break;
         case PLAY:
             event = new BtEvent;
@@ -553,6 +585,32 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event->avrcpCtrlPassThruEvent.key_id = CMD_ID_STOP;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case AVDT_START:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_START_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
+            PostMessage (thread_id, event);
+            break;
+        case AVDT_SUSPEND:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_SUSPEND_REQ;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
+            PostMessage (thread_id, event);
+            break;
+        case ACCEPT:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->a2dpSinkEvent.event_id = A2DP_SINK_ACCEPT_PENDING_COMMAND;
+            PostMessage (thread_id, event);
+            break;
+        case REJECT:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->a2dpSinkEvent.event_id = A2DP_SINK_REJECT_PENDING_COMMAND;
+            PostMessage (thread_id, event);
             break;
         case FASTFORWARD:
             event = new BtEvent;
@@ -682,9 +740,9 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                     {
                         event->avrcpCtrlEvent.num_attrb = num_Attr;
                         event->avrcpCtrlEvent.buf_ptr32 = pAttr32;
-                        PostMessage (THREAD_ID_AVRCP, event);
                     }
                 }
+                PostMessage (THREAD_ID_AVRCP, event);
                 break;
             }
         case GET_PLAY_STATUS:
@@ -809,7 +867,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                 sizeof(event->a2dpCodecListEvent.codec_list));
             strlcpy(event->a2dpCodecListEvent.codec_list, user_cmd[ONE_PARAM],
                 COMMAND_SIZE);
-            PostMessage (THREAD_ID_A2DP_SINK, event);
+            PostMessage (thread_id, event);
             break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
@@ -1261,6 +1319,16 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = HFP_CLIENT_MENU;
             DisplayMenu(menu_type);
             break;
+#ifdef USE_GEN_GATT
+        case GATTCTEST_OPTION:
+            menu_type = GATTC_TEST_MENU;
+            DisplayMenu(menu_type);
+            break;
+        case GATTSTEST_OPTION:
+            menu_type = GATTSTEST_MENU;
+            DisplayMenu(menu_type);
+            break;
+#endif
 #ifdef USE_BT_OBEX
         case PBAP_CLIENT_OPTION:
             menu_type = PBAP_CLIENT_MENU;
@@ -1480,25 +1548,28 @@ static void HandleHIDCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
     }
 }
-/*
+
+#ifdef USE_GEN_GATT
 static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num;
     char *end;
     int index = 0;
     switch (cmd_id) {
-
         case GATTCTEST_INIT:
+            fprintf( stdout, "ENABLE GATTCTEST \n");
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
-                fprintf( stdout, "ENABLE GATTCTEST\n");
-                if (gattctest) {
+            if (gattctest) {
                    fprintf(stdout,"gattctest already initialized \n");
                    return;
                 } else {
+                    fprintf(stdout,"gattctest not initialized \n");
                   if (g_gatt) {
-                     gattctest = new GattcTest(g_gatt->GetGattInterface(),g_gatt);
+
+                     gattctest = new GattcTest(g_gatt);
+
                      if (gattctest) {
-                        gattctest->EnableGATTCTEST();
+                        gattctest->enableGattctest();
                         fprintf(stdout, " EnableGATTCTEST done \n");
                      }
                      else {
@@ -1513,11 +1584,105 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, "BT is in OFF State now \n");
              }
             break;
-
+         case GATTCTEST_SCAN_FILTER:
+            fprintf(stdout,"Scan filter \n");
+            if (gattctest) {
+                bool status = gattctest->validateInput(user_cmd[ONE_PARAM]);
+                if (!status) {
+                    fprintf(stdout, "Enter proper ScanFilter Type\n");
+                    break;
+                }
+                fprintf(stdout,"Do scan filtering\n");
+                gattctest->scanFilter(atoi(user_cmd[ONE_PARAM]),
+                  user_cmd[TWO_PARAM]);
+            } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+            }
+            break;
+         case GATTCTEST_SCANFILTER_MAN_DATA:
+            fprintf(stdout,"Scan filter Manu Data\n");
+            if (gattctest) {
+                bool status = gattctest->validateInput(user_cmd[ONE_PARAM]);
+                if (!status) {
+                    fprintf(stdout, "Enter proper Filter Type\n");
+                    break;
+                }
+                fprintf(stdout,"Do scan filtering\n");
+                gattctest->scanFilterManuData(atoi(user_cmd[ONE_PARAM]),
+                    user_cmd[TWO_PARAM], user_cmd[THREE_PARAM]);
+            } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+            }
+            break;
+         case GATTCTEST_SCAN_SETTINGS:
+            fprintf(stdout,"Scan settings \n");
+            if (gattctest) {
+                bool status = gattctest->validateInput(user_cmd[ONE_PARAM]);
+                if (!status) {
+                    fprintf(stdout, "Enter proper scanSetting Type\n");
+                    break;
+                }
+                status = gattctest->validateInput(user_cmd[TWO_PARAM]);
+                if (!status) {
+                    fprintf(stdout, "Enter proper setting value \n");
+                    break;
+                }
+                fprintf(stdout,"Do scan settings\n");
+                gattctest->scanSettings(atoi(user_cmd[ONE_PARAM]),
+                    atoi(user_cmd[TWO_PARAM]));
+            } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+            }
+            break;
+         case GATTCTEST_CONN_PARAMS:
+            fprintf(stdout,"Connection parameters \n");
+            if (gattctest) {
+                bool status = gattctest->validateInput(user_cmd[ONE_PARAM]);
+                if (!status) {
+                fprintf(stdout, "Enter proper auto value\n");
+                break;
+                }
+                status = gattctest->validateInput(user_cmd[TWO_PARAM]);
+                if (!status) {
+                    fprintf(stdout, "Enter proper phy value\n");
+                    break;
+                }
+                status = gattctest->validateInput(user_cmd[THREE_PARAM]);
+                if (!status) {
+                    fprintf(stdout, "Enter proper oppurtunistic value\n");
+                    break;
+                }
+                if ((atoi(user_cmd[ONE_PARAM]) != 0) &&
+                    (atoi(user_cmd[ONE_PARAM]) != 1)) {
+                    ALOGW(LOGTAG "Enter correct auto value (0/1)");
+                    fprintf(stdout, "Enter correct auto value (0/1)\n");
+                } else if ((atoi(user_cmd[THREE_PARAM]) != 0 ) &&
+                    (atoi(user_cmd[THREE_PARAM]) != 1)) {
+                    ALOGW(LOGTAG "Enter correct oppurtunistic value (0/1)");
+                    fprintf(stdout, "Enter correct oppurtunistic value (0/1)\n");
+                } else {
+                gattctest->gattConnParams((bool)(atoi(user_cmd[ONE_PARAM])),
+                  atoi(user_cmd[TWO_PARAM]),
+                  (bool)atoi(user_cmd[THREE_PARAM]));
+                }
+            } else {
+              fprintf(stdout,"Do the GATTCINIT first\n");
+            }
+            break;
          case GATTCTEST_START_SCAN:
+            fprintf(stdout,"trying to start scan \n");
             if (gattctest) {
                 fprintf(stdout,"starting scan \n");
-                gattctest->StartScan();
+                gattctest->startScan();
+            } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+            }
+            break;
+         case GATTCTEST_BATCH_SCAN:
+            fprintf(stdout,"trying to start batch scan \n");
+            if (gattctest) {
+                fprintf(stdout,"starting batch scan \n");
+                gattctest->testBatchscan();
             } else {
                 fprintf(stdout,"Do the GATTCINIT first\n");
             }
@@ -1525,23 +1690,27 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
 
         case GATTCTEST_STOP_SCAN:
            if (gattctest) {
-                fprintf(stdout,"stopping scan \n");
-                gattctest->StopScan();
+               fprintf(stdout,"stopping scan \n");
+               gattctest->stopScan();
            } else {
-                fprintf(stdout,"Do the GATTCINIT first\n");
+               fprintf(stdout,"Do the GATTCINIT first\n");
            }
            break;
 
         case GATTCTEST_CONNECT:
-            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
-                bt_bdaddr_t bd_addr;
-                string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
-                if (gattctest) {
-                    fprintf(stdout,"connecting \n");
-                    gattctest->Connect(&bd_addr);
-                } else {
-                    fprintf(stdout,"Do the GATTCINIT first\n");
-                }
+           if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               bool status = gattctest->validateInput(user_cmd[TWO_PARAM]);
+               if (!status) {
+                   fprintf(stdout, "Enter proper Transport Value\n");
+                   break;
+              }
+              if (gattctest) {
+                  fprintf(stdout,"connecting \n");
+                  gattctest->gattConnect(user_cmd[ONE_PARAM],
+                    atoi(user_cmd[TWO_PARAM]));
+              } else {
+                  fprintf(stdout,"Do the GATTCINIT first\n");
+              }
            } else {
                 fprintf( stdout, " BD address is NULL/Invalid \n");
            }
@@ -1549,11 +1718,9 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
 
         case GATTCTEST_DISCONNECT:
             if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
-               bt_bdaddr_t         bd_addr;
-               string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
                if (gattctest) {
                    fprintf(stdout,"disconnecting \n");
-                   gattctest->Disconnect(&bd_addr);
+                   gattctest->gattDisconnect(user_cmd[ONE_PARAM]);
                } else {
                     fprintf(stdout,"Do the GATTCINIT first\n");
                }
@@ -1561,17 +1728,323 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, " BD address is NULL/Invalid \n");
             }
             break;
-        case GATTCTEST_ALERT:
-
-           if (gattctest){
-               fprintf(stdout, "GATTCTEST_WRITE_CHAR \n");
-               gattctest->SendAlert(atoi(user_cmd[ONE_PARAM]));
-           }
-           else{
-               fprintf(stdout, "Do the GATTCINIT first\n");
-           }
+        case GATTCTEST_DISCSRVC:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"Discovering services \n");
+                   gattctest->gattDiscoverServices(user_cmd[ONE_PARAM]);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
             break;
-
+        case GATTCTEST_DISCSRVC_UUID:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"Discovering services by uuid\n");
+                   Uuid uuid = uuid.FromString((user_cmd[TWO_PARAM]), NULL);
+                   gattctest->gattDiscoverServicesByUuid
+                       (uuid, user_cmd[ONE_PARAM]);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+         case GATTCTEST_RDCHAR_UUID:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"reading char by uuid\n");
+                   Uuid uuid = uuid.FromString((user_cmd[TWO_PARAM]), NULL);
+                   gattctest->readCharacteristicUUID(user_cmd[ONE_PARAM], uuid);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_READPHY:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"Reading PHY \n");
+                   gattctest->gattClientReadPhy(user_cmd[ONE_PARAM]);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_READRSSI:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"Reading RSSI \n");
+                   gattctest->gattReadRemoteRssi(user_cmd[ONE_PARAM]);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_REFRESH:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"REFRESHING \n");
+                   gattctest->gattRefresh(user_cmd[ONE_PARAM]);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_REQMTU:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattctest) {
+                    bool status = gattctest->validateInput
+                        (user_cmd[TWO_PARAM]);
+                    if (!status) {
+                        fprintf(stdout, "Enter proper MTU Value\n");
+                        break;
+                    }
+                    fprintf(stdout,"REQUESTING MTU \n");
+                    gattctest->gattrequestMtu(user_cmd[ONE_PARAM],
+                    atoi(user_cmd[TWO_PARAM]));
+              } else {
+                   fprintf(stdout,"Do the GATTCINIT first\n");
+              }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_SETPHY:
+            if (string_is_bdaddr(user_cmd[THREE_PARAM])) {
+                if (gattctest) {
+                    fprintf(stdout,"Setting PHY \n");
+                    bool status = gattctest->validateInput(user_cmd[ONE_PARAM]);
+                    if (!status) {
+                        fprintf(stdout, "Enter proper TX Value\n");
+                        break;
+                    }
+                    status = gattctest->validateInput(user_cmd[TWO_PARAM]);
+                    if (!status) {
+                        fprintf(stdout, "Enter proper RX Value\n");
+                        break;
+                    }
+                    gattctest->setPreferredPhy(atoi(user_cmd[ONE_PARAM]),
+                        atoi(user_cmd[TWO_PARAM]), 1, user_cmd[THREE_PARAM]);
+               } else {
+                   fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_GETSERVICES:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"getting services \n");
+                   gattctest->getServices(user_cmd[ONE_PARAM]);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_GETSRVC:
+        {
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                Uuid uuid = uuid.FromString((user_cmd[TWO_PARAM]), NULL);
+                bool status = gattctest->validateInput(user_cmd[THREE_PARAM]);
+                if (!status) {
+                    fprintf(stdout, "Enter proper instanceID\n");
+                    break;
+                }
+                if (gattctest) {
+                    fprintf(stdout,"getting service  \n");
+                    gattctest->getService(user_cmd[ONE_PARAM], uuid,
+                        atoi(user_cmd[THREE_PARAM]));
+                } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        }
+        case GATTCTEST_RDWRDESC:
+        {
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"Reading writing DESC\n");
+                   bool status = gattctest->validateInput
+                        (user_cmd[TWO_PARAM]);
+                   if (!status) {
+                       fprintf(stdout, "Enter proper Read/Write Type\n");
+                       break;
+                   }
+                   status = gattctest->validateInput(user_cmd[FOUR_PARAM]);
+                   if (!status) {
+                       fprintf(stdout, "Enter instanceId\n");
+                       break;
+                   }
+                   int i = atoi(user_cmd[TWO_PARAM]);
+                   int j = atoi(user_cmd[FOUR_PARAM]);
+                   fprintf(stdout, "instanceid %d\n", j);
+                   if (i == 1) {
+                       gattctest->writeDescriptor(user_cmd[ONE_PARAM],
+                         (uint8_t *)&(user_cmd[THREE_PARAM]),
+                           j);
+                   } else if (i == 2) {
+                       gattctest->readDescriptor(user_cmd[ONE_PARAM],
+                         atoi(user_cmd[FOUR_PARAM]));
+                   } else {
+                       fprintf(stdout, "Enter the correct 2nd parameter.."
+                         "1 -write , 2 -read\n");
+                   }
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        }
+        case GATTCTEST_RDWRCHAR:
+        {
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"Reading writing char\n");
+                bool status = gattctest->validateInput(user_cmd[TWO_PARAM]);
+                if (!status) {
+                  fprintf(stdout, "Enter proper Read/Write Type\n");
+                  break;
+                }
+                status = gattctest->validateInput(user_cmd[FOUR_PARAM]);
+                if (!status) {
+                  fprintf(stdout, "Enter instanceId\n");
+                  break;
+                }
+                   int i = atoi(user_cmd[TWO_PARAM]);
+                   int j = atoi(user_cmd[FOUR_PARAM]);
+                   fprintf(stdout, "instanceid %d\n", j);
+                   if (i == 1) {
+                       gattctest->writeCharacteristic(user_cmd[ONE_PARAM],
+                         (uint8_t *)&(user_cmd[THREE_PARAM]),
+                           j);
+                   } else if (i == 2) {
+                       gattctest->readCharacteristic(user_cmd[ONE_PARAM],
+                         atoi(user_cmd[FOUR_PARAM]));
+                   } else if (i == 3) {
+                       gattctest->prepareWriteCharacteristic(user_cmd[ONE_PARAM],
+                           (uint8_t *)&(user_cmd[THREE_PARAM]), j);
+                   }else {
+                       fprintf(stdout, "Enter the correct 2nd parameter.."
+                         "1 -write , 2 -read\n");
+                   }
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        }
+        case GATTCTEST_GETCHARID:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattctest) {
+                    fprintf(stdout,"getting Characteristic \n");
+                    bool status = gattctest->validateInput
+                        (user_cmd[TWO_PARAM]);
+                if (!status) {
+                    fprintf(stdout, "Enter proper InstanceID\n");
+                    break;
+                }
+                gattctest->getCharacteristicById(user_cmd[ONE_PARAM],
+                    atoi(user_cmd[TWO_PARAM]));
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, "BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_RELIABLEWRITE:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattctest) {
+                    bool status = gattctest->validateInput
+                        (user_cmd[TWO_PARAM]);
+                    if (!status) {
+                        fprintf(stdout, "Enter proper InstanceID\n");
+                        break;
+                    }
+                    fprintf(stdout,"Reliablewrite Characteristic \n");
+                    gattctest->reliableWrite(user_cmd[ONE_PARAM],
+                        atoi(user_cmd[TWO_PARAM]));
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, "BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_GETDESCID:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattctest) {
+                    fprintf(stdout,"getting Descriptor \n");
+                    bool status = gattctest->validateInput
+                        (user_cmd[TWO_PARAM]);
+                    if (!status) {
+                        fprintf(stdout, "Enter proper InstanceID\n");
+                        break;
+                    }
+                    gattctest->getDescriptorById(user_cmd[ONE_PARAM],
+                    atoi(user_cmd[TWO_PARAM]));
+                } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+                }
+            } else {
+                fprintf( stdout, "BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_REQCONN_PRI:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattctest) {
+                    fprintf(stdout,"Requesting Connection Priority \n");
+                    bool status = gattctest->validateInput
+                        (user_cmd[TWO_PARAM]);
+                    if (!status) {
+                        fprintf(stdout, "Enter Connection Priority\n");
+                        break;
+                    }
+                    int i = atoi(user_cmd[TWO_PARAM]);
+                    if (i >= 0 && i <= 2) {
+                        gattctest->reqConnPri(user_cmd[ONE_PARAM],
+                            atoi(user_cmd[TWO_PARAM]));
+                    } else {
+                        fprintf(stdout, "Enter 0/1/2 as priority\n");
+                    }
+                } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+                }
+            } else {
+                fprintf( stdout, "BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_CONN_DEVICES:
+            if (gattctest) {
+                fprintf(stdout,"Listing Connected devices \n");
+                gattctest->list_conn_devices();
+           } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+           }
+           break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
@@ -1584,44 +2057,70 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
 }
 
 
-static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
-
-    long num;
-    char *end;
-    int index = 0;
+static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
+{
+    bool advEnable = true;
+    int  advDuration = 20000;
+    int  advMaxEvents = 0;
+    bool isConnected=0;
+    static bool init_server_file=0;
+    static bool init_advertiser_file = 0;
+    int  server_inst = 0;
+    int  service_inst = 0;
+    static bool disable = 0;
     switch (cmd_id) {
-        case GATTSTEST_INIT:
+        case GATTSTEST_INIT_SERVER:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 fprintf( stdout, "ENABLE GATTSTEST\n");
                 if (gattstest) {
-                   fprintf(stdout,"rsp already initialized \n");
-                   return;
+                    fprintf(stdout,"Gattstest already initialized \n");
+                    return;
                 } else {
-                  if (g_gatt) {
-                     gattstest = new GattsTest(g_gatt->GetGattInterface(),g_gatt);
-                     if (gattstest) {
-                         gattsEnabled = gattstest->EnableGATTSTEST();
-                        fprintf(stdout, " EnableRSP done \n");
-                     }
-                     else {
-                        fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
-                     }
-                  } else {
-                     fprintf(stdout," gatt interface us null \n");
-                  }
+                    if (g_gatt) {
+                        fprintf(stdout,"Initializing Gattstest \n");
+                        gattstest = new GattsTest(g_gatt);
+                        if (gattstest) {
+                            fprintf(stdout,"Reading Server Configuration File .... \n");
+                            gattstest->ReadServerConfigurationFile();
+                            init_server_file = true;
+                        } else {
+                            fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                        }
+                    } else {
+                        fprintf(stdout," gatt interface is null \n");
+                    }
                 }
-             }
-             else {
+             } else {
                 fprintf( stdout, "BT is in OFF State now \n");
              }
+             break;
+        case GATTSTEST_ADDSERVER:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if(g_gatt) {
+                    if(init_server_file)  {
+                        server_num++;
+                        fprintf(stdout,"Adding Server %d \n",server_num);
+                        gattstest->AddServer();
+                    } else {
+                        fprintf(stdout,"Do gattstest_init_server first \n");
+                    }
+                } else {
+                    fprintf(stdout,"gatt interface is null \n");
+                }
+            } else {
+                fprintf(stdout, "BT is in OFF State now \n");
+            }
             break;
-
-        case GATTSTEST_START:
+        case GATTSTEST_ADDSERVICES:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 if (gattstest) {
-                    fprintf( stdout, "(Re)start Advertisement \n");
-                    gattstest->ClientSetAdvData("Remote Start Profile");
-                    gattstest->StartAdvertisement();
+                    fprintf(stdout,"AddServices \n");
+                    string server_instance = user_cmd[ONE_PARAM];
+                    string service_instance = user_cmd[TWO_PARAM];
+                    bool result = gattstest->AddService(server_instance,service_instance);
+                    if(!result) {
+                        fprintf(stdout,"Service could not be added\n");
+                    }
                 } else {
                     fprintf(stdout , "Do Init first\n");
                 }
@@ -1629,7 +2128,145 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, "BT is in OFF State now \n");
             }
             break;
-
+        case GATTSTEST_INIT_ADVERTISER:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (gattstest) {
+                    fprintf(stdout,"Initialize Advertiser \n");
+                    file_read = gattstest->ReadAdvertiserConfigFile();
+                    init_advertiser_file = true;
+                    if(file_read)
+                        fprintf(stdout,"File read Succcessfully \n");
+                    else
+                        fprintf(stdout,"File not read \n");
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
+            } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+            }
+            break;
+        case GATTSTEST_START_ADVERTISER:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (gattstest) {
+                    fprintf(stdout,"StartAdvertisement \n");
+                    string server_instance = user_cmd[ONE_PARAM];
+                    if(file_read && (init_advertiser_file == true)) {
+                        bool result =gattstest->StartAdvertisement(server_instance);
+                        if(!result){
+                            fprintf(stdout,"Advertisement has not started\n");
+                        }
+                    } else {
+                        fprintf(stdout,"Do init Advertiser first \n");
+                    }
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
+             } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+             break;
+        case GATTSTEST_READPHY:
+            fprintf(stdout,"Read Phy \n");
+            if(string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattstest) {
+                    ALOGE(LOGTAG"gattstest->ReadPhy");
+                    fprintf(stdout,"User input is %s \n",user_cmd[ONE_PARAM]);
+                    string server_instance = user_cmd[TWO_PARAM];
+                    bool status =gattstest->ReadPhy(server_instance,user_cmd[ONE_PARAM]);
+                    if(!status)
+                    {
+                        fprintf(stdout,"tx/rx phy could not be read \n");
+                    }
+                } else {
+                    fprintf( stdout, "Do Init first \n ");
+                }
+            } else {
+                fprintf(stdout,"BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTSTEST_SET_PREFERRED_PHY:
+            fprintf(stdout,"Set Preferred Phy \n");
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattstest) {
+                    string deviceAddress = user_cmd[ONE_PARAM];
+                    string server_instance = user_cmd[TWO_PARAM];
+                    string txOption = user_cmd[THREE_PARAM];
+                    string rxOption = user_cmd[FOUR_PARAM];
+                    int phyOption = AdvertisingSetParameters::PHY_OPTION_NO_PREFERRED;
+                    fprintf(stdout,"the user options are address: %s server_instance: %s txoption: %s rxoption: %s phyoption: %d \n",deviceAddress.c_str(),server_instance.c_str(),txOption.c_str(),rxOption.c_str(),phyOption);
+                    bool status =gattstest->SetPreferredPhy(deviceAddress,server_instance,txOption,rxOption,phyOption);
+                    if(!status) {
+                        fprintf(stdout,"Phy preferences were not set \n");
+                    }
+                } else {
+                    fprintf( stdout, "Do Init first \n ");
+                }
+            } else {
+                fprintf(stdout,"BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTSTEST_STOP:
+            if(gattstest) {
+                fprintf(stdout, "Stop Advertisement \n");
+                string server_instance = user_cmd[ONE_PARAM];
+                gattstest->StopAdvertisement(server_instance);
+            } else {
+                fprintf( stdout, "Do Init first \n ");
+            }
+            break;
+        case GATTSTEST_UNREGISTER_SERVER:
+            if((g_bt_app->bt_state == BT_STATE_ON)){
+                fprintf( stdout, "Unregister Server \n");
+                if (gattstest) {
+                    bool status = gattstest->UnregisterServer(user_cmd[ONE_PARAM]);
+                    if(status)
+                    {
+                        fprintf(stdout,"Server unregistered succesfully \n");
+                    } else {
+                         fprintf(stdout,"Server not unregistered\n");
+                    }
+                } else {
+                    fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                }
+             } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+             break;
+        case GATTSTEST_DISABLE:
+            if((g_bt_app->bt_state == BT_STATE_ON)){
+                fprintf( stdout, "Disable Gattstest \n");
+                if (gattstest) {
+                    if(!disable) {
+                    gattstest->DisableGATTSTEST();
+                    gattstest->~GattsTest();
+                    disable = true;
+              } else {
+                fprintf(stdout,"Disable was already performed \n");
+              }
+                } else {
+                    fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                }
+             } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+             break;
+        case GATTSTEST_CANCEL_CONNECTION:
+            if((g_bt_app->bt_state == BT_STATE_ON)) {
+                fprintf( stdout, "Cancel Connection \n");
+                if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                    if (gattstest) {
+                        string deviceAddress = user_cmd[ONE_PARAM];
+                        gattstest->CancelConnection(deviceAddress);
+                    } else {
+                        fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                    }
+                } else {
+                    fprintf(stdout,"BD address is NULL/Invalid \n");
+                }
+            } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+            }
+            break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
@@ -1641,7 +2278,8 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     }
 }
 
-*/
+#endif
+
 static void SendEnableCmdToGap() {
 
     if ((g_bt_app->status.enable_cmd != COMMAND_INPROGRESS) &&
@@ -1838,6 +2476,41 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     PostMessage (THREAD_ID_GAP, event);
                 } else {
                  fprintf( stdout, " BD Name is NULL/more than required legnth\n");
+                }
+            } else {
+                fprintf( stdout, " Currently BT is OFF\n");
+            }
+            break;
+
+        case SET_SCAN_MODE:
+            if ( g_bt_app->GetState() == BT_STATE_ON ) {
+                if (user_cmd[ONE_PARAM] !=NULL)  {
+                    bt_scan_mode_t scan_mode;
+                    event = new BtEvent;
+                    switch (atoi(user_cmd[ONE_PARAM])){
+                    case 0:
+                        scan_mode = BT_SCAN_MODE_NONE;
+                        fprintf( stdout, " Disabled Inquiry Scan and Page Scan \n");
+                        break;
+                    case 1:
+                        scan_mode = BT_SCAN_MODE_CONNECTABLE;
+                        fprintf( stdout, " Disabled Inquiry Scan and Page Scan Enabled \n");
+                        break;
+                    case 2:
+                        scan_mode = BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE;
+                        fprintf( stdout, " Enabled Inquiry Scan and Page Scan \n");
+                        break;
+                    default:
+                        fprintf( stdout, " Invalid SCAN MODE parameter \n");
+                        return;
+                    }
+                event->event_id = GAP_API_SET_SCAN_MODE;
+                event->set_scan_mode_event.prop.type = BT_PROPERTY_ADAPTER_SCAN_MODE;
+                event->set_scan_mode_event.prop.val = &scan_mode;
+                event->set_scan_mode_event.prop.len = sizeof(bt_scan_mode_t);
+                PostMessage (THREAD_ID_GAP, event);
+                } else {
+                    fprintf( stdout, " Invalid SCAN MODE parameter\n");
                 }
             } else {
                 fprintf( stdout, " Currently BT is OFF\n");
@@ -2272,6 +2945,15 @@ static void BtCmdHandler (void *context) {
             case TEST_MENU:
                 HandleTestCommand(cmd_id, user_cmd);
                 break;
+#ifdef USE_GEN_GATT
+            case GATTC_TEST_MENU:
+                fprintf(stdout, "BtCmdHandler GATTC_TEST_MENU");
+                HandleGattcTestCommand(cmd_id, user_cmd);
+                break;
+            case GATTSTEST_MENU:
+                HandleGattsTestCommand(cmd_id, user_cmd);
+                break;
+#endif
            /* case RSP_MENU:
                 HandleRspCommand(cmd_id, user_cmd);
                 break;*/
@@ -2785,11 +3467,22 @@ void BluetoothApp :: InitHandler (void) {
     }
 
     if(is_a2dp_sink_enabled_) {
-        threadInfo[THREAD_ID_A2DP_SINK].thread_id = thread_new (
-                threadInfo[THREAD_ID_A2DP_SINK].thread_name);
+        if(is_a2dp_sink_split_enabled_){
+            thread_id = THREAD_ID_A2DP_SINK_SPLIT;
+            threadInfo[THREAD_ID_A2DP_SINK_SPLIT].thread_id = thread_new (
+                    threadInfo[THREAD_ID_A2DP_SINK_SPLIT].thread_name);
 
-        if (threadInfo[THREAD_ID_A2DP_SINK].thread_id) {
-            pA2dpSink = new A2dp_Sink (bt_interface, config);
+            if (threadInfo[THREAD_ID_A2DP_SINK_SPLIT].thread_id) {
+                pA2dpSinkSplit = new A2dp_Sink_Split (bt_interface, config);
+            }
+        }else{
+            thread_id = THREAD_ID_A2DP_SINK;
+            threadInfo[THREAD_ID_A2DP_SINK].thread_id = thread_new (
+                    threadInfo[THREAD_ID_A2DP_SINK].thread_name);
+
+            if (threadInfo[THREAD_ID_A2DP_SINK].thread_id) {
+                pA2dpSink = new A2dp_Sink (bt_interface, config);
+            }
         }
     }
 
@@ -2863,16 +3556,15 @@ void BluetoothApp :: InitHandler (void) {
         if (threadInfo[THREAD_ID_PAN].thread_id)
             g_pan = new Pan (bt_interface, config);
     }
+#ifdef USE_GEN_GATT
+      if (is_gatt_enable_default_) {
+          ALOGV (LOGTAG "  Starting GATT thread");
+          threadInfo[THREAD_ID_GATT].thread_id = thread_new (
+              threadInfo[THREAD_ID_GATT].thread_name);
 
-#if 0
-    if (is_gatt_enable_default_) {
-        ALOGV (LOGTAG "  Starting GATT thread");
-        threadInfo[THREAD_ID_GATT].thread_id = thread_new (
-            threadInfo[THREAD_ID_GATT].thread_name);
-
-        if (threadInfo[THREAD_ID_GATT].thread_id)
-            g_gatt = new Gatt(bt_interface, config);
-    }
+          if (threadInfo[THREAD_ID_GATT].thread_id)
+              g_gatt = GattLibService::getInstance(bt_interface);
+      }
 #endif
 
 #ifdef USE_BT_OBEX
@@ -2957,6 +3649,11 @@ void BluetoothApp :: DeInitHandler (void) {
             if ( pA2dpSink != NULL)
                 delete pA2dpSink;
         }
+        if (threadInfo[THREAD_ID_A2DP_SINK_SPLIT].thread_id != NULL) {
+            thread_free (threadInfo[THREAD_ID_A2DP_SINK_SPLIT].thread_id);
+            if ( pA2dpSinkSplit != NULL)
+                delete pA2dpSinkSplit;
+        }
     }
 
     if(is_avrcp_enabled_) {
@@ -3017,15 +3714,16 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete g_pan;
         }
     }
-/*
-    if (is_gatt_enable_default_) {
-        if (threadInfo[THREAD_ID_GATT].thread_id != NULL){
-            thread_free(threadInfo[THREAD_ID_GATT].thread_id);
-            if (g_gatt != NULL)
-                delete g_gatt;
-        }
-    }
-*/
+#ifdef USE_GEN_GATT
+      if (is_gatt_enable_default_) {
+          if (threadInfo[THREAD_ID_GATT].thread_id != NULL){
+              thread_free(threadInfo[THREAD_ID_GATT].thread_id);
+              if (g_gatt != NULL)
+                  delete g_gatt;
+          }
+      }
+#endif
+
 #ifdef USE_BT_OBEX
     if (opp_incoming_file_accept_timer) {
         alarm_free(opp_incoming_file_accept_timer);
@@ -3161,6 +3859,11 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for a2dp sink
     is_a2dp_sink_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_A2DP_SINK_ENABLED, false);
+
+    //checking for a2dp sink split
+    is_a2dp_sink_split_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_A2DP_SINK_SPLIT_ENABLED, false);
+
     //checking for avrcp
     is_avrcp_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_AVRCP_ENABLED, false);
@@ -3192,9 +3895,11 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_pan_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_PAN_ENABLED, false);
 
+#ifdef USE_GEN_GATT
     //checking for Gatt handler
     is_gatt_enable_default_= config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_GATT_ENABLED, false);
+#endif
 
 #ifdef USE_BT_OBEX
     //checking for OBEX handler

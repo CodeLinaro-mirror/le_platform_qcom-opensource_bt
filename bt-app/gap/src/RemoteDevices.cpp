@@ -23,7 +23,7 @@
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
 #include "Gap.hpp"
-#include "ipc.h"
+#include "ipc.hpp"
 #include "utils.h"
 #include "RemoteDevices.hpp"
 
