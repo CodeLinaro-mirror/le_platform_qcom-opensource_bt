@@ -1146,11 +1146,11 @@ static void skip_pcm_header(FILE *pcm_file)
 static void *thread_func(void *in_param)
 {
     SrcStreamStatus srcStream = SRC_NO_STREAMING;
-    size_t len = 0;
-    ssize_t write_len = 0;
+    uint32_t len = 0;
+    uint32_t write_len = 0;
     FILE *in_file = (FILE *)in_param;
-    size_t out_buffer_size = 0;
-    int codec_type;
+    uint32_t out_buffer_size = 0;
+    uint32_t codec_type;
     short buffer[AUDIO_STREAM_OUTPUT_BUFFER_SZ];
     uint8_t hdr_buffer[32];
     btav_codec_config_t src_codec_cfg;
