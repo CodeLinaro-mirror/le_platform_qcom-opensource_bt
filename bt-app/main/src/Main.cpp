@@ -815,8 +815,8 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                     event->avrcpCtrlEvent.buf_ptr32 = new uint32_t[MAX_SUB_ARGUMENTS];
                     num_Attr = Get32ArgsFromString(user_cmd[SIX_PARAM],event->avrcpCtrlEvent.buf_ptr32);
                     event->avrcpCtrlEvent.arg2 = num_Attr;
-                    PostMessage (THREAD_ID_AVRCP, event);
                 }
+                PostMessage (THREAD_ID_AVRCP, event);
                 break;
             }
         case PLAYITEM:
