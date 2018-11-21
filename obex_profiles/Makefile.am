@@ -6,7 +6,7 @@ AM_CFLAGS = -Wall \
         -Wstrict-prototypes \
         -Wno-trigraphs \
         -DLINUX \
-        -DOI_CPU_TYPE=19 \
+        -DOI_CPU_TYPE=21 \
         -DOI_DEBUG \
         -DOI_USE_NATIVE_MALLOC \
         -DOI_USE_NATIVE_MEMCPY \

@@ -916,7 +916,8 @@ PbapClient :: ~PbapClient()
 void connectionCfm(OI_PBAP_CONNECTION connectionId,
                                        OI_STATUS status)
 {
-    char bd_str[MAX_BD_STR_LEN];
+    bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string((const bt_bdaddr_t*)&pbap_client.addr, bd_str, MAX_BD_STR_LEN);
     ALOGV(LOGTAG "%s: status: %d connectionID = %p", __FUNCTION__,
         status, connectionId);
@@ -990,7 +991,8 @@ void disconnectInd(OI_PBAP_CONNECTION connectionId)
         PostMessage(THREAD_ID_GAP, stop_event);
     }
 
-    char bd_str[MAX_BD_STR_LEN];
+    bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     if (pbap_client.connection == connectionId) {
         bdaddr_to_string((const bt_bdaddr_t*)&pbap_client.addr, bd_str, MAX_BD_STR_LEN);
         fprintf(stdout, "Disconnected with %s\n", bd_str );
@@ -1170,7 +1172,8 @@ static void sdp_remove_record_callback(bt_status_t status)
 static void sdp_search_callback(bt_status_t status, bt_bdaddr_t *bd_addr, uint8_t* uuid,
             bluetooth_sdp_record *record, bool more_result)
 {
-    char bd_str[MAX_BD_STR_LEN];
+    bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
 
     if (status) {
         ALOGE(LOGTAG "%s: sdp search failed, status %d", __FUNCTION__, status);
@@ -1387,7 +1390,8 @@ void PbapClient :: RemoveSdpRecord()
 bool PbapClient :: PerformSdp(bt_bdaddr_t *addr)
 {
     bool ret = true;
-    char bd_str[MAX_BD_STR_LEN];
+    bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
 
     if (!addr) {
         ALOGE(LOGTAG "%s: Bluetooth device address null", __FUNCTION__);
@@ -1429,7 +1433,8 @@ bool PbapClient :: Connect()
         &connectionCfm, &disconnectInd, &authenticationCB, &pbap_file_ops);
     ALOGV(LOGTAG "%s: OI_PBAPClient_Connect returned %d", __FUNCTION__, ret);
     if (ret) {
-        char bd_str[MAX_BD_STR_LEN];
+        bdstr_t bd_str;
+        strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
         bdaddr_to_string((const bt_bdaddr_t*)&pbap_client.addr, bd_str, MAX_BD_STR_LEN);
         ALOGE(LOGTAG "%s: Failed to connect to %s", __FUNCTION__, bd_str);
         fprintf(stdout, "Failed to connect to %s\n", bd_str);
@@ -1444,7 +1449,8 @@ bool PbapClient :: Connect()
 
 bool PbapClient :: HandleConnectTimeout(bt_bdaddr_t *addr)
 {
-    char bd_str[MAX_BD_STR_LEN];
+    bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string((const bt_bdaddr_t*)addr, bd_str, MAX_BD_STR_LEN);
     fprintf(stdout, "Failed to Connect to %s due to ConnectionTimeout\n", bd_str);
     pbap_client.connection = NULL;
@@ -1457,7 +1463,8 @@ bool PbapClient :: HandleConnectTimeout(bt_bdaddr_t *addr)
 bool PbapClient :: Disconnect(bt_bdaddr_t *addr)
 {
     bool ret = true;
-    char bd_str[MAX_BD_STR_LEN];
+    bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
 
     if (!addr) {
         ALOGE(LOGTAG "%s: Bluetooth device address null", __FUNCTION__);
@@ -1475,7 +1482,8 @@ bool PbapClient :: Disconnect(bt_bdaddr_t *addr)
     OI_STATUS status = OI_PBAPClient_Disconnect(pbap_client.connection);
     if (status != OI_STATUS_SUCCESS) {
         ret = false;
-        char bd_str[MAX_BD_STR_LEN];
+        bdstr_t bd_str;
+        strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
         bdaddr_to_string((const bt_bdaddr_t*)&pbap_client.addr, bd_str, MAX_BD_STR_LEN);
         fprintf(stdout, "Failed to disconnect to %s\n", bd_str);
         ALOGE(LOGTAG "%s: Failed disconnect %s status: %d", __FUNCTION__, bd_str, status);

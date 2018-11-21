@@ -129,7 +129,8 @@ void BtHidMsgHandler(void *msg) {
 
 static void connection_state_cb(bt_bdaddr_t *bd_addr, bthh_connection_state_t state) {
     BtEvent *pEvent = new BtEvent;
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     printf("Received Connection State Callback %d\n",state);
 
     memcpy(&pEvent->hid_profile_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
@@ -179,15 +180,17 @@ static void connection_state_cb(bt_bdaddr_t *bd_addr, bthh_connection_state_t st
 }
 
 static void get_report_cb(bt_bdaddr_t *bd_addr, bthh_status_t hh_status, uint8_t *rpt_data, int rpt_size) {
-    char str[18];
+    bdstr_t str;
     int i;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     //printf("Report length:: %d Status %d\n",rpt_size,hh_status);
     if((hh_status != BTHH_OK) || (rpt_size ==0 ) || (rpt_size > 15))/*Handle only Release Event, check for size*/
         return;
 }
 
 static void handshake_cb(bt_bdaddr_t *bd_addr, bthh_status_t hh_status){
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     if(hh_status !=   BTHH_OK )
         return;
     bdaddr_to_string(bd_addr, str, 18);
@@ -196,7 +199,8 @@ static void handshake_cb(bt_bdaddr_t *bd_addr, bthh_status_t hh_status){
 }
 
 static void protocol_mode_cb(bt_bdaddr_t *bd_addr, bthh_status_t hh_status,bthh_protocol_mode_t mode) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     if(hh_status !=   BTHH_OK )
         return;
     bdaddr_to_string(bd_addr, str, 18);
@@ -206,7 +210,8 @@ static void protocol_mode_cb(bt_bdaddr_t *bd_addr, bthh_status_t hh_status,bthh_
 }
 
 static void virtual_unplug_cb(bt_bdaddr_t *bd_addr, bthh_status_t hh_status) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     BtEvent *pEvent = new BtEvent;
     pEvent->hid_profile_event.event_id = HID_API_DISCONNECT_REQ;
     printf("virtual unplug");
@@ -427,7 +432,8 @@ void HidH::ProcessDisconnectRequest(BtEvent* pEvent) {
 }
 
 void HidH::ProcessHidRequest(BtEvent* pEvent){
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     if(isDeviceinHidList(pEvent->hid_profile_event.bd_addr)) //Device in HID List
     {
         list<HidDevice>::iterator iter;
@@ -479,7 +485,9 @@ void HidH::ProcessHidRequest(BtEvent* pEvent){
 }
 
 list<HidDevice>::iterator HidH::FindDeviceByAddr(list<HidDevice>& phidDev, bt_bdaddr_t dev) {
-    char str[18],devstr[18];
+    bdstr_t str, devstr;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
+    strlcpy(devstr, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(&dev, devstr, 18);
     list<HidDevice>::iterator p = hid_list.begin();
     while(p != hid_list.end()) {
@@ -495,7 +503,9 @@ list<HidDevice>::iterator HidH::FindDeviceByAddr(list<HidDevice>& phidDev, bt_bd
 }
 
 bool HidH::isDeviceinHidList(bt_bdaddr_t dev) {
-    char str[18],devstr[18];
+    bdstr_t str, devstr;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
+    strlcpy(devstr, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(&dev, devstr, 18);
     if(hid_list.size()!= 0)
     {
@@ -515,7 +525,8 @@ bool HidH::isDeviceinHidList(bt_bdaddr_t dev) {
 void HidH::AddToHidList(HIDConnectiontState state, bt_bdaddr_t *addr)
 {
     HidDevice p;
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     memcpy(&p.addr,addr,sizeof(bt_bdaddr_t));
     p.state = state;
     hid_list.push_back(p);
@@ -525,7 +536,8 @@ void HidH::AddToHidList(HIDConnectiontState state, bt_bdaddr_t *addr)
 
 void HidH::HidPairedeDeviceList()
 {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     if(hid_list.empty())
     {
         printf("Hid List Empty!\n");
@@ -542,7 +554,8 @@ void HidH::HidPairedeDeviceList()
 
 void HidH::RemoveHidList(bt_bdaddr_t dev)
 {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     if(!pHid->isDeviceinHidList(dev)) //false
     {
         //printf("Device Not in HID List\n");

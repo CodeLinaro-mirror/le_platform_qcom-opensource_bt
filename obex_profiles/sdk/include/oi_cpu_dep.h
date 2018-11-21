@@ -47,6 +47,9 @@
  * Additional information is available in the @ref data_types_docpage section.
  */
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -63,6 +66,7 @@ extern "C" {
 #define OI_CPU_ARM7_BEND  11 /**< ARM7, big-endian */
 #define OI_CPU_ARM9_LEND  19 /**< ARM9, little-endian */
 #define OI_CPU_ARM11_LEND 20 /**< ARM11, little-endian */
+#define OI_CPU_AARCH_LEND 21 /**< AARCH, little-endian */
 
 #ifndef OI_CPU_TYPE
     #error "OI_CPU_TYPE type not defined"
@@ -188,6 +192,24 @@ typedef signed long     OI_INT32;  /**< 32-bit signed integer values use native 
 typedef unsigned char   OI_UINT8;  /**< 8-bit unsigned integer values use native unsigned character data type for ARM7 processor. */
 typedef unsigned short  OI_UINT16; /**< 16-bit unsigned integer values use native unsigned short integer data type for ARM7 processor. */
 typedef unsigned long   OI_UINT32; /**< 32-bit unsigned integer values use native unsigned long integer data type for ARM7 processor. */
+
+/**@}*/
+
+#endif
+
+#if OI_CPU_TYPE==OI_CPU_AARCH_LEND
+#define OI_CPU_BYTE_ORDER OI_LITTLE_ENDIAN_BYTE_ORDER
+
+/** @name   little-endian CPU/compiler-dependent primitive data type definitions for the ARM11 processor family
+ *  @{
+ */
+
+typedef int8_t     OI_INT8;
+typedef int16_t    OI_INT16;
+typedef int32_t    OI_INT32;
+typedef uint8_t    OI_UINT8;
+typedef uint16_t   OI_UINT16;
+typedef uint32_t   OI_UINT32;
 
 /**@}*/
 

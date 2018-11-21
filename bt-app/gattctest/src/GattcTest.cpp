@@ -32,7 +32,10 @@
 #include "utils.h"
 #include <stdlib.h>
 
-
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
 
 #define LOGTAG "GATTCTEST "
 #define UNUSED
@@ -203,6 +206,7 @@ class gattctestClientCallback : public BluetoothGattClientCallback
 
     void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data) {
          bdstr_t bd_str;
+         strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
          bdaddr_to_string(bda, &bd_str[0], sizeof(bd_str));
          fprintf(stdout,"btgattc_scan_result_cb %s \n ", bd_str);
     }
