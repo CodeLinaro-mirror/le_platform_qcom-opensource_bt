@@ -26,11 +26,20 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string>
+#include <fstream>
+#include <regex>
+#include <iostream>
+#include <vector>
+#include <iterator>
 
 #include "osi/include/allocator.h"
 #include "osi/include/config.h"
 #include "osi/include/list.h"
 #include "osi/include/log.h"
+
+using namespace std;
+
 
 typedef struct {
   char *key;
@@ -436,3 +445,53 @@ static entry_t *entry_find(const config_t *config, const char *section, const ch
 
   return NULL;
 }
+
+void config_file_append(const char *key,config_t *config,const char *filename){
+
+    const char* const input_file_name =  filename;
+    const char* const output_file_name = filename;
+    const char *value;
+    vector<string> all_the_lines ;
+
+    ifstream file(input_file_name) ;
+    string line ;
+    string temp;
+    int pos;
+    size_t len;
+    string old_value;
+
+    for (const list_node_t *node = list_begin(config->sections); node != list_end(config->sections); node = list_next(node)) {
+      const section_t *section = (const section_t *)list_node(node);
+
+      for (const list_node_t *enode = list_begin(section->entries); enode != list_end(section->entries); enode = list_next(enode)) {
+        const entry_t *entry = (const entry_t *)list_node(enode);
+        if(!strcmp(entry->key,key)) {
+          value = entry->value;
+          LOG_ERROR("%s value = %s",__func__,value);
+          break;
+        }
+      }
+    }
+    string new_value(value);
+    while( std::getline( file, line ) ) all_the_lines.push_back(line) ;
+    vector<string> ::iterator itr;
+    for(itr = all_the_lines.begin(); itr != all_the_lines.end(); ++itr) {
+      line = *itr;
+      if(std::regex_search(line,std::regex(key))) {
+        temp = line;
+        pos =  temp.find("=");
+        old_value = temp.substr(pos+1);
+        len = old_value.length();
+        line.replace(pos+1, len, new_value);
+        *itr = line;
+        break;
+    }
+  }
+
+  std::ofstream ofile(output_file_name) ;
+  for(itr = all_the_lines.begin(); itr != all_the_lines.end(); ++itr ) {
+    ofile << *itr << '\n' ;
+  }
+  file.close();
+}
+
