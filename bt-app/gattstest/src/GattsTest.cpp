@@ -953,7 +953,6 @@ bool GattsTest::SetPeriodicAdvertisingData(int instance)
   periodic_flag = temp->periodicflag;
   if(periodic_flag) {
     mPeriodicData = mAdvertiseData;
-    mAdvertisingSet->setPeriodicAdvertisingData(*mPeriodicData);
   } else {
     mPeriodicData = NULL;
   }
@@ -982,8 +981,8 @@ bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
                       .setInterval(periodic_interval)
                       .build();
 
-    ALOGD(LOGTAG"SetPeriodicAdvertisingParameters:: IncludeTxPower: %d interval %d", mPeriodicParams->getIncludeTxPower() ,mPeriodicParams->getInterval());
-      mAdvertisingSet->setPeriodicAdvertisingParameters(*mPeriodicParams);
+    ALOGD(LOGTAG"SetPeriodicAdvertisingParameters:: IncludeTxPower: %d interval %d",
+              mPeriodicParams->getIncludeTxPower() ,mPeriodicParams->getInterval());
   } else {
     mPeriodicParams = NULL;
   }
