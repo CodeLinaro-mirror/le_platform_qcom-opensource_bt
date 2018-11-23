@@ -132,6 +132,13 @@ bool config_save(const config_t *config, const char *filename);
 // flush the cofig file immediately
 void config_flush (const char *filename);
 
+// Iterates throught |config| to find  one specific |key| residing in |section|.
+// Finds the updated value of the particular |key| and overwrites the particular
+// |value| of the |key|. All the comments and special formatting are preserved
+// with this method.
+void config_file_append(const char *key,config_t *config,const char *filename);
+
+
 #ifdef __cplusplus
 }
 #endif

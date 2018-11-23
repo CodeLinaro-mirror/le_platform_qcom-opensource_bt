@@ -54,6 +54,7 @@ const char *BT_HFP_AG_ENABLED_STRING  = "BtHfpAGEnable";
 const char *BT_AVRCP_ENABLED_STRING  = "BtAvrcpEnable";
 
 #define LOGTAG "GAP "
+const char *FILE_PATH       = "/etc/bluetooth/bt_app.conf";
 
 using namespace std;
 using std::list;
@@ -764,6 +765,7 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_API_SET_BDNAME:
             SetBtName(&event->set_device_name_event.prop);
             config_set_string(config_,CONFIG_DEFAULT_SECTION,BT_LOCAL_DEV_NAME,(char *)event->set_device_name_event.prop.val);
+            config_file_append(BT_LOCAL_DEV_NAME,config_,FILE_PATH);
             break;
 
         case GAP_API_SET_SCAN_MODE:
