@@ -490,7 +490,8 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_READRSSI,           "gattctest_readrssi",    ONE_PARAM,    "gattctest_readrssi<space><bt_address>"},
     {GATTCTEST_REQMTU,           "gattctest_reqMtu",    TWO_PARAM,    "gattctest_reqMtu<space><bt_address><space><value>"},
     {GATTCTEST_REFRESH,           "gattctest_refresh",    ONE_PARAM,    "gattctest_refresh<space><bt_address>"},
-    {GATTCTEST_SETPHY,           "gattctest_setphy",    THREE_PARAM,    "gattctest_setphy<space><TxValue(1/2/3)><space><RxValue(1/2/3)><space><bt_address>"},
+    {GATTCTEST_SETPHY,           "gattctest_setphy",    THREE_PARAM,    "gattctest_setphy<space>\
+          <TxValue(0-255)><space><RxValue(0-255)><space><bt_address> for 1M-1; 2m-2; Coded-4"},
     {GATTCTEST_GETSERVICES,           "gattctest_getservices",    ONE_PARAM,    "gattctest_getservices<space><bt_address>"},
     {GATTCTEST_REQCONN_PRI,           "gattctest_reqconn_pri",    TWO_PARAM,    "gattctest_reqconn_pri<space><bt_address><space><priority 0/1/2>"},
     {GATTCTEST_GETCHARID,           "gattctest_getcharid",    TWO_PARAM,    "gattctest_getcharid<space><bt_address><space><instanceid>"},

@@ -1233,13 +1233,13 @@ void GattcTest :: setPreferredPhy(int txPhy, int rxPhy, int phyOptions,
     fprintf(stdout, "Device not found on Map\n");
     return ;
   }
-  if ((txPhy >= 1 && txPhy <= 3) &&
-    (rxPhy >= 1 && rxPhy <= 3)) {
+  if ((txPhy >= 0 && txPhy <= 255) &&
+    (rxPhy >= 0 && rxPhy <= 255)) {
     GattClient *CliDevice = mDeviceMap.getGatt(bdaddr);
     CliDevice->setPreferredPhy(txPhy, rxPhy, phyOptions);
   } else {
-    ALOGE(LOGTAG "Enter proper PHY values (1/2/3)");
-    fprintf(stdout, "Enter proper PHY values (1/2/3)\n");
+    ALOGE(LOGTAG "Enter proper PHY values (0-255)");
+    fprintf(stdout, "Enter proper PHY values (0-255)\n");
   }
 
   return;
