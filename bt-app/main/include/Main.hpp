@@ -478,7 +478,7 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_BATCH_SCAN,        "gattctest_batch_scan", ZERO_PARAM,    "gattctest_batch_scan"},
     {BACK_TO_MAIN,          "main_menu",      ZERO_PARAM,    "main_menu"},
     {GATTCTEST_CONN_PARAMS,       "gattctest_conn_params",    THREE_PARAM,    "gattctest_conn_params<space><isAuto><space><phy><space><isOppur> \
-        eg: isAuto(0/1);phy (1/2/3(codec); isOppur(0/1))"},
+        eg: isAuto(0/1);phy (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination); isOppur(0/1))"},
     {GATTCTEST_CONNECT,           "gattctest_connect",    TWO_PARAM,     "gattctest_connect<space><bt_address><space><transport>\
          eg. gattctest_connect 00:11:22:33:44:55 0(Auto)/1(BREDR)/2(LE)"},
     {GATTCTEST_DISCONNECT,           "gattctest_disconnect", ONE_PARAM,     "gattctest_disconnect<space><bt_address> \
@@ -491,7 +491,7 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_REQMTU,           "gattctest_reqMtu",    TWO_PARAM,    "gattctest_reqMtu<space><bt_address><space><value>"},
     {GATTCTEST_REFRESH,           "gattctest_refresh",    ONE_PARAM,    "gattctest_refresh<space><bt_address>"},
     {GATTCTEST_SETPHY,           "gattctest_setphy",    THREE_PARAM,    "gattctest_setphy<space>\
-          <TxValue(0-255)><space><RxValue(0-255)><space><bt_address> for 1M-1; 2m-2; Coded-4"},
+          <TxValue(0-255)><space><RxValue(0-255)><space><bt_address> (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination)"},
     {GATTCTEST_GETSERVICES,           "gattctest_getservices",    ONE_PARAM,    "gattctest_getservices<space><bt_address>"},
     {GATTCTEST_REQCONN_PRI,           "gattctest_reqconn_pri",    TWO_PARAM,    "gattctest_reqconn_pri<space><bt_address><space><priority 0/1/2>"},
     {GATTCTEST_GETCHARID,           "gattctest_getcharid",    TWO_PARAM,    "gattctest_getcharid<space><bt_address><space><instanceid>"},

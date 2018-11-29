@@ -560,11 +560,11 @@ void GattcTest :: gattConnParams(bool automatic, int phy, bool isOpportunistic)
     ALOGW(LOGTAG "Enter correct auto value (0/1)");
     fprintf(stdout, "Enter correct auto value (0/1)\n");
   }
-  if ((phy > 0) && (phy <= 3)) {
+  if ((phy > 0) && (phy <= 255)) {
     gattctest->phy = phy;
   } else {
-    ALOGW(LOGTAG "Enter correct phy value (1/2/3)");
-    fprintf(stdout, "Enter correct phy value (1/2/3)\n");
+    ALOGW(LOGTAG "Enter correct phy value (0-255)");
+    fprintf(stdout, "Enter correct phy value (0-255)\n");
   }
   if ((isOpportunistic == 0) || (isOpportunistic == 1)) {
     gattctest->isOpportunistic = isOpportunistic;
