@@ -203,6 +203,10 @@ void GattClient::onCharacteristicRead(string address, int status, int handle, ui
       }
       if(!mService)
         mService->readCharacteristic(mClientIf, address, handle, authReq);
+      {
+        std::lock_guard<std::mutex> myLock(mDeviceBusyLock);
+        mDeviceBusy = false;
+      }
       mAuthRetryState++;
       return;
     } catch (std::exception& e) {
