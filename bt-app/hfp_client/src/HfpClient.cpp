@@ -562,6 +562,10 @@ void Hfp_Client::HandleEnableClient(void) {
             return;
         }
 
+        audio_out_device = (uint32_t)config_get_int(config,
+            CONFIG_DEFAULT_SECTION, "AudioOutDevice", 131072);
+        ALOGD(LOGTAG "Audio Out Device %d", audio_out_device);
+
         change_state(HFP_CLIENT_STATE_DISCONNECTED);
         sBtHfpClientInterface->init(&sBluetoothHfpClientCallbacks);
         BtEvent *pEvent = new BtEvent;
@@ -1253,7 +1257,7 @@ void Hfp_Client::ConfigureRingTonePlayback() {
    audio_module = pBTAM->GetAudioDevice();
    if(audio_module != NULL) {
          // select speaker(2) as output device
-         ret = qahw_open_output_stream(audio_module, handle, OUT_DEVICE_LINE_OUT,
+         ret = qahw_open_output_stream(audio_module, handle, audio_out_device,
                  AUDIO_OUTPUT_FLAG_DIRECT_PCM,&config, &out_stream_ring_tone, "bt_hfp_client");
    }
    else {
@@ -1359,7 +1363,7 @@ void Hfp_Client::ConfigureAudio(bool enable) {
    if(audio_module != NULL) {
       if (enable) {
          // select speaker(2) as output device
-         qahw_open_output_stream(audio_module, handle, OUT_DEVICE_LINE_OUT, AUDIO_OUTPUT_FLAG_NONE,
+         qahw_open_output_stream(audio_module, handle, audio_out_device, AUDIO_OUTPUT_FLAG_NONE,
                                         &config, &out_stream, "bt_hfp_client");
          ALOGD(LOGTAG " setting sample rate %s", (mAudioWbs ? "16000" : "8000"));
          fprintf(stdout, " setting sample rate %s\n", (mAudioWbs ? "16000" : "8000"));
