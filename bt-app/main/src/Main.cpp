@@ -2327,17 +2327,19 @@ void BtMainMsgHandler (void *context) {
 
     switch (event->event_id) {
         case SKT_API_IPC_MSG_WRITE:
-            ALOGV (LOGTAG "client_socket: %d", g_bt_app->client_socket_);
-            if(g_bt_app->client_socket_ != -1) {
-                int len;
-                if((len = send(g_bt_app->client_socket_, &(event->bt_ipc_msg_event.ipc_msg),
-                    BT_IPC_MSG_LEN, 0)) < 0) {
-                    reactor_unregister (g_bt_app->accept_reactor_);
-                    close(g_bt_app->client_socket_);
-                    g_bt_app->client_socket_ = -1;
-                    ALOGE (LOGTAG "Local socket send fail %s", strerror(errno));
+            if (g_bt_app) {
+                ALOGV (LOGTAG "client_socket: %d", g_bt_app->client_socket_);
+                if(g_bt_app->client_socket_ != -1) {
+                    int len;
+                    if((len = send(g_bt_app->client_socket_, &(event->bt_ipc_msg_event.ipc_msg),
+                        BT_IPC_MSG_LEN, 0)) < 0) {
+                        reactor_unregister (g_bt_app->accept_reactor_);
+                        close(g_bt_app->client_socket_);
+                        g_bt_app->client_socket_ = -1;
+                        ALOGE (LOGTAG "Local socket send fail %s", strerror(errno));
+                    }
+                    ALOGV (LOGTAG "sent %d bytes", len);
                 }
-                ALOGV (LOGTAG "sent %d bytes", len);
             }
             delete event;
             break;
