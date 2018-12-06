@@ -585,6 +585,12 @@ typedef struct {
     bool broadcast;
 } DeviceProperties;
 
+typedef struct {
+  int in_use;
+  unsigned long long time_of_resp;
+  DeviceProperties dp;
+} InquiryDB;
+
 typedef enum {
     BT_ADAPTER_STATE_OFF,
     BT_ADAPTER_STATE_ON,

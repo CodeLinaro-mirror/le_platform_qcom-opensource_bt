@@ -165,18 +165,19 @@ void RemoteDevices::DeviceFound(DeviceFoundEventInt *dev_found) {
     GetValueFromPropertyList(dev_found->num_properties, dev_found->properties,
             BT_PROPERTY_REMOTE_RSSI, &rem_dev_prop->rssi);
 
+    GetValueFromPropertyList(dev_found->num_properties, dev_found->properties,
+            BT_PROPERTY_TYPE_OF_DEVICE, &rem_dev_prop->device_type);
+
     /* Free the memory used for properties */
     ClearPropertyList(dev_found->num_properties, dev_found->properties);
 
-    /* Update only if remote device Name is available for Now */
-    if (strlen(rem_dev_prop->name) > 0) {
-        bt_event = new BtEvent;
-        bt_event->event_id = MAIN_EVENT_DEVICE_FOUND;
-        memcpy(&bt_event->device_found_event.remoteDevice, rem_dev_prop,
-                sizeof(DeviceProperties));
+    /* Update all remote device available*/
+    bt_event = new BtEvent;
+    bt_event->event_id = MAIN_EVENT_DEVICE_FOUND;
+    memcpy(&bt_event->device_found_event.remoteDevice, rem_dev_prop,
+            sizeof(DeviceProperties));
 
-        PostMessage(THREAD_ID_MAIN, bt_event);
-    }
+    PostMessage(THREAD_ID_MAIN, bt_event);
 
 }
 

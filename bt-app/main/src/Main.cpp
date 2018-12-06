@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <dlfcn.h>
 #include <sys/socket.h>
@@ -2351,6 +2352,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                                 (g_bt_app->bt_state == BT_STATE_ON)) {
 
                 g_bt_app->inquiry_list.clear();
+                g_bt_app->inq_db_count = 0;
                 g_bt_app->status.enquiry_cmd = COMMAND_INPROGRESS;
                 event = new BtEvent;
                 event->event_id = GAP_API_START_INQUIRY;
@@ -2375,6 +2377,11 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 event->event_id = GAP_API_STOP_INQUIRY;
                 ALOGV (LOGTAG " Posting stop inquiry to GAP thread");
                 PostMessage (THREAD_ID_GAP, event);
+                if (!g_bt_app->inquiry_list.empty()) {
+                    g_bt_app->PrintInquiryList();
+                } else {
+                    fprintf( stdout, " Empty Inquiry list\n");
+                }
 
             } else if (g_bt_app->status.stop_enquiry_cmd == COMMAND_INPROGRESS) {
                 fprintf( stdout, " The stop inquiry is already in process\n");
@@ -3144,6 +3151,7 @@ void user_acceptance_timer_expired(void *context) {
 }
 #endif
 
+int BluetoothApp::inq_db_count = 0;
 void BluetoothApp :: ProcessEvent (BtEvent * event) {
 
     ALOGD (LOGTAG " Processing event %d", event->event_id);
@@ -3188,6 +3196,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 // clearing bond_devices list and inquiry_list
                 bonded_devices.clear();
                 inquiry_list.clear();
+                inq_db_count = 0;
                 system("killall -KILL wcnssfilter");
                 usleep(200);
                 fprintf(stdout, " BT State is OFF\n");
@@ -3225,26 +3234,30 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
 
         case MAIN_EVENT_DEVICE_FOUND:
            {
-           bdstr_t bd_str;
+            bdstr_t bd_str;
             std::map<std::string, std::string>::iterator it;
             bdaddr_to_string(&event->device_found_event.remoteDevice.address, &bd_str[0], sizeof(bd_str));
             std::string deviceAddress(bd_str);
 
             it = bonded_devices.find(deviceAddress);
+            ptr = (event->device_found_event.remoteDevice.address.address);
             if (it != bonded_devices.end())
             {
+                fprintf(stdout, "Bonded Device Found details: \n");
+                fprintf(stdout,"Found device Addr: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                                ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
+                fprintf(stdout, "Found device Name: %s\n", event->device_found_event.
+                                                    remoteDevice.name);
                 break;
             }
             fprintf(stdout, "Device Found details: \n");
-            AddFoundedDevice(event->device_found_event.remoteDevice.name,
-                                    event->device_found_event.remoteDevice.address);
-            ptr = (event->device_found_event.remoteDevice.address.address);
+            AddFoundedDevice(&event->device_found_event.remoteDevice);
             fprintf(stdout,"Found device Addr: %02x:%02x:%02x:%02x:%02x:%02x\n",
                                 ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
             fprintf(stdout, "Found device Name: %s\n", event->device_found_event.
                                                     remoteDevice.name);
-            fprintf(stdout, "Device class is: %d\n", event->device_found_event.
-                                        remoteDevice.bluetooth_class);
+            fprintf(stdout, "Device Type is: %d\n", event->device_found_event.
+                                        remoteDevice.device_type);
             break;
         }
         case MAIN_EVENT_BOND_STATE:{
@@ -3316,12 +3329,12 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
 void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t
                                         bd_addr, std::string bd_name ) {
     std::map<std::string, std::string>::iterator it;
-    std::map<std::string, std::string>::iterator it_inquiry;
+    DeviceProperties *it_inquiry;
     bdstr_t bd_str;
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
     it = bonded_devices.find(deviceAddress);
-    it_inquiry= inquiry_list.find(deviceAddress);
+    it_inquiry= inq_db_find_bdaddr(deviceAddress);
     if(new_state == BT_BOND_STATE_BONDED) {
         if (it == bonded_devices.end()) {
             bonded_devices[deviceAddress] = bd_name;
@@ -3329,9 +3342,15 @@ void BluetoothApp:: HandleBondState(bt_bond_state_t new_state, const bt_bdaddr_t
             bonded_devices.erase(it);
             bonded_devices[deviceAddress] = bd_name;
         }
-       if(it_inquiry!=inquiry_list.end())
+       if(it_inquiry!=NULL)
         {
-            inquiry_list.erase(it_inquiry);
+            std::vector<InquiryDB>::iterator it;
+            for(it = inquiry_list.begin(); it != inquiry_list.end(); ++it) {
+              if(deviceAddress.compare(it_inquiry->address.ToString()) == 0)
+                break;
+            }
+            inquiry_list.erase(it);
+            --inq_db_count;
         }
 
         fprintf(stdout, "\n*************************************************");
@@ -3363,20 +3382,83 @@ void BluetoothApp:: HandleUnPair(bt_bdaddr_t bd_addr ) {
         fprintf( stdout, " Device is not in bonded list\n");
 }
 
-bt_bdaddr_t BluetoothApp:: AddFoundedDevice(std::string bd_name, bt_bdaddr_t bd_addr ) {
+unsigned long long BluetoothApp::getTimeInMilliSec() {
+  struct timespec now;
+  unsigned long long now_us;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  now_us = now.tv_sec * USEC_PER_SEC + now.tv_nsec / 1000;
+
+  return now_us;
+}
+
+DeviceProperties* BluetoothApp::inq_db_find_bdaddr(std::string bda) {
+  ALOGD(LOGTAG "inq_db_find_bdaddr");
+  std::vector<InquiryDB>::iterator it;
+  int inq_count = 0;
+  for (it = inquiry_list.begin(); it != inquiry_list.end() && inq_count < INQ_DB_SIZE; it++,++inq_count) {
+    if (it->in_use &&  bda.compare(it->dp.address.ToString()) == 0) {
+      it->time_of_resp = getTimeInMilliSec();
+      ALOGD(LOGTAG "inq_db_find_bdaddr : Device Found");
+      return &it->dp;
+    }
+  }
+  return NULL;
+}
+
+DeviceProperties* BluetoothApp:: inq_db_add_new(DeviceProperties& deviceFound) {
+  uint16_t xx;
+  InquiryDB p_ent;
+  InquiryDB p_old;
+  uint32_t ot = 0xFFFFFFFF;
+  std::vector<InquiryDB>::iterator it;
+
+  if (inq_db_count < INQ_DB_SIZE) {
+    memset(&p_ent, 0, sizeof(InquiryDB));
+    memcpy(&p_ent.dp, &deviceFound, sizeof(deviceFound));
+    p_ent.in_use = true;
+    p_ent.time_of_resp = getTimeInMilliSec();
+    ALOGE("inq_db_add_new idx %d bda %s",inq_db_count, deviceFound.address.ToString().c_str());
+    inquiry_list.push_back(p_ent);
+    ++inq_db_count;
+    return (&p_ent.dp);
+  } else {
+
+    for (int inq_count = 0; inq_count < inq_db_count && inq_db_count < INQ_DB_SIZE; ++inq_count) {
+      p_ent = inquiry_list[inq_count];
+
+      if (p_ent.time_of_resp < ot) {
+        p_old = p_ent;
+        ot = p_ent.time_of_resp;
+      }
+    }
+
+    /* If here, no free entry found. Return the oldest. */
+    ALOGD("inq_db_add_new old %s replaced by new %s",p_old.dp.address.ToString().c_str(),
+                                                  deviceFound.address.ToString().c_str());
+    memset(&p_old, 0, sizeof(InquiryDB));
+    memcpy(&p_old.dp, &deviceFound, sizeof(deviceFound));
+    p_old.in_use = true;
+    p_ent.time_of_resp = getTimeInMilliSec();
+    return (&p_old.dp);
+  }
+}
+
+bt_bdaddr_t BluetoothApp:: AddFoundedDevice(DeviceProperties *deviceFound) {
 
     ALOGI(LOGTAG " Adding Device to inquiry list");
-    std::map<std::string, std::string>::iterator it;
+    DeviceProperties *it;
     bdstr_t bd_str;
-    bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
+    bdaddr_to_string(&deviceFound->address, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
 
-    it = inquiry_list.find(deviceAddress);
-    if (it != inquiry_list.end()) {
-        return (bd_addr);
+    it = inq_db_find_bdaddr(deviceAddress);
+    if (it != NULL) {
+        ALOGI(LOGTAG " Device exists %s", deviceFound->address.ToString().c_str());
+        return (deviceFound->address);
     } else {
-        inquiry_list[deviceAddress] = bd_name;
-        return bd_addr;
+        // add new device in db
+        it = inq_db_add_new(*deviceFound);
+        return deviceFound->address;
     }
 }
 
@@ -3385,12 +3467,13 @@ bt_state_t BluetoothApp:: GetState() {
 }
 
 void BluetoothApp:: PrintInquiryList() {
-
+    ALOGI(LOGTAG " PrintInquiryList");
     fprintf(stdout, "\n**************************** Inquiry List \
 *********************************\n");
-    std::map<std::string, std::string>::iterator it;
-    for (it = inquiry_list.begin(); it != inquiry_list.end(); ++it)
-        fprintf(stdout, "%-*s %s\n", 50, it->second.data(), it->first.data());
+    std::vector<InquiryDB>::iterator it;
+    int cnt = 1;
+    for (it = inquiry_list.begin(); it != inquiry_list.end(); ++it,++cnt)
+        fprintf(stdout, "%-*d %-*s %s\n",10,cnt, 50, it->dp.name, it->dp.address.ToString().c_str());
     fprintf(stdout, "**************************** End of List \
 *********************************\n");
 }
@@ -3770,6 +3853,8 @@ BluetoothApp :: BluetoothApp () {
     bt_discovery_state = BT_DISCOVERY_STOPPED;
 
     memset (&status, '\0', sizeof (UiCommandStatus));
+    memset (&inquiry_list,0,sizeof(inquiry_list));
+    inq_db_count = 0;
     config = NULL;
 
     if (!LoadConfigParameters (CONFIG_FILE_PATH))
@@ -3782,6 +3867,7 @@ BluetoothApp :: ~BluetoothApp () {
 
     bonded_devices.clear();
     inquiry_list.clear();
+    inq_db_count = 0;
 }
 
 int BluetoothApp:: LocalSocketCreate(void) {

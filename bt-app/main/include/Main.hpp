@@ -87,6 +87,13 @@
 #define  NO_OF_COMMANDS(x)  (sizeof(x) / sizeof((x)[0]))
 
 /**
+* The size in bytes of the inquiry database.
+*/
+#define INQ_DB_SIZE    40
+
+#define USEC_PER_SEC 1000000L
+
+/**
  * The Configuration options
  */
 const char *BT_SOCKET_ENABLED      = "BtSockInputEnabled";
@@ -903,7 +910,8 @@ class BluetoothApp {
 
     //key is bt_bdaddr_t storing as a string in map
     std::map < std::string, std::string> bonded_devices;
-    std::map <std::string, std::string> inquiry_list;
+    std::vector<InquiryDB> inquiry_list;
+    static int inq_db_count;
     SSPReplyEvent   ssp_data;
     PINReplyEvent   pin_reply;
 
@@ -915,7 +923,7 @@ class BluetoothApp {
      * @param none
      * @return none
      */
-    bt_bdaddr_t AddFoundedDevice(std::string bdName, const bt_bdaddr_t bd_addr);
+    bt_bdaddr_t AddFoundedDevice(DeviceProperties* deviceFound);
     /**
      * @brief
      * This function will display inquiry list
@@ -1019,6 +1027,12 @@ class BluetoothApp {
      * @return none
      */
     void ProcessEvent(BtEvent * pEvent);
+
+    /**
+    */
+    DeviceProperties* inq_db_find_bdaddr(std::string bda);
+    DeviceProperties* inq_db_add_new(DeviceProperties& deviceFound);
+    unsigned long long getTimeInMilliSec();
 };
 
 #endif
