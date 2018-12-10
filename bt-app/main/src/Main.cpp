@@ -60,7 +60,7 @@
 #include "Opp.hpp"
 #endif
 #include "osi/include/compat.h"
-
+#include <cutils/properties.h>
 
 #include "utils.h"
 
@@ -141,49 +141,6 @@ void closesocket()
 {
     shutdown(bt_prop_socket, SHUT_RDWR);
     close(bt_prop_socket);
-}
-
-int property_get_bt(const char *key, char *value, const char *default_value)
-{
-    char prop_string[200] = {'\0'};
-    int ret, bytes_read = 0, i = 0;
-
-    snprintf(prop_string, sizeof(prop_string), "get_property %s,", key);
-    ret = send(bt_prop_socket, prop_string, strlen(prop_string), 0);
-    memset(value, 0, sizeof(value));
-    do
-    {
-        bytes_read = recv(bt_prop_socket, &value[i], 1, 0);
-        if (bytes_read == 1)
-        {
-            if (value[i] == ',')
-            {
-                value[i] = '\0';
-                break;
-            }
-            i++;
-        }
-    } while(1);
-    ALOGD("property_get_bt: key(%s) has value: %s", key, value);
-    if (!i && default_value)
-    {
-        ALOGD("property_get_bt: Copied default =%s", default_value);
-        strlcpy(value, default_value, strlen(default_value)+1);
-        return 1;
-    }
-    return 0;
-}
-
-/* property_set_bt: returns 0 on success, < 0 on failure
-*/
-int property_set_bt(const char *key, const char *value)
-{
-    char prop_string[200] = {'\0'};
-    int ret;
-    snprintf(prop_string, sizeof(prop_string), "set_property %s %s,", key, value);
-    ALOGD("property_set_bt: setting key(%s) to value: %s\n", key, value);
-    ret = send(bt_prop_socket, prop_string, strlen(prop_string), 0);
-    return 0;
 }
 
 /**
@@ -3914,25 +3871,25 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_bt_ext_ldo = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_EXT_POWER, false);
     if(is_bt_ext_ldo){
-        property_set_bt("wc_transport.extldo", "enabled");
+        property_set("wc_transport.extldo", "enabled");
     }else{
-        property_set_bt("wc_transport.extldo", "disabled");
+        property_set("wc_transport.extldo", "disabled");
     }
 
     fw_snoop_enable = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_FW_SNOOP, false);
     if(fw_snoop_enable){
-        property_set_bt("persist.service.bdroid.fwsnoop", "true");
+        property_set("persist.service.bdroid.fwsnoop", "true");
     }else{
-        property_set_bt("persist.service.bdroid.fwsnoop", "false");
+        property_set("persist.service.bdroid.fwsnoop", "false");
     }
 
     soc_log_enable = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_SOC_LOG, false);
     if(soc_log_enable){
-        property_set_bt("persist.service.bdroid.soclog", "true");
+        property_set("persist.service.bdroid.soclog", "true");
     }else{
-        property_set_bt("persist.service.bdroid.soclog", "false");
+        property_set("persist.service.bdroid.soclog", "false");
     }
 
     closesocket();
