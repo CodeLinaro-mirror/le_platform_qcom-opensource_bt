@@ -81,9 +81,10 @@ cpp_sources = ../utils/src/utils.cc \
             ../pan/src/Pan.cpp \
             ../gattstest/src/GattsTest.cpp
 
-#Uncomment after enabling profiles
-#cpp_sources += \
-#            ../rsp/src/Rsp.cpp
+if USE_GEN_GATT
+cpp_sources += ../rsp/src/Rsp.cpp
+endif
+
 
 if USE_BT_OBEX
 cpp_sources +=  ../pbap_client/src/PbapClient.cpp \

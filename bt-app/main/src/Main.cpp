@@ -46,11 +46,12 @@
 #include "GattLibService.hpp"
 #include "GattcTest.hpp"
 #include "GattsTest.hpp"
+#include "Rsp.hpp"
 #endif
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
 
-//#include "Rsp.hpp"
+
 #include "A2dp_Src.hpp"
 #include "Avrcp.hpp"
 
@@ -106,6 +107,7 @@ GattLibService *g_gatt;
 extern const char *BT_GATT_ENABLED;
 extern GattcTest *gattctest;
 extern GattsTest *gattstest;
+extern Rsp *rsp;
 #endif
 
 #ifdef __cplusplus
@@ -256,11 +258,11 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &TestMenu[0];
             num_cmds  = NO_OF_COMMANDS(TestMenu);
             break;
-/*         case RSP_MENU:
+#ifdef USE_GEN_GATT
+         case RSP_MENU:
             menu = &RspMenu[0];
             num_cmds  = NO_OF_COMMANDS(RspMenu);
-           break;*/
-#ifdef USE_GEN_GATT
+           break;
         case GATTC_TEST_MENU:
             menu = &GattcTestMenu[0];
             num_cmds  = NO_OF_COMMANDS(GattcTestMenu);
@@ -370,11 +372,11 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &TestMenu[0];
             num_cmds  = NO_OF_COMMANDS(TestMenu);
             break;
-/*        case RSP_MENU:
+#ifdef USE_GEN_GATT
+        case RSP_MENU:
             menu = &RspMenu[0];
             num_cmds  = NO_OF_COMMANDS(RspMenu);
-            break;*/
-#ifdef USE_GEN_GATT
+            break;
         case GATTC_TEST_MENU:
             menu = &GattcTestMenu[0];
             num_cmds = NO_OF_COMMANDS(GattcTestMenu);
@@ -1304,10 +1306,12 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = TEST_MENU;
             DisplayMenu(menu_type);
             break;
-/*        case RSP_OPTION:
+#ifdef USE_GEN_GATT
+        case RSP_OPTION:
             menu_type = RSP_MENU;
             DisplayMenu(menu_type);
-            break;*/
+            break;
+#endif
         case A2DP_SINK:
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);
@@ -1419,7 +1423,8 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
     }
 }
-/*
+
+#ifdef USE_GEN_GATT
 static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num;
@@ -1434,7 +1439,7 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                    return;
                 } else {
                   if (g_gatt) {
-                     rsp = new Rsp(g_gatt->GetGattInterface(),g_gatt);
+                     rsp = new Rsp(g_gatt);
                      if (rsp) {
                         rsp->EnableRSP();
                         fprintf(stdout, " EnableRSP done \n");
@@ -1475,7 +1480,7 @@ static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
     }
 }
-*/
+#endif
 static void HandleHIDCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     ALOGD(LOGTAG "HandleHIDCommand cmd_id = %d", cmd_id);
     BtEvent *event = NULL;
@@ -2960,10 +2965,10 @@ static void BtCmdHandler (void *context) {
             case GATTSTEST_MENU:
                 HandleGattsTestCommand(cmd_id, user_cmd);
                 break;
-#endif
-           /* case RSP_MENU:
+           case RSP_MENU:
                 HandleRspCommand(cmd_id, user_cmd);
-                break;*/
+                break;
+#endif
             case MAIN_MENU:
                 HandleMainCommand(cmd_id,user_cmd );
                 break;

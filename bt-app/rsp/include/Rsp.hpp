@@ -34,14 +34,27 @@
 
 #include <hardware/bluetooth.h>
 #include <stdio.h>
+#include <vector>
+
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "osi/include/allocator.h"
 #include "ipc.hpp"
-#include "Rsp.hpp"
-#include "Gatt.hpp"
+#include "GattLibService.hpp"
+#include "GattServer.hpp"
+#include "GattServerCallback.hpp"
+#include "uuid.h"
+#include "AdvertiseSettings.hpp"
+#include "AdvertiseData.hpp"
+#include "AdvertisingSetCallback.hpp"
+#include "AdvertisingSet.hpp"
+#include "AdvertisingSetParameters.hpp"
+#include "PeriodicAdvertiseParameters.hpp"
+#include "GattLeAdvertiser.hpp"
+
+
 
 #define RSP_MIN_CI           (100)
 #define RSP_MAX_CI           (1000)
@@ -61,32 +74,20 @@ typedef enum
     WLAN_INACTIVE,
     WLAN_TRANSACTION_PENDING,
 } rsp_power_state_t;
-class Gatt;
+
+
+using namespace gatt;
+
 class Rsp {
     private:
-        config_t *config;
+        GattLibService *mlibservice;
         int wlan_state;
 
-        RspEnableEvent attr;
-        GattcRegisterAppEvent app_client_if;
-        GattsRegisterAppEvent app_if;
-        GattsServiceAddedEvent srvc_data;
-        GattsCharacteristicAddedEvent char_data;
-        GattsDescriptorAddedEvent desc_data;
-        GattsConnectionEvent conn_data;
-        btgatt_interface_t *gatt_interface;
-        Gatt *app_gatt;
-
     public:
-        Rsp(btgatt_interface_t *, Gatt *);
+        Rsp(GattLibService*);
         ~Rsp();
 
         bool EnableRSP();
-        bool DisableRSP();
-        inline btgatt_interface_t* GetGattInterface()
-        {
-            return gatt_interface;
-        }
         inline int GetDeviceState()
         {
             fprintf(stdout, "(%s) WLAN Current State (%d) \n",__FUNCTION__, wlan_state);
@@ -98,95 +99,14 @@ class Rsp {
                    ,__FUNCTION__, wlan_state, currentstate);
             wlan_state = currentstate;
         }
-        inline void SetRSPClientAppData(GattcRegisterAppEvent *event)
-        {
-            memset(&app_client_if, 0, sizeof(app_client_if));
-            memcpy(&app_client_if, event, sizeof(GattcRegisterAppEvent));
-        }
-        inline GattcRegisterAppEvent* GetRSPClientAppData()
-        {
-            return &app_client_if;
-        }
-        inline void SetRSPAttrData(RspEnableEvent *attrib)
-        {
-            memset (&attr, 0, sizeof(RspEnableEvent));
-            memcpy (&attr, attrib, sizeof(RspEnableEvent));
-        }
-        inline RspEnableEvent* GetRSPAttrData()
-        {
-            return &attr;
-        }
-        inline void SetRSPAppData(GattsRegisterAppEvent *event)
-        {
-            memset(&app_if, 0, sizeof(GattsRegisterAppEvent));
-            memcpy(&app_if, event, sizeof(GattsRegisterAppEvent));
-        }
-        inline GattsRegisterAppEvent* GetRSPAppData()
-        {
-            return &app_if;
-        }
-        inline void SetRSPSrvcData(GattsServiceAddedEvent *event)
-        {
-            memset(&srvc_data, 0, sizeof(GattsServiceAddedEvent));
-            memcpy(&srvc_data, event, sizeof(GattsServiceAddedEvent));
-        }
-        inline GattsServiceAddedEvent* GetRspSrvcData()
-        {
-            return &srvc_data;
-        }
-        inline void SetRSPCharacteristicData(GattsCharacteristicAddedEvent
-                *event)
-        {
-            memset(&char_data, 0, sizeof(GattsCharacteristicAddedEvent));
-            memcpy(&char_data, event, sizeof(GattsCharacteristicAddedEvent));
-        }
-        inline GattsCharacteristicAddedEvent* GetRSPCharacteristicData()
-        {
-            return &char_data;
-        }
-        inline void SetRSPDescriptorData(GattsDescriptorAddedEvent *event)
-        {
-            memset(&desc_data, 0, sizeof(GattsDescriptorAddedEvent));
-            memcpy(&desc_data, event, sizeof(GattsDescriptorAddedEvent));
-        }
-        inline GattsDescriptorAddedEvent* GetRSPDescriptorData()
-        {
-            return &desc_data;
-        }
-        inline void SetRSPConnectionData(GattsConnectionEvent *event)
-        {
-            memset(&conn_data, 0, sizeof(GattsConnectionEvent));
-            memcpy(&conn_data, event, sizeof(GattsConnectionEvent));
-        }
-        inline GattsConnectionEvent* GetRSPConnectionData()
-        {
-            return &conn_data;
-        }
-        bool SendResponse(GattsRequestWriteEvent *);
-        bool CopyUUID(bt_uuid_t *);
-        bool CopyCharacteristicsUUID(bt_uuid_t *);
-        bool CopyDescriptorUUID(bt_uuid_t *);
-        bool CopyServerUUID(bt_uuid_t *);
-        bool CopyServiceUUID(bt_uuid_t *);
-        bool CopyClientUUID(bt_uuid_t *);
-        bool ClientSetAdvData(char *);
-        bool CopyParams(bt_uuid_t *, bt_uuid_t *);
-        bool MatchParams(bt_uuid_t *, bt_uuid_t *);
-        bool RegisterApp(void);
-        bool DisconnectServer(void);
-        bool UnregisterServer(int);
-        bool RegisterClient(void);
-        bool UnregisterClient(int);
+        void SendResponse(string,int,int,int,uint8_t *);
         bool StartAdvertisement(void);
-        bool StopAdvertisement(void);
+        void StopAdvertisement(void);
         bool AddService(void);
         bool AddCharacteristics(void);
         bool AddDescriptor(void);
-        bool StartService(void);
-        bool StopService(void);
         bool DeleteService(void);
         bool HandleWlanOn(void);
-        void CleanUp(int);
 };
 #endif
 

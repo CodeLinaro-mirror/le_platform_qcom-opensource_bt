@@ -30,11 +30,11 @@
 #include <hardware/bluetooth.h>
 #include "include/ipc.hpp"
 #include "utils.h"
-//#include "Rsp.hpp"
 
 #ifdef USE_GEN_GATT
 #include "GattcTest.hpp"
 #include "GattsTest.hpp"
+#include "Rsp.hpp"
 #endif
 #include <cutils/sockets.h>
 #include <sys/un.h>
@@ -345,10 +345,10 @@ typedef enum {
     A2DP_SINK_MENU,
     HFP_CLIENT_MENU,
     PAN_MENU,
-//    RSP_MENU,
 #ifdef USE_GEN_GATT
     GATTC_TEST_MENU,
     GATTSTEST_MENU,
+    RSP_MENU,
 #endif
     HIDH_MENU,
 #ifdef USE_BT_OBEX
@@ -404,7 +404,9 @@ UserMenuList GapMenu[] = {
 UserMenuList MainMenu[] = {
     {GAP_OPTION,            "gap_menu",         ZERO_PARAM,   "gap_menu"},
     {PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
-//    {RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
+#ifdef USE_GEN_GATT
+    {RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
+#endif
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
     {HFP_CLIENT,            "hfp_client_menu",  ZERO_PARAM,   "hfp_client_menu"},
