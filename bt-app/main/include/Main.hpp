@@ -322,6 +322,7 @@ typedef enum {
     VIRTUAL_UNPLUG,
     HID_BONDED_LIST,
     BACK_TO_MAIN,
+    SET_AFH_CHANNELS,
     END,
 } CommandList;
 
@@ -395,6 +396,8 @@ UserMenuList GapMenu[] = {
     eg. set_bt_name MDM_Fluoride"},
     {SET_SCAN_MODE,         "set_scan_mode",    ONE_PARAM,    "set_scan_mode<space><scan mode value (range 0-2)> \
     eg. set_scan_mode 0 --0-BT_SCAN_MODE_NONE,1- BT_SCAN_MODE_CONNECTABLE,2-BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE"},
+    {SET_AFH_CHANNELS,          "set_afh",        ONE_PARAM,    "set_afh<space><AFH_Host_Channel_Classification> \
+	eg. set_afh 112233445566778899f0"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
 };
 

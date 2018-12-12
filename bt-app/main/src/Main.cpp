@@ -2485,6 +2485,40 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 fprintf( stdout, " Currently BT is OFF\n");
             }
             break;
+        case SET_AFH_CHANNELS:
+            unsigned char output[10];
+            if ( g_bt_app->GetState() == BT_STATE_ON ) {
+                if ( user_cmd[ONE_PARAM] != NULL ) {
+                    event = new BtEvent;
+                    event->event_id = GAP_API_SET_AFH_CHANNELS;
+                    bool ret = sscanf(user_cmd[ONE_PARAM],
+                                      "%2hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
+                                      &output[0],&output[1],&output[2],&output[3],&output[4],
+                                      &output[5],&output[6],&output[7],&output[8],&output[9])==10;
+                    if (ret)
+                        memcpy(event->set_afh_channels_event.map, output, 10);
+                    else
+                        fprintf( stdout, " AFH Host Channel Classification should be 10 Bytes \n");
+
+                    ALOGD(LOGTAG " setAFHChannels map:0x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+                          event->set_afh_channels_event.map[0],
+                          event->set_afh_channels_event.map[1],
+                          event->set_afh_channels_event.map[2],
+                          event->set_afh_channels_event.map[3],
+                          event->set_afh_channels_event.map[4],
+                          event->set_afh_channels_event.map[5],
+                          event->set_afh_channels_event.map[6],
+                          event->set_afh_channels_event.map[7],
+                          event->set_afh_channels_event.map[8],
+                          event->set_afh_channels_event.map[9]);
+                    PostMessage (THREAD_ID_GAP, event);
+                } else {
+                    fprintf( stdout, " AFH Host Channel Classification should be 10 Bytes \n");
+                }
+            } else {
+                fprintf( stdout, " Currently BT is OFF\n");
+            }
+            break;
 
         default:
             ALOGV (LOGTAG " Command not handled");
