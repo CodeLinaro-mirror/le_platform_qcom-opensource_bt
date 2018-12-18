@@ -647,6 +647,30 @@ list<A2dp_Device>::iterator FindAvDevice(bt_bdaddr_t dev,bool* is_end) {
     return p;
 }
 
+list<A2dp_Device>::iterator FindFirstDevice() {
+    list<A2dp_Device> pA2dpDev;
+    list<A2dp_Device>::iterator p;
+    ALOGD(LOGTAG_CTRL "%s : A2dp_Sink Split enabled: %d", __func__,is_a2dp_sink_split_enabled);
+    if(is_a2dp_sink_split_enabled){
+        p = pA2dpSinkSplit->pA2dpDeviceList.begin();
+    } else {
+        p = pA2dpSink->pA2dpDeviceList.begin();
+    }
+    return p;
+}
+
+list<A2dp_Device>::iterator FindLastDevice() {
+    list<A2dp_Device> pA2dpDev;
+    list<A2dp_Device>::iterator p;
+    ALOGD(LOGTAG_CTRL "%s : A2dp_Sink Split enabled: %d", __func__,is_a2dp_sink_split_enabled);
+    if(is_a2dp_sink_split_enabled){
+        p = pA2dpSinkSplit->pA2dpDeviceList.end();
+    } else {
+        p = pA2dpSink->pA2dpDeviceList.end();
+    }
+    return p;
+}
+
 bool Avrcp::is_abs_vol_supported(bt_bdaddr_t bd_addr){
     list<A2dp_Device>::iterator iter;
     bool is_end;
@@ -703,7 +727,8 @@ void Avrcp::setAbsVolume(bt_bdaddr_t* dev, int absVol, int label) {
 
 
 void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
-    list<A2dp_Device>::iterator iter;
+    list<A2dp_Device>::iterator iter, list_end;
+
     int perVol = 0;
     bdstr_t bd_str;
     bool is_end;
@@ -825,8 +850,9 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
     case AVRCP_CTRL_VOL_CHANGED_NOTI_REQ:
         ALOGD(LOGTAG_CTRL " AVRCP_CTRL_VOL_CHANGED_NOTI_REQ, vol level = %d",
                                                  pEvent->avrcpCtrlPassThruEvent.arg1);
-        iter = FindAvDevice(pEvent->avrcpCtrlPassThruEvent.bd_addr,&is_end);
-        if (!is_end) {
+        iter = FindFirstDevice();
+        list_end = FindLastDevice();
+        while (iter != list_end) {
                 ALOGD(LOGTAG_CTRL " iter->mAvrcpConnected %d ", iter->mAvrcpConnected);
                 ALOGD(LOGTAG_CTRL " iter->mAbsVolNotificationRequested %d",
                                     iter->mAbsVolNotificationRequested);
