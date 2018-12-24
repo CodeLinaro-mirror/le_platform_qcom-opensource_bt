@@ -2150,13 +2150,14 @@ void GattLibService::sendResponse(int serverIf, string address, int requestId, i
   if (entry != NULL) {
     handle = entry->handle;
   }
-
   int connId = mServerMap->connIdByAddress(serverIf, address);
   if (connId < 0)
     connId = 0;
-  size_t len = strlen((char*)value);
-  std::vector<uint8_t> val_vec(&value[0], &value[len]);
-
+  std::vector<uint8_t> val_vec;
+  if(value != NULL) {
+    size_t len = strlen((char*)value);
+    val_vec.assign(&value[0], &value[len]);
+  }
   mNative->gattServerSendResponseNative(serverIf, connId , requestId,
           (uint8_t) status, handle, offset, val_vec, (uint8_t) 0);
   mHandleMap->deleteRequest(requestId);

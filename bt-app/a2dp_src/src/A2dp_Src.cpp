@@ -82,6 +82,8 @@ uint8_t folderUid1[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
 uint8_t folderUid2[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02};
 uint8_t mediaUid1[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
 uint8_t mediaUid2[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+uint8_t mediaUid3[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05};
+
 
 char* rootString = "root";
 int rootStringLength = 4;
@@ -1883,8 +1885,16 @@ const char* getString(int mAttrType) {
     const char* title1 = "Here, on the other hand, I've gone crazy \
         and really let the literal span several lines, \
         without bothering with quoting each line's \
+        and really let the literal span several lines \
+        Here, on the other hand, I've gone crazy \
+        and really let the literal span several lines, \
+        without bothering with quoting each line's \
         and really let the literal span several lines";
     const char* artistName1 = "Here, on the other hand, I've gone crazy \
+        and really let the literal span several lines, \
+        without bothering with quoting each line's \
+        and really let the literal span several lines \
+        Here, on the other hand, I've gone crazy \
         and really let the literal span several lines, \
         without bothering with quoting each line's \
         and really let the literal span several lines";
@@ -2944,16 +2954,10 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             }
         case AVRCP_TARGET_SET_BROWSED_PLAYER_REQ:
             set_br_player_id = pEvent->avrcpTargetEvent.arg1;
-            /*if ((set_br_player_id != 0)&&(set_br_player_id != 1))
-            {
-                ALOGE(LOGTAG_AVRCP " Since not a valid player %d send error", set_br_player_id);
-                sBtAvrcpTargetInterface->set_browsed_player_rsp(&(pEvent->avrcpTargetEvent.bd_addr), BTRC_STS_INV_PLAYER , 1, 0x6A, 0, nullptr);
-                break;
-            }*/
             if (pMediaPlayerList.size() > 0) {
                 list<MediaPlayerInfo>::iterator p = pMediaPlayerList.begin();
                 while (p != pMediaPlayerList.end()) {
-                    if ((p->mPlayerId == set_br_player_id)&&(p->mPlayerId == mCurrentAddressedPlayer))
+                    if (p->mPlayerId == set_br_player_id)
                     {
                         player_found = true;
                         ALOGD(LOGTAG_AVRCP " valid player found for set br player ");
@@ -2967,11 +2971,17 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             }
             if (!player_found)
             {
-                ALOGE(LOGTAG_AVRCP " Since not the addressed player %d send error", set_br_player_id);
+                ALOGE(LOGTAG_AVRCP " Not valid player %d, send error", set_br_player_id);
+                sBtAvrcpTargetInterface->set_browsed_player_rsp(&(pEvent->avrcpTargetEvent.bd_addr), BTRC_STS_INV_PLAYER , 2, 0x6A, 0, nullptr);
+                break;
+            }
+            if (set_br_player_id != mCurrentAddressedPlayer)
+            {
+                ALOGE(LOGTAG_AVRCP " Player %d is not the addressed player, send error", set_br_player_id);
                 sBtAvrcpTargetInterface->set_browsed_player_rsp(&(pEvent->avrcpTargetEvent.bd_addr), BTRC_STS_PLAY_NOT_ADDR, 2, 0x6A, 0, nullptr);
                 break;
             }
-            ALOGD(LOGTAG_AVRCP " Send response for set addressed player %d", set_br_player_id);
+            ALOGD(LOGTAG_AVRCP " Send response for set browsed player %d", set_br_player_id);
             sBtAvrcpTargetInterface->set_browsed_player_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)BTRC_STS_NO_ERROR, 2, 0x6A, mfolder_depth, mp_folders);
             break;
         case AVRCP_TARGET_CHANGE_PATH_REQ:
@@ -3011,8 +3021,10 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             else if((pEvent->avrcpTargetEvent.arg3 == BTRC_SCOPE_FILE_SYSTEM)&&((!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, rootUid))
                 ||(!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid1))||(!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid2))))
                     sBtAvrcpTargetInterface->play_item_rsp(&pEvent->avrcpTargetEvent.bd_addr, BTRC_STS_DIRECTORY);
-            else if((!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, mediaUid1)) || (!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, mediaUid2)))
+            else if((!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, mediaUid1)) || (!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, mediaUid2))) {
+                pA2dpSource->pMediaList.push_back(MediaInfo (mediaUid3,BTRC_ITEM_MEDIA, 0x006A, 6, "abcNew", 0));
                 sBtAvrcpTargetInterface->play_item_rsp(&pEvent->avrcpTargetEvent.bd_addr, BTRC_STS_NO_ERROR);
+            }
             else
                     sBtAvrcpTargetInterface->play_item_rsp(&pEvent->avrcpTargetEvent.bd_addr, BTRC_STS_INV_ITEM);
             osi_free(pEvent->avrcpTargetEvent.buf_ptr);

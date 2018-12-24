@@ -274,10 +274,13 @@ ScanRecord* ScanRecord::parseFromBytes(std::vector<uint8_t> scanRecord)
 
             std::vector<uint8_t> serviceDataUuidBytes = extractBytes(scanRecord, currentPos,
                                                 serviceUuidLength);
-            Uuid serviceDataUuid = uuidFromByte(serviceDataUuidBytes.data(),serviceUuidLength);
-            std::vector<uint8_t> serviceDataBytes = extractBytes(scanRecord,
+            if (!serviceDataUuidBytes.empty()) {
+              ALOGE(LOGTAG "serviceUuidBytes not empty");
+              Uuid serviceDataUuid = uuidFromByte(serviceDataUuidBytes.data(),serviceUuidLength);
+              std::vector<uint8_t> serviceDataBytes = extractBytes(scanRecord,
                       currentPos + serviceUuidLength, dataLength - serviceUuidLength);
-            serviceData.insert({{serviceDataUuid, serviceDataBytes}});
+              serviceData.insert({{serviceDataUuid, serviceDataBytes}});
+            }
           }
           break;
         case DATA_TYPE_MANUFACTURER_SPECIFIC_DATA:
@@ -288,7 +291,10 @@ ScanRecord* ScanRecord::parseFromBytes(std::vector<uint8_t> scanRecord)
                                   + (scanRecord[currentPos] & 0xFF);
             std::vector<uint8_t> manufacturerDataBytes = extractBytes(scanRecord, currentPos + 2,
                                      dataLength - 2);
-            manufacturerData.insert({{manufacturerId, manufacturerDataBytes}});
+            if (!manufacturerDataBytes.empty()) {
+              ALOGE(LOGTAG "manufacturerDataBytes not empty");
+              manufacturerData.insert({{manufacturerId, manufacturerDataBytes}});
+            }
           }
           break;
         default:
@@ -372,6 +378,7 @@ std::vector<uint8_t> ScanRecord::extractBytes(std::vector<uint8_t> scanRecord, i
 {
   std::vector<uint8_t> bytes(length);
   /*length+srcPos is less than src.length, the length of the source array.*/
+  ALOGE(LOGTAG "start %d length %d scanRecord %d", start, length,scanRecord.size());
   if ((length > 0) && (length+start < scanRecord.size())) {
     bytes.assign(scanRecord.begin()+start, scanRecord.begin()+start+length);
   }

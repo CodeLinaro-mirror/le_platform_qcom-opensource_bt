@@ -105,6 +105,11 @@ AdvertiseSettings *mAdvertiseSettings = NULL;
 AdvertiseData *mAdvertiseData = NULL;
 AdvertiseData *mScanResponseData = NULL;
 AdvertiseData *mPeriodicData = NULL;
+string receivedData;
+string receivedDescValue;
+GattCharacteristic *executeWriteChar;
+GattDescriptor *executeWriteDesc;
+
 
 
 AdvertisingSetParameters *mAdvertisingParameters;
@@ -220,7 +225,7 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
     }
   }
   mServer= str->second;
-  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value + offset);
   if(status) {
     ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
   }
@@ -231,7 +236,7 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
                             int offset,uint8_t* value)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
-  characteristic->setValue(value);
+  string temp((char *)value);
   GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
   bool confirm  = false;
@@ -243,6 +248,12 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
     }
   }
   mServer= str->second;
+  if(preparedWrite) {
+     executeWriteChar = characteristic;
+     receivedData += temp;
+  } else {
+    characteristic->setValue(value);
+  }
   if (responseNeeded) {
     mServer->sendResponse(deviceAddress,requestId,0,offset,value);
   }
@@ -272,7 +283,7 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
         break;
     }
     mServer= str->second;
-    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
     if(status) {
         ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
     }
@@ -283,6 +294,7 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
                                                     bool responseNeeded, int offset, uint8_t * value)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
+  string temp((char *)value);
   GattCharacteristic *characteristic = descriptor->getCharacteristic();
   Uuid d_uid = descriptor->getUuid();
   Uuid c_uid = characteristic->getUuid();
@@ -298,8 +310,14 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
     }
   }
   mServer= str->second;
+  if(preparedWrite) {
+     executeWriteDesc = descriptor;
+     receivedDescValue += temp;
+  } else {
+    descriptor->setValue(value);
+  }
   if (responseNeeded) {
-    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
     if (status) {
       ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
     }
@@ -310,6 +328,25 @@ void gattstestServerCallback::onExecuteWrite(string deviceAddress, int requestId
 {
   ALOGD(LOGTAG"%s deviceAddress: %s, requestID: %d execute %d", __FUNCTION__, deviceAddress.c_str(),
                                                               requestId, execute);
+  GattServer *mServer = NULL;
+  unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
+  gattstestServerCb = this;
+  for(str = servCBInstanceMap.begin(); str != servCBInstanceMap.end() ; ++str ) {
+    if(str->first == gattstestServerCb) {
+      break;
+    }
+  }
+  mServer= str->second;
+  if(execute) {
+    executeWriteChar->setValue(receivedData);
+    receivedData.clear();
+  } else {
+     receivedData.clear();
+  }
+  bool status = mServer->sendResponse(deviceAddress,requestId,GATT_SUCCESS,0,NULL);
+  if (status) {
+    ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
+  }
 }
 
 void gattstestServerCallback::onNotificationSent(string deviceAddress, int status)
@@ -953,7 +990,6 @@ bool GattsTest::SetPeriodicAdvertisingData(int instance)
   periodic_flag = temp->periodicflag;
   if(periodic_flag) {
     mPeriodicData = mAdvertiseData;
-    mAdvertisingSet->setPeriodicAdvertisingData(*mPeriodicData);
   } else {
     mPeriodicData = NULL;
   }
@@ -982,8 +1018,8 @@ bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
                       .setInterval(periodic_interval)
                       .build();
 
-    ALOGD(LOGTAG"SetPeriodicAdvertisingParameters:: IncludeTxPower: %d interval %d", mPeriodicParams->getIncludeTxPower() ,mPeriodicParams->getInterval());
-      mAdvertisingSet->setPeriodicAdvertisingParameters(*mPeriodicParams);
+    ALOGD(LOGTAG"SetPeriodicAdvertisingParameters:: IncludeTxPower: %d interval %d",
+              mPeriodicParams->getIncludeTxPower() ,mPeriodicParams->getInterval());
   } else {
     mPeriodicParams = NULL;
   }
