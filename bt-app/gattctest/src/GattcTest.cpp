@@ -1033,8 +1033,10 @@ bool GattcTest::SearchService(int conn_id)
      }
      ALOGE(LOGTAG  "(%s) SearchService",__FUNCTION__);
 
-    if(!gattctestServData) //To be freed up at disconnect/off.
+    if(!gattctestServData) { //To be freed up at disconnect/off.
         gattctestServData = (ServiceData *) (malloc(sizeof(uint8_t)* sizeof(ServiceData)));
+        memset(gattctestServData, 0, sizeof(ServiceData));
+    }
 
     return app_gatt->search_service(conn_id, NULL);
 }
