@@ -72,8 +72,9 @@ class Hfp_Client {
     bool mAudioWbs;
     unsigned int peer_feat;
     unsigned int chld_feat;
-#if defined(BT_AUDIO_HAL_INTEGRATION)
+    uint32_t audio_out_device;
     config_t *config;
+#if defined(BT_AUDIO_HAL_INTEGRATION)
     qahw_stream_handle_t* out_stream;
     qahw_stream_handle_t* out_stream_ring_tone;
 #endif

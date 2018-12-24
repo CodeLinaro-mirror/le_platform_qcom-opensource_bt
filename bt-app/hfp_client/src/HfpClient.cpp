@@ -553,6 +553,11 @@ void Hfp_Client::HandleEnableClient(void) {
             ALOGE(LOGTAG "get profile vendor interface failed, returning");
             return;
         }
+
+        audio_out_device = (uint32_t)config_get_int(config,
+            CONFIG_DEFAULT_SECTION, "AudioOutDevice", 131072);
+        ALOGD(LOGTAG "Audio Out Device %d", audio_out_device);
+
         change_state(HFP_CLIENT_STATE_DISCONNECTED);
         sBtHfpClientInterface->init(&sBluetoothHfpClientCallbacks);
         sBtHfpClientVendorInterface->init_vendor(&sBluetoothHfpClientVendorCallbacks);
@@ -1246,8 +1251,8 @@ void Hfp_Client::ConfigureRingTonePlayback() {
    audio_module = pBTAM->GetAudioDevice();
    if(audio_module != NULL) {
          // select speaker(2) as output device
-         ret = qahw_open_output_stream(audio_module, handle, 2, AUDIO_OUTPUT_FLAG_DIRECT_PCM,
-                                        &config, &out_stream_ring_tone, "bt_hfp_client");
+         ret = qahw_open_output_stream(audio_module, handle, audio_out_device,
+                 AUDIO_OUTPUT_FLAG_DIRECT_PCM,&config, &out_stream_ring_tone, "bt_hfp_client");
    }
    else {
       fprintf(stdout, "ConfigureRingTonePlayback: audio_device is NULL\n");
@@ -1342,7 +1347,7 @@ void Hfp_Client::ConfigureAudio(bool enable) {
    if(audio_module != NULL) {
       if (enable) {
          // select speaker(2) as output device
-         qahw_open_output_stream(audio_module, handle, 2, AUDIO_OUTPUT_FLAG_NONE,
+         qahw_open_output_stream(audio_module, handle, audio_out_device, AUDIO_OUTPUT_FLAG_NONE,
                                         &config, &out_stream, "bt_hfp_client");
          ALOGD(LOGTAG " setting sample rate %s", (mAudioWbs ? "16000" : "8000"));
          fprintf(stdout, " setting sample rate %s\n", (mAudioWbs ? "16000" : "8000"));
@@ -1443,6 +1448,7 @@ void Hfp_Client::change_mode(HfpClientMode mode) {
 
 Hfp_Client :: Hfp_Client(const bt_interface_t *bt_interface, config_t *config) {
     this->bluetooth_interface = bt_interface;
+    this->config = config;
     sBtHfpClientInterface = NULL;
     mClientState = HFP_CLIENT_STATE_NOT_STARTED;
     mAudioMode = HFP_CLIENT_MODE_NORMAL;
@@ -1451,7 +1457,6 @@ Hfp_Client :: Hfp_Client(const bt_interface_t *bt_interface, config_t *config) {
     peer_feat = 0;
     chld_feat = 0;
 #if defined(BT_AUDIO_HAL_INTEGRATION)
-    this->config = config;
     out_stream =  NULL;
     out_stream_ring_tone = NULL;
 #endif
