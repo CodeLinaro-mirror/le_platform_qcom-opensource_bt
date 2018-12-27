@@ -153,12 +153,7 @@ void HandleMap::addRequest(int requestId, int handle)
 
 void HandleMap::deleteRequest(int requestId)
 {
-  for ( std::unordered_map<int, int>::iterator it = mRequestMap.begin() ;
-              it != mRequestMap.end(); ++it) {
-    if( it->first == requestId) {
-      mRequestMap.erase(it);
-    }
-  }
+  mRequestMap.erase(requestId);
 }
 
 HandleMap::Entry* HandleMap::getByRequestId(int requestId)
