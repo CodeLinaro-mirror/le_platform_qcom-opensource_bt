@@ -1381,6 +1381,49 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
+static int send_hci_cmd_parse_args(char *args, unsigned char **cmd)
+{
+    int i;
+    int nr_cmd;
+    uint8_t *cmd_buff;
+    char *p;
+    unsigned long c;
+
+    nr_cmd = strlen(args) + 1;
+    if ((nr_cmd % 3))
+        return -1;
+    nr_cmd /= 3;
+    cmd_buff = (uint8_t *)malloc(nr_cmd);
+    if (NULL == cmd_buff)
+        return -2;
+
+    p = args;
+    for (i = 0; i <  nr_cmd; i++) {
+        if ('\0' == *args)
+            break;
+        c = strtol(args, &p, 16);
+        if (p == args)
+            break;
+        if ((*p != ',') && (*p != '\0'))
+            break;
+        cmd_buff[i] = (uint8_t)c;
+        if (*p == '\0') {
+            i++;
+            break;
+        }
+        p ++;
+        args = p;
+    }
+
+    if ((i == nr_cmd) && ('\0' == *p)) {
+        *cmd = cmd_buff;
+        return nr_cmd;
+    }
+
+    free(cmd_buff);
+    return -3;
+}
+
 #ifdef USE_GEN_GATT
 static void HandleRspCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
@@ -2514,6 +2557,37 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     PostMessage (THREAD_ID_GAP, event);
                 } else {
                     fprintf( stdout, " AFH Host Channel Classification should be 10 Bytes \n");
+                }
+            } else {
+                fprintf( stdout, " Currently BT is OFF\n");
+            }
+            break;
+
+        case SEND_HCI_COMMAND:
+            if ( g_bt_app->GetState() == BT_STATE_ON ) {
+                if ( user_cmd[ONE_PARAM] != NULL ) {
+                    int cmd_size;
+                    uint8_t *cmd_ptr;
+                    event = new BtEvent;
+                    event->event_id = GAP_API_SEND_HCI_COMMAND;
+                    cmd_size = send_hci_cmd_parse_args(user_cmd[ONE_PARAM], &cmd_ptr);
+
+                    if (cmd_size <= 0) {
+                        fprintf( stdout, "hci cmd format error!\n");
+                        break;
+                    }
+
+                    if (cmd_size != (cmd_ptr[2] + 3)) {
+                        free(cmd_ptr);
+                        fprintf( stdout, "hci cmd length error!\n");
+                        break;
+                    }
+                    fprintf( stdout, "hci cmd cmd_size:%d\n",cmd_size);
+                    event->send_hci_command_event.cmd = cmd_ptr;
+
+                    PostMessage (THREAD_ID_GAP, event);
+                } else {
+                    fprintf( stdout, " Invalid param for HCI command \n");
                 }
             } else {
                 fprintf( stdout, " Currently BT is OFF\n");

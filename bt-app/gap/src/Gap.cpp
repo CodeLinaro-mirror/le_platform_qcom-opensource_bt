@@ -273,7 +273,21 @@ static void SsrCleanupCb() {
 }
 
 static void vendor_hci_event_recv_cb(uint8_t event_code, uint8_t *buf, uint8_t len) {
-    ALOGV (LOGTAG " vendor_hci_event_recv_cb:event_code:%d,len:%d,buf:%p ",event_code,len,buf);
+    int i;
+
+    fprintf(stdout, "#### vendor_hci_event_recv_cb ####\n");
+    fprintf(stdout, "%02x %02x ", event_code, len);
+
+    i = 2;
+    while (i < (len + 2)) {
+        if ((i % 16) == 0)
+            fprintf(stdout, "\n");
+        fprintf(stdout, "%02x ", buf[i - 2]);
+        i++;
+    }
+    fprintf(stdout, "\n#### end ####\n");
+
+    return;
 }
 
 static btvendor_callbacks_t sVendorCallbacks = {
@@ -495,6 +509,28 @@ bool Gap::IsDeviceBonded(bt_bdaddr_t device) {
 
 void Gap::SetAFHChannels(unsigned char map[10]) {
     sBtVendorInterface->hci_cmd_send(0x003F | (0x03 << 10), map, 10);
+}
+
+void Gap::SendHCICommand(uint8_t *cmd_ptr) {
+    int i;
+    int cmd_size;
+    uint8_t *cmd =cmd_ptr;
+
+    fprintf(stdout, "**** send hci cmd ****\n");
+    cmd_size = cmd[2] + 3;
+
+    i = 0;
+    while (i < cmd_size) {
+        fprintf(stdout, "%02x ", cmd[i]);
+        i++;
+        if (i % 16 == 0)
+            fprintf(stdout, "\n");
+    }
+    fprintf(stdout, "\n**** end ****\n");
+
+    sBtVendorInterface->hci_cmd_send(*(uint16_t *)cmd, &cmd[3], cmd[2]);
+    free(cmd_ptr);
+    return;
 }
 
 void Gap::ProcessEvent(BtEvent* event) {
@@ -795,6 +831,11 @@ void Gap::ProcessEvent(BtEvent* event) {
                     event->set_afh_channels_event.map[8],
                     event->set_afh_channels_event.map[9]);
             SetAFHChannels(event->set_afh_channels_event.map);
+            break;
+
+        case GAP_API_SEND_HCI_COMMAND:
+            ALOGD(LOGTAG " GAP_API_SEND_HCI_COMMAND");
+            SendHCICommand(event->send_hci_command_event.cmd);
             break;
 
         case GAP_EVENT_DEVICE_FOUND_INT:
