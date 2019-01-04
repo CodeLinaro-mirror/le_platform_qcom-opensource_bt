@@ -305,7 +305,6 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             ALOGD(LOGTAG " A2DP_SINK_STREAMING_FLUSH_AUDIO");
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
             qahw_out_pause(pA2dpSinkStream->out_stream);
-            qahw_out_flush(pA2dpSinkStream->out_stream);
 #endif
             pA2dpSinkStream->StopDataFetchTimer();
             if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)

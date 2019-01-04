@@ -1652,6 +1652,7 @@ void BtSocketDataHandler (void *context) {
         if (len <= 0) {
             ALOGE("Not able to receive msg to remote dev: %s", strerror(errno));
             reactor_unregister (g_bt_app->accept_reactor_);
+            g_bt_app->accept_reactor_ = NULL;
             close(g_bt_app->client_socket_);
             g_bt_app->client_socket_ = -1;
         } else if(len == BT_IPC_MSG_LEN) {
@@ -1806,6 +1807,7 @@ void BtMainMsgHandler (void *context) {
                 if((len = send(g_bt_app->client_socket_, &(event->bt_ipc_msg_event.ipc_msg),
                     BT_IPC_MSG_LEN, 0)) < 0) {
                     reactor_unregister (g_bt_app->accept_reactor_);
+                    g_bt_app->accept_reactor_ = NULL;
                     close(g_bt_app->client_socket_);
                     g_bt_app->client_socket_ = -1;
                     ALOGE (LOGTAG "Local socket send fail %s", strerror(errno));
