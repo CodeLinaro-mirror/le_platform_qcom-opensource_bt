@@ -306,12 +306,14 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
             qahw_out_pause(pA2dpSinkStream->out_stream);
 #endif
-            pA2dpSinkStream->StopDataFetchTimer();
-            if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
+            if (pA2dpSinkStream)
             {
-                pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
-                    update_flushing_device_vendor(&pEvent->a2dpSinkStreamingEvent.bd_addr);
-            }
+	        if (pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface != NULL)
+                {
+                    pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
+                        update_flushing_device_vendor(&pEvent->a2dpSinkStreamingEvent.bd_addr);
+                }
+	    }
             break;
         default:
             break;
