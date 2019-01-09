@@ -664,7 +664,7 @@ bool GattsTest::SendResponse(GattsRequestWriteEvent *event)
     }
     CHECK_PARAM(event)
     btgatt_response_t att_resp;
-    int response = -1;
+    int response = 0;
     memset(att_resp.attr_value.value,0,BTGATT_MAX_ATTR_LEN);
     memcpy(att_resp.attr_value.value, event->value, event->length);
     att_resp.attr_value.handle = event->attr_handle;
@@ -676,14 +676,14 @@ bool GattsTest::SendResponse(GattsRequestWriteEvent *event)
     fprintf(stdout, "(%s) Sending GATTSTEST response to write (%d) ",__FUNCTION__,
         GetGATTSTESTAppData()->server_if);
 
-    if(0 == strncmp((char *) att_resp.attr_value.value ,"00",2) ) {
-         fprintf(stdout,"low alert written \n");
-    } else if(0 == strncmp((char *) att_resp.attr_value.value,"01",2) ) {
-         fprintf(stdout,"mid alert written \n");
-    } else if(0 == strncmp((char *) att_resp.attr_value.value,"02",2) ) {
-         fprintf(stdout,"high alert written \n");
+    if(0x00 == att_resp.attr_value.value[0]) {
+        fprintf(stdout,"low alert written \n");
+    } else if(0x01 == att_resp.attr_value.value[0]) {
+        fprintf(stdout,"mid alert written \n");
+    } else if(0x02 == att_resp.attr_value.value[0]) {
+        fprintf(stdout,"high alert written \n");
     } else {
-     fprintf(stdout,"default alert written \n");
+        fprintf(stdout,"default alert written \n");
     }
     return app_gatt->send_response(event->conn_id, event->trans_id,
                                                          response, &att_resp);
