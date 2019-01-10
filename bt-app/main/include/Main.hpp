@@ -89,6 +89,7 @@
  */
 const char *BT_SOCKET_ENABLED      = "BtSockInputEnabled";
 const char *BT_ENABLE_DEFAULT      = "BtEnableByDefault";
+const char *BT_ENABLE_AUTOTEST     = "BtEnableAutoTest";
 const char *BT_USER_INPUT          = "UserInteractionNeeded";
 const char *BT_A2DP_SINK_ENABLED   = "BtA2dpSinkEnable";
 const char *BT_A2DP_SOURCE_ENABLED = "BtA2dpSourceEnable";
@@ -776,6 +777,7 @@ class BluetoothApp {
   private:
     config_t *config;
     bool is_bt_enable_default_;
+    bool is_bt_enable_autotest;
     bool is_user_input_enabled_;
     bool is_socket_input_enabled_;
     bool is_a2dp_sink_enabled_;
