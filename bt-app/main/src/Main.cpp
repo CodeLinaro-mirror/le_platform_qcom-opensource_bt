@@ -3259,7 +3259,23 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 fprintf(stdout," Error in Enabling BT\n");
             } else {
                fprintf(stdout," BT State is ON\n");
-            }
+
+		if (is_bt_enable_autotest){
+			if ((g_bt_app->status.enquiry_cmd != COMMAND_INPROGRESS) &&
+                                (g_bt_app->bt_state == BT_STATE_ON)) {
+				g_bt_app->inquiry_list.clear();
+				g_bt_app->status.enquiry_cmd = COMMAND_INPROGRESS;
+				event = new BtEvent;
+				event->event_id = GAP_API_START_INQUIRY;
+				ALOGV (LOGTAG " Posting inquiry to GAP thread");
+				PostMessage (THREAD_ID_GAP, event);
+			} else if (g_bt_app->status.enquiry_cmd == COMMAND_INPROGRESS) {
+				fprintf( stdout, " The inquiry is already in process\n");
+			} else {
+				fprintf( stdout, "currently BT is OFF\n");
+			}
+		}
+	    }
             status.enable_cmd = COMMAND_COMPLETE;
             break;
 
@@ -3704,6 +3720,12 @@ void BluetoothApp :: InitHandler (void) {
 
     }
 
+    if (is_bt_enable_autotest)
+    {
+	fprintf(stdout, "auto test is enabled!\n");
+	SendEnableCmdToGap();
+    }
+
     threadInfo[THREAD_ID_SDP_CLIENT].thread_id = thread_new (
         threadInfo[THREAD_ID_SDP_CLIENT].thread_name);
 
@@ -3919,6 +3941,7 @@ BluetoothApp :: BluetoothApp () {
 
     // Initial values
     is_bt_enable_default_ = false;
+    is_bt_enable_autotest = false;
     is_user_input_enabled_ = false;
     ssp_notification = false;
     pin_notification =false;
@@ -4013,6 +4036,10 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     // checking for the BT Enable option in config file
     is_bt_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_DEFAULT, false);
+
+    // checking for the BT auto test Enable option in config file
+    is_bt_enable_autotest = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_ENABLE_AUTOTEST, false);
 
     //checking for user input
     is_user_input_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
