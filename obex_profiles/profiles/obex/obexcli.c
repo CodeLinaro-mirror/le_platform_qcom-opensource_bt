@@ -945,9 +945,12 @@ static OI_STATUS ClientSendPacket(OBEXCLI_CONNECTION *connection,
 
     OI_DBGPRINT2(("Sending mbuf %#x", connection->common.mbuf));
 
-    status = connection->common.lowerConnection->ifc->write(connection->common.lowerConnection, connection->common.mbuf, FALSE, &queueFull);
+    OI_DBGTRACE(("ClientSendPacket (opcode = %d)\n", connection->common.currentOpcode));
+    status = connection->common.lowerConnection->ifc->write(connection->common.lowerConnection,
+                                 connection->common.mbuf, FALSE, &queueFull);
     if (OI_SUCCESS(status)) {
-        SetCommandTimeout(connection, timeout);
+        if (connection->common.currentOpcode != OI_OBEX_CMD_DISCONNECT)
+            SetCommandTimeout(connection, timeout);
     } else {
         OI_MBUF_Free(connection->common.mbuf);
         connection->common.mbuf = NULL;
