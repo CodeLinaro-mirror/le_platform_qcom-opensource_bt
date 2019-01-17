@@ -176,7 +176,7 @@ void BtAvrcpMsgHandler(void *msg) {
 static void btavrcpctrl_passthru_rsp_vendor_callback(int id, int key_state, bt_bdaddr_t *bd_addr) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_passthru_rsp_vendor_callback id = %d key_state = %d",
             id, key_state);
-    if (id == CMD_ID_PAUSE && key_state == 1 &&
+    if ((!is_a2dp_sink_split_enabled) && id == CMD_ID_PAUSE && key_state == 1 &&
             !memcmp(&pA2dpSinkStream->mStreamingDevice, bd_addr, sizeof(bt_bdaddr_t)))
     {
         ALOGD(LOGTAG_CTRL " need to flush both stack queue and audio queue ");

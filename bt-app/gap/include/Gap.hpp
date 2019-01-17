@@ -326,6 +326,24 @@ class Gap {
      * @return bool
      */
     bool IsDeviceBonded(bt_bdaddr_t device);
+    /**
+     * @brief SetAFHChannels
+     *
+     * This function send HCI raw cmd for set AFH channel by calling stack provided API
+     *
+     * @param AFH channel map
+     * @return none
+     */
+    void SetAFHChannels(unsigned char map[10]);
+	/**
+     * @brief SendHCICommand
+     *
+     * This function send HCI raw cmd for by calling stack provided API
+     *
+     * @param hciCommand with values
+     * @return none
+     */
+    void SendHCICommand(uint8_t *cmd_ptr);
 };
 
 #endif

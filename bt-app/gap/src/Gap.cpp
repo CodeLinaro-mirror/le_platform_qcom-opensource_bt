@@ -272,10 +272,30 @@ static void SsrCleanupCb() {
     PostMessage(THREAD_ID_GAP, event);
 }
 
+static void vendor_hci_event_recv_cb(uint8_t event_code, uint8_t *buf, uint8_t len) {
+    int i;
+
+    fprintf(stdout, "#### vendor_hci_event_recv_cb ####\n");
+    fprintf(stdout, "%02x %02x ", event_code, len);
+
+    i = 2;
+    while (i < (len + 2)) {
+        if ((i % 16) == 0)
+            fprintf(stdout, "\n");
+        fprintf(stdout, "%02x ", buf[i - 2]);
+        i++;
+    }
+    fprintf(stdout, "\n#### end ####\n");
+
+    return;
+}
+
 static btvendor_callbacks_t sVendorCallbacks = {
     sizeof(sVendorCallbacks),
     NULL,
     NULL,
+    NULL,
+    vendor_hci_event_recv_cb,
 };
 
 void BtGapMsgHandler(void *msg) {
@@ -486,6 +506,33 @@ int Gap::SetScanMode(bt_property_t *prop) {
 bool Gap::IsDeviceBonded(bt_bdaddr_t device) {
     return adapter_properties_obj_->IsDeviceBonded(device);
 }
+
+void Gap::SetAFHChannels(unsigned char map[10]) {
+    sBtVendorInterface->hci_cmd_send(0x003F | (0x03 << 10), map, 10);
+}
+
+void Gap::SendHCICommand(uint8_t *cmd_ptr) {
+    int i;
+    int cmd_size;
+    uint8_t *cmd =cmd_ptr;
+
+    fprintf(stdout, "**** send hci cmd ****\n");
+    cmd_size = cmd[2] + 3;
+
+    i = 0;
+    while (i < cmd_size) {
+        fprintf(stdout, "%02x ", cmd[i]);
+        i++;
+        if (i % 16 == 0)
+            fprintf(stdout, "\n");
+    }
+    fprintf(stdout, "\n**** end ****\n");
+
+    sBtVendorInterface->hci_cmd_send(*(uint16_t *)cmd, &cmd[3], cmd[2]);
+    free(cmd_ptr);
+    return;
+}
+
 void Gap::ProcessEvent(BtEvent* event) {
     bt_property_t prop;
     bt_scan_mode_t scan_mode;
@@ -703,7 +750,6 @@ void Gap::ProcessEvent(BtEvent* event) {
                 bt_event->state_event.status = BT_STATE_OFF;
                 PostMessage(THREAD_ID_MAIN, bt_event);
                 break;
-
             }
 
             if(profile_config[PROFILE_ID_PAN].is_enabled)
@@ -770,6 +816,26 @@ void Gap::ProcessEvent(BtEvent* event) {
 
         case GAP_API_SET_SCAN_MODE:
             SetScanMode(&event->set_scan_mode_event.prop);
+            break;
+
+        case GAP_API_SET_AFH_CHANNELS:
+            ALOGD(LOGTAG " SetAFHChannels map:0x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+                    event->set_afh_channels_event.map[0],
+                    event->set_afh_channels_event.map[1],
+                    event->set_afh_channels_event.map[2],
+                    event->set_afh_channels_event.map[3],
+                    event->set_afh_channels_event.map[4],
+                    event->set_afh_channels_event.map[5],
+                    event->set_afh_channels_event.map[6],
+                    event->set_afh_channels_event.map[7],
+                    event->set_afh_channels_event.map[8],
+                    event->set_afh_channels_event.map[9]);
+            SetAFHChannels(event->set_afh_channels_event.map);
+            break;
+
+        case GAP_API_SEND_HCI_COMMAND:
+            ALOGD(LOGTAG " GAP_API_SEND_HCI_COMMAND");
+            SendHCICommand(event->send_hci_command_event.cmd);
             break;
 
         case GAP_EVENT_DEVICE_FOUND_INT:
@@ -959,13 +1025,16 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
             this->supported_profiles_count++;
         }
     }
-    // Vendor interface
-   // sBtVendorInterface = (btvendor_interface_t *)bluetooth_interface_->
-   //                         get_profile_interface(BT_PROFILE_VENDOR_ID);
 
-   // if (sBtVendorInterface != NULL) {
-    //    sBtVendorInterface->init(&sVendorCallbacks);
-   // }
+    ALOGV(LOGTAG "  sBtVendorInterface.");
+    // Vendor interface
+    this->sBtVendorInterface = (btvendor_interface_t *)bluetooth_interface_->
+                                 get_profile_interface(BT_PROFILE_VENDOR_ID);
+
+    if (sBtVendorInterface != NULL) {
+       ALOGV(LOGTAG " sBtVendorInterface. init");
+       sBtVendorInterface->init(&sVendorCallbacks);
+    }
 
     if( !(profile_startup_timer = alarm_new())) {
         ALOGE(LOGTAG, " unable to create profile_startup_timer timer.");
@@ -1004,10 +1073,10 @@ Gap :: ~Gap() {
     alarm_free(disable_timer);
     disable_timer = NULL;
 
-    //if (sBtVendorInterface != NULL) {
-    //    sBtVendorInterface->cleanup();
-     //   sBtVendorInterface = NULL;
-    //}
+    if (sBtVendorInterface != NULL) {
+       sBtVendorInterface->cleanup();
+       sBtVendorInterface = NULL;
+    }
 }
 
 int Gap:: GetState() {
