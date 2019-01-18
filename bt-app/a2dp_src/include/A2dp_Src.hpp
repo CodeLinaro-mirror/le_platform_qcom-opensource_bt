@@ -159,7 +159,7 @@ class MediaInfo {
 
 typedef struct  {
     btrc_media_attr_t *p_attr;
-    long mUid;
+    uint8_t mUid[8];
     int mSize;
 }ItemAttr;
 

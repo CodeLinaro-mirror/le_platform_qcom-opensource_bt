@@ -81,7 +81,7 @@ uint8_t rootUid[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04
 uint8_t folderUid1[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03};
 uint8_t folderUid2[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02};
 uint8_t mediaUid1[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
-uint8_t mediaUid2[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+uint8_t mediaUid2[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02};
 uint8_t mediaUid3[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05};
 
 
@@ -1721,8 +1721,6 @@ static void btavrcp_target_getelemattr_callback(uint8_t num_attr,
     ItemAttr* itemAttr = (ItemAttr*)osi_malloc(sizeof(ItemAttr));
     itemAttr->p_attr = (btrc_media_attr_t*)osi_malloc(num_attr * sizeof(btrc_media_attr_t));
     memcpy(itemAttr->p_attr, p_attrs, num_attr * sizeof(btrc_media_attr_t));
-    itemAttr->mUid = 0;
-    itemAttr->mSize = 0;
 
     pEvent->avrcpTargetEvent.buf_size = sizeof(ItemAttr);
     pEvent->avrcpTargetEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->avrcpTargetEvent.buf_size);
@@ -1849,15 +1847,12 @@ static void btavrcp_target_get_item_attr_callback(uint8_t scope, uint8_t* uid,
     pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_ITEM_ATTRIBUTES_REQ;
     memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->avrcpTargetEvent.arg3 = scope;
-    pEvent->avrcpTargetEvent.buf_size = sizeof(uid);
-    pEvent->avrcpTargetEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->avrcpTargetEvent.buf_size);
-    memcpy(pEvent->avrcpTargetEvent.buf_ptr, uid, pEvent->avrcpTargetEvent.buf_size);
     pEvent->avrcpTargetEvent.arg1 = uid_counter;
     ItemAttr* itemAttr = (ItemAttr*)osi_malloc(sizeof(ItemAttr));
     itemAttr->p_attr = (btrc_media_attr_t*)osi_malloc(num_attr * sizeof(btrc_media_attr_t));
     memcpy(itemAttr->p_attr, p_attrs, num_attr * sizeof(btrc_media_attr_t));
-    itemAttr->mUid = 0;
-    itemAttr->mSize = 0;
+    memcpy(itemAttr->mUid, uid, BTRC_UID_SIZE);
+    itemAttr->mSize = BTRC_UID_SIZE;
 
     pEvent->avrcpTargetEvent.buf_size = sizeof(ItemAttr);
     pEvent->avrcpTargetEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->avrcpTargetEvent.buf_size);
@@ -1929,7 +1924,7 @@ static btrc_callbacks_t sBluetoothAvrcpTargetCallbacks = {
    btavrcp_target_connection_state_callback,
 };
 
-const char* getString(int mAttrType) {
+const char* getString(int mAttrType,uint8_t* Uid) {
     const char* new_str = "";
     const char* title1 = "Here, on the other hand, I've gone crazy \
         and really let the literal span several lines, \
@@ -1962,8 +1957,27 @@ const char* getString(int mAttrType) {
         case ATTR_TITLE:
             if (use_bigger_metadata)
                 return title1;
-            else
+            else if(Uid == NULL)
                 return title;
+
+            if (pA2dpSource->pMediaList.size() > 0) {
+                list<MediaInfo>::iterator p = pA2dpSource->pMediaList.begin();
+                list<MediaInfo>::iterator p_end = pA2dpSource->pMediaList.end();
+                while (p != p_end) {
+                    if(!memcmp(p->mUid , Uid, BTRC_UID_SIZE))
+                    {
+                        ALOGD(LOGTAG_AVRCP " Uid mactched, return title");
+                        return p->mDisplayableName;
+                    }
+                    p++;
+                }
+                ALOGD(LOGTAG_AVRCP "UID didn't match ");
+            }
+            else
+            {
+                ALOGD(LOGTAG_AVRCP "media list is empty");
+            }
+            return new_str;
         case ATTR_ARTIST_NAME:
             if (use_bigger_metadata)
                 return artistName1;
@@ -2242,7 +2256,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     if (pFolderList.size() > 0 && start <= 1) {
                         list<FolderInfo>::iterator p = pFolderList.begin();
                         list<FolderInfo>::iterator p_end = pFolderList.begin();
-                        if(end >= 1)
+                        if(end >= pFolderList.size())
                           p_end = pFolderList.end();
                         else
                           advance(p_end,end+1);
@@ -2330,7 +2344,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     if (pMediaList.size() > 0 && start <= 1) {
                         list<MediaInfo>::iterator p = pMediaList.begin();
                         list<MediaInfo>::iterator p_end = pMediaList.begin();
-                        if(end >= 1)
+                        if(end >= pMediaList.size())
                           p_end = pMediaList.end();
                         else
                           advance(p_end,end+1);
@@ -2598,8 +2612,8 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             pAttrs = (btrc_element_attr_val_t*)osi_malloc(num_attr*sizeof(btrc_element_attr_val_t));
             for (int i = 0; i < num_attr; ++i) {
                 pAttrs[i].attr_id = item->p_attr[i];
-                memcpy(pAttrs[i].text, getString(pAttrs[i].attr_id),
-                                strlen(getString(pAttrs[i].attr_id))+1);
+                memcpy(pAttrs[i].text, getString(pAttrs[i].attr_id, NULL),
+                                strlen(getString(pAttrs[i].attr_id, NULL))+1);
                 ALOGD(LOGTAG_AVRCP " %d %s", pAttrs[i].attr_id, pAttrs[i].text);
             }
             sBtAvrcpTargetInterface->get_element_attr_rsp(&pEvent->avrcpTargetEvent.bd_addr, (uint8_t)num_attr, pAttrs);
@@ -2617,15 +2631,14 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                 ALOGD(LOGTAG_AVRCP " Send response for Get item attribute, num_attr %d", num_attr);
                 item = (ItemAttr*)osi_malloc(sizeof(ItemAttr));
                 memcpy(item, pEvent->avrcpTargetEvent.buf_ptr, pEvent->avrcpTargetEvent.buf_size);
-            ALOGD(LOGTAG_AVRCP " Uid %d Size %d", item->mUid, item->mSize);
             for (i = 0; i < num_attr; ++i) {
                 ALOGD(LOGTAG_AVRCP " attr[%d] %d", i, item->p_attr[i]);
             }
             pAttrs = (btrc_element_attr_val_t*)osi_malloc(num_attr*sizeof(btrc_element_attr_val_t));
             for (int i = 0; i < num_attr; ++i) {
                 pAttrs[i].attr_id = item->p_attr[i];
-                memcpy(pAttrs[i].text, getString(pAttrs[i].attr_id),
-                                strlen(getString(pAttrs[i].attr_id))+1);
+                memcpy(pAttrs[i].text, getString(pAttrs[i].attr_id,item->mUid),
+                                strlen(getString(pAttrs[i].attr_id, item->mUid))+1);
                 ALOGD(LOGTAG_AVRCP " %d %s", pAttrs[i].attr_id, pAttrs[i].text);
             }
             if(pEvent->avrcpTargetEvent.arg1 != 0)
