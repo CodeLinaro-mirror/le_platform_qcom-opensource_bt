@@ -213,6 +213,7 @@ static uint8_t valid_codec_values[] = {
   BTAV_A2DP_CODEC_INDEX_SOURCE_AAC,
   BTAV_A2DP_CODEC_INDEX_SOURCE_APTX,
   BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_HD,
+  BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE,
   BTAV_A2DP_CODEC_INDEX_SOURCE_LDAC,
 };
 
@@ -571,6 +572,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs){
             case BTAV_A2DP_CODEC_INDEX_SOURCE_AAC:
             case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX:
             case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_HD:
+            case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE:
             case BTAV_A2DP_CODEC_INDEX_SOURCE_LDAC:
                 /* check number of parameters passed are ok or not */
                 if (j + NON_SBC_PARAM_LEN > codec_params_list_size + 1) {
@@ -619,6 +621,49 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs){
     fprintf(stdout, "num_codec_configs in the codec list  = %d\n", *num_codec_configs);
     return true;
 }
+
+static bool aptxad_mode_change(char *codec_param_list, int *num_codec_configs)
+{
+    int aptx_mode = atoi(codec_param_list);
+    char output_list[COMMAND_ARG_SIZE][COMMAND_ARG_SIZE];
+    int codec_params_list_size;
+    std::vector<btav_a2dp_codec_config_t>::iterator cp;
+
+    if (*codec_param_list == '\0') {
+        ALOGE(LOGTAG_A2DP " APTX AD mode not specified \n");
+        fprintf(stdout, "APTX AD mode not specified \n");
+        print_help(&variable_list[0]);
+        return false;
+    }
+
+    codec_params_list_size = ParseUserInput(codec_param_list, output_list);
+
+    if (aptx_mode != 0 && aptx_mode != 1 || codec_params_list_size > 1) {
+        ALOGE(LOGTAG_A2DP " APTX AD mode can be only HQ or LL, aptx_mode = %d \n", aptx_mode);
+        fprintf(stdout, "APTX AD mode can be only HQ or LL \n");
+        return false;
+    }
+
+    *num_codec_configs = a2dpSrcCodecList.size();
+    for (cp = a2dpSrcCodecList.begin(); cp < a2dpSrcCodecList.end(); cp++) {
+        if (cp->codec_type == BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE) {
+            switch (aptx_mode) {
+                case 0:
+                     cp->codec_specific_4 = 0x1000;
+                     cp->codec_specific_5 = 1;
+                     ALOGD(LOGTAG_A2DP " APTX AD mode HQ\n");
+                     break;
+                case 1:
+                     cp->codec_specific_4 = 0x2000;
+                     cp->codec_specific_5 = 2;
+                     ALOGD(LOGTAG_A2DP " APTX AD mode LL\n");
+                     break;
+            }
+        }
+    }
+    return true;
+}
+
 
 void registerMediaPlayers () {
     ALOGD(LOGTAG_AVRCP "registerMediaPlayers");
@@ -843,6 +888,10 @@ void BtA2dpSourceMsgHandler(void *msg) {
             A2dpCodecList(pEvent->a2dpCodecListEvent.codec_list, &num_codec_cfgs);
             if (num_codec_cfgs)
                 pA2dpSource->UpdateSupportedCodecs(pEvent->a2dpSourceEvent.bd_addr, num_codec_cfgs);
+            break;
+        case A2DP_SOURCE_CODEC_MODE_CHANGE:
+            aptxad_mode_change(pEvent->a2dpCodecListEvent.codec_list, &num_codec_cfgs);
+            pA2dpSource->UpdateSupportedCodecs(pEvent->a2dpCodecListEvent.bd_addr, num_codec_cfgs);
             break;
         default:
             if(pA2dpSource) {
@@ -1253,7 +1302,7 @@ void update_src_codec_type(uint16_t *src_codec_tp, btav_a2dp_codec_index_t codec
       default:
       *src_codec_tp = NON_A2DP_MEDIA_CT;
       break;
-	}
+  }
 }
 
 void update_src_codec_config(btav_codec_config_t *src_codec_cnfg, btav_a2dp_codec_config_t codec_cfg){
@@ -3085,6 +3134,9 @@ void A2dp_Source::HandleEnableSource(void) {
                                             "a2dp_source_codec_priority_aptx_hd",4001);
         priority_values[4]   = config_get_int (config, CONFIG_DEFAULT_SECTION,
                                             "a2dp_source_codec_priority_ldac",5001);
+        priority_values[5]   = config_get_int (config, CONFIG_DEFAULT_SECTION,
+                                            "a2dp_source_codec_priority_aptx_ad",6001);
+
         ALOGD(LOGTAG_A2DP "assignCodecConfigPriorities");
         assignCodecConfigPriorities(priority_values, numConfigs);
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, a2dpSrcCodecList);
@@ -3501,11 +3553,10 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             change_state(STATE_A2DP_SOURCE_PENDING);
             break;
         case A2DP_SOURCE_AUDIO_STARTED:
-            fprintf(stdout, "A2DP Source Audio state changes to: %d	\n",pEvent->event_id);
+            fprintf(stdout, "A2DP Source Audio state changes to: %d  \n",pEvent->event_id);
             break;
-
         case A2DP_SOURCE_AUDIO_SUSPENDED:
-            fprintf(stdout, "A2DP Source Audio state changes to: %d	\n",pEvent->event_id);
+            fprintf(stdout, "A2DP Source Audio state changes to: %d  \n",pEvent->event_id);
             break;
         case A2DP_SOURCE_AUDIO_STOPPED:
             fprintf(stdout, "A2DP Source Audio state changes to: %d ", pEvent->event_id);
@@ -3529,6 +3580,9 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
                 fprintf(stdout, "Allocation Method = %s\n",get_a2dp_sbc_allocation_mth(cur_codec_cfg.codec_specific_3));
                 fprintf(stdout, "Max Bitpool = %d\n", cur_codec_cfg.codec_specific_4);
                 fprintf(stdout, "Min Bitpool = %d\n", cur_codec_cfg.codec_specific_5);
+            }
+            if (cur_codec_type == BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE) {
+                fprintf(stdout, "codec_specific info 4 = %lx\n", cur_codec_cfg.codec_specific_4);
             }
             update_src_codec_type(&src_codec_type, cur_codec_type);
             memset(&src_codec_cfg, 0, sizeof(btav_codec_config_t));
@@ -3560,7 +3614,7 @@ void A2dp_Source::change_state(A2dpSourceState mState) {
 
 void A2dp_Source::UpdateSupportedCodecs(const RawAddress& bd_addr, uint8_t num_codec_cfgs) {
     bt_status_t status;
-    if (sBtA2dpSourceVendorInterface != NULL) {
+    if (sBtA2dpSourceInterface != NULL) {
         status = sBtA2dpSourceInterface->config_codec(bd_addr, a2dpSrcCodecList);
         if (BT_STATUS_SUCCESS != status) {
             ALOGE(LOGTAG_A2DP " UpdateSupportedCodecs: failed, status = %d", status);
@@ -3581,6 +3635,8 @@ char * A2dp_Source::get_a2dp_codec_type(uint8_t codectype) {
             return "aptx_hd";
         case BTAV_A2DP_CODEC_INDEX_SOURCE_LDAC:
             return "ldac";
+        case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE:
+            return "aptx_ad";
     }
     return "NULL";
 }

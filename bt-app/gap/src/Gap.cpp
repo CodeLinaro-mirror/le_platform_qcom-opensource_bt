@@ -296,6 +296,7 @@ static btvendor_callbacks_t sVendorCallbacks = {
     NULL,
     NULL,
     vendor_hci_event_recv_cb,
+    SsrCleanupCb,
 };
 
 void BtGapMsgHandler(void *msg) {
@@ -897,7 +898,7 @@ void Gap::ProcessEvent(BtEvent* event) {
 
         case GAP_EVENT_SSR_CLEANUP:
             /* Audio related cleanup can be done here.*/
-            ALOGD(LOGTAG " Killing the proces after SSR_CLEANUP %d", event->event_id);
+            ALOGD(LOGTAG " Killing the process after SSR_CLEANUP %d", event->event_id);
             kill(getpid(), SIGKILL);
             break;
 

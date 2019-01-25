@@ -358,6 +358,7 @@ typedef enum {
     A2DP_SOURCE_AUDIO_STOPPED,
     A2DP_SOURCE_AUDIO_STARTED,
     A2DP_SOURCE_CODEC_LIST,
+    A2DP_SOURCE_CODEC_MODE_CHANGE,
     AVRCP_TARGET_CONNECTED_CB,
     AVRCP_TARGET_DISCONNECTED_CB,
     AVRCP_TARGET_GET_ELE_ATTR,
@@ -829,6 +830,7 @@ typedef struct {
 
 typedef struct {
     BluetoothEventId   event_id;
+    bt_bdaddr_t         bd_addr;
     char codec_list[200];
 } A2dpCodecListEvent;
 

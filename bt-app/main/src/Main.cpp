@@ -937,6 +937,15 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
                 COMMAND_SIZE);
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
+        case MODE_CHANGE:
+            event = new BtEvent;
+            string_to_bdaddr(user_cmd[ONE_PARAM],&event->a2dpCodecListEvent.bd_addr);
+            event->a2dpCodecListEvent.event_id = A2DP_SOURCE_CODEC_MODE_CHANGE;
+            memset( (void *) event->a2dpCodecListEvent.codec_list, '\0',
+                sizeof(event->a2dpCodecListEvent.codec_list));
+            strlcpy(event->a2dpCodecListEvent.codec_list, user_cmd[TWO_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
         case SET_EQUALIZER_VAL:
             event = new BtEvent;
             event->avrcpTargetEvent.event_id = AVRCP_SET_EQUALIZER_VAL;
