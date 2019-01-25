@@ -1375,7 +1375,9 @@ static void *thread_func(void *in_param)
                 if (!is_relay_sink2src())
                     continue;
 
-                if((a2dp_playstatus == A2DP_SOURCE_AUDIO_SUSPENDED) &&(srcStream != SRC_STREAMING))
+                if((a2dp_playstatus == A2DP_SOURCE_AUDIO_SUSPENDED
+                            || a2dp_playstatus == A2DP_SOURCE_AUDIO_STOPPED)
+                            &&(srcStream != SRC_STREAMING))
                 {
                     ALOGD(LOGTAG_A2DP" resume: playStatus = %d  srcStreamStatus=%d",playStatus,srcStream);
                     BtA2dpResumeStreaming();
