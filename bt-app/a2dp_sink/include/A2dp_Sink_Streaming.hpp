@@ -118,6 +118,7 @@ class A2dp_Sink_Streaming {
     void ConfigureAudioHal();
     void CloseAudioStream();
     size_t pcm_buf_size;
+    uint32_t pcm_timer_duration;
     size_t cuml_data_written_to_audio;
     size_t residual_compress_data;
     uint8_t* pcm_buf;
