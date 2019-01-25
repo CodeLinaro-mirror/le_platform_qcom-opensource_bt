@@ -714,7 +714,8 @@ void A2dp_Sink_Streaming::StartPcmTimer() {
         ALOGD(LOGTAG " PCM Timer still running + ");
         return;
     }
-    alarm_set(pcm_data_fetch_timer, A2DP_SINK_PCM_FETCH_TIMER_DURATION,
+    ALOGD(LOGTAG " StartingTimer for %d ",pcm_timer_duration);
+    alarm_set(pcm_data_fetch_timer, pcm_timer_duration,
            pcm_fetch_timer_handler, NULL);
     pcm_timer = true;
 }
@@ -1061,6 +1062,20 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
             pcm_buf_size = qahw_out_get_buffer_size(out_stream);
             ALOGD(LOGTAG " pcm buf size %d", pcm_buf_size);
             pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
+            if (codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
+            {
+                pcm_timer_duration = (pcm_buf_size*1000)/(sample_rate*channel_count*2);
+                /* we should calculate pcm_timer_duration from buffer size
+                 * sample_rate * channel_count * 2 = Number of bytes for 1 second.
+                 * 2 for 16-bit-pcm, 3 for 24-bit-pcm etc 
+                 * We have to start pcm timer for this duration */
+                pcm_timer_duration = pcm_timer_duration - 5;
+                /* reeucing timer duration ensures that timer fires quicker and
+                 * effectlvely we pump slightly more data. This approach is taken to handle
+                 * timer skew */
+                ALOGD(LOGTAG " pcm timer duration %d", pcm_timer_duration);
+            }
+
             if(pAvrcp != NULL) {
                 if(pAvrcp->is_abs_vol_supported(pA2dpSinkStream->mStreamingDevice)) {
                     SetStreamVol(pAvrcp->get_current_audio_index());
@@ -1092,6 +1107,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         break;
     }
     pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
+    pcm_timer_duration = A2DP_SINK_PCM_FETCH_TIMER_DURATION;
     if (outputPcmSampleFile == NULL)
         outputPcmSampleFile = fopen(outputFilename, "ab");
 #endif
@@ -1274,6 +1290,7 @@ void A2dp_Sink_Streaming::OnDisconnected() {
     }
     CloseAudioStream();
     pcm_buf_size = 0;
+    pcm_timer_duration = 0;
     cuml_data_written_to_audio = 0;
     residual_compress_data = 0;
     codec_type = A2DP_SINK_AUDIO_CODEC_SBC;
