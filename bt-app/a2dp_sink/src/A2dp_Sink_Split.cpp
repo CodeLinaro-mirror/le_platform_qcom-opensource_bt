@@ -694,10 +694,10 @@ void BtA2dpSinkSplitMsgHandler(void *msg) {
                     pA2dpSinkSplit->start_pending,pA2dpSinkSplit->suspend_pending);
                 if(pA2dpSinkSplit->start_pending)
                     pA2dpSinkSplit->sBtA2dpSinkVendorInterface->start_ind_rsp(pA2dpSinkSplit->
-                            mPendingDevice,true);
+                            mPendingDevice,CMD_ACCEPTED);
                 else if(pA2dpSinkSplit->suspend_pending)
                     pA2dpSinkSplit->sBtA2dpSinkVendorInterface->suspend_ind_rsp(pA2dpSinkSplit->
-                            mPendingDevice,true);
+                            mPendingDevice,CMD_ACCEPTED);
             pA2dpSinkSplit->start_pending = false;
             pA2dpSinkSplit->suspend_pending = false;
             }
@@ -708,10 +708,10 @@ void BtA2dpSinkSplitMsgHandler(void *msg) {
                     pA2dpSinkSplit->start_pending,pA2dpSinkSplit->suspend_pending);
                 if(pA2dpSinkSplit->start_pending)
                     pA2dpSinkSplit->sBtA2dpSinkVendorInterface->start_ind_rsp(pA2dpSinkSplit->
-                            mPendingDevice,false);
+                            mPendingDevice,CMD_REJECTED);
                 else if(pA2dpSinkSplit->suspend_pending)
                     pA2dpSinkSplit->sBtA2dpSinkVendorInterface->suspend_ind_rsp(pA2dpSinkSplit->
-                            mPendingDevice,false);
+                            mPendingDevice,CMD_REJECTED);
             pA2dpSinkSplit->start_pending = false;
             pA2dpSinkSplit->suspend_pending = false;
             }
