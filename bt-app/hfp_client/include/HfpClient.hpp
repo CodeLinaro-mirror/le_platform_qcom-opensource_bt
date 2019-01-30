@@ -105,6 +105,7 @@ class Hfp_Client {
     void ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bool mute_mic);
     void PlayRingTone();
     void StopRingTone();
+    HfpClientState GetState();
 };
 
 #endif

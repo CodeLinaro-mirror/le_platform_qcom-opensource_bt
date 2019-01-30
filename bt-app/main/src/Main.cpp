@@ -1131,6 +1131,16 @@ static void SendDisableCmdToGap() {
             ALOGV (LOGTAG " gattctest interface is null");
         }
 
+        if (pHfpClient && pHfpClient->GetState() == HFP_CLIENT_STATE_AUDIO_ON) {
+            BtEvent *event = new BtEvent;
+            event->hfp_client_event.event_id = HFP_CLIENT_API_END_CALL_REQ;
+            PostMessage (THREAD_ID_HFP_CLIENT, event);
+            ALOGV (LOGTAG " Send end_call event when exit in a call");
+        } else {
+            ALOGV (LOGTAG " pHfpClient interface is null");
+        }
+
+        sleep(1);
         BtEvent *event = new BtEvent;
         event->event_id = GAP_API_DISABLE;
         ALOGV (LOGTAG " Posting disable to GAP thread");
