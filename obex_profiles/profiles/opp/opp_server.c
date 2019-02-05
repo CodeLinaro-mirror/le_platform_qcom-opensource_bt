@@ -656,66 +656,55 @@ static OI_STATUS ObjPushInd(OI_OBEXSRV_CONNECTION_HANDLE connectionId,
 
     if (connection->state == OPP_PUSH_PENDING) {
         /*
-         * Wait until we have seen a body header before attempting to open the
-         * object. This ensures that we have all the other headers we need.
+         * Name is mandatory.
          */
-        if (connection->final || (connection->rcvObj.objData.data != NULL)) {
-            /*
-             * Name is mandatory.
-             */
-            if (connection->rcvObj.name.str == NULL) {
-                status = OI_OBEX_ACCESS_DENIED;
-                goto ObjPushError;
-            }
-            /*
-             * Some broken implementations do not provide a type header. So we
-             * try to figure out the type from the suffix on the object name.
-             *
-             * Some broken implementations do not null terminate the type string
-             * so we need the size too.
-             */
-            if (connection->rcvObj.type.data == NULL) {
-                objType = ObjTypeFromSuffix(&connection->rcvObj.name);
-                typeLen = OI_StrLen(objType);
-            } else {
-                objType = (OI_CHAR*) connection->rcvObj.type.data;
-                typeLen = connection->rcvObj.type.len;
-            }
-            /*
-             * Check we support this object type.
-             */
-            if (!IsSupportedType(objType, typeLen, connection->server->supportedFormats)) {
-                status = OI_OBEX_UNSUPPORTED_MEDIA_TYPE;
-                goto ObjPushError;
-            }
-            /*
-             * Try and open the object.
-             */
-            if (connection->server->callbacks->eventInd == NULL) {
-                connection->ofsCfmPending = TRUE;
-                status = connection->server->objops->OpenWrite(&connection->rcvObj.name,
-                                                               objType,
-                                                               connection->rcvObj.objSize,
-                                                               PushOpenCfm,
-                                                               connection->obexHandle);
-                if (!OI_SUCCESS(status)) {
-                    connection->ofsCfmPending = FALSE;
-                }
-            } else {
-                OI_OPP_SERVER_EVENT_DATA eventData;
-                eventData.event = OI_OPP_SERVER_EVENT_PUSH;
-                eventData.data.push.localName = &connection->rcvObj.name;
-                eventData.data.push.totalSize = connection->rcvObj.objSize;
-                eventData.data.push.objType = objType;
-                connection->ofsAcceptPending = TRUE;
-                connection->server->callbacks->eventInd(connection->obexHandle, &eventData);
-                status = OI_OK;
+        if (connection->rcvObj.name.str == NULL) {
+            status = OI_OBEX_ACCESS_DENIED;
+            goto ObjPushError;
+        }
+        /*
+         * Some broken implementations do not provide a type header. So we
+         * try to figure out the type from the suffix on the object name.
+         *
+         * Some broken implementations do not null terminate the type string
+         * so we need the size too.
+         */
+        if (connection->rcvObj.type.data == NULL) {
+            objType = ObjTypeFromSuffix(&connection->rcvObj.name);
+            typeLen = OI_StrLen(objType);
+        } else {
+            objType = (OI_CHAR*) connection->rcvObj.type.data;
+            typeLen = connection->rcvObj.type.len;
+        }
+        /*
+         * Check we support this object type.
+         */
+        if (!IsSupportedType(objType, typeLen, connection->server->supportedFormats)) {
+            status = OI_OBEX_UNSUPPORTED_MEDIA_TYPE;
+            goto ObjPushError;
+        }
+        /*
+         * Try and open the object.
+         */
+        if (connection->server->callbacks->eventInd == NULL) {
+            connection->ofsCfmPending = TRUE;
+            status = connection->server->objops->OpenWrite(&connection->rcvObj.name,
+                                                           objType,
+                                                           connection->rcvObj.objSize,
+                                                           PushOpenCfm,
+                                                           connection->obexHandle);
+            if (!OI_SUCCESS(status)) {
+                connection->ofsCfmPending = FALSE;
             }
         } else {
-            /*
-             * Get more data from the client.
-             */
-            status = OI_OBEXSRV_PutResponse(connectionId, NULL, obexStatus);
+            OI_OPP_SERVER_EVENT_DATA eventData;
+            eventData.event = OI_OPP_SERVER_EVENT_PUSH;
+            eventData.data.push.localName = &connection->rcvObj.name;
+            eventData.data.push.totalSize = connection->rcvObj.objSize;
+            eventData.data.push.objType = objType;
+            connection->ofsAcceptPending = TRUE;
+            connection->server->callbacks->eventInd(connection->obexHandle, &eventData);
+            status = OI_OK;
         }
     } else {
         /*
