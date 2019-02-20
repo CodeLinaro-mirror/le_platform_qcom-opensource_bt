@@ -81,7 +81,7 @@ endif
 if USE_GST
 requiredlibs = ../osi/libgstbtapposi.la -lpthread -lm -ldl -lrt -lhardware
 else
-requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware
+requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal
 endif
 
 requiredlibs += -lgengatt -lcutils
