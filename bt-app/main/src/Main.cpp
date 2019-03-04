@@ -2082,7 +2082,6 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     static bool init_advertiser_file = 0;
     int  server_inst = 0;
     int  service_inst = 0;
-    static bool disable = 0;
     switch (cmd_id) {
         case GATTSTEST_INIT_SERVER:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
@@ -2112,12 +2111,16 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
         case GATTSTEST_ADDSERVER:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 if(g_gatt) {
-                    if(init_server_file)  {
-                        server_num++;
-                        fprintf(stdout,"Adding Server %d \n",server_num);
-                        gattstest->AddServer();
+                    if (gattstest) {
+                        if(init_server_file)  {
+                            server_num++;
+                            fprintf(stdout,"Adding Server %d \n",server_num);
+                            gattstest->AddServer();
+                        } else {
+                            fprintf(stdout,"Do gattstest_init_server first \n");
+                        }
                     } else {
-                        fprintf(stdout,"Do gattstest_init_server first \n");
+                            fprintf(stdout , "Do Init first\n");
                     }
                 } else {
                     fprintf(stdout,"gatt interface is null \n");
@@ -2241,7 +2244,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                          fprintf(stdout,"Server not unregistered\n");
                     }
                 } else {
-                    fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                    fprintf( stdout, "Do Init first \n ");
                 }
              } else {
                 fprintf( stdout, "BT is in OFF State now \n");
@@ -2251,15 +2254,11 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             if((g_bt_app->bt_state == BT_STATE_ON)){
                 fprintf( stdout, "Disable Gattstest \n");
                 if (gattstest) {
-                    if(!disable) {
                     gattstest->DisableGATTSTEST();
                     gattstest->~GattsTest();
-                    disable = true;
-              } else {
-                fprintf(stdout,"Disable was already performed \n");
-              }
+                    gattstest = NULL;
                 } else {
-                    fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                    fprintf( stdout, "Do Init first \n ");
                 }
              } else {
                 fprintf( stdout, "BT is in OFF State now \n");
@@ -2273,7 +2272,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                         string deviceAddress = user_cmd[ONE_PARAM];
                         gattstest->CancelConnection(deviceAddress);
                     } else {
-                        fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                        fprintf( stdout, "Do Init first \n ");
                     }
                 } else {
                     fprintf(stdout,"BD address is NULL/Invalid \n");
