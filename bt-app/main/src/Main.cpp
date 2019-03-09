@@ -70,8 +70,6 @@ using namespace btapp;
 #endif
 #define LOGTAG  "MAIN "
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
-#define SOCKETNAME  "/data/misc/bluetooth/btprop"
-static int bt_prop_socket;
 int server_num;
 bool file_read = 0;
 
@@ -118,30 +116,6 @@ extern "C"
 thread_t *test_thread_id = NULL;
 ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,split
 static void SendDisableCmdToGap();
-void opensocket()
-{
-     int len;    /* length of sockaddr */
-      struct sockaddr_un name;
-      if( (bt_prop_socket = socket(AF_UNIX, SOCK_STREAM, 0) ) < 0) {
-        perror("socket");
-        exit(1);
-      }
-      /*Create the address of the server.*/
-      memset(&name, 0, sizeof(struct sockaddr_un));
-      name.sun_family = AF_UNIX;
-      strlcpy(name.sun_path, SOCKETNAME, sizeof(name.sun_path));
-      len = sizeof(name.sun_family) + strlen(name.sun_path);
-      /*Connect to the server.*/
-     if (connect(bt_prop_socket, (struct sockaddr *) &name, len) < 0){
-        perror("connect");
-        exit(1);
-      }
-}
-void closesocket()
-{
-    shutdown(bt_prop_socket, SHUT_RDWR);
-    close(bt_prop_socket);
-}
 
 /**
  * @brief main function
@@ -4006,7 +3980,6 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
         ALOGE (LOGTAG " Unable to open config file");
         return false;
     }
-    opensocket();
     is_bt_ext_ldo = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_EXT_POWER, false);
     if(is_bt_ext_ldo){
@@ -4031,7 +4004,6 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
         property_set("persist.service.bdroid.soclog", "false");
     }
 
-    closesocket();
     // checking for the BT Enable option in config file
     is_bt_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_DEFAULT, false);
