@@ -115,6 +115,8 @@ void BtHidMsgHandler(void *msg) {
         case HID_API_SET_PROTOCOL_REQ:
         case HID_API_GET_REPORT_REQ:
         case HID_API_SET_REPORT_REQ:
+        case HID_API_CONFIGURE_MTU_EVENT:
+        case HID_API_CONN_UPDATED_EVENT:
         if(pHid) {
             pHid->ProcessHidRequest(( BtEvent *) msg);
         }
@@ -231,8 +233,27 @@ static bthh_callbacks_t sBluetoothHidCallbacks = {
     handshake_cb
 };
 
-static void raw_hid_data_cb(uint8_t* rpt, uint16_t len,bool rpt_id_flag){
-    ALOGD(LOGTAG " raw_hid_data_cb ");
+static void cfg_mtu_cb(const RawAddress& bda, uint16_t mtu, uint8_t hh_status) {
+    ALOGD(LOGTAG "cfg_mtu_cb: bda %s mtu %d",bda.ToString().c_str(), mtu);
+    if(hh_status !=   BTHH_OK )
+        return;
+    fprintf(stdout, "cfg_mtu_cb: bda %s mtu %d",bda.ToString().c_str(), mtu);
+}
+
+static void conn_params_cb(const RawAddress& bda, uint16_t interval,
+                       uint16_t latency, uint16_t timeout, uint8_t hh_status) {
+    ALOGD(LOGTAG "conn_params_cb: bda %s interval %d latency %d timeout %d",
+                  bda.ToString().c_str(), interval, latency, timeout);
+    if(hh_status !=   BTHH_OK )
+        return;
+    fprintf(stdout, "conn_params_cb: bda %s interval %d latency %d timeout %d",
+                              bda.ToString().c_str(), interval, latency, timeout);
+
+}
+
+static void raw_hid_data_cb(const RawAddress& bda, uint8_t* rpt, uint16_t len,
+                                                             bool rpt_id_flag) {
+    ALOGD(LOGTAG " raw_hid_data_cb: bda %s", bda.ToString().c_str());
     uint8_t *rpt_data;
     uint8_t rpt_id;
     uint8_t rpt_len;
@@ -309,6 +330,8 @@ static void raw_hid_data_cb(uint8_t* rpt, uint16_t len,bool rpt_id_flag){
 static bthh_vendor_callbacks_t sBtHhVendorCallbacks = {
     sizeof(sBtHhVendorCallbacks),
     raw_hid_data_cb,
+    cfg_mtu_cb,
+    conn_params_cb,
 };
 
 /*Constructor and Destructor Structure of the Class*/
@@ -477,7 +500,38 @@ void HidH::ProcessHidRequest(BtEvent* pEvent){
             }
 
        }
-   }
+    }
+    if(isDeviceinHidList(pEvent->hogp_conn_params_event.bd_addr)) //Device in HID List
+    {
+        list<HidDevice>::iterator iter;
+        switch(pEvent->event_id){
+            case HID_API_CONN_UPDATED_EVENT:
+                 bdaddr_to_string(&pEvent->hid_profile_event.bd_addr, str, 18);
+                 fprintf(stdout, "Handling conn update for HID device %s\n", str);
+                 if (sBtHhVendorInterface != NULL) {
+                     sBtHhVendorInterface->conn_parameter_update(pEvent->hogp_conn_params_event.bd_addr,
+                      pEvent->hogp_conn_params_event.min_int, pEvent->hogp_conn_params_event.max_int,
+                      pEvent->hogp_conn_params_event.latency, pEvent->hogp_conn_params_event.timeout, 0, 0);
+                 }
+                 break;
+        }
+    }
+    if(isDeviceinHidList(pEvent->hogp_cfg_mtu_event.bd_addr)) //Device in HID List
+    {
+        list<HidDevice>::iterator iter;
+        iter = FindDeviceByAddr(hid_list, pEvent->hogp_cfg_mtu_event.bd_addr);
+        if(iter != hid_list.end() && iter->state== HIDH_STATE_CONNECTED){
+            switch(pEvent->event_id){
+                case HID_API_CONFIGURE_MTU_EVENT:
+                    bdaddr_to_string(&pEvent->hid_profile_event.bd_addr, str, 18);
+                    fprintf(stdout, "Handling config mtu for HID device %s\n", str);
+                    if (sBtHhVendorInterface != NULL) {
+                        sBtHhVendorInterface->configure_mtu(pEvent->hogp_cfg_mtu_event.bd_addr, pEvent->hogp_cfg_mtu_event.mtu);
+                    }
+                    break;
+            }
+        }
+    }
 }
 
 list<HidDevice>::iterator HidH::FindDeviceByAddr(list<HidDevice>& phidDev, bt_bdaddr_t dev) {
