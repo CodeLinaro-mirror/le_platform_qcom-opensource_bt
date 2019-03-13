@@ -571,7 +571,9 @@ typedef enum {
     HID_API_GET_PROTOCOL_REQ,
     HID_API_VIRTUAL_UNPLUG_REQ,
     HID_API_BONDED_HID_LIST,
-    HID_API_BONDED_LIST_REQ
+    HID_API_BONDED_LIST_REQ,
+    HID_API_CONFIGURE_MTU_EVENT,
+    HID_API_CONN_UPDATED_EVENT
 } BluetoothEventId;
 
 typedef struct {
@@ -1651,6 +1653,22 @@ typedef struct {
     int                idleTime;
 } HIDProfileEvent;
 
+typedef struct{
+    BluetoothEventId   event_id;
+    bt_bdaddr_t        bd_addr;
+    int                mtu;
+} HOGPConfigureMtuEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    bt_bdaddr_t bd_addr;
+    uint16_t min_int;
+    uint16_t max_int;
+    uint16_t latency;
+    uint16_t timeout;
+} HOGPConnUpdateEvent;
+
 typedef union {
     BluetoothEventId                        event_id;
     GapAppEvent                             state_event;
@@ -1783,6 +1801,8 @@ typedef union {
     OppEvent                                opp_event;
 #endif
     HIDProfileEvent                         hid_profile_event;
+    HOGPConfigureMtuEvent                   hogp_cfg_mtu_event;
+    HOGPConnUpdateEvent                     hogp_conn_params_event;
     BtIpcMsgEvent                           bt_ipc_msg_event;
 } BtEvent;
 

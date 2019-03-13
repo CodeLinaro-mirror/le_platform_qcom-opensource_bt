@@ -1525,6 +1525,25 @@ static void HandleHIDCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             PostMessage (THREAD_ID_HID, event);
             break;
 
+        case CFG_MTU:
+            event = new BtEvent;
+            event->hogp_cfg_mtu_event.event_id = HID_API_CONFIGURE_MTU_EVENT;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hogp_cfg_mtu_event.bd_addr);
+            event->hogp_cfg_mtu_event.mtu= atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
+        case CONN_PARAMS:
+            event = new BtEvent;
+            event->hogp_conn_params_event.event_id = HID_API_CONN_UPDATED_EVENT;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hogp_conn_params_event.bd_addr);
+            event->hogp_conn_params_event.min_int = atoi(user_cmd[TWO_PARAM]);
+            event->hogp_conn_params_event.max_int = atoi(user_cmd[THREE_PARAM]);
+            event->hogp_conn_params_event.latency = atoi(user_cmd[FOUR_PARAM]);
+            event->hogp_conn_params_event.timeout = atoi(user_cmd[FIVE_PARAM]);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
         case HID_BONDED_LIST:
             event = new BtEvent;
             event->hid_profile_event.event_id = HID_API_BONDED_LIST_REQ;

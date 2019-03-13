@@ -323,6 +323,8 @@ typedef enum {
     GET_REPORT,
     VIRTUAL_UNPLUG,
     HID_BONDED_LIST,
+    CFG_MTU,
+    CONN_PARAMS,
     SET_AFH_CHANNELS,
     SEND_HCI_COMMAND,
     BACK_TO_MAIN,
@@ -645,6 +647,8 @@ UserMenuList HidMenu[] = {
     {VIRTUAL_UNPLUG,  "virtual_unplug",    ONE_PARAM,    "virtual_unplug<space><bt_address>"},
     {GET_REPORT,    "get_report",        FOUR_PARAM,   "get_report<space>bt_address<space><reportType><space><reportId><space><bufSize>"},
     {SET_REPORT,    "set_report",        FOUR_PARAM,   "set_report<space>bt_address<space><reportType><space><reportString><space><size>"},
+    {CFG_MTU,       "cfg_mtu",           TWO_PARAM,   "cfg_mtu<space>bt_address<space><size>"},
+    {CONN_PARAMS,   "conn_params",       FIVE_PARAM,   "conn_params<space>bt_address<space><min_int><space><max_int><space><latency><space><timeout>"},
     {BACK_TO_MAIN,    "main_menu",         ZERO_PARAM,   "main_menu"},
 };
 #ifdef USE_BT_OBEX
