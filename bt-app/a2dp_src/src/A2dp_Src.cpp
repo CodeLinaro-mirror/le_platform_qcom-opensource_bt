@@ -467,7 +467,7 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs){
     int i = 0, j = 0, k = 0;
     char output_list[COMMAND_ARG_SIZE][COMMAND_ARG_SIZE];
     int codec_params_list_size;
-    int codec_prio = MAX_NUM_CODEC_CONFIGS;
+    int codec_prio = BTAV_A2DP_CODEC_PRIORITY_HIGHEST;
     a2dpSrcCodecList.clear();
 
     if (*codec_param_list == '\0') {
