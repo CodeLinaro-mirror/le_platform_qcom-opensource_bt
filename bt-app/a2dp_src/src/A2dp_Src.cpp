@@ -55,6 +55,7 @@ using std::string;
 A2dp_Source *pA2dpSource = NULL;
 static pthread_t playback_thread = NULL;
 bool media_playing = false;
+bool media_suspended = false;
 
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
 audio_hw_device_t *a2dp_device = NULL;
@@ -469,19 +470,27 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
         }
         switch(key_id) {
         case CMD_ID_PLAY:
-            if (media_playing)
+            if (media_playing && media_suspended){
+                media_suspended = false;
                 BtA2dpResumeStreaming();
-            else
+            } else if (!media_playing){
+                media_suspended = false;
                 BtA2dpStartStreaming();
+            }
             break;
         case CMD_ID_PAUSE:
             /*Pause key id is mapped to A2dp suspend*/
-            BtA2dpSuspendStreaming();
+            if (media_playing && !media_suspended){
+                media_suspended = true;
+                BtA2dpSuspendStreaming();
+            }
             break;
         case CMD_ID_STOP:
             /*Pause and Stop passthrough commands are handled here*/
-            media_playing = false;
-            BtA2dpStopStreaming();
+            if (media_playing && !media_suspended){
+                media_playing = false;
+                BtA2dpStopStreaming();
+            }
             break;
         default:
             ALOGD(LOGTAG_AVRCP " Command not supported ");
@@ -731,7 +740,7 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
         case A2DP_SOURCE_AUDIO_STARTED:
         case A2DP_SOURCE_AUDIO_SUSPENDED:
         case A2DP_SOURCE_AUDIO_STOPPED:
-            fprintf(stdout, "A2DP Source Audio state changes to: %d ", pEvent->event_id);
+            fprintf(stdout, "A2DP Source Audio state changes to: %d \n", pEvent->event_id);
             break;
         default:
             fprintf(stdout, "Event not processed in connected state %d ", pEvent->event_id);
