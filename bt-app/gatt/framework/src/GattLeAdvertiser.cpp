@@ -29,6 +29,10 @@ GattLeAdvertiser *GattLeAdvertiser::sGattLeAdvertiser = new GattLeAdvertiser();
 
 GattLeAdvertiser* GattLeAdvertiser::getGattLeAdvertiser()
 {
+  if(sGattLeAdvertiser == NULL) {
+    ALOGE(LOGTAG " GattLeAdvertiser singleTon instance destroyed");
+    sGattLeAdvertiser = new GattLeAdvertiser();
+  }
   return sGattLeAdvertiser;
 }
 

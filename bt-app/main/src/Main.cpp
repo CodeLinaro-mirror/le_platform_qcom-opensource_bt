@@ -2211,6 +2211,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, "Unregister Server \n");
                 if (gattstest) {
                     bool status = gattstest->UnregisterServer(user_cmd[ONE_PARAM]);
+                    server_num --;
                     if(status)
                     {
                         fprintf(stdout,"Server unregistered succesfully \n");
@@ -2231,6 +2232,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     gattstest->DisableGATTSTEST();
                     gattstest->~GattsTest();
                     gattstest = NULL;
+                    server_num = 0;
                 } else {
                     fprintf( stdout, "Do Init first \n ");
                 }

@@ -745,7 +745,7 @@ bool GattsTest::ReadAdvertiserConfigFile()
     line_num = 0;
   }
   madvertiser = GattLeAdvertiser::getGattLeAdvertiser();
-  ALOGD(LOGTAG"File reading done \n");
+  ALOGD(LOGTAG"File reading done mAdvertiser %p ", madvertiser);
   infile.close();
   return true;
 }
@@ -1228,6 +1228,7 @@ bool GattsTest::DisableGATTSTEST()
   }
   advCBInstanceMap.clear();
   delete(madvertiser);
+  num_of_server = 0;
   return true;
 }
 
