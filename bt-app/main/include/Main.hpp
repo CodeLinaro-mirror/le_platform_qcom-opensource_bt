@@ -287,6 +287,8 @@ typedef enum {
     HFP_CLIENT,
     CREATE_SCO_CONN,
     DESTROY_SCO_CONN,
+    VOIP_CALL_IND,
+    END_VOIP_CALL,
     ACCEPT_CALL,
     REJECT_CALL,
     END_CALL,
@@ -705,6 +707,8 @@ UserMenuList HfpAGMenu[] = {
     {DISCONNECT,            "disconnect",    ONE_PARAM,    "disconnect<space><bt_address>"},
     {CREATE_SCO_CONN,       "create_sco",    ONE_PARAM,    "create_sco<space><bt_address>"},
     {DESTROY_SCO_CONN,      "destroy_sco",   ONE_PARAM,    "destroy_sco<space><bt_address>"},
+    {VOIP_CALL_IND,         "voip_call_ind",   ONE_PARAM,    "voip_call_ind<space><bt_address>"},
+    {END_VOIP_CALL,         "end_voip_call",   ONE_PARAM,    "end_voip_call<space><bt_address>"},
 #if defined(BT_MODEM_INTEGRATION)
     {ACCEPT_CALL,           "accept_call",   ZERO_PARAM,   "accept_call"},
     {REJECT_CALL,           "reject_call",   ZERO_PARAM,   "reject_call"},

@@ -580,6 +580,12 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_DISCONNECTING_CB:
             break;
+        case HFP_AG_VOIP_CALL_INDICATION:
+            VoipCallInd(&pEvent->hfp_ag_event.bd_addr);
+            break;
+        case HFP_AG_VOIP_CALL_TERMINATION:
+            EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            break;
         case HFP_AG_VR_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
             fprintf(stdout, "VR start/stop req from device %s", str);
@@ -603,7 +609,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #endif
             break;
         case HFP_AG_HANGUP_CALL_CB:
-            // OK will be sent from stack itself.
+            EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
 #if defined(BT_MODEM_INTEGRATION)
             end_call(BTHF_CALL_STATE_ACTIVE);
 #endif
@@ -616,9 +622,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
             dial_call(pEvent->hfp_ag_event.str, &pEvent->hfp_ag_event.bd_addr);
 #else
-            if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
-            }
+            VoipCallInd(&pEvent->hfp_ag_event.bd_addr);
 #endif
             break;
         case HFP_AG_CIND_CB:
@@ -875,6 +879,12 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 #endif
             change_state(HFP_AG_STATE_CONNECTED);
             break;
+        case HFP_AG_VOIP_CALL_INDICATION:
+            VoipCallInd(&pEvent->hfp_ag_event.bd_addr);
+            break;
+        case HFP_AG_VOIP_CALL_TERMINATION:
+            EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            break;
         case HFP_AG_VR_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
             fprintf(stdout, "VR start/stop req from device %s", str);
@@ -900,7 +910,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 #endif
             break;
         case HFP_AG_HANGUP_CALL_CB:
-            // OK will be sent from stack itself.
+            EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
 #if defined(BT_MODEM_INTEGRATION)
             end_call(BTHF_CALL_STATE_ACTIVE);
 #endif
@@ -913,9 +923,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
             dial_call(pEvent->hfp_ag_event.str, &pEvent->hfp_ag_event.bd_addr);
 #else
-            if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
-            }
+            VoipCallInd(&pEvent->hfp_ag_event.bd_addr);
 #endif
             break;
         case HFP_AG_CIND_CB:
@@ -1087,6 +1095,46 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 
 void Hfp_Ag::ConfigureAudio(bool enable) {
 
+}
+
+bool Hfp_Ag::VoipCallInd(bt_bdaddr_t *bd_addr) {
+    char str[18];
+    ALOGD(LOGTAG, "%s", __func__);
+    if(memcmp(bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
+        bdaddr_to_string(bd_addr, str, 18);
+        ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+        fprintf(stdout, "Device not connected: %s\n", str);
+        return false;
+    }
+    if(sBtHfpAgInterface != NULL) {
+        sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        usleep(20000);
+        sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_ALERTING,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        usleep(20000);
+        sBtHfpAgInterface->phone_state_change(1,0,BTHF_CALL_STATE_IDLE,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        return true;
+    }
+    return false;
+}
+
+bool Hfp_Ag::EndVoipCall(bt_bdaddr_t *bd_addr) {
+    char str[18];
+    ALOGD(LOGTAG, "%s", __func__);
+    if(memcmp(bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
+        bdaddr_to_string(bd_addr, str, 18);
+        ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+        fprintf(stdout, "Device not connected: %s\n", str);
+        return false;
+    }
+    if(sBtHfpAgInterface != NULL) {
+        sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_IDLE,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        return true;
+    }
+    return false;
 }
 
 #if defined(BT_MODEM_INTEGRATION)

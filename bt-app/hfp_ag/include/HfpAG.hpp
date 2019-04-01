@@ -190,6 +190,8 @@ class Hfp_Ag {
     void HandleEnableAg();
     void HandleDisableAg();
     void ConfigureAudio(bool enable);
+    bool VoipCallInd(bt_bdaddr_t *bd_addr);
+    bool EndVoipCall(bt_bdaddr_t *bd_addr);
     void process_at_bind(BtEvent* pEvent);
     void process_at_biev(BtEvent* pEvent);
 #if defined(BT_MODEM_INTEGRATION)
