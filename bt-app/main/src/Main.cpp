@@ -578,6 +578,14 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
+        case POWER:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_POWER;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
         case VOL_UP:
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));
@@ -591,6 +599,14 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             memset(event, 0, sizeof(BtEvent));
             event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
             event->avrcpCtrlPassThruEvent.key_id = CMD_ID_VOL_DOWN;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
+            PostMessage (THREAD_ID_AVRCP, event);
+            break;
+        case MUTE:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_MUTE;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
             PostMessage (THREAD_ID_AVRCP, event);
             break;

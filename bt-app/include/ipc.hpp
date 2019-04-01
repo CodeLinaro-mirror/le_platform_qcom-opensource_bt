@@ -66,8 +66,10 @@ extern thread_t *g_pbapc_thread;
 #define MAX_BD_STR_LEN          (18)
 #define BT_IPC_MSG_LEN 2
 
+#define CMD_ID_POWER            0x40
 #define CMD_ID_VOL_UP           0x41
 #define CMD_ID_VOL_DOWN         0x42
+#define CMD_ID_MUTE             0x43
 #define CMD_ID_PLAY             0x44
 #define CMD_ID_STOP             0x45
 #define CMD_ID_PAUSE            0x46
