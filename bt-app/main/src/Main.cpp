@@ -1161,6 +1161,18 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
+        case VOIP_CALL_IND:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_INDICATION;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case END_VOIP_CALL:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_TERMINATION;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
         case ACCEPT_CALL:
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_API_ACCEPT_CALL_REQ;
