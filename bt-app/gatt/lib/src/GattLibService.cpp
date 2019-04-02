@@ -2175,8 +2175,12 @@ void GattLibService::sendNotification(int serverIf, string address, int handle, 
     return;
   }
 
-  size_t len = strlen((char*)value);
-  std::vector<uint8_t> val_vec(&value[0], &value[len]);
+  std::vector<uint8_t> val_vec;
+  if(value != NULL) {
+    size_t len = strlen((char*)value);
+    val_vec.assign(&value[0], &value[len]);
+  }
+
   if (confirm) {
     mNative->gattServerSendIndicationNative(serverIf, handle, connId, val_vec);
   } else {
@@ -2619,7 +2623,7 @@ void GattLibService::HandleGattcReadCharacteristicEvent(
   if (!sGattService) return;
   uint8_t *value = NULL;
   if (event->status == 0) {
-    value = new uint8_t[event->p_data.value.len];
+    value = new uint8_t[event->p_data.value.len+1];
     std::memcpy(value, &event->p_data.value.value, event->p_data.value.len);
     value[event->p_data.value.len] = '\0';
   }
@@ -2645,7 +2649,7 @@ void GattLibService::HandleGattcReadDescriptorEvent(GattcReadDescriptorEvent *ev
   if (!sGattService) return;
   uint8_t *value = NULL;
   if (event->p_data.value.len != 0) {
-    value = new uint8_t[event->p_data.value.len];
+    value = new uint8_t[event->p_data.value.len+1];
     std::memcpy(value, &event->p_data.value.value, event->p_data.value.len);
     value[event->p_data.value.len] = '\0';
   }
@@ -2790,12 +2794,13 @@ void GattLibService::HandleGattsRequestWriteCharacteristicEvent(
 {
   if (!sGattService) return;
   uint8_t len = event->value->size();
-  uint8_t *p_value = new uint8_t[len];
+  uint8_t *p_value = new uint8_t[len+1];
   if (len == 0) {
     ALOGE(LOGTAG "HandleGattsRequestWriteCharacteristicEvent () - Data is NULL");
   }
   else {
-    p_value = event->value->data();
+    std::memcpy(p_value, event->value->data(), len);
+    p_value[len] = '\0';
   }
   sGattService->onServerWriteCharacteristic(*(event->bda), event->conn_id, event->trans_id,
                                         event->attr_handle, event->offset, event->value->size(),
@@ -2807,12 +2812,13 @@ void GattLibService::HandleGattsRequestWriteDescriptorEvent(
 {
   if (!sGattService) return;
   uint8_t len = event->value->size();
-  uint8_t *p_value = new uint8_t[len];
+  uint8_t *p_value = new uint8_t[len+1];
   if (len == 0) {
     ALOGE(LOGTAG "HandleGattsRequestWriteDescriptorEvent () - Data is NULL");
   }
   else {
-    p_value = event->value->data();
+    std::memcpy(p_value, event->value->data(), len);
+    p_value[len] = '\0';
   }
   sGattService->onServerWriteDescriptor(*(event->bda), event->conn_id, event->trans_id,
                                            event->attr_handle, event->offset, event->value->size(),
