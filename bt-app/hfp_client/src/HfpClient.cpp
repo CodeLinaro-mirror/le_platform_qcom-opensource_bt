@@ -1446,6 +1446,11 @@ void Hfp_Client::change_mode(HfpClientMode mode) {
    pthread_mutex_unlock(&lock);
 }
 
+HfpClientState Hfp_Client::GetState(){
+    ALOGD(LOGTAG " %s current state = %d ", __FUNCTION__, mClientState);
+    return mClientState;
+}
+
 Hfp_Client :: Hfp_Client(const bt_interface_t *bt_interface, config_t *config) {
     this->bluetooth_interface = bt_interface;
     this->config = config;
