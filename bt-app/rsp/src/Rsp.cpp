@@ -279,6 +279,7 @@ class serverCallback :public BluetoothGattServerCallback
            fprintf(stdout,"btgatts_service_added_cb \n");
            if (status == BT_STATUS_SUCCESS) {
               GattsServiceAddedEvent event;
+               event.status= BT_STATUS_SUCCESS;
                event.event_id =RSP_ENABLE_EVENT;
                event.server_if = server_if;
                memcpy(&event.srvc_id, srvc_id,sizeof(btgatt_srvc_id_t));
@@ -302,6 +303,7 @@ class serverCallback :public BluetoothGattServerCallback
            fprintf(stdout,"btgatts_characteristic_added_cb \n");
            if (status == BT_STATUS_SUCCESS) {
                GattsCharacteristicAddedEvent event;
+               event.status= BT_STATUS_SUCCESS;
                event.event_id =RSP_ENABLE_EVENT;
                event.server_if = server_if;
                memcpy(&event.char_id, char_id, sizeof(bt_uuid_t));
@@ -320,6 +322,7 @@ class serverCallback :public BluetoothGattServerCallback
            fprintf(stdout,"btgatts_descriptor_added_cb \n");
            if (status == BT_STATUS_SUCCESS) {
                GattsDescriptorAddedEvent event;
+               event.status= BT_STATUS_SUCCESS;
                event.event_id =RSP_ENABLE_EVENT;
                event.server_if = server_if;
                memcpy(&event.descr_id, descr_id,sizeof(bt_uuid_t));
@@ -617,12 +620,14 @@ bool Rsp::EnableRSP()
     fprintf(stdout," set rsp data \n");
     SetRSPAttrData(&rev);
     RegisterApp();
+    return true;
 }
 
 bool Rsp::DisableRSP()
 {
     fprintf(stdout, "(%s) Disable RSP Initiated",__FUNCTION__);
     StopService();
+    return true;
 }
 
 bool Rsp::RegisterApp()
@@ -677,6 +682,7 @@ bool Rsp::ClientSetAdvData(char *str)
                                                 IncludeName, IncludeTxPower, min_conn_interval,
                                                 max_conn_interval, 0,strlen(str), str,
                                                 strlen(str), str, 0,NULL);
+	return true;
 }
 
 void Rsp::CleanUp(int server_if)

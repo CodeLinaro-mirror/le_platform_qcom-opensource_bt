@@ -1189,7 +1189,7 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case DIAL:
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_API_DIAL_REQ;
-            strncpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
+            strlcpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], sizeof(event->hfp_ag_event.str));
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
         case START_VR:
@@ -1351,6 +1351,7 @@ void HandleOnOffTest (void *context) {
             if ( pr > 0 ) {
                 ALOGI (LOGTAG "######## on_off enable timeout : %d/%d ########", index + 1, num);
                 fprintf( stdout, "######## on_off enable timeout : %d/%d ########\n", index + 1, num);
+		   /*trigger ramdump to debug if timeout happens*/
                 *(volatile unsigned * const)0x00 = 0xdead;
             } else {
                 ALOGI (LOGTAG "######## on_off enable error : %d/%d ########", index + 1, num);
@@ -1369,6 +1370,7 @@ void HandleOnOffTest (void *context) {
             if ( pr > 0) {
                 ALOGI (LOGTAG "******** on_off disable timeout : %d/%d ********", index + 1, num);
                 fprintf( stdout, "******** on_off disable timeout : %d/%d ********\n", index + 1, num);
+		   /*trigger ramdump to debug if timeout happens*/
                 *(volatile unsigned * const)0x00 = 0xdead;
             } else {
                 ALOGI (LOGTAG "******** on_off disable error : %d/%d ********", index + 1, num);
@@ -2631,6 +2633,7 @@ bool BluetoothApp :: HandlePinInput(char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 
     memset(&pin_reply.pincode, 0, sizeof(bt_pin_code_t));
+/*strlen(user_cmd[ZERO_PARAM]) <= 16 at here*/
     memcpy(&pin_reply.pincode.pin, user_cmd[ZERO_PARAM],
                         strlen(user_cmd[ZERO_PARAM]));
     memcpy(&bt_event->pin_reply_event.bd_addr, &pin_reply.bd_addr,

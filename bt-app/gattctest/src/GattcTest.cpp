@@ -100,7 +100,7 @@ static char *uuid_to_string(const bt_uuid_t *uuid, char *buf)
 
 /* service_id formating function */
 char *service_id_to_string(const btgatt_srvc_id_t *srvc_id, char *buf) {
-    char uuid_buf[UUID_STR_LEN];
+    char uuid_buf[COPYMAXLEN];
     snprintf(buf,COPYMAXLEN,"{%s,%d,%d}", uuid_to_string(&srvc_id->id.uuid,
     uuid_buf),srvc_id->id.inst_id,srvc_id->is_primary);
     return buf;
@@ -109,7 +109,7 @@ char *service_id_to_string(const btgatt_srvc_id_t *srvc_id, char *buf) {
 
 static char *gatt_id_to_string(const btgatt_gatt_id_t *char_id, char *buf)
 {
-    char uuid_buf[UUID_STR_LEN];
+    char uuid_buf[COPYMAXLEN];
 
     snprintf(buf,COPYMAXLEN, "{%s,%d}", uuid_to_string(&char_id->uuid, uuid_buf),
     char_id->inst_id);

@@ -186,7 +186,7 @@ void dial_call_callback(char *number, bt_bdaddr_t* bd_addr) {
     if (number == NULL)
        pEvent->hfp_ag_event.str[0] = '\0';
     else
-       strncpy(pEvent->hfp_ag_event.str, number, strlen(number));
+       strlcpy(pEvent->hfp_ag_event.str, number, sizeof(pEvent->hfp_ag_event.str));
 
     pEvent->hfp_ag_event.event_id = HFP_AG_DIAL_CALL_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
@@ -296,7 +296,7 @@ void bind_cmd_vendor_cb(char* hf_ind, bthf_vendor_bind_type_t type, bt_bdaddr_t*
     fprintf(stdout, " bind_cmd_vendor_cb\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-    strncpy(pEvent->hfp_ag_event.str, hf_ind, strlen(hf_ind));
+    strlcpy(pEvent->hfp_ag_event.str, hf_ind, sizeof(pEvent->hfp_ag_event.str));
     pEvent->hfp_ag_event.arg1 = type;
     pEvent->hfp_ag_event.event_id = HFP_AG_BIND_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
@@ -308,7 +308,7 @@ void biev_cmd_vendor_cb(char* hf_ind_val, bt_bdaddr_t* bd_addr) {
     fprintf(stdout, " biev_cmd_vendor_cb\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-    strncpy(pEvent->hfp_ag_event.str, hf_ind_val, strlen(hf_ind_val));
+    strlcpy(pEvent->hfp_ag_event.str, hf_ind_val, sizeof(pEvent->hfp_ag_event.str));
     pEvent->hfp_ag_event.event_id = HFP_AG_BIEV_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
 }
@@ -1775,13 +1775,12 @@ void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
       }
    }
    else if(type == 2) {
-       char str[256] = "(", temp_str[5];
+       char str[256] = "(";
+       int n_str = 1;
 
-       for(int i = 0; i < MAX_HF_INDICATORS; i++) {
-           sprintf(temp_str, "%d,", i+1);
-           strcat(str, temp_str);
-       }
-       str[strlen(str) - 1] = ')';
+       for(int i = 0; i < MAX_HF_INDICATORS; i++)
+           n_str += snprintf(str + n_str, sizeof(str) - n_str, "%d,", i+1);
+       str[n_str - 1] = ')';
 
        if (sBtHfpAgVendorInterface != NULL) {
           sBtHfpAgVendorInterface->bind_string_response_vendor(str, &pEvent->hfp_ag_event.bd_addr);

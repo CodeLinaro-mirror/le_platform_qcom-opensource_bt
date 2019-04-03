@@ -1193,6 +1193,8 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
              break;
         case A2DP_SINK_AUDIO_STARTED:
         case A2DP_SINK_FOCUS_REQUEST_CB:
+            if(NULL == pA2dpSinkStream)
+	            break;
             bdaddr_to_string(&pA2dpSinkStream->mStreamingDevice, str, 18);
             ALOGD(LOGTAG " current streaming device %s", str);
 

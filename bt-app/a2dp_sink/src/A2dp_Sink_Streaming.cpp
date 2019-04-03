@@ -167,14 +167,14 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             break;
         case A2DP_SINK_STREAMING_FETCH_PCM_DATA:
             ALOGD(LOGTAG " A2DP_SINK_STREAMING_FETCH_PCM_DATA");
-            if (pA2dpSinkStream) {
-                if (!pA2dpSinkStream->enable_notification_cb) {
-                    if (!pA2dpSinkStream->pcm_timer) {
-                        ALOGD(LOGTAG " pcm_timer already false, don't fetch data");
-                        break;
-                    }
-                    pA2dpSinkStream->pcm_timer = false;
+	      if (NULL == pA2dpSinkStream)
+			break;
+            if (!pA2dpSinkStream->enable_notification_cb) {
+                if (!pA2dpSinkStream->pcm_timer) {
+                    ALOGD(LOGTAG " pcm_timer already false, don't fetch data");
+                    break;
                 }
+                pA2dpSinkStream->pcm_timer = false;
             }
 #if (defined USE_GST)
             uint8_t * data;
@@ -677,14 +677,14 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
 
 void compress_audio_feed_handler(void *context) {
     ALOGV(LOGTAG " compress_audio_feed_handler ");
+	if (NULL == pA2dpSinkStream)
+		return;
 
     pA2dpSinkStream->compress_offload_timer = false;
     BtEvent *pEvent = new BtEvent;
     pEvent->a2dpSinkStreamingEvent.event_id = A2DP_SINK_FILL_COMPRESS_BUFFER;
-    if (pA2dpSinkStream) {
-        thread_post(pA2dpSinkStream->threadInfo.thread_id,
-        pA2dpSinkStream->threadInfo.thread_handler, (void*)pEvent);
-    }
+    thread_post(pA2dpSinkStream->threadInfo.thread_id,
+		    pA2dpSinkStream->threadInfo.thread_handler, (void*)pEvent);
 }
 
 void A2dp_Sink_Streaming::StartCompressAudioFeedTimer() {

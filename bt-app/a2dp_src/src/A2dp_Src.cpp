@@ -2859,7 +2859,7 @@ void A2dp_Source::SendEncodedData(){
     uint8_t sbc_frame_size=0;
     uint16_t data_pushed = 0;
     uint8_t rtp_header =0;
-    A2DP_SBC_FRAME sbc_frame;
+    A2DP_SBC_FRAME sbc_frame = {0x00};
     uint8_t* p_buf = (uint8_t*)osi_malloc(MTU_src);
     if(p_buf == NULL)
     {
@@ -3129,6 +3129,7 @@ uint8_t A2dp_Source::get_a2dp_sbc_block_len(uint8_t blocklen) {
         case SBC_BLOCKS_16:
             return 16;
     }
+    return 0;
 }
 
 uint8_t A2dp_Source::get_a2dp_sbc_sub_band(uint8_t subband) {
@@ -3138,6 +3139,7 @@ uint8_t A2dp_Source::get_a2dp_sbc_sub_band(uint8_t subband) {
         case SBC_SUBBAND_8:
             return 8;
     }
+    return 0;
 }
 
 char * A2dp_Source::get_a2dp_sbc_allocation_mth(uint8_t allocation) {

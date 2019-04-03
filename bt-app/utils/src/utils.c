@@ -78,7 +78,7 @@ bool string_to_bdaddr(const char *string, bt_bdaddr_t *addr) {
   assert(string != NULL);
   assert(addr != NULL);
 
-  bt_bdaddr_t new_addr;
+  bt_bdaddr_t new_addr = {{0x00}};
   uint8_t *ptr = new_addr.address;
   bool ret = sscanf(string, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
       &ptr[0], &ptr[1], &ptr[2], &ptr[3], &ptr[4], &ptr[5]) == 6;
