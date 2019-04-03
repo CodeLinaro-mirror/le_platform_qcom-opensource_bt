@@ -1882,6 +1882,7 @@ bt_status_t Gatt::scan( bool start, int client_if )
     if (gatt_interface) {
        return gatt_interface->client->scan( start );
     }
+    return BT_STATUS_NOT_READY;
 }
 
 btgatt_interface_t * Gatt::GetGattInterface()
@@ -1890,6 +1891,7 @@ btgatt_interface_t * Gatt::GetGattInterface()
        return gatt_interface;
     else
        ALOGD(LOGTAG "(%s) gatt interface is null",__FUNCTION__);
+    return NULL;
 }
 
 
@@ -1997,6 +1999,7 @@ bt_status_t Gatt::register_client( bt_uuid_t *client_uuid ) {
             if (gatt_interface) {
                 return gatt_interface->client->register_client(client_uuid);
             }
+	      return BT_STATUS_NOT_READY;
 }
 
 
@@ -2004,6 +2007,7 @@ bt_status_t Gatt::unregister_client(int client_if ) {
             if (gatt_interface) {
                 return gatt_interface->client->unregister_client(client_if);
             }
+		return BT_STATUS_NOT_READY;
 }
 
 
@@ -2014,6 +2018,7 @@ bt_status_t Gatt::clientConnect( int client_if, const bt_bdaddr_t *bd_addr,
                return gatt_interface->client->connect( client_if, bd_addr, is_direct,
                                       transport );
             }
+		return BT_STATUS_NOT_READY;
 }
 
 
@@ -2022,6 +2027,7 @@ bt_status_t Gatt::clientDisconnect( int client_if, const bt_bdaddr_t *bd_addr,
             if (gatt_interface) {
                 return gatt_interface->client->disconnect( client_if, bd_addr, conn_id);
             }
+		return BT_STATUS_NOT_READY;
 }
 
 
@@ -2029,6 +2035,7 @@ bt_status_t Gatt::listen(int client_if, bool start) {
             if (gatt_interface) {
                 return gatt_interface->client->listen(client_if, start);
             }
+		return BT_STATUS_NOT_READY;
 }
 
 
@@ -2036,6 +2043,7 @@ bt_status_t Gatt::refresh( int client_if, const bt_bdaddr_t *bd_addr ) {
             if (gatt_interface) {
                 return gatt_interface->client->refresh( client_if, bd_addr );
             }
+		return BT_STATUS_NOT_READY;
 }
 
 
@@ -2043,6 +2051,7 @@ bt_status_t Gatt::search_service(int conn_id, bt_uuid_t *filter_uuid ) {
             if (gatt_interface) {
                 return gatt_interface->client->search_service(conn_id, filter_uuid );
             }
+		return BT_STATUS_NOT_READY;
 }
 
 bt_status_t Gatt::read_characteristic( int conn_id, uint16_t handle,
@@ -2051,7 +2060,7 @@ bt_status_t Gatt::read_characteristic( int conn_id, uint16_t handle,
             return gatt_interface->client->read_characteristic(conn_id,
                                    handle, auth_req );
         }
-
+		return BT_STATUS_NOT_READY;
 }
 
 bt_status_t Gatt::write_characteristic(int conn_id, uint16_t handle,
@@ -2061,7 +2070,7 @@ bt_status_t Gatt::write_characteristic(int conn_id, uint16_t handle,
             return gatt_interface->client->write_characteristic(conn_id,
                  handle, write_type, len, auth_req, p_value);
         }
-
+		return BT_STATUS_NOT_READY;
 }
 
 
@@ -2071,7 +2080,7 @@ bt_status_t Gatt::read_descriptor(int conn_id, uint16_t handle,
             return gatt_interface->client->read_descriptor(conn_id,
                 handle, auth_req);
         }
-
+		return BT_STATUS_NOT_READY;
 }
 
 
@@ -2082,7 +2091,7 @@ bt_status_t Gatt::write_descriptor(int conn_id, uint16_t handle,
             return gatt_interface->client->write_descriptor( conn_id, handle,
                    write_type, len, auth_req,p_value);
         }
-
+	return BT_STATUS_NOT_READY;
 }
 
 
@@ -2090,9 +2099,8 @@ bt_status_t Gatt::execute_write(int conn_id, int execute) {
         if (gatt_interface) {
             return gatt_interface->client->execute_write(conn_id, execute);
         }
-
+	return BT_STATUS_NOT_READY;
 }
-
 
 bt_status_t Gatt::register_for_notification( int client_if,
                                 const bt_bdaddr_t *bd_addr, uint16_t handle) {
@@ -2100,7 +2108,7 @@ bt_status_t Gatt::register_for_notification( int client_if,
             return gatt_interface->client->register_for_notification(client_if,
                                 bd_addr, handle);
         }
-
+	return BT_STATUS_NOT_READY;
 }
 
 
@@ -2110,7 +2118,7 @@ bt_status_t Gatt::deregister_for_notification( int client_if,
             return gatt_interface->client->deregister_for_notification(client_if,
                                 bd_addr, handle);
         }
-
+	return BT_STATUS_NOT_READY;
 }
 
 
@@ -2118,7 +2126,7 @@ bt_status_t Gatt::read_remote_rssi( int client_if, const bt_bdaddr_t *bd_addr) {
         if (gatt_interface) {
             return gatt_interface->client->read_remote_rssi( client_if, bd_addr);
         }
-
+	return BT_STATUS_NOT_READY;
 }
 
 
@@ -2126,6 +2134,7 @@ bt_status_t Gatt::scan_filter_param_setup(btgatt_filt_param_setup_t filt_param) 
         if (gatt_interface) {
             return gatt_interface->client->scan_filter_param_setup(filt_param);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2142,6 +2151,7 @@ bt_status_t Gatt::scan_filter_add_remove(int client_if, int action, int filt_typ
                    filt_index, company_id,company_id_mask, p_uuid,p_uuid_mask, bd_addr,
                     addr_type, data_len, p_data, mask_len, p_mask);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2150,6 +2160,7 @@ bt_status_t Gatt::scan_filter_clear(int client_if, int filt_index) {
         if (gatt_interface) {
             return gatt_interface->client->scan_filter_clear(client_if, filt_index);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2158,6 +2169,7 @@ bt_status_t Gatt::scan_filter_enable(int client_if, bool enable) {
         if (gatt_interface) {
             return gatt_interface->client->scan_filter_enable(client_if, enable);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2166,6 +2178,7 @@ int Gatt::get_device_type( const bt_bdaddr_t *bd_addr ) {
         if (gatt_interface) {
             return gatt_interface->client->get_device_type( bd_addr );
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2181,6 +2194,7 @@ bt_status_t Gatt::set_adv_data(int client_if, bool set_scan_rsp, bool include_na
                                    max_interval, appearance,manufacturer_len, manufacturer_data,
                                    service_data_len, service_data, service_uuid_len,service_uuid);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2189,6 +2203,7 @@ bt_status_t Gatt::configure_mtu(int conn_id, int mtu) {
         if (gatt_interface) {
             return gatt_interface->client->configure_mtu(conn_id, mtu);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2199,6 +2214,7 @@ bt_status_t Gatt::conn_parameter_update(const bt_bdaddr_t *bd_addr, int min_inte
             return gatt_interface->client->conn_parameter_update(bd_addr, min_interval,
                                 max_interval, latency, timeout) ;
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2207,6 +2223,7 @@ bt_status_t Gatt::set_scan_parameters(int client_if, int scan_interval, int scan
         if (gatt_interface) {
             return gatt_interface->client->set_scan_parameters(client_if, scan_interval, scan_window);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2217,6 +2234,7 @@ bt_status_t Gatt::multi_adv_enable(int client_if, int min_interval,int max_inter
             return gatt_interface->client->multi_adv_enable(client_if, min_interval,max_interval,adv_type,
                          chnl_map, tx_power, timeout_s);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2227,6 +2245,7 @@ bt_status_t Gatt::multi_adv_update(int client_if, int min_interval,int max_inter
             return gatt_interface->client->multi_adv_update(client_if, min_interval,max_interval,adv_type,
                             chnl_map, tx_power, timeout_s);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2240,6 +2259,7 @@ bt_status_t Gatt::multi_adv_set_inst_data(int client_if, bool set_scan_rsp, bool
                                 incl_txpower, appearance, manufacturer_len, manufacturer_data, service_data_len,
                                 service_data, service_uuid_len, service_uuid);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2248,6 +2268,7 @@ bt_status_t Gatt::multi_adv_disable(int client_if) {
         if (gatt_interface) {
             return gatt_interface->client->multi_adv_disable(client_if);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2258,6 +2279,7 @@ bt_status_t Gatt::batchscan_cfg_storage(int client_if, int batch_scan_full_max,
             return gatt_interface->client->batchscan_cfg_storage(client_if, batch_scan_full_max,
                                    batch_scan_trunc_max, batch_scan_notify_threshold);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2268,6 +2290,7 @@ bt_status_t Gatt::batchscan_enb_batch_scan(int client_if, int scan_mode,
             return gatt_interface->client->batchscan_enb_batch_scan(client_if, scan_mode,
                                    scan_interval, scan_window, addr_type, discard_rule);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2276,6 +2299,7 @@ bt_status_t Gatt::batchscan_dis_batch_scan(int client_if) {
         if (gatt_interface) {
             return gatt_interface->client->batchscan_dis_batch_scan(client_if);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2285,6 +2309,7 @@ bt_status_t Gatt::batchscan_read_reports(int client_if, int scan_mode) {
         if (gatt_interface) {
             return gatt_interface->client->batchscan_read_reports(client_if, scan_mode);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2293,6 +2318,7 @@ bt_status_t Gatt::test_command( int command, btgatt_test_params_t* params) {
         if (gatt_interface) {
             return gatt_interface->client->test_command( command, params);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2300,6 +2326,7 @@ bt_status_t Gatt::get_gatt_db(int conn_id) {
         if (gatt_interface) {
             return gatt_interface->client->get_gatt_db(conn_id);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2307,12 +2334,15 @@ bt_status_t Gatt:: register_server( bt_uuid_t *uuid ) {
    if (gatt_interface) {
        return gatt_interface->server->register_server(uuid);
    }
+	return BT_STATUS_NOT_READY;
+
 }
 
 bt_status_t Gatt:: unregister_server(int server_if ) {
         if (gatt_interface) {
             return gatt_interface->server->unregister_server(server_if);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2323,6 +2353,7 @@ bt_status_t Gatt:: serverConnect(int server_if, const bt_bdaddr_t *bd_addr,
             return gatt_interface->server->connect(server_if, bd_addr,
                                                 is_direct, transport);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2332,6 +2363,7 @@ bt_status_t Gatt:: serverDisconnect(int server_if, const bt_bdaddr_t *bd_addr,
         if (gatt_interface) {
             return gatt_interface->server->disconnect(server_if, bd_addr, conn_id);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2340,6 +2372,7 @@ bt_status_t Gatt:: add_service( int server_if, btgatt_srvc_id_t *srvc_id, int nu
         if (gatt_interface) {
             return gatt_interface->server->add_service(server_if, srvc_id, num_handles);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2348,6 +2381,7 @@ bt_status_t Gatt:: add_included_service( int server_if, int service_handle, int 
         if (gatt_interface) {
             return gatt_interface->server->add_included_service( server_if,service_handle, included_handle);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2358,6 +2392,7 @@ bt_status_t Gatt:: add_characteristic( int server_if,
             return gatt_interface->server->add_characteristic(server_if, service_handle, uuid,
                                                             properties, permissions);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2369,6 +2404,7 @@ bt_status_t Gatt:: add_descriptor(int server_if, int service_handle,
                                                         service_handle, uuid,
                                                         permissions);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2379,6 +2415,7 @@ bt_status_t Gatt:: start_service(int server_if, int service_handle,
             return gatt_interface->server->start_service(server_if,
                                                         service_handle, transport);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2388,6 +2425,7 @@ bt_status_t Gatt:: stop_service(int server_if, int service_handle) {
             return gatt_interface->server->stop_service(server_if,
                                                         service_handle);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2396,6 +2434,8 @@ bt_status_t Gatt:: delete_service(int server_if, int service_handle) {
         if (gatt_interface) {
             return gatt_interface->server->delete_service(server_if,service_handle);
         }
+	return BT_STATUS_NOT_READY;
+
 }
 
 
@@ -2406,6 +2446,7 @@ bt_status_t Gatt:: send_indication(int server_if, int attribute_handle,
             return gatt_interface->server->send_indication(server_if, attribute_handle,
                                            conn_id, len, confirm, p_value);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
@@ -2416,6 +2457,7 @@ bt_status_t Gatt:: send_response(int conn_id, int trans_id,
             return gatt_interface->server->send_response(conn_id, trans_id,
                                                          status, response);
         }
+	return BT_STATUS_NOT_READY;
 
 }
 
