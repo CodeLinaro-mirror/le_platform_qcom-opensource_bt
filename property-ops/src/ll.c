@@ -165,7 +165,7 @@ bool __remove_node_from_list(unsigned char* property_name)
 //to be called on deinit
 bool __free_list()
 {
-    bool retval;
+    bool retval = false;
     property_db *ln = glisthead;
     if (__list_is_empty())
     {
@@ -178,6 +178,7 @@ bool __free_list()
             ln = ln->next;
             free(temp);
         }
+        retval = true;
     }
     return retval;
 }
