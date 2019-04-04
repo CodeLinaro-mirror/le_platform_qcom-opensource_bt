@@ -467,7 +467,7 @@ bool start_listeners() {
 
 int main()
 {
-    void **retval;
+    void *retval = NULL;
     bool result = false;
 
     /* Database Initializer */
@@ -499,9 +499,9 @@ int main()
         } else {
             LOG_DEBUG("%s Listeners Started\n ", __func__);
         }
-        pthread_join(conn_listener, retval);
+        pthread_join(conn_listener, &retval);
         LOG_DEBUG("%s conn_listener closed\n ", __func__);
-        pthread_join(io_listener, retval);
+        pthread_join(io_listener, &retval);
         LOG_DEBUG("%s io_listener closed\n ", __func__);
     }
     closelog ();
