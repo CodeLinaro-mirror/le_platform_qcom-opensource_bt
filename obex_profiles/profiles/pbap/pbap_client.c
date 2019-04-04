@@ -1006,6 +1006,7 @@ static void PbapDataCB(OI_OBEXCLI_CONNECTION_HANDLE connectionId,
     }
 
     if (OI_SUCCESS(rcvStatus) || rcvStatus == OI_OBEX_CONTINUE) {
+      if (rspHeaders) {
         OI_PBAP_DumpObexHeaders(rspHeaders);
         for (i = 0; i < rspHeaders->count; i++) {
             hdr = &rspHeaders->list[i];
@@ -1024,6 +1025,7 @@ static void PbapDataCB(OI_OBEXCLI_CONNECTION_HANDLE connectionId,
                 break;
             }
         }
+     }
 
         client->final = (rcvStatus == OI_OK);
 
