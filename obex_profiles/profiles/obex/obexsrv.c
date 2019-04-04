@@ -685,9 +685,10 @@ static OI_STATUS BulkGetWriteCfm(OBEXSRV_CONNECTION *connection,
             /*
              * Cannot report an error status if there is any data queued with lower layer
              */
-            if (connection->bulkGet.head->bytesConfirmed < connection->bulkGet.head->bytesSent) {
-                status = OI_OK;
-            }
+            if (connection->bulkGet.head != NULL)
+              if (connection->bulkGet.head->bytesConfirmed < connection->bulkGet.head->bytesSent) {
+                  status = OI_OK;
+              }
         }
         connection->bulkGet.busy = queueFull;
     }
