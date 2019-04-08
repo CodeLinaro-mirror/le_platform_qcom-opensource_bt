@@ -81,6 +81,7 @@ class AdapterProperties {
             int *num_bonded_devices);
 
         void GetCorePropertyList(int num_properties, bt_property_t *properties);
+        void ClearPropertyList(int num_properties, bt_property_t *properties);
 
     public:
         BdDeviceInfo bt_device_info;

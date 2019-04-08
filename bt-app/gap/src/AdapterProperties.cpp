@@ -198,6 +198,17 @@ void AdapterProperties :: HandleDiscoveryStateChange(bt_discovery_state_t state)
 }
 
 
+void AdapterProperties::ClearPropertyList(int num_properties,
+        bt_property_t *properties) {
+    int index;
+
+    for (index = 0; index < num_properties; index++) {
+        delete properties[index].val;
+    }
+    delete properties;
+}
+
+
 void AdapterProperties :: AdapterPropertiesUpdate(AdapterPropertiesEvent *event) {
     bt_bdaddr_t rmt_devices[MAX_BONDED_DEVICES];
     int num_bonded_devices = MAX_BONDED_DEVICES, index;
@@ -213,4 +224,7 @@ void AdapterProperties :: AdapterPropertiesUpdate(AdapterPropertiesEvent *event)
     }
 
     GetCorePropertyList(event->num_properties, event->properties);
+
+    /* Free the memory used for properties */
+    ClearPropertyList(event->num_properties, event->properties);
 }

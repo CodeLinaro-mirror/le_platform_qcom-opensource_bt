@@ -91,8 +91,13 @@ extern "C"
 {
 #endif
 
+#define ON_OFF_TEST_INTERVAL                (5 * 1000)
+#define ON_OFF_TEST_TIMEOUT         (30 * 1000)
+#define ON_OFF_TEST_POLL_INTERVAL       80
 thread_t *test_thread_id = NULL;
 static void SendDisableCmdToGap();
+static void SendEnableCmdToGap(void);
+static void SendDisableCmdToGap(void);
 /**
  * @brief main function
  *
@@ -806,23 +811,83 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
+/*
+ * Return: 0 okay, > 0 timeout, < 0 error
+ */
+static int on_off_test_poll(bool is_enable, unsigned long time, unsigned long iv)
+{
+    int rv = 0;
+    unsigned long t = 0;
+    const char *op_name = is_enable ? "enable" : "disable";
 
+    do {
+        usleep(iv * 1000);
+        t += iv;
+
+
+        if (is_enable) {
+            if (g_bt_app->status.enable_cmd != COMMAND_COMPLETE)
+                continue;
+            if (g_bt_app->bt_state != BT_STATE_ON)
+                rv = -1;
+            break;
+        } else {
+            if (g_bt_app->status.disable_cmd != COMMAND_COMPLETE)
+                continue;
+            if (g_bt_app->bt_state != BT_STATE_OFF)
+                rv = -2;
+            break ;
+        }
+
+    } while (t < time) ;
+
+    if (t >= time)
+        rv = 1;
+
+    return rv;
+}
 void HandleOnOffTest (void *context) {
     char *end;
+    int pr;
     int index = 0;
     long  num = (long) context;
     for( index = 0; index < (long)num; index++) {
+        ALOGI (LOGTAG "######## on_off enable : %d/%d ########", index + 1, num);
+        fprintf(stdout, "######## on_off enable : %d/%d ########\n", index + 1, num);
 
-        BtEvent *event_on = new BtEvent;
-        event_on->event_id = MAIN_API_ENABLE;
-        fprintf( stdout, "Iteration: %d : Posting enable\n", index + 1);
-        PostMessage (THREAD_ID_MAIN, event_on);
-        sleep(5);
-        BtEvent *event_off = new BtEvent;
-        event_off->event_id = MAIN_API_DISABLE;
-        fprintf( stdout, "Iteration: %d : Posting disable\n", index + 1);
-        PostMessage (THREAD_ID_MAIN, event_off);
-        sleep(5);
+        SendEnableCmdToGap();
+
+        pr = on_off_test_poll (true, ON_OFF_TEST_TIMEOUT,ON_OFF_TEST_POLL_INTERVAL);
+        if (pr != 0) {
+            if ( pr > 0 ) {
+                ALOGI (LOGTAG "######## on_off enable timeout : %d/%d ########", index + 1, num);
+                fprintf( stdout, "######## on_off enable timeout : %d/%d ########\n", index + 1, num);
+                *(volatile unsigned * const)0x00 = 0xdead;
+            } else {
+                ALOGI (LOGTAG "######## on_off enable error : %d/%d ########", index + 1, num);
+                fprintf( stdout, "######## on_off enable error : %d/%d ########\n", index + 1, num);
+            }
+            break;
+        }
+        usleep(ON_OFF_TEST_INTERVAL * 1000);
+
+        ALOGI (LOGTAG "******** on_off disable : %d/%d ********", index + 1, num);
+        fprintf(stdout, "******** on_off disable : %d/%d ********\n", index + 1, num);
+        SendDisableCmdToGap();
+
+        pr = on_off_test_poll (false, ON_OFF_TEST_TIMEOUT,ON_OFF_TEST_POLL_INTERVAL);
+        if (pr != 0) {
+            if ( pr > 0) {
+                ALOGI (LOGTAG "******** on_off disable timeout : %d/%d ********", index + 1, num);
+                fprintf( stdout, "******** on_off disable timeout : %d/%d ********\n", index + 1, num);
+                *(volatile unsigned * const)0x00 = 0xdead;
+            } else {
+                ALOGI (LOGTAG "******** on_off disable error : %d/%d ********", index + 1, num);
+                fprintf( stdout, "******** on_off disable error : %d/%d ********\n", index + 1, num);
+            }
+            break;
+        }
+        usleep(ON_OFF_TEST_INTERVAL* 1000);
     }
     reactor_stop(thread_get_reactor(test_thread_id));
     test_thread_id = NULL;

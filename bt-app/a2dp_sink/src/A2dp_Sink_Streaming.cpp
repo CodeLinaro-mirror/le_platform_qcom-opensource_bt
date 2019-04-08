@@ -253,9 +253,9 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
                         pA2dpSinkStream->StartPcmTimer();
                     else {
-                        BtEvent *pEvent = new BtEvent;
-                        pEvent->a2dpSinkStreamingEvent.event_id = A2DP_SINK_FILL_COMPRESS_BUFFER;
                         if (pA2dpSinkStream) {
+                            BtEvent *pEvent = new BtEvent;
+                            pEvent->a2dpSinkStreamingEvent.event_id = A2DP_SINK_FILL_COMPRESS_BUFFER;
                             thread_post(pA2dpSinkStream->threadInfo.thread_id,
                             pA2dpSinkStream->threadInfo.thread_handler, (void*)pEvent);
                         }
@@ -272,9 +272,9 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
                         pA2dpSinkStream->StartPcmTimer();
                     else {
-                        BtEvent *pEvent = new BtEvent;
-                        pEvent->a2dpSinkStreamingEvent.event_id = A2DP_SINK_FILL_COMPRESS_BUFFER;
                         if (pA2dpSinkStream) {
+                            BtEvent *pEvent = new BtEvent;
+                            pEvent->a2dpSinkStreamingEvent.event_id = A2DP_SINK_FILL_COMPRESS_BUFFER;
                             thread_post(pA2dpSinkStream->threadInfo.thread_id,
                             pA2dpSinkStream->threadInfo.thread_handler, (void*)pEvent);
                         }
@@ -531,7 +531,7 @@ void A2dp_Sink_Streaming::StopDataFetchTimer() {
 void A2dp_Sink_Streaming::HandleEnableSinkStreaming(void) {
     ALOGD(LOGTAG " HandleEnableSinkStreaming");
 
-    BtEvent *pEvent = new BtEvent;
+    //BtEvent *pEvent = new BtEvent;
     use_bt_a2dp_hal = config_get_bool (config,
             CONFIG_DEFAULT_SECTION, "BtUseA2dpHalForSink", false);
     ALOGD(LOGTAG " Use BT A2DP HAL ENabled %d", use_bt_a2dp_hal);
