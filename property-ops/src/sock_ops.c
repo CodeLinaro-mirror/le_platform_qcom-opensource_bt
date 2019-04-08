@@ -482,13 +482,6 @@ int main()
         LOG_DEBUG("List Pull Failure\n");
     }
 
-    if (access("/data/misc/bluetooth", F_OK)) {
-        if (access("/data/misc", F_OK))
-            mkdir("/data/misc", S_IRWXU|S_IRGRP|S_IXGRP|S_IRWXO);
-        mkdir("/data/misc/bluetooth", S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
-        fprintf(stdout, "/data/misc/bluetooth is created\n");
-    }
-
     LOG_DEBUG("\n SOCKET INITIALIZER \n");
     //Init Socket Listener inside a thread
     for (;;) //This is a main Daemon - to be started from Init before usage.

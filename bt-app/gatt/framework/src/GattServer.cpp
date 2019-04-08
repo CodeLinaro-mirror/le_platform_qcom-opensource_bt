@@ -463,7 +463,7 @@ bool GattServer::sendResponse(string deviceAddress, int requestId,
 }
 
 bool GattServer::notifyCharacteristicChanged(string deviceAddress,
-          GattCharacteristic characteristic, bool confirm)
+          GattCharacteristic &characteristic, bool confirm)
 {
   if (VDBG) ALOGD(LOGTAG " notifyCharacteristicChanged() - device: %s ",
                   deviceAddress.c_str());

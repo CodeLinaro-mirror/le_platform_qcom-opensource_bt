@@ -65,6 +65,7 @@ extern "C" {
 #define COMMAND_ARG_SIZE     200
 #define SBC_PARAM_LEN 1
 #define APTX_PARAM_LEN 1
+#define APTX_AD_PARAM_LEN 1
 #define MP3_PARAM_LEN 2
 #define AAC_PARAM_LEN 2
 
@@ -74,7 +75,8 @@ static const char * valid_codecs[] = {
     "aac",
     "mp3",
     "sbc",
-    "aptx"
+    "aptx",
+    "aptx_ad"
 };
 
 static uint8_t valid_codec_values[] = {
@@ -82,6 +84,7 @@ static uint8_t valid_codec_values[] = {
     A2DP_SINK_AUDIO_CODEC_MP3,
     A2DP_SINK_AUDIO_CODEC_SBC,
     A2DP_SINK_AUDIO_CODEC_APTX,
+    A2DP_SINK_AUDIO_CODEC_APTX_AD
 };
 
 static const char * valid_sbc_freq[] = {
@@ -177,9 +180,19 @@ static const char * valid_aptx_freq[] = {
     "48",
 };
 
+static const char * valid_aptx_ad_freq[] = {
+    "44.1",
+    "48",
+};
+
 static uint8_t valid_aptx_freq_values[] = {
     APTX_SAMPLERATE_44100,
     APTX_SAMPLERATE_48000,
+};
+
+static uint8_t valid_aptx_ad_freq_values[] = {
+    APTX_AD_SAMPLERATE_44100,
+    APTX_AD_SAMPLERATE_48000,
 };
 
 /******************************************************************************
@@ -205,6 +218,8 @@ const A2DP_SINK_VARIABLE variable_list[] = {
     { "mp3 freq", "Valid MP3 Freq to Use",
       valid_mp3_freq, _ARRAYSIZE(valid_mp3_freq) },
     { "aptx freq", "Valid APTX Freq to Use",
+      valid_aptx_freq, _ARRAYSIZE(valid_aptx_freq) },
+    { "aptxad freq", "Valid APTX AD Freq to Use",
       valid_aptx_freq, _ARRAYSIZE(valid_aptx_freq) },
     { "aac object type", "Valid AAC Object Type to Use",
       valid_aac_obj_type, _ARRAYSIZE(valid_aac_obj_type) },
@@ -447,7 +462,33 @@ uint32_t get_a2dp_aptx_sampling_rate(uint8_t frequency) {
     return freq;
 }
 
+uint32_t get_a2dp_aptx_ad_sampling_rate(uint8_t frequency) {
+    uint32_t freq = 0;
+    switch (frequency) {
+        case APTX_SAMPLERATE_44100:
+            freq = 44100;
+            break;
+        case APTX_SAMPLERATE_48000:
+            freq = 48000;
+            break;
+    }
+    return freq;
+}
+
 uint8_t get_a2dp_aptx_channel_mode(uint8_t channel_count) {
+    uint8_t count = 1;
+    switch (channel_count) {
+        case APTX_CHANNELS_MONO:
+            count = 1;
+            break;
+        case APTX_CHANNELS_STEREO:
+            count = 2;
+            break;
+    }
+    return count;
+}
+
+uint8_t get_a2dp_aptx_ad_channel_mode(uint8_t channel_count) {
     uint8_t count = 1;
     switch (channel_count) {
         case APTX_CHANNELS_MONO:
@@ -579,6 +620,24 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
                     valid_aptx_freq_values[i];
                 j ++;
                 break;
+           case A2DP_SINK_AUDIO_CODEC_APTX_AD:
+        /* check number of parameters passed are ok or not */
+        if (j + APTX_AD_PARAM_LEN > codec_params_list_size + 1) {
+          fprintf(stdout, "Invalid APTX Parameters passed\n");
+          return false;
+        }
+        i = find_str_in_list(output_list[j], valid_aptx_ad_freq,
+          _ARRAYSIZE(valid_aptx_freq));
+        if (i >= _ARRAYSIZE(valid_aptx_ad_freq)) {
+          fprintf(stdout, "Invalid APTX Sampling Freq: %s\n",
+            output_list[j]);
+          print_help(&variable_list[4]);
+          return false;
+        }
+        a2dpSnkCodecList[k].codec_config.aptx_ad_config.sampling_freq =
+          valid_aptx_ad_freq_values[i];
+        j ++;
+        break;
         }
         k++;
         if (k >= MAX_NUM_CODEC_CONFIGS) {
@@ -635,10 +694,10 @@ void BtA2dpSinkSplitMsgHandler(void *msg) {
                     pA2dpSinkSplit->start_pending,pA2dpSinkSplit->suspend_pending);
                 if(pA2dpSinkSplit->start_pending)
                     pA2dpSinkSplit->sBtA2dpSinkVendorInterface->start_ind_rsp(pA2dpSinkSplit->
-                            mPendingDevice,true);
+                            mPendingDevice,CMD_ACCEPTED);
                 else if(pA2dpSinkSplit->suspend_pending)
                     pA2dpSinkSplit->sBtA2dpSinkVendorInterface->suspend_ind_rsp(pA2dpSinkSplit->
-                            mPendingDevice,true);
+                            mPendingDevice,CMD_ACCEPTED);
             pA2dpSinkSplit->start_pending = false;
             pA2dpSinkSplit->suspend_pending = false;
             }
@@ -649,10 +708,10 @@ void BtA2dpSinkSplitMsgHandler(void *msg) {
                     pA2dpSinkSplit->start_pending,pA2dpSinkSplit->suspend_pending);
                 if(pA2dpSinkSplit->start_pending)
                     pA2dpSinkSplit->sBtA2dpSinkVendorInterface->start_ind_rsp(pA2dpSinkSplit->
-                            mPendingDevice,false);
+                            mPendingDevice,CMD_REJECTED);
                 else if(pA2dpSinkSplit->suspend_pending)
                     pA2dpSinkSplit->sBtA2dpSinkVendorInterface->suspend_ind_rsp(pA2dpSinkSplit->
-                            mPendingDevice,false);
+                            mPendingDevice,CMD_REJECTED);
             pA2dpSinkSplit->start_pending = false;
             pA2dpSinkSplit->suspend_pending = false;
             }
@@ -1193,6 +1252,13 @@ void A2dp_Sink_Split::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::
                     iter->av_config.channel_count = get_a2dp_aptx_channel_mode(iter->dev_codec_config
                         .aptx_config.channel_count);
                     break;
+                case A2DP_SINK_AUDIO_CODEC_APTX_AD:
+                    fprintf(stdout, "Codec type = APTX AD\n");
+                    iter->av_config.sample_rate = get_a2dp_aptx_ad_sampling_rate(iter->dev_codec_config
+                         .aptx_config.sampling_freq);
+                    iter->av_config.channel_count = get_a2dp_aptx_ad_channel_mode(iter->dev_codec_config
+                         .aptx_config.channel_count);
+                    break;
                 default:
                     is_valid_codec = false;
                     ALOGE(LOGTAG " Invalid codec type %d ", iter->dev_codec_type);
@@ -1313,6 +1379,13 @@ void A2dp_Sink_Split::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>
                         .aptx_config.sampling_freq);
                     iter->av_config.channel_count = get_a2dp_aptx_channel_mode(iter->dev_codec_config
                         .aptx_config.channel_count);
+                    break;
+                case A2DP_SINK_AUDIO_CODEC_APTX_AD:
+                    fprintf(stdout, "Codec type = APTX AD\n");
+                    iter->av_config.sample_rate = get_a2dp_aptx_ad_sampling_rate(iter->dev_codec_config
+                         .aptx_config.sampling_freq);
+                    iter->av_config.channel_count = get_a2dp_aptx_ad_channel_mode(iter->dev_codec_config
+                         .aptx_config.channel_count);
                     break;
                 default:
                     is_valid_codec = false;

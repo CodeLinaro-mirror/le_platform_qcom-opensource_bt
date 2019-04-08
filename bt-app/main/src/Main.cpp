@@ -70,8 +70,6 @@ using namespace btapp;
 #endif
 #define LOGTAG  "MAIN "
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
-#define SOCKETNAME  "/data/misc/bluetooth/btprop"
-static int bt_prop_socket;
 int server_num;
 bool file_read = 0;
 
@@ -118,30 +116,6 @@ extern "C"
 thread_t *test_thread_id = NULL;
 ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,split
 static void SendDisableCmdToGap();
-void opensocket()
-{
-     int len;    /* length of sockaddr */
-      struct sockaddr_un name;
-      if( (bt_prop_socket = socket(AF_UNIX, SOCK_STREAM, 0) ) < 0) {
-        perror("socket");
-        exit(1);
-      }
-      /*Create the address of the server.*/
-      memset(&name, 0, sizeof(struct sockaddr_un));
-      name.sun_family = AF_UNIX;
-      strlcpy(name.sun_path, SOCKETNAME, sizeof(name.sun_path));
-      len = sizeof(name.sun_family) + strlen(name.sun_path);
-      /*Connect to the server.*/
-     if (connect(bt_prop_socket, (struct sockaddr *) &name, len) < 0){
-        perror("connect");
-        exit(1);
-      }
-}
-void closesocket()
-{
-    shutdown(bt_prop_socket, SHUT_RDWR);
-    close(bt_prop_socket);
-}
 
 /**
  * @brief main function
@@ -1551,6 +1525,25 @@ static void HandleHIDCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             PostMessage (THREAD_ID_HID, event);
             break;
 
+        case CFG_MTU:
+            event = new BtEvent;
+            event->hogp_cfg_mtu_event.event_id = HID_API_CONFIGURE_MTU_EVENT;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hogp_cfg_mtu_event.bd_addr);
+            event->hogp_cfg_mtu_event.mtu= atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
+        case CONN_PARAMS:
+            event = new BtEvent;
+            event->hogp_conn_params_event.event_id = HID_API_CONN_UPDATED_EVENT;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hogp_conn_params_event.bd_addr);
+            event->hogp_conn_params_event.min_int = atoi(user_cmd[TWO_PARAM]);
+            event->hogp_conn_params_event.max_int = atoi(user_cmd[THREE_PARAM]);
+            event->hogp_conn_params_event.latency = atoi(user_cmd[FOUR_PARAM]);
+            event->hogp_conn_params_event.timeout = atoi(user_cmd[FIVE_PARAM]);
+            PostMessage (THREAD_ID_HID, event);
+            break;
+
         case HID_BONDED_LIST:
             event = new BtEvent;
             event->hid_profile_event.event_id = HID_API_BONDED_LIST_REQ;
@@ -2082,7 +2075,6 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     static bool init_advertiser_file = 0;
     int  server_inst = 0;
     int  service_inst = 0;
-    static bool disable = 0;
     switch (cmd_id) {
         case GATTSTEST_INIT_SERVER:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
@@ -2112,12 +2104,16 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
         case GATTSTEST_ADDSERVER:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 if(g_gatt) {
-                    if(init_server_file)  {
-                        server_num++;
-                        fprintf(stdout,"Adding Server %d \n",server_num);
-                        gattstest->AddServer();
+                    if (gattstest) {
+                        if(init_server_file)  {
+                            server_num++;
+                            fprintf(stdout,"Adding Server %d \n",server_num);
+                            gattstest->AddServer();
+                        } else {
+                            fprintf(stdout,"Do gattstest_init_server first \n");
+                        }
                     } else {
-                        fprintf(stdout,"Do gattstest_init_server first \n");
+                            fprintf(stdout , "Do Init first\n");
                     }
                 } else {
                     fprintf(stdout,"gatt interface is null \n");
@@ -2234,6 +2230,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, "Unregister Server \n");
                 if (gattstest) {
                     bool status = gattstest->UnregisterServer(user_cmd[ONE_PARAM]);
+                    server_num --;
                     if(status)
                     {
                         fprintf(stdout,"Server unregistered succesfully \n");
@@ -2241,7 +2238,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                          fprintf(stdout,"Server not unregistered\n");
                     }
                 } else {
-                    fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                    fprintf( stdout, "Do Init first \n ");
                 }
              } else {
                 fprintf( stdout, "BT is in OFF State now \n");
@@ -2251,15 +2248,12 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             if((g_bt_app->bt_state == BT_STATE_ON)){
                 fprintf( stdout, "Disable Gattstest \n");
                 if (gattstest) {
-                    if(!disable) {
                     gattstest->DisableGATTSTEST();
                     gattstest->~GattsTest();
-                    disable = true;
-              } else {
-                fprintf(stdout,"Disable was already performed \n");
-              }
+                    gattstest = NULL;
+                    server_num = 0;
                 } else {
-                    fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                    fprintf( stdout, "Do Init first \n ");
                 }
              } else {
                 fprintf( stdout, "BT is in OFF State now \n");
@@ -2273,7 +2267,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                         string deviceAddress = user_cmd[ONE_PARAM];
                         gattstest->CancelConnection(deviceAddress);
                     } else {
-                        fprintf(stdout, " GATTSTEST Alloc failed return failure \n");
+                        fprintf( stdout, "Do Init first \n ");
                     }
                 } else {
                     fprintf(stdout,"BD address is NULL/Invalid \n");
@@ -3259,7 +3253,23 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 fprintf(stdout," Error in Enabling BT\n");
             } else {
                fprintf(stdout," BT State is ON\n");
-            }
+
+		if (is_bt_enable_autotest){
+			if ((g_bt_app->status.enquiry_cmd != COMMAND_INPROGRESS) &&
+                                (g_bt_app->bt_state == BT_STATE_ON)) {
+				g_bt_app->inquiry_list.clear();
+				g_bt_app->status.enquiry_cmd = COMMAND_INPROGRESS;
+				event = new BtEvent;
+				event->event_id = GAP_API_START_INQUIRY;
+				ALOGV (LOGTAG " Posting inquiry to GAP thread");
+				PostMessage (THREAD_ID_GAP, event);
+			} else if (g_bt_app->status.enquiry_cmd == COMMAND_INPROGRESS) {
+				fprintf( stdout, " The inquiry is already in process\n");
+			} else {
+				fprintf( stdout, "currently BT is OFF\n");
+			}
+		}
+	    }
             status.enable_cmd = COMMAND_COMPLETE;
             break;
 
@@ -3704,6 +3714,12 @@ void BluetoothApp :: InitHandler (void) {
 
     }
 
+    if (is_bt_enable_autotest)
+    {
+	fprintf(stdout, "auto test is enabled!\n");
+	SendEnableCmdToGap();
+    }
+
     threadInfo[THREAD_ID_SDP_CLIENT].thread_id = thread_new (
         threadInfo[THREAD_ID_SDP_CLIENT].thread_name);
 
@@ -3919,6 +3935,7 @@ BluetoothApp :: BluetoothApp () {
 
     // Initial values
     is_bt_enable_default_ = false;
+    is_bt_enable_autotest = false;
     is_user_input_enabled_ = false;
     ssp_notification = false;
     pin_notification =false;
@@ -3984,7 +4001,6 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
         ALOGE (LOGTAG " Unable to open config file");
         return false;
     }
-    opensocket();
     is_bt_ext_ldo = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_EXT_POWER, false);
     if(is_bt_ext_ldo){
@@ -4009,10 +4025,13 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
         property_set("persist.service.bdroid.soclog", "false");
     }
 
-    closesocket();
     // checking for the BT Enable option in config file
     is_bt_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_DEFAULT, false);
+
+    // checking for the BT auto test Enable option in config file
+    is_bt_enable_autotest = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_ENABLE_AUTOTEST, false);
 
     //checking for user input
     is_user_input_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,

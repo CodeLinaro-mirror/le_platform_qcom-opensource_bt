@@ -191,7 +191,7 @@ class GattServer : public IServerCallback, public GattServerCallback {
      * @throw std::invalid_argument Chracteristic value is empty
      */
     bool notifyCharacteristicChanged(string deviceAddress,
-                                              GattCharacteristic characteristic,
+                                              GattCharacteristic &characteristic,
                                               bool confirm);
 
     /**
