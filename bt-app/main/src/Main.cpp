@@ -1189,6 +1189,58 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
+        case ACCEPT_VOIP_CALL:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_ACCEPT;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case INCOM_VOIP_CALL_IND:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_INCOMING_INDICATION;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            strncpy(event->hfp_ag_event.str, user_cmd[TWO_PARAM], 20);
+            event->hfp_ag_event.arg1 = atoi(user_cmd[THREE_PARAM]);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case SWAP_VOIP_CALLS:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_SWAP;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case UPDATE_ACTIVE_CALLS_NUM:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_UPDATE_ACTIVE_CALL_NUM;
+            event->hfp_ag_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case UPDATE_HELD_CALLS_NUM:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_UPDATE_HELD_CALL_NUM;
+            event->hfp_ag_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case ADD_NUMBER:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_ADD_NUMBER;
+            strncpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case DELETE_NUMBER:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_DELETE_NUMBER;
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
+        case SEND_DEVICE_STAT_NOTFY:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_SEND_DEVICE_STAT_NOTFY;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            event->hfp_ag_event.arg1 = atoi(user_cmd[TWO_PARAM]);
+            event->hfp_ag_event.arg2 = atoi(user_cmd[THREE_PARAM]);
+            event->hfp_ag_event.arg3 = atoi(user_cmd[FOUR_PARAM]);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
         case ACCEPT_CALL:
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_API_ACCEPT_CALL_REQ;
@@ -3657,8 +3709,9 @@ void BluetoothApp :: InitHandler (void) {
         g_gap = new Gap (bt_interface, config);
     }
 
-    if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
-        // we need to start BT-AM if either of A2DP_SINK or HFP-Client is enabled
+    if ((is_hfp_client_enabled_) || (is_hfp_ag_enabled_) || (is_a2dp_sink_enabled_)) {
+        // we need to start BT-AM if either of A2DP_SINK or HFP-Client or
+        // is_hfp_ag_enabled_ is enabled
         threadInfo[THREAD_ID_BT_AM].thread_id = thread_new (
                         threadInfo[THREAD_ID_BT_AM].thread_name);
         if (threadInfo[THREAD_ID_BT_AM].thread_id) {
@@ -3840,7 +3893,7 @@ void BluetoothApp :: DeInitHandler (void) {
         }
     }
 
-    if ((is_hfp_client_enabled_) || (is_a2dp_sink_enabled_)) {
+    if ((is_hfp_client_enabled_) || (is_hfp_ag_enabled_) ||(is_a2dp_sink_enabled_)) {
         if (threadInfo[THREAD_ID_BT_AM].thread_id != NULL) {
             thread_free (threadInfo[THREAD_ID_BT_AM].thread_id);
             if ( pBTAM != NULL)

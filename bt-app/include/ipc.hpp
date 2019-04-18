@@ -327,6 +327,14 @@ typedef enum {
     HFP_AG_AUDIO_STATE_DISCONNECTED_CB,
     HFP_AG_VOIP_CALL_INDICATION,
     HFP_AG_VOIP_CALL_TERMINATION,
+    HFP_AG_VOIP_CALL_INCOMING_INDICATION,
+    HFP_AG_VOIP_CALL_ACCEPT,
+    HFP_AG_VOIP_CALL_SWAP,
+    HFP_AG_UPDATE_ACTIVE_CALL_NUM,
+    HFP_AG_UPDATE_HELD_CALL_NUM,
+    HFP_AG_ADD_NUMBER,
+    HFP_AG_DELETE_NUMBER,
+    HFP_AG_SEND_DEVICE_STAT_NOTFY,
     HFP_AG_AUDIO_STATE_CONNECTING_CB,
     HFP_AG_AUDIO_STATE_CONNECTED_CB,
     HFP_AG_VR_CB,
@@ -917,6 +925,7 @@ typedef struct {
     char                str[513];
     int                 arg1;
     int                 arg2;
+    int                 arg3;
     uint32_t            hdl;
     uint32_t            msg_id;
     uint32_t            data_length;
