@@ -996,7 +996,8 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
                      CONFIG_DEFAULT_SECTION, BT_AVRCP_ENABLED_STRING, false);
 
     if ((this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled) ||
-        (this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled)) {
+        (this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled) ||
+        (this->profile_config[PROFILE_ID_HFP_AG].is_enabled)) {
         this->profile_config[PROFILE_ID_BT_AM].is_enabled = true;
     }
 
