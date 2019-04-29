@@ -781,6 +781,10 @@ void A2dp_Sink_Streaming::HandleEnableSinkStreaming(void) {
     relay_sink_data = config_get_bool (config,
             CONFIG_DEFAULT_SECTION, "BtRelaySinkDatatoSrc", false);
     ALOGD(LOGTAG " Sink Relay ENabled %d", relay_sink_data);
+
+    audio_out_device = (uint32_t)config_get_int(config,
+            CONFIG_DEFAULT_SECTION, "AudioOutDevice", 131072);
+    ALOGD(LOGTAG "Audio Out Device %d", audio_out_device);
 }
 
 void A2dp_Sink_Streaming::HandleDisableSinkStreaming(void) {
@@ -1054,7 +1058,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
             }
             // 2 refers to speaker
             ALOGD(LOGTAG " opening output stream ");
-            qahw_open_output_stream(audio_device, handle, OUT_DEVICE_LINE_OUT,
+            qahw_open_output_stream(audio_device, handle, audio_out_device,
                    (audio_output_flags_t)flags,
                    &config, &out_stream, "bt_a2dp_sink");
         }

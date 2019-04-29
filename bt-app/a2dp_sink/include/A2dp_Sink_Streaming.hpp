@@ -63,8 +63,7 @@ typedef struct {
 #define A2DP_SINK_REMOTE_SUSPEND_WAIT_TIMER_DURATION 5000
 #define A2DP_SINK_COMPRESS_FEED_TIMER_DURATION     40
 #define A2DP_SINK_GBUF_MAX_SIZE 65535
-#define OUT_DEVICE_SPEAKER                         2
-#define OUT_DEVICE_LINE_OUT                        131072
+
 
 class A2dp_Sink_Streaming {
 
@@ -106,6 +105,7 @@ class A2dp_Sink_Streaming {
     void CloseInputStream();
     uint32_t ReadInputStream(uint8_t* data, uint32_t size);
     uint32_t GetInputStreamBufferSize();
+    uint32_t audio_out_device;
     bool use_bt_a2dp_hal;
     bool sbc_decoding;
     bool fetch_rtp_info;
