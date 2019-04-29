@@ -18,6 +18,7 @@
 #include <list>
 #include <map>
 #include <iostream>
+#include <vector>
 #include <string.h>
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
@@ -285,6 +286,30 @@ void key_pressed_callback(bt_bdaddr_t* bd_addr) {
     ALOGD(LOGTAG " key_pressed_callback");
 }
 
+void bind_callback(char *at_string, bt_bdaddr_t* bd_addr) {
+    BtEvent *pEvent = new BtEvent;
+    ALOGD(LOGTAG " bind_cmd_vendor_cb");
+    fprintf(stdout, " bind_cmd_vendor_cb\n");
+
+    memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    strncpy(pEvent->hfp_ag_event.str, at_string, strlen(at_string));
+    pEvent->hfp_ag_event.event_id = HFP_AG_BIND_CB;
+    PostMessage(THREAD_ID_HFP_AG, pEvent);
+}
+
+void biev_callback(bthf_hf_ind_type_t ind_id, int ind_value,
+                                        RawAddress *bd_addr) {
+    BtEvent *pEvent = new BtEvent;
+    ALOGD(LOGTAG " biev_cmd_vendor_cb");
+    fprintf(stdout, " biev_cmd_vendor_cb\n");
+
+    memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->hfp_ag_event.arg1 = ind_id;
+    pEvent->hfp_ag_event.arg1 = ind_value;
+    pEvent->hfp_ag_event.event_id = HFP_AG_BIEV_CB;
+    PostMessage(THREAD_ID_HFP_AG, pEvent);
+}
+
 void bind_cmd_vendor_cb(char* hf_ind, bthf_vendor_bind_type_t type, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " bind_cmd_vendor_cb");
@@ -326,8 +351,8 @@ static bthf_callbacks_t sBluetoothHfpAgCallbacks = {
     at_cops_callback,
     at_clcc_callback,
     unknown_at_callback,
-    NULL,
-    NULL,
+    bind_callback,
+    biev_callback,
     key_pressed_callback
 };
 
@@ -398,7 +423,9 @@ void Hfp_Ag::HandleEnableAg(void) {
             return;
         }
         change_state(HFP_AG_STATE_DISCONNECTED);
-        sBtHfpAgInterface->init(&sBluetoothHfpAgCallbacks, 1, true);
+        sBtHfpAgInterface->init(&sBluetoothHfpAgCallbacks, 1, false);
+        mActiveCallsNum = 0;
+        mHeldCallsNum = 0;
         sBtHfpAgVendorInterface->init_vendor(&sBluetoothHfpAgVendorCallbacks);
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -426,6 +453,9 @@ void Hfp_Ag::HandleDisableAg(void) {
        sBtHfpAgVendorInterface->cleanup_vendor();
        sBtHfpAgVendorInterface = NULL;
    }
+   mActiveCallsNum = 0;
+   mHeldCallsNum = 0;
+   number_vec.clear();
 #if defined(BT_MODEM_INTEGRATION)
    release_modem();
 #endif
@@ -491,6 +521,32 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG " connected with device %s", str);
 
             change_state(HFP_AG_STATE_CONNECTED);
+            break;
+        case HFP_AG_UPDATE_ACTIVE_CALL_NUM:
+            update_activecall_num(pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_UPDATE_HELD_CALL_NUM:
+            update_heldcall_num(pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_ADD_NUMBER:
+            if (number_vec.size() < 2) {
+              number_vec.insert(number_vec.end(), pEvent->hfp_ag_event.str);
+              fprintf(stdout, "\n %s - number added ", pEvent->hfp_ag_event.str);
+              ALOGD(LOGTAG "%s - number added ", pEvent->hfp_ag_event.str);
+            } else {
+              fprintf(stdout, "\n Can not add more than 2 numbers ");
+              ALOGD(LOGTAG "Can not add more than 2 numbers ");
+            }
+            break;
+        case HFP_AG_DELETE_NUMBER:
+            if (number_vec.size() > 0) {
+              number_vec.pop_back();
+              fprintf(stdout, "\n number deleted ");
+              ALOGD(LOGTAG "number deleted ");
+            } else {
+              fprintf(stdout, "\n all numbers deleted/no Number added to delete ");
+              ALOGD(LOGTAG " all numbers deleted no Number added to delete ");
+            }
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
@@ -586,13 +642,71 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
         case HFP_AG_VOIP_CALL_TERMINATION:
             EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
             break;
+        case HFP_AG_VOIP_CALL_INCOMING_INDICATION:
+            VoipCallIncomingInd(&pEvent->hfp_ag_event.bd_addr,pEvent->hfp_ag_event.str,
+                                pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_VOIP_CALL_ACCEPT:
+            AcceptVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            break;
+        case HFP_AG_VOIP_CALL_SWAP:
+            SwapVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            break;
+        case HFP_AG_UPDATE_ACTIVE_CALL_NUM:
+            update_activecall_num(pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_UPDATE_HELD_CALL_NUM:
+            update_heldcall_num(pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_ADD_NUMBER:
+            if (number_vec.size() < 2) {
+              number_vec.insert(number_vec.end(), pEvent->hfp_ag_event.str);
+              fprintf(stdout, "\n %s - number added ", pEvent->hfp_ag_event.str);
+              ALOGD(LOGTAG "%s - number added ", pEvent->hfp_ag_event.str);
+            } else {
+              fprintf(stdout, "\n Can not add more than 2 numbers ");
+              ALOGD(LOGTAG "Can not add more than 2 numbers ");
+            }
+            break;
+        case HFP_AG_DELETE_NUMBER:
+            if (number_vec.size() > 0) {
+              number_vec.pop_back();
+              fprintf(stdout, "\n number deleted ");
+              ALOGD(LOGTAG "number deleted ");
+            } else {
+              fprintf(stdout, "\n all numbers deleted/no Number added to delete ");
+              ALOGD(LOGTAG " all numbers deleted no Number added to delete ");
+            }
+            break;
+        case HFP_AG_SEND_DEVICE_STAT_NOTFY:
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "VHFP_AG_SEND_DEVICE_STAT_NOTFY %s", str);
+            ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY %s", str);
+            if(sBtHfpAgInterface != NULL) {
+              if (pEvent->hfp_ag_event.arg1 == 0){
+                fprintf(stdout, " network not avaialble \n ");
+                ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY ");
+                sBtHfpAgInterface->device_status_notification(BTHF_NETWORK_STATE_NOT_AVAILABLE,
+                                BTHF_SERVICE_TYPE_HOME, pEvent->hfp_ag_event.arg2,
+                                pEvent->hfp_ag_event.arg3, &pEvent->hfp_ag_event.bd_addr);
+              } else if (pEvent->hfp_ag_event.arg1 == 1){
+                fprintf(stdout, " network avaialble \n ");
+                ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY ");
+                sBtHfpAgInterface->device_status_notification(BTHF_NETWORK_STATE_AVAILABLE,
+                                BTHF_SERVICE_TYPE_HOME, pEvent->hfp_ag_event.arg2,
+                                pEvent->hfp_ag_event.arg3, &pEvent->hfp_ag_event.bd_addr);
+              } else
+                fprintf(stdout, " Invalid input \n ");
+            }
+            break;
         case HFP_AG_VR_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
             fprintf(stdout, "VR start/stop req from device %s", str);
             ALOGD(LOGTAG "VR start/stop req from device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
+                                               &pEvent->hfp_ag_event.bd_addr);
             }
             break;
         case HFP_AG_WBS_CB:
@@ -606,12 +720,18 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             // OK will be sent from stack itself.
 #if defined(BT_MODEM_INTEGRATION)
             send_voice_cmd(MCM_VOICE_CALL_ANSWER_V01);
+#else
+            if(sBtHfpAgInterface != NULL) {
+              sBtHfpAgInterface->phone_state_change(1,0,BTHF_CALL_STATE_IDLE,"",
+                    BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+            }
 #endif
             break;
         case HFP_AG_HANGUP_CALL_CB:
-            EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
 #if defined(BT_MODEM_INTEGRATION)
             end_call(BTHF_CALL_STATE_ACTIVE);
+#else
+            EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
 #endif
             break;
         case HFP_AG_VOL_CONTROL_CB:
@@ -622,7 +742,23 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
             dial_call(pEvent->hfp_ag_event.str, &pEvent->hfp_ag_event.bd_addr);
 #else
-            VoipCallInd(&pEvent->hfp_ag_event.bd_addr);
+            if(number_vec.size() == 0 ) {
+              // if we dont add any number , send error
+              // if it is redial request and we don't have last dialled number, send error
+              // if memory dialling is requested, send error
+              if (sBtHfpAgInterface != NULL)
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
+                                               &pEvent->hfp_ag_event.bd_addr);
+            }else {
+              if (sBtHfpAgInterface != NULL)
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                                               &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
+                                BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+                usleep(20000);
+                sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_ALERTING,"",
+                                BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+            }
 #endif
             break;
         case HFP_AG_CIND_CB:
@@ -634,11 +770,11 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
                 // we already have active/held/ringing call, call setup info. send it to stack
                 sBtHfpAgInterface->cind_response(1, mNumActiveCalls, mNumHeldCalls,
-                                                mCallSetupState, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
+                                    mCallSetupState, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
 #else
-                sBtHfpAgInterface->cind_response(1, 0, 0, BTHF_CALL_STATE_IDLE, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->cind_response(1, mActiveCallsNum, mHeldCallsNum,
+                                    BTHF_CALL_STATE_IDLE, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
 #endif
-
             }
             break;
         case HFP_AG_CHLD_CB:
@@ -659,7 +795,8 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             }
 #else
             if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
+                                               &pEvent->hfp_ag_event.bd_addr);
             }
 #endif
             break;
@@ -687,7 +824,8 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             get_and_send_subscriber_number(&pEvent->hfp_ag_event.bd_addr);
 #else
             if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                                               &pEvent->hfp_ag_event.bd_addr);
             }
 #endif
             break;
@@ -710,6 +848,33 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                                                          mCalls[i].number,
                                                          mCalls[i].numType,
                                                          &pEvent->hfp_ag_event.bd_addr);
+                }
+#else
+                if (number_vec.size() > 0) {
+                  int call_idx = 1;
+                  //FOR PTS - just adding code to send CLCC
+                  for (int i = 0; i < mActiveCallsNum; i++) {
+                    sBtHfpAgInterface->clcc_response(call_idx,
+                                                     BTHF_CALL_DIRECTION_INCOMING,
+                                                     BTHF_CALL_STATE_HELD,
+                                                     BTHF_CALL_TYPE_VOICE,
+                                                     BTHF_CALL_MPTY_TYPE_SINGLE,
+                                                     number_vec[call_idx-1],
+                                                     BTHF_CALL_ADDRTYPE_INTERNATIONAL,
+                                                     &pEvent->hfp_ag_event.bd_addr);
+                    call_idx++;
+                  }
+                  for (int i = 0; i < mHeldCallsNum; i++) {
+                    sBtHfpAgInterface->clcc_response(call_idx,
+                                                     BTHF_CALL_DIRECTION_INCOMING,
+                                                     BTHF_CALL_STATE_ACTIVE,
+                                                     BTHF_CALL_TYPE_VOICE,
+                                                     BTHF_CALL_MPTY_TYPE_SINGLE,
+                                                     number_vec[call_idx-1],
+                                                     BTHF_CALL_ADDRTYPE_INTERNATIONAL,
+                                                     &pEvent->hfp_ag_event.bd_addr);
+                    call_idx++;
+                  }
                 }
 #endif
                 // just send OK for now
@@ -885,6 +1050,63 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
         case HFP_AG_VOIP_CALL_TERMINATION:
             EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
             break;
+        case HFP_AG_VOIP_CALL_INCOMING_INDICATION:
+            VoipCallIncomingInd(&pEvent->hfp_ag_event.bd_addr,pEvent->hfp_ag_event.str,
+                                pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_VOIP_CALL_ACCEPT:
+            AcceptVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            break;
+        case HFP_AG_VOIP_CALL_SWAP:
+            SwapVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            break;
+        case HFP_AG_UPDATE_ACTIVE_CALL_NUM:
+            update_activecall_num(pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_UPDATE_HELD_CALL_NUM:
+            update_heldcall_num(pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_ADD_NUMBER:
+            if (number_vec.size() < 2) {
+              number_vec.insert(number_vec.end(), pEvent->hfp_ag_event.str);
+              fprintf(stdout, "\n %s - number added ", pEvent->hfp_ag_event.str);
+              ALOGD(LOGTAG "%s - number added ", pEvent->hfp_ag_event.str);
+            } else {
+              fprintf(stdout, "\n Can not add more than 2 numbers ");
+              ALOGD(LOGTAG "Can not add more than 2 numbers ");
+            }
+            break;
+        case HFP_AG_DELETE_NUMBER:
+            if (number_vec.size() > 0) {
+              number_vec.pop_back();
+              fprintf(stdout, "\n number deleted ");
+              ALOGD(LOGTAG " number deleted ");
+            } else {
+              fprintf(stdout, "\n all numbers deleted/no Number added to delete ");
+              ALOGD(LOGTAG " all numbers deleted no Number added to delete ");
+            }
+            break;
+        case HFP_AG_SEND_DEVICE_STAT_NOTFY:
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "VHFP_AG_SEND_DEVICE_STAT_NOTFY %s", str);
+            ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY %s", str);
+            if(sBtHfpAgInterface != NULL) {
+              if (pEvent->hfp_ag_event.arg1 == 0){
+                fprintf(stdout, " network not avaialble \n ");
+                ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY ");
+                sBtHfpAgInterface->device_status_notification(BTHF_NETWORK_STATE_NOT_AVAILABLE,
+                                        BTHF_SERVICE_TYPE_HOME, pEvent->hfp_ag_event.arg2,
+                                        pEvent->hfp_ag_event.arg3, &pEvent->hfp_ag_event.bd_addr);
+              } else if (pEvent->hfp_ag_event.arg1 == 1) {
+                fprintf(stdout, " network avaialble \n ");
+                ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY ");
+                sBtHfpAgInterface->device_status_notification(BTHF_NETWORK_STATE_AVAILABLE,
+                                        BTHF_SERVICE_TYPE_HOME, pEvent->hfp_ag_event.arg2,
+                                        pEvent->hfp_ag_event.arg3, &pEvent->hfp_ag_event.bd_addr);
+              } else
+                fprintf(stdout, " Invalid input \n ");
+            }
+            break;
         case HFP_AG_VR_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
             fprintf(stdout, "VR start/stop req from device %s", str);
@@ -907,12 +1129,18 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             // OK will be sent from stack itself.
 #if defined(BT_MODEM_INTEGRATION)
             send_voice_cmd(MCM_VOICE_CALL_ANSWER_V01);
+#else
+            if(sBtHfpAgInterface != NULL) {
+              sBtHfpAgInterface->phone_state_change(1,0,BTHF_CALL_STATE_IDLE,"",
+                                BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+            }
 #endif
             break;
         case HFP_AG_HANGUP_CALL_CB:
-            EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
 #if defined(BT_MODEM_INTEGRATION)
             end_call(BTHF_CALL_STATE_ACTIVE);
+#else
+            EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
 #endif
             break;
         case HFP_AG_VOL_CONTROL_CB:
@@ -923,7 +1151,23 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
             dial_call(pEvent->hfp_ag_event.str, &pEvent->hfp_ag_event.bd_addr);
 #else
-            VoipCallInd(&pEvent->hfp_ag_event.bd_addr);
+            if(number_vec.size() == 0 ) {
+              // if we don't add any number , send error
+              // if it is redial request and we don't have last dialed number, send error
+              // if memory dialing is requested, send error
+              if (sBtHfpAgInterface != NULL)
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
+                                          &pEvent->hfp_ag_event.bd_addr);
+            }else {
+              if (sBtHfpAgInterface != NULL)
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                                       &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
+                        BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+                usleep(20000);
+                sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_ALERTING,"",
+                        BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+            }
 #endif
             break;
         case HFP_AG_CIND_CB:
@@ -935,11 +1179,11 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
                 // we already have active/held/ringing call, call setup info. send it to stack
                 sBtHfpAgInterface->cind_response(1, mNumActiveCalls, mNumHeldCalls,
-                                                mCallSetupState, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
+                                mCallSetupState, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
 #else
-                sBtHfpAgInterface->cind_response(1, 0, 0, BTHF_CALL_STATE_IDLE, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->cind_response(1, mActiveCallsNum, mHeldCallsNum,
+                            BTHF_CALL_STATE_IDLE, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
 #endif
-
             }
             break;
         case HFP_AG_CHLD_CB:
@@ -960,7 +1204,8 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             }
 #else
             if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
+                                               &pEvent->hfp_ag_event.bd_addr);
             }
 #endif
             break;
@@ -988,7 +1233,8 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             get_and_send_subscriber_number(&pEvent->hfp_ag_event.bd_addr);
 #else
             if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
+                                               &pEvent->hfp_ag_event.bd_addr);
             }
 #endif
             break;
@@ -1011,6 +1257,33 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
                                                          mCalls[i].number,
                                                          mCalls[i].numType,
                                                          &pEvent->hfp_ag_event.bd_addr);
+                }
+#else
+                if (number_vec.size() > 0) {
+                  int call_idx = 1;
+                  //FOR PTS - just adding code to send CLCC
+                  for (int i = 0; i < mActiveCallsNum; i++) {
+                    sBtHfpAgInterface->clcc_response(call_idx,
+                                                     BTHF_CALL_DIRECTION_INCOMING,
+                                                     BTHF_CALL_STATE_HELD,
+                                                     BTHF_CALL_TYPE_VOICE,
+                                                     BTHF_CALL_MPTY_TYPE_SINGLE,
+                                                     number_vec[call_idx-1],
+                                                     BTHF_CALL_ADDRTYPE_INTERNATIONAL,
+                                                     &pEvent->hfp_ag_event.bd_addr);
+                    call_idx++;
+                  }
+                  for (int i = 0; i < mHeldCallsNum; i++) {
+                    sBtHfpAgInterface->clcc_response(call_idx,
+                                                     BTHF_CALL_DIRECTION_INCOMING,
+                                                     BTHF_CALL_STATE_ACTIVE,
+                                                     BTHF_CALL_TYPE_VOICE,
+                                                     BTHF_CALL_MPTY_TYPE_SINGLE,
+                                                     number_vec[call_idx-1],
+                                                     BTHF_CALL_ADDRTYPE_INTERNATIONAL,
+                                                     &pEvent->hfp_ag_event.bd_addr);
+                    call_idx++;
+                  }
                 }
 #endif
                 // just send OK for now
@@ -1090,7 +1363,6 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
             break;
     }
-
 }
 
 void Hfp_Ag::ConfigureAudio(bool enable) {
@@ -1135,6 +1407,108 @@ bool Hfp_Ag::EndVoipCall(bt_bdaddr_t *bd_addr) {
         return true;
     }
     return false;
+}
+
+bool Hfp_Ag::VoipCallIncomingInd(bt_bdaddr_t *bd_addr,char* number, int call_active) {
+    char str[18];
+    ALOGD(LOGTAG, "%s", __func__);
+    if(memcmp(bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
+        bdaddr_to_string(bd_addr, str, 18);
+        ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+        fprintf(stdout, "Device not connected: %s\n", str);
+        return false;
+    }
+    if(sBtHfpAgInterface != NULL) {
+        sBtHfpAgInterface->phone_state_change(call_active,0,BTHF_CALL_STATE_INCOMING,number,
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        return true;
+    }
+    return false;
+}
+
+bool Hfp_Ag::AcceptVoipCall(bt_bdaddr_t *bd_addr) {
+    char str[18];
+    ALOGD(LOGTAG, "%s", __func__);
+    if(memcmp(bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
+        bdaddr_to_string(bd_addr, str, 18);
+        ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+        fprintf(stdout, "Device not connected: %s\n", str);
+        return false;
+    }
+    if(sBtHfpAgInterface != NULL) {
+        sBtHfpAgInterface->phone_state_change(1,0,BTHF_CALL_STATE_IDLE,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        return true;
+    }
+    return false;
+}
+
+bool Hfp_Ag::SwapVoipCall(bt_bdaddr_t *bd_addr) {
+    char str[18];
+    ALOGD(LOGTAG, "%s", __func__);
+    if(memcmp(bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
+        bdaddr_to_string(bd_addr, str, 18);
+        ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+        fprintf(stdout, "Device not connected: %s\n", str);
+        return false;
+    }
+    if(sBtHfpAgInterface != NULL) {
+        sBtHfpAgInterface->phone_state_change(0,1,BTHF_CALL_STATE_INCOMING,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        usleep(20000);
+        sBtHfpAgInterface->phone_state_change(1,1,BTHF_CALL_STATE_IDLE,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        return true;
+    }
+    return false;
+}
+
+void Hfp_Ag::update_activecall_num(int active) {
+    if (active) {
+      if (mActiveCallsNum < 1) {
+        mActiveCallsNum++;
+        fprintf(stdout, "\n Active call number updated,ActiveCallsNum: %d",
+                mActiveCallsNum);
+        ALOGD(LOGTAG "Active call number updated, ActiveCallsNum: %d", mActiveCallsNum);
+      } else {
+        fprintf(stdout, "\n Can not make more than one active call, ActiveCallsNum: %d",
+                mActiveCallsNum);
+        ALOGD(LOGTAG "Can not make more than one active call,ActiveCallsNum: %d",
+              mActiveCallsNum);
+      }
+    } else if (mActiveCallsNum != 0) {
+      mActiveCallsNum--;
+      fprintf(stdout, "\n Active call number updated,ActiveCallsNum: %d",
+              mActiveCallsNum);
+      ALOGD(LOGTAG "Active call number updated, ActiveCallsNum: %d", mActiveCallsNum);
+    } else {
+      fprintf(stdout, "\n No active calls, ActiveCallsNum:%d", mActiveCallsNum);
+      ALOGD(LOGTAG " No active calls, ActiveCallsNum:%d", mActiveCallsNum);
+    }
+}
+
+void Hfp_Ag::update_heldcall_num(int held) {
+    if (held) {
+      if (mHeldCallsNum < 1) {
+        mHeldCallsNum++;
+        fprintf(stdout, "\n held call number updated,HeldCallsNum: %d",
+                mHeldCallsNum);
+        ALOGD(LOGTAG "held call number updated, HeldCallsNum: %d", mHeldCallsNum);
+      } else {
+        fprintf(stdout, "\n Can not make more than one held call, HeldCallsNum: %d",
+                mHeldCallsNum);
+        ALOGD(LOGTAG "Can not make more than one held call,HeldCallsNum: %d",
+                mHeldCallsNum);
+      }
+    } else if (mHeldCallsNum != 0) {
+      mHeldCallsNum--;
+      fprintf(stdout, "\n held call number updated,HeldCallsNum: %d",
+              mHeldCallsNum);
+      ALOGD(LOGTAG "held call number updated, HeldCallsNum: %d", mHeldCallsNum);
+    } else {
+      fprintf(stdout, "\n No held calls, HeldCallsNum:%d", mHeldCallsNum);
+      ALOGD(LOGTAG " No held calls, HeldCallsNum:%d", mHeldCallsNum);
+    }
 }
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -1787,62 +2161,11 @@ void Hfp_Ag::release_audio() {
 #endif
 
 void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
-   char *hf_ind, *str1, *str2;
-   int i = 0, type = pEvent->hfp_ag_event.arg1;
+   char *at_string;
+   int type = pEvent->hfp_ag_event.arg1;
 
-   hf_ind = pEvent->hfp_ag_event.str;
-   ALOGD(LOGTAG " %s: str is %s, type is %d", __func__, hf_ind, type);
-
-   if (type == 0) {
-       str1 = hf_ind;
-       for (i = 0; i < MAX_HF_INDICATORS; i++) {
-          mHfIndHfList[i] = (int)strtol(str1, &str2, 0);
-
-          // move ahead in the string if char is not ',' or a digit
-          while(*str2 != ',' && *str2 != '\0' && !(*str2 >= '0' && *str2 <= '9'))
-              str2++;
-
-          // if headset does not support all indicators, break
-          if (*str2 == '\0')
-              break;
-
-          if (*str2 == ',')
-             str2++;
-
-          str1 = str2;
-      }
-   }
-   else if(type == 1) {
-      if (sBtHfpAgVendorInterface != NULL) {
-          for (i = 0; i < MAX_HF_INDICATORS;i++) {
-              // TODO: send all the indicators as disabled for now
-              sBtHfpAgVendorInterface->
-                  bind_response_vendor(bthf_hf_ind_type_t(i+1), BTHF_VENDOR_HF_INDICATOR_STATE_DISABLED,
-                  &pEvent->hfp_ag_event.bd_addr);
-          }
-      }
-      if (sBtHfpAgInterface != NULL) {
-          sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
-                      &pEvent->hfp_ag_event.bd_addr);
-      }
-   }
-   else if(type == 2) {
-       char str[256] = "(", temp_str[5];
-
-       for(int i = 0; i < MAX_HF_INDICATORS; i++) {
-           sprintf(temp_str, "%d,", i+1);
-           strcat(str, temp_str);
-       }
-       str[strlen(str) - 1] = ')';
-
-       if (sBtHfpAgVendorInterface != NULL) {
-          sBtHfpAgVendorInterface->bind_string_response_vendor(str, &pEvent->hfp_ag_event.bd_addr);
-       }
-       if (sBtHfpAgInterface != NULL) {
-          sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
-                      &pEvent->hfp_ag_event.bd_addr);
-       }
-   }
+   at_string = pEvent->hfp_ag_event.str;
+   ALOGD(LOGTAG " %s: at_string is %s, type is %d", __func__, at_string, type);
 }
 
 void Hfp_Ag::process_at_biev(BtEvent* pEvent) {

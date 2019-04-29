@@ -291,6 +291,14 @@ typedef enum {
     DESTROY_SCO_CONN,
     VOIP_CALL_IND,
     END_VOIP_CALL,
+    ACCEPT_VOIP_CALL,
+    INCOM_VOIP_CALL_IND,
+    SWAP_VOIP_CALLS,
+    UPDATE_ACTIVE_CALLS_NUM,
+    UPDATE_HELD_CALLS_NUM,
+    ADD_NUMBER,
+    DELETE_NUMBER,
+    SEND_DEVICE_STAT_NOTFY,
     ACCEPT_CALL,
     REJECT_CALL,
     END_CALL,
@@ -704,7 +712,7 @@ UserMenuList OppMenu[] = {
 
 
 /**
- * list of supported commands for HFP_CLIENT Menu
+ * list of supported commands for HFP_AG Menu
  */
 UserMenuList HfpAGMenu[] = {
     {CONNECT,               "connect",       ONE_PARAM,    "connect<space><bt_address>"},
@@ -713,6 +721,20 @@ UserMenuList HfpAGMenu[] = {
     {DESTROY_SCO_CONN,      "destroy_sco",   ONE_PARAM,    "destroy_sco<space><bt_address>"},
     {VOIP_CALL_IND,         "voip_call_ind",   ONE_PARAM,    "voip_call_ind<space><bt_address>"},
     {END_VOIP_CALL,         "end_voip_call",   ONE_PARAM,    "end_voip_call<space><bt_address>"},
+    {ACCEPT_VOIP_CALL,      "acpt_voip_call",  ONE_PARAM,    "acpt_voip_call<space><bt_address>"},
+    {INCOM_VOIP_CALL_IND,   "incom_voip_call_ind", THREE_PARAM, "incom_voip_call_ind<space>"
+      "<bt_address><space><number><space><call_active> eg:phone number - phone_number provided in"
+      " PTS with out '+', call_active : (0 - no call is active, 1 - onecall is active)"},
+    {SWAP_VOIP_CALLS,       "swap_voip_calls",  ONE_PARAM,    "swap_voip_calls<space><bt_address>"},
+    {UPDATE_ACTIVE_CALLS_NUM, "update_Active_calls_num", ONE_PARAM, "update_active_calls_num<space>"
+      "<0/1>eg:update_active_calls_num 1(0-decrease active call num,1-increase active call num)"},
+    {UPDATE_HELD_CALLS_NUM, "update_held_calls_num", ONE_PARAM, "update_held_calls_num<space><0/1>"
+      "eg: update_held_calls_num 1 (0 - decrease held calls num, 1 - increase held calls num)"},
+    {ADD_NUMBER,            "add_number",     ONE_PARAM,    "add_number<space><number>"},
+    {DELETE_NUMBER,         "delete_number",  ZERO_PARAM,    "delete_number"},
+    {SEND_DEVICE_STAT_NOTFY, "send_device_stat_notfy", FOUR_PARAM, "send_device_stat_notfy<space>"
+      "<bt_address><space><ntk_state><space><signal><space><batt_chg>"
+      "eg:send_device_stat_notfy 00:15:83:6b:cf:8e 0(0/1-notavailable/available) 3(0-5) 5(0-5)"},
 #if defined(BT_MODEM_INTEGRATION)
     {ACCEPT_CALL,           "accept_call",   ZERO_PARAM,   "accept_call"},
     {REJECT_CALL,           "reject_call",   ZERO_PARAM,   "reject_call"},

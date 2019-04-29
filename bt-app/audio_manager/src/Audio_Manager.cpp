@@ -191,6 +191,9 @@ ThreadIdType BT_Audio_Manager::GetThreadId(ProfileIdType profile_id) {
     case PROFILE_ID_HFP_CLIENT:
         thread_id = THREAD_ID_HFP_CLIENT;
         break;
+    case PROFILE_ID_HFP_AG:
+        thread_id = THREAD_ID_HFP_AG;
+        break;
     case PROFILE_ID_A2DP_SINK:
         thread_id = THREAD_ID_A2DP_SINK;
         break;
