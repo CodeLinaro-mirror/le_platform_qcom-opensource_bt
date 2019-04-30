@@ -1365,11 +1365,16 @@ static void bta2dp_audio_registration_callback(bool state) {
     ALOGD(LOGTAG_A2DP " Audio Registration Callback: state = %d", state);
 }
 
+static void bta2dp_avdt_cap_callback(bt_bdaddr_t *bd_addr, uint8_t seid, uint16_t psc_mask) {
+    ALOGD(LOGTAG_A2DP " bta2dp_avdt_cap_callback seid:%d", seid);
+}
+
 static btav_callbacks_t sBluetoothA2dpSourceCallbacks = {
     sizeof(sBluetoothA2dpSourceCallbacks),
     bta2dp_connection_state_callback,
     bta2dp_audio_state_callback,
     NULL,
+    bta2dp_avdt_cap_callback,
 };
 
 static btav_vendor_callbacks_t sBluetoothA2dpSourceVendorCallbacks = {
