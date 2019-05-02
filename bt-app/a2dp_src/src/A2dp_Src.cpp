@@ -1285,7 +1285,7 @@ static void skip_pcm_header(FILE *pcm_file)
     memset(hdr_buff, 0x00, PCM_HEADER_SIZE);
     if (fread(hdr_buff, 1, PCM_HEADER_SIZE, pcm_file) == PCM_HEADER_SIZE) {
         if ((strncmp(hdr_buff, "RIFF", 4) == 0) && (strncmp(&hdr_buff[8], "WAVEfmt", 7) == 0)) {
-            printf("in %s : skip %d bytes\n", __func__, PCM_HEADER_SIZE);
+            ALOGD("in %s : skip %d bytes\n", __func__, PCM_HEADER_SIZE);
             return;
         }
     }
@@ -1511,7 +1511,7 @@ static void BtA2dpStartStreaming()
     }
 
     ALOGD(LOGTAG_A2DP "Start A2dp Stream");
-    if (true || !is_sink_relay_enabled) {
+    if (!is_sink_relay_enabled) {
         in_file = fopen("/data/misc/bluetooth/pcmtest.wav", "r");
         if (!in_file) {
             ALOGE(LOGTAG_A2DP "Cannot open input file. Bail out!!");
@@ -3148,9 +3148,9 @@ void A2dp_Source::HandleEnableSource(void) {
         priority_values[3]   = config_get_int (config, CONFIG_DEFAULT_SECTION,
                                             "a2dp_source_codec_priority_aptx_hd",4001);
         priority_values[4]   = config_get_int (config, CONFIG_DEFAULT_SECTION,
-                                            "a2dp_source_codec_priority_ldac",5001);
-        priority_values[5]   = config_get_int (config, CONFIG_DEFAULT_SECTION,
                                             "a2dp_source_codec_priority_aptx_ad",6001);
+        priority_values[5]   = config_get_int (config, CONFIG_DEFAULT_SECTION,
+                                            "a2dp_source_codec_priority_ldac",5001);
 
         ALOGD(LOGTAG_A2DP "assignCodecConfigPriorities");
         assignCodecConfigPriorities(priority_values, numConfigs);
