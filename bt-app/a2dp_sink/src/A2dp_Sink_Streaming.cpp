@@ -741,7 +741,12 @@ void remote_suspend_wait_timer_handler(void *context) {
     memcpy(&bd_addr, (bt_bdaddr_t *)context, sizeof(bt_bdaddr_t));
     if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &bd_addr, sizeof(bt_bdaddr_t))) {
         ALOGD(LOGTAG " remote_suspend_wait_timer_handler pA2dpSinkStream->StartPcmTimer()");
-        pA2dpSinkStream->StartPcmTimer();
+        if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
+            pA2dpSinkStream->StartPcmTimer();
+        }
+        else {
+            pA2dpSinkStream->FillCompressBuffertoAudioOutHal();
+        }
         qahw_out_resume(pA2dpSinkStream->out_stream);
     }
 }
