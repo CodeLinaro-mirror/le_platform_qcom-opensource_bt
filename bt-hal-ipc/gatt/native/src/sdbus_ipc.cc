@@ -24,7 +24,7 @@
  *
  ******************************************************************************/
 
-#define LOG_TAG "bt_btif_ipc"
+#define LOG_TAG "bt_ipc"
 
 #include "sdbus_ipc.h"
 
@@ -45,7 +45,7 @@ sd_bus *g_sdbus_call = nullptr;
 int g_stop_dbus_fd = -1;
 bool g_dbus_running = true;
 
-bool open_bus()
+bool open_sdbus_ipc()
 {
     // Set dBus-session
     std::ifstream dBusfile(DBUS_SESSION_FILE);
@@ -74,14 +74,21 @@ bool open_bus()
         return false;
     }
 
-    if (sd_bus_request_name(g_sdbus, "com.qualcomm.qti.adk.sample", 0) < 0)
+    if (sd_bus_request_name(g_sdbus, DBUS_SVC_NAME, 0) < 0)
     {
         ALOGE(LOGTAG "::%s Failed to acquire name on user bus.", __func__);
+        return false;
     }
 
     if (sd_bus_open_system(&g_sdbus_call) < 0)
     {
         ALOGE(LOGTAG "::%s D-Bus is not Initialised.", __func__);
+        return false;
+    }
+
+    if (sd_bus_request_name(g_sdbus_call, DBUS_SVC_NAME_SENDER, 0) < 0)
+    {
+        ALOGE(LOGTAG "::%s Failed to acquire name on user bus.", __func__);
         return false;
     }
 
@@ -91,12 +98,12 @@ bool open_bus()
         return false;
     }
 
-    ALOGD(LOGTAG "::%s Successed to open bus : com.qualcomm.qti.adk.sample", __func__);
+    ALOGD(LOGTAG "::%s Successed to open bus!! : service - %s", __func__, DBUS_SVC_NAME);
 
     return true;
 }
 
-void close_bus()
+void close_sdbus_ipc()
 {
     // Make a thread stop
     eventfd_write(g_stop_dbus_fd, 1);
@@ -116,3 +123,4 @@ void close_bus()
         g_sdbus_call = nullptr;
     }
 }
+
