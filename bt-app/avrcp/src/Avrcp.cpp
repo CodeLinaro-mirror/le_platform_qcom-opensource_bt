@@ -598,7 +598,12 @@ void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t
                 if(pA2dpSinkStream->suspend_wait_timer) {
                     ALOGD("AVRCP_PLAY before remote suspend, cancelling suspend_wait_timer and calling StartPcmTimer");
                     pA2dpSinkStream->StopRemoteSuspendWaitTimer();
-                    pA2dpSinkStream->StartPcmTimer();
+                    if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
+                        pA2dpSinkStream->StartPcmTimer();
+                    }
+                    else {
+                        pA2dpSinkStream->StartCompressAudioFeedTimer();
+                    }
                     qahw_out_resume(pA2dpSinkStream->out_stream);
                 }
             }
@@ -801,7 +806,12 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
                         if(pA2dpSinkStream->suspend_wait_timer) {
                            ALOGD("AVRCP_PLAY before remote suspend, cancelling suspend_wait_timer and calling StartPcmTimer");
                            pA2dpSinkStream->StopRemoteSuspendWaitTimer();
-                           pA2dpSinkStream->StartPcmTimer();
+                           if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
+                               pA2dpSinkStream->StartPcmTimer();
+                           }
+                           else {
+                               pA2dpSinkStream->StartCompressAudioFeedTimer();
+                           }
                            qahw_out_resume(pA2dpSinkStream->out_stream);
                         }
                     }
