@@ -30,16 +30,18 @@
 #include <systemd/sd-bus.h>
 #include <sys/eventfd.h>
 
-#define DBUS_OBJ_PATH "/com/qualcomm/qti/adk/sample/dbus_message"
-#define DBUS_IF_NAME "com.qualcomm.qti.adk.sample.dbus_message"
+#define DBUS_SVC_NAME   "com.qualcomm.qti.adk.btipc.app"
+#define DBUS_IF_NAME    "com.qualcomm.qti.adk.btipc.app.gatt"
+#define DBUS_OBJ_PATH   "/com/qualcomm/qti/adk/btipc/app/gatt"
+
+#define DBUS_SVC_NAME_SENDER   "com.qualcomm.qti.adk.btipc.app.sender"
 
 extern sd_bus *g_sdbus;
 extern sd_bus *g_sdbus_call;
 extern int g_stop_dbus_fd;
 extern bool g_dbus_running;
 
-bool open_bus();
-//bool init_bus();
-void close_bus();
+bool open_sdbus_ipc();
+void close_sdbus_ipc();
 
 #endif  /* SDBUS_IPC_H */ 
