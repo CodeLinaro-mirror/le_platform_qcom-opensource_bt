@@ -73,15 +73,13 @@ typedef enum {
     HFP_CLIENT_MODE_IN_CALL
 }HfpClientMode;
 
-#define OUT_DEVICE_SPEAKER                         2
-#define OUT_DEVICE_LINE_OUT                        131072
-
 class Hfp_Client {
 
   private:
     bool mAudioWbs;
     unsigned int peer_feat;
     unsigned int chld_feat;
+    uint32_t audio_out_device;
 #if defined(BT_AUDIO_HAL_INTEGRATION)
     config_t *config;
     qahw_stream_handle_t* out_stream;

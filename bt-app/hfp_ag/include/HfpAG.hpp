@@ -168,6 +168,9 @@ class Hfp_Ag {
     int mHfIndHfList[MAX_HF_INDICATORS];
     // index 0 is for 1st assigned number, index 1 for 2nd assigned number etc
     int mHfIndAgList[MAX_HF_INDICATORS];
+    int mActiveCallsNum;
+    int mHeldCallsNum;
+    std::vector<char *> number_vec;
     const bt_interface_t * bluetooth_interface;
     const bthf_interface_t *sBtHfpAgInterface;
     HfpAgState mAgState;
@@ -192,8 +195,13 @@ class Hfp_Ag {
     void ConfigureAudio(bool enable);
     bool VoipCallInd(bt_bdaddr_t *bd_addr);
     bool EndVoipCall(bt_bdaddr_t *bd_addr);
+    bool VoipCallIncomingInd(bt_bdaddr_t *bd_addr,char* number,int call_active);
+    bool AcceptVoipCall(bt_bdaddr_t *bd_addr);
+    bool SwapVoipCall(bt_bdaddr_t *bd_addr);
     void process_at_bind(BtEvent* pEvent);
     void process_at_biev(BtEvent* pEvent);
+    void update_activecall_num(int active);
+    void update_heldcall_num(int held);
 #if defined(BT_MODEM_INTEGRATION)
     void init_modem();
     void release_modem();
