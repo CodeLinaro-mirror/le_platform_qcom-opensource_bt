@@ -35,10 +35,16 @@
 #include <hardware/bluetooth.h>
 #include <hardware/bt_hf.h>
 #include <pthread.h>
+#if (defined BT_AUDIO_HAL_INTEGRATION)
+#include "qahw_api.h"
+#include "qahw_defs.h"
+
+#endif
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
+#include "osi/include/allocator.h"
 #include "ipc.hpp"
 #include "utils.h"
 #include "hardware/bt_hf_vendor.h"
@@ -96,6 +102,14 @@ typedef enum {
     HFP_AG_STATE_CONNECTED,
     HFP_AG_STATE_AUDIO_ON
 }HfpAgState;
+
+
+#define OUT_DEVICE_SPEAKER                         0x2
+#define OUT_DEVICE_LINE_OUT                        131072
+#define OUT_DEVICE_BLUETOOTH_SCO                   0x10
+#define IN_DEVICE_BLUETOOTH_SCO_HEADSET            0x80000008
+
+
 
 #if defined(BT_MODEM_INTEGRATION)
 
@@ -175,7 +189,6 @@ class Hfp_Ag {
     const bthf_interface_t *sBtHfpAgInterface;
     HfpAgState mAgState;
     ControlStatusType mcontrolStatus;
-    bthf_wbs_config_t mWbsState;
     bthf_nrec_t mNrec;
     const bthf_vendor_interface_t *sBtHfpAgVendorInterface;
   public:
@@ -190,6 +203,7 @@ class Hfp_Ag {
     pthread_mutex_t lock;
     bt_bdaddr_t mConnectingDevice;
     bt_bdaddr_t mConnectedDevice;
+    bthf_wbs_config_t mWbsState;
     void HandleEnableAg();
     void HandleDisableAg();
     void ConfigureAudio(bool enable);
@@ -227,6 +241,7 @@ class Hfp_Ag {
     void teardown_sco_path();
     void release_audio();
 #endif
+    void configurescoaudio(bool enable);
 };
 
 #endif
