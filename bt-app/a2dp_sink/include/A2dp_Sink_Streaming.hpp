@@ -132,6 +132,7 @@ class A2dp_Sink_Streaming {
     void OnDisconnected();
     void GetLibInterface(const btav_sink_vendor_interface_t *sBtA2dpSinkStrVendorInterface);
     uint16_t codec_type;
+    uint16_t qahw_delay;
     btav_codec_config_t codec_config;
     uint32_t get_a2dp_sbc_sampling_rate(uint8_t frequency);
     uint8_t get_a2dp_sbc_channel_mode(uint8_t channel_count);
