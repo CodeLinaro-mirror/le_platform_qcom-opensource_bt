@@ -80,6 +80,7 @@ class A2dp_Device {
     uint16_t dev_codec_type;
     pthread_mutex_t lock;
     bool mAvrcpConnected;
+    bool mAvrcpBrConnected;
     int mNotificationLabel;
     bool mAbsVolNotificationRequested;
   public:
