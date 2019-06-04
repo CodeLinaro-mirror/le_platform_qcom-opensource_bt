@@ -509,9 +509,10 @@ void HidH::ProcessHidRequest(BtEvent* pEvent){
                  bdaddr_to_string(&pEvent->hid_profile_event.bd_addr, str, 18);
                  fprintf(stdout, "Handling conn update for HID device %s\n", str);
                  if (sBtHhVendorInterface != NULL) {
-                     sBtHhVendorInterface->conn_parameter_update(pEvent->hogp_conn_params_event.bd_addr,
+                     if (sBtHhVendorInterface->conn_parameter_update(pEvent->hogp_conn_params_event.bd_addr,
                       pEvent->hogp_conn_params_event.min_int, pEvent->hogp_conn_params_event.max_int,
-                      pEvent->hogp_conn_params_event.latency, pEvent->hogp_conn_params_event.timeout, 0, 0);
+                      pEvent->hogp_conn_params_event.latency, pEvent->hogp_conn_params_event.timeout, 0, 0))
+                      fprintf(stdout, "Connection Parameters are wrong %s\n", str);
                  }
                  break;
         }
