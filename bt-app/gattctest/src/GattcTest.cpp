@@ -1699,13 +1699,14 @@ void GattcTest :: stopScan()
   mscan->stopScan(mscan_callback);
 }
 
-void GattcTest :: testBatchscan()
+void GattcTest :: testBatchscan(int value)
 {
   ALOGD(LOGTAG "Test Batch scan Mode");
   fprintf(stdout, "Test Batch scan\n");
   ScanSettings *batchscansettings = ScanSettings::Builder()
     .setScanMode(ScanSettings::SCAN_MODE_BALANCED)
     .setReportDelay(BATCH_SCAN_REPORT_DELAY_MILLIS)
+    .setScanResultType(value)
     .build();
   vector < ScanFilter*> filters;
   filters.clear();
