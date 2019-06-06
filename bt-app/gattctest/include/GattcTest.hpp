@@ -104,7 +104,7 @@ class GattcTest {
         bool requestConnectionPriority(string bdaddr, int connectionPriority);
         void setPreferredPhy(int txPhy, int rxPhy, int phyOptions, string bdaddr);
         bool gattDiscoverServicesByUuid(Uuid uuid,string bdaddr);
-        void testBatchscan();
+        void testBatchscan(int value);
         void stopScan();
         void startScan();
         void list_conn_devices();

@@ -1777,13 +1777,17 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
          case GATTCTEST_BATCH_SCAN:
             fprintf(stdout,"trying to start batch scan \n");
             if (gattctest) {
+                bool valid = gattctest->validateInput(user_cmd[ONE_PARAM]);
+                if (!valid) {
+                   fprintf(stdout, "Enter proper auto value\n");
+                   break;
+                }
                 fprintf(stdout,"starting batch scan \n");
-                gattctest->testBatchscan();
+                gattctest->testBatchscan(atoi(user_cmd[ONE_PARAM]));
             } else {
                 fprintf(stdout,"Do the GATTCINIT first\n");
             }
             break;
-
         case GATTCTEST_STOP_SCAN:
            if (gattctest) {
                fprintf(stdout,"stopping scan \n");
