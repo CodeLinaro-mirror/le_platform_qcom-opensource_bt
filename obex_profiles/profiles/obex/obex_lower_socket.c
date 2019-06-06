@@ -891,10 +891,11 @@ static OI_STATUS LowerRegServer(OI_OBEX_LOWER_SERVER serverHandle,
         /* Set higher security for non-OPP servers */
         securityFlags = BTSOCK_FLAG_ENCRYPT | BTSOCK_FLAG_AUTH;
     }
-    OI_DBGTRACE(("Listening on %s socket", OI_UUIDDataelemText(&policy->serviceUuid)));
+    if (NULL != policy)
+         OI_DBGTRACE(("Listening on %s socket", OI_UUIDDataelemText(&policy->serviceUuid)));
     //TODO: check and update last argument of below call.
     //Added 0 to compile
-    if (OI_SUCCESS(status) && socket_interface) {
+    if (OI_SUCCESS(status) && socket_interface && (NULL != policy)) {
         connectStatus = socket_interface->listen(sock_type,
                 OI_UUIDDataelemText(&policy->serviceUuid),
                 NULL,
