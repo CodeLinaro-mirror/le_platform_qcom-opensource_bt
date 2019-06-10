@@ -61,6 +61,10 @@ void alarm_cancel(alarm_t *alarm);
 // TODO: Remove this function once PM timers can be re-factored
 period_ms_t alarm_get_remaining_ms(const alarm_t *alarm);
 
+// Tests whether the |alarm| is scheduled.
+// Return true if the |alarm| is scheduled or NULL, otherwise false.
+bool alarm_is_scheduled(const alarm_t* alarm);
+
 // Alarm-related state cleanup
 void alarm_cleanup(void);
 
