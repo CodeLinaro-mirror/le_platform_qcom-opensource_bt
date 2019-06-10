@@ -281,7 +281,7 @@ static void raw_hid_data_cb(const RawAddress& bda, uint8_t* rpt, uint16_t len,
              ALOGD(LOGTAG " raw_hid_data_cb Memory not allocated");
              return;
         }
-        memcpy(rpt_data,&rpt[1],rpt_len*sizeof(uint8_t));
+        memcpy(rpt_data,&rpt[0],(rpt_len)*sizeof(uint8_t));
         for (int i=0;i<rpt_len;i++)
             ALOGD(LOGTAG "raw_hid_data_cb : data at idx %d is %d",i,*(rpt_data+i));
     }
