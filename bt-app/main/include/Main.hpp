@@ -134,6 +134,7 @@ typedef enum {
     CANCEL_ENQUIRY,
     MAIN_EXIT,
     GET_REMOTE_DI,
+    GET_ROLE,
     START_PAIR,
     INQUIRY_LIST,
     BONDED_LIST,
@@ -328,6 +329,8 @@ UserMenuList GapMenu[] = {
     {CANCEL_ENQUIRY,        "cancel_inquiry",   ZERO_PARAM,    "cancel_inquiry"},
     {GET_REMOTE_DI,     "get_remote_di_info",   ONE_PARAM,    "get_remote_di_info<space><bt_address> \
     eg. get_remote_di_info 00:11:22:33:44:55"},
+    {GET_ROLE,              "get_role_req",     ONE_PARAM,    "get_role_req<space><bt_address> \
+    eg. get_role_req 00:11:22:33:44:55"},
     {START_PAIR,            "pair",             ONE_PARAM,    "pair<space><bt_address> \
     eg. pair 00:11:22:33:44:55"},
     {UNPAIR,                "unpair",           ONE_PARAM,    "unpair<space><bt_address> \
