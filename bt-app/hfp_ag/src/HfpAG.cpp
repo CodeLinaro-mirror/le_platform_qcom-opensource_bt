@@ -811,8 +811,9 @@ static void *start_record(void *in_param) {
 
       FILE *fdt = (FILE *)in_param;
       if (fdt == NULL) {
-        fprintf(stdout, "File open failed in etc\n");
+        fprintf(stdout, "sco_record.wav File open failed\n");
         free(buffer);
+        return NULL;
       }
 
       memset(&in_buf,0, sizeof(qahw_in_buffer_t));
@@ -1381,6 +1382,8 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
             setup_sco_path();
 #endif
+            change_state(HFP_AG_STATE_AUDIO_ON);
+
             stop_record = false;
             stop_playback = false;
 
@@ -1388,9 +1391,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
               pHfpAG->configurescoaudio(true);
             }
 
-            file_fd = fopen("/etc/bluetooth/sco_record.wav", "w");
+            file_fd = fopen("/data/misc/bluetooth/sco_record.wav", "w+");
             if (file_fd == NULL) {
-              fprintf(stdout, "File open failed in etc\n");
+              fprintf(stdout, "sco_record.wav File open failed\n");
+              break;
             }
 
             if (pthread_create(&record_tid, NULL, start_playback, file_fd) != 0) {
@@ -1402,7 +1406,6 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
               if (file_fd) fclose(file_fd);
             }
 
-            change_state(HFP_AG_STATE_AUDIO_ON);
             break;
         case HFP_AG_BIND_CB:
             process_at_bind(pEvent);
