@@ -1207,10 +1207,11 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
             dial_call(pEvent->hfp_ag_event.str, &pEvent->hfp_ag_event.bd_addr);
 #else
-            if(number_vec.size() == 0 ) {
-              // if we dont add any number , send error
-              // if it is redial request and we don't have last dialled number, send error
-              // if memory dialling is requested, send error
+            if((number_vec.size() == 0) && ((pEvent->hfp_ag_event.str[0] == '>')
+                || (pEvent->hfp_ag_event.str[0] == '\0'))) {
+              // if we don't add any number , send error
+              // if it is redial request and we don't have last dialed number, send error
+              // if memory dialing is requested, send error
               if (sBtHfpAgInterface != NULL)
                 sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
                                                &pEvent->hfp_ag_event.bd_addr);
@@ -1219,10 +1220,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                 sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                                                &pEvent->hfp_ag_event.bd_addr);
                 sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
-                                BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+                        BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
                 usleep(20000);
                 sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_ALERTING,"",
-                                BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+                        BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
             }
 #endif
             break;
@@ -1658,7 +1659,8 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
             dial_call(pEvent->hfp_ag_event.str, &pEvent->hfp_ag_event.bd_addr);
 #else
-            if(number_vec.size() == 0 ) {
+            if((number_vec.size() == 0) && ((pEvent->hfp_ag_event.str[0] == '>')
+                || (pEvent->hfp_ag_event.str[0] == '\0'))) {
               // if we don't add any number , send error
               // if it is redial request and we don't have last dialed number, send error
               // if memory dialing is requested, send error
