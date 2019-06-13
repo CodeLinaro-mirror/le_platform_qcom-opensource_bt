@@ -86,6 +86,12 @@ void BtHidMsgHandler(void *msg) {
                 pHid->HandleDisableHID();
             }
             break;
+        case HID_API_DISABLE:
+            ALOGD(LOGTAG " Cleanup hid for disable event");
+            if (pHid) {
+                pHid->ClearHidList();
+            }
+            break;
         case HID_API_BONDED_HID_LIST:
             ALOGD(LOGTAG "add bonded list hid");
             if (pHid && !(pHid->isDeviceinHidList(pEvent->hid_profile_event.bd_addr))) {
@@ -624,4 +630,10 @@ void HidH::ChangeStateHidList(HIDConnectiontState hidState, bt_bdaddr_t addr)
     if(iter != pHid->hid_list.end()){
         iter->state = hidState;
     }
+}
+
+void HidH::ClearHidList(void)
+{
+    ALOGD(LOGTAG  "(%s) Clearing HID List",__FUNCTION__);
+    hid_list.clear();
 }

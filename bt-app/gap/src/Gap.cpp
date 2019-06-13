@@ -759,6 +759,14 @@ void Gap::ProcessEvent(BtEvent* event) {
                 bt_event->event_id = PAN_EVENT_API_DISABLE;
                 PostMessage(profile_config[PROFILE_ID_PAN].thread_id, bt_event);
             }
+
+            if(profile_config[PROFILE_ID_HID].is_enabled)
+            {
+                bt_event = new BtEvent;
+                bt_event->event_id = HID_API_DISABLE;
+                PostMessage(THREAD_ID_HID, bt_event);
+            }
+
             if (profile_config[PROFILE_ID_A2DP_SINK].is_enabled)
             {
                 ALOGD(LOGTAG " Killing the proces due to timeout %d", event->event_id);
