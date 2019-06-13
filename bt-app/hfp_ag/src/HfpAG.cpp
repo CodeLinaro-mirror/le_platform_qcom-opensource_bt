@@ -501,7 +501,14 @@ void unknown_at_callback(char *at_string, bt_bdaddr_t* bd_addr) {
 }
 
 void key_pressed_callback(bt_bdaddr_t* bd_addr) {
+    BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " key_pressed_callback");
+    fprintf(stdout, "key_pressed_callback\n");
+
+    memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->hfp_ag_event.event_id = HFP_AG_KEY_PRESSED_CB;
+    PostMessage(THREAD_ID_HFP_AG, pEvent);
+
 }
 
 void bind_callback(char *at_string, bt_bdaddr_t* bd_addr) {
@@ -829,6 +836,7 @@ static void *start_record(void *in_param) {
 
         if (written_size < bytes_read) {
           fprintf(stdout,"Error in fwrite(%d)=%s\n",ferror(fdt), strerror(ferror(fdt)));
+          ALOGD(LOGTAG "Error in fwrite(%d)=%s\n",ferror(fdt), strerror(ferror(fdt)));
           break;
         }
         data_sz += bytes_read;
@@ -1360,6 +1368,13 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
              process_ril_resp(pEvent);
              break;
 #endif
+        case HFP_AG_KEY_PRESSED_CB:
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "key press cb- AcceptVoipCall %s", str);
+            ALOGD(LOGTAG "key press cb- AcceptVoipCall %s", str);
+
+            AcceptVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            break;
         case HFP_AG_API_CONNECT_AUDIO_REQ:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
             fprintf(stdout, "Connecting SCO/eSCO with device %s", str);
@@ -1812,6 +1827,13 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
              process_ril_resp(pEvent);
              break;
 #endif
+        case HFP_AG_KEY_PRESSED_CB:
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "key press cb- end the voip call %s", str);
+            ALOGD(LOGTAG "key press cb- end the voip call %s", str);
+
+            EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            break;
         case HFP_AG_BIND_CB:
             process_at_bind(pEvent);
             break;
