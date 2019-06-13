@@ -78,6 +78,9 @@ namespace gatt {
 
 class GattNativeInterfaceV2bImpl
 {
+
+  static sd_bus_slot *m_sdbus_slot_gatt;
+
 public:
   GattNativeInterfaceV2bImpl() {}
   ~GattNativeInterfaceV2bImpl() {}
@@ -165,6 +168,8 @@ public:
   static void stopSyncNative(int sync_handle);
   static void gattTestNative(int command, btapp::Uuid uuid1, string bda1, int p1, int p2, int p3, int p4, int p5);
 };
+
+sd_bus_slot *GattNativeInterfaceV2bImpl::m_sdbus_slot_gatt = NULL;
 
 static RawAddress str2addr(string address)
 {
@@ -2028,12 +2033,6 @@ void GattNativeInterfaceV2bImpl::init(const btgatt_native_interface_callbacks_t 
   }
 
   // initialize dbus
-  if (!open_sdbus_ipc())
-  {
-    ALOGE(LOGTAG "(%s) Failed to open sd-bus", __func__);
-    return;
-  }
-
   if (!initSDBus())
   {
     ALOGE(LOGTAG "(%s) Failed to init sd-bus!!", __func__);
@@ -2044,10 +2043,12 @@ void GattNativeInterfaceV2bImpl::init(const btgatt_native_interface_callbacks_t 
 
 void GattNativeInterfaceV2bImpl::deinit(void)
 {
-  // deinitialize dbus
-  close_sdbus_ipc();
-
   ALOGD(LOGTAG "(%s) Success to cleanup sd-bus", __func__);
+
+  	if( m_sdbus_slot_gatt != nullptr )  {
+	  sd_bus_slot_unref(m_sdbus_slot_gatt);
+	  m_sdbus_slot_gatt = nullptr;
+	}
 }
 
 bool GattNativeInterfaceV2bImpl::initSDBus(void)
@@ -2124,7 +2125,7 @@ bool GattNativeInterfaceV2bImpl::initSDBus(void)
   if (g_sdbus)
   {
     int r = sd_bus_add_object_vtable(g_sdbus,
-                                     NULL,
+                                     &m_sdbus_slot_gatt,
                                      DBUS_OBJ_PATH, // object path
                                      DBUS_IF_NAME,  // interface name
                                      dbus_vtable,
