@@ -1217,7 +1217,6 @@ bool GattsTest::DisableGATTSTEST()
     delete(mAdvertisercallback);
   }
   advCBInstanceMap.clear();
-  delete(madvertiser);
   num_of_server = 0;
   return true;
 }
