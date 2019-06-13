@@ -91,6 +91,7 @@ class HidH {
     list<HidDevice>::iterator FindDeviceByAddr(list<HidDevice>& phidDev, bt_bdaddr_t dev);
     void HidPairedeDeviceList();
     void RemoveHidList(bt_bdaddr_t dev);
+    void ClearHidList(void);
     bool isDeviceinHidList(bt_bdaddr_t dev);
     void ChangeStateHidList(HIDConnectiontState hidState, bt_bdaddr_t addr);
     pthread_mutex_t lock;
