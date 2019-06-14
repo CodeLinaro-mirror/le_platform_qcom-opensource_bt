@@ -3127,16 +3127,12 @@ void A2dp_Source::HandleEnableSource(void) {
              PostMessage(THREAD_ID_GAP, pEvent);
              return;
         }
-        enable_delay_report = config_get_bool (config, CONFIG_DEFAULT_SECTION,
-                                             "BtA2dpDelayReportEnable", false);
 
         pump_encoded_data = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                               "BtA2dpPumpEncodedData", false);
         if(pump_encoded_data)
             streaming_param |= A2DP_SRC_PUMP_ENCODED_DATA;
-        if(enable_delay_report)
-            streaming_param |= A2DP_SRC_ENABLE_DELAY_REPORTING;
-        ALOGD(LOGTAG_A2DP " ~~ Try to get config , enable_delay_report %d, pump_encoded_data %d", enable_delay_report, pump_encoded_data);
+        ALOGD(LOGTAG_A2DP " Try to get config , pump_encoded_data %d", pump_encoded_data);
         int numConfigs = BTAV_A2DP_CODEC_INDEX_SOURCE_MAX - BTAV_A2DP_CODEC_INDEX_SOURCE_MIN;
         int priority_values[numConfigs];
         priority_values[0]   = config_get_int (config, CONFIG_DEFAULT_SECTION,

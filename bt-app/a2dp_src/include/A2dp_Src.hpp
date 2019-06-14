@@ -194,7 +194,6 @@ class A2dp_Source {
     bool get_codec_cfg(uint8_t* info, uint8_t* type);
     char* dump_message(BluetoothEventId event_id);
     pthread_mutex_t lock;
-    bool enable_delay_report;
     bool pump_encoded_data;
     bt_bdaddr_t mConnectingDevice;
     bt_bdaddr_t mConnectedDevice;

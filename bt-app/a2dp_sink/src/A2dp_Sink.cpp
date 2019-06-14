@@ -705,11 +705,12 @@ void A2dp_Sink::HandleEnableSink(void) {
             CONFIG_DEFAULT_SECTION, "BtEnableSBCDecoding", true);
         pA2dpSinkStream->enable_notification_cb = config_get_bool (config,
                          CONFIG_DEFAULT_SECTION, "BtMediaNotificationCb", false);
-        ALOGD(LOGTAG " Fetch RTP Info %d, enable_notification_cb: %d",
-                pA2dpSinkStream->fetch_rtp_info, pA2dpSinkStream->enable_notification_cb);
+        pA2dpSinkStream->enable_timestamp = config_get_bool (config,
+                         CONFIG_DEFAULT_SECTION, "BtMediaTimestamp", false);
 
-        pA2dpSinkStream->enable_delay_report = config_get_bool (config,CONFIG_DEFAULT_SECTION, "BtA2dpDelayReportEnable", false);
-        ALOGD(LOGTAG " ~~ enable_delay_report  %d ", pA2dpSinkStream->enable_delay_report);
+        ALOGD(LOGTAG " %s ,fetch_rtp_info = %d, enable_notification_cb = %d,"
+              "enable_timestamp = %d",__func__,pA2dpSinkStream->fetch_rtp_info,
+              pA2dpSinkStream->enable_notification_cb, pA2dpSinkStream->enable_timestamp);
 #ifdef USE_LIBHW_AOSP
         sBtA2dpSinkInterface->init(&sBluetoothA2dpSinkCallbacks);
 #else
@@ -719,10 +720,10 @@ void A2dp_Sink::HandleEnableSink(void) {
             streaming_prarm |= A2DP_SINK_RETREIVE_RTP_HEADER;
         if(pA2dpSinkStream->sbc_decoding)
             streaming_prarm |= A2DP_SINK_ENABLE_SBC_DECODING;
-        if (pA2dpSinkStream->enable_delay_report)
-            streaming_prarm |= A2DP_SINK_ENABLE_DELAY_REPORTING;
         if (pA2dpSinkStream->enable_notification_cb)
             streaming_prarm |= A2DP_SINK_ENABLE_NOTIFICATION_CB;
+        if (pA2dpSinkStream->enable_timestamp)
+            streaming_prarm |= A2DP_SINK_ENABLE_TIMESTAMP;
 
         sBtA2dpSinkVendorInterface->init_vendor(&sBluetoothA2dpSinkVendorCallbacks,
                     max_a2dp_conn, 0,
