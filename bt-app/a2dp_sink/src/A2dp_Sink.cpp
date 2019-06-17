@@ -652,6 +652,11 @@ static void bta2dp_audio_registration_callback(bool state) {
     ALOGD(LOGTAG " Audio Registration Callback: state = %d", state);
 }
 
+static void bta2dp_audio_mtu_config_callback(uint16_t mtu, const RawAddress& bd_addr) {
+    ALOGD(LOGTAG " %s, mtu = %d, bdaddr = %s",__func__,mtu,
+          bd_addr.ToString().c_str());
+}
+
 static btav_sink_callbacks_t sBluetoothA2dpSinkCallbacks = {
     sizeof(sBluetoothA2dpSinkCallbacks),
     bta2dp_connection_state_callback,
@@ -667,6 +672,7 @@ static btav_sink_vendor_callbacks_t sBluetoothA2dpSinkVendorCallbacks = {
     bta2dp_audio_registration_callback,
     NULL,
     NULL,
+    bta2dp_audio_mtu_config_callback,
 };
 
 void A2dp_Sink::HandleEnableSink(void) {
