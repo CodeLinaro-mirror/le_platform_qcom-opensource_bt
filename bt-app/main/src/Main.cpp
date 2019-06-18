@@ -972,11 +972,19 @@ static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
+        {
+            bt_bdaddr_t address;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &address);
+            if (!g_gap->IsDeviceBonded(address)) {
+                fprintf( stdout, " Please pair with the device before HfpClient connection\n");
+                break;
+            }
             event = new BtEvent;
             event->hfp_client_event.event_id = HFP_CLIENT_API_CONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_client_event.bd_addr);
             PostMessage (THREAD_ID_HFP_CLIENT, event);
             break;
+        }
         case DISCONNECT:
             event = new BtEvent;
             event->hfp_client_event.event_id = HFP_CLIENT_API_DISCONNECT_REQ;
@@ -1154,11 +1162,19 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
+        {
+            bt_bdaddr_t address;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &address);
+            if (!g_gap->IsDeviceBonded(address)) {
+                fprintf( stdout, " Please pair with the device before HfpAG connection\n");
+                break;
+            }
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_API_CONNECT_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
+        }
         case DISCONNECT:
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_API_DISCONNECT_REQ;
