@@ -36,8 +36,8 @@ using std::string;
 
 Hfp_Ag *pHfpAG = NULL;
 extern BT_Audio_Manager *pBTAM;
-volatile bool stop_record = false;
-volatile bool stop_playback = false;
+volatile bool stop_record = true;
+volatile bool stop_playback = true;
 
 
 static pthread_t record_tid = NULL;
@@ -898,6 +898,8 @@ void Hfp_Ag::HandleEnableAg(void) {
 
 void Hfp_Ag::HandleDisableAg(void) {
    change_state(HFP_AG_STATE_NOT_STARTED);
+   stop_playback = true;
+   stop_record = true;
    if(sBtHfpAgInterface != NULL) {
        sBtHfpAgInterface->cleanup();
        sBtHfpAgInterface = NULL;
