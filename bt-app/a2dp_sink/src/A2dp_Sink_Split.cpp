@@ -888,6 +888,11 @@ static void bta2dp_audio_split_sink_suspend_ind_callback(const bt_bdaddr_t& bd_a
     pA2dpSinkSplit->start_pending = false;
 }
 
+static void bta2dp_audio_mtu_config_callback(uint16_t mtu, const RawAddress& bd_addr) {
+    ALOGD(LOGTAG " %s, mtu = %d, bdaddr = %s",__func__,mtu,
+          bd_addr.ToString().c_str());
+}
+
 static btav_sink_callbacks_t sBluetoothA2dpSinkCallbacks = {
     sizeof(sBluetoothA2dpSinkCallbacks),
     bta2dp_connection_state_callback,
@@ -903,6 +908,7 @@ static btav_sink_vendor_callbacks_t sBluetoothA2dpSinkVendorCallbacks = {
     bta2dp_audio_registration_callback,
     bta2dp_audio_split_sink_start_ind_callback,
     bta2dp_audio_split_sink_suspend_ind_callback,
+    bta2dp_audio_mtu_config_callback,
 };
 
 void A2dp_Sink_Split::HandleEnableSink(void) {
