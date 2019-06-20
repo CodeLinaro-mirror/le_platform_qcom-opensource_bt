@@ -40,6 +40,7 @@
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "osi/include/allocator.h"
+#include "osi/include/alarm.h"
 #include "ipc.hpp"
 #include "utils.h"
 #include "hardware/bt_rc_vendor.h"
@@ -62,6 +63,8 @@ class Avrcp {
     std::list <std::string> rc_only_devices;
     bt_bdaddr_t mConnectedAvrcpDevice;
     uint32_t max_avrcp_conn;
+    alarm_t *get_play_status_timer;
+    bool get_play_status;//If TRUE, get_play_status timer will be started
     void HandleAvrcpCTEvents(BtEvent* pEvent);
     void HandleAvrcpCTPassThruEvents(BtEvent* pEvent);
     void HandleEnableAvrcp();
@@ -71,6 +74,8 @@ class Avrcp {
     void setAbsVolume(bt_bdaddr_t* dev, int absVol, int label);
     bool is_abs_vol_supported(bt_bdaddr_t bd_addr);
     int get_current_audio_index();
+    void StartGetPlayStatusTimer(RawAddress *device);
+    void StopGetPlayStatusTimer();
 };
 
 #endif

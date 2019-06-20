@@ -195,6 +195,11 @@ void alarm_cancel(alarm_t *alarm) {
   pthread_mutex_unlock(&alarm->callback_lock);
 }
 
+bool alarm_is_scheduled(const alarm_t* alarm) {
+  if ((alarms == NULL) || (alarm == NULL)) return false;
+  return (alarm->callback != NULL);
+}
+
 void alarm_cleanup(void) {
   // If lazy_initialize never ran there is nothing to do
   if (!alarms)
