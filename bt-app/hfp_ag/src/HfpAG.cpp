@@ -1052,6 +1052,35 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(HFP_AG_STATE_DISCONNECTED);
             break;
+	case HFP_AG_AUDIO_STATE_DISCONNECTED_CB:
+
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "Disconnected SCO connection with device %s", str);
+            ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
+
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
+            teardown_sco_path();
+#endif
+            stop_record = true;
+            stop_playback = true;
+
+            if (pHfpAG) {
+              pHfpAG->configurescoaudio(false);
+            }
+
+            if (record_tid != NULL)
+            {
+              pthread_join(record_tid, NULL);
+              record_tid = NULL;
+            }
+            if (playback_tid != NULL)
+            {
+              pthread_join(playback_tid, NULL);
+              playback_tid = NULL;
+            }
+
+            change_state(HFP_AG_STATE_CONNECTED);
+            break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
