@@ -1219,6 +1219,7 @@ bool GattsTest::DisableGATTSTEST()
     mServercallback = it->first;
     delete(mServercallback);
     mServer = it->second;
+    mServer->close();
     delete(mServer);
   }
   servCBInstanceMap.clear();
