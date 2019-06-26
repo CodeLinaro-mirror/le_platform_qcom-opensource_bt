@@ -72,6 +72,9 @@ using namespace btapp;
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
 int server_num;
 bool file_read = 0;
+long onoff_count = 0;
+long onoff_index = 0;
+
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
@@ -113,7 +116,6 @@ extern "C"
 {
 #endif
 
-thread_t *test_thread_id = NULL;
 ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,split
 static void SendDisableCmdToGap();
 
@@ -1404,28 +1406,6 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 
-
-void HandleOnOffTest (void *context) {
-    char *end;
-    int index = 0;
-    long  num = (long) context;
-    for( index = 0; index < (long)num; index++) {
-
-        BtEvent *event_on = new BtEvent;
-        event_on->event_id = MAIN_API_ENABLE;
-        fprintf( stdout, "Iteration: %d : Posting enable\n", index + 1);
-        PostMessage (THREAD_ID_MAIN, event_on);
-        sleep(5);
-        BtEvent *event_off = new BtEvent;
-        event_off->event_id = MAIN_API_DISABLE;
-        fprintf( stdout, "Iteration: %d : Posting disable\n", index + 1);
-        PostMessage (THREAD_ID_MAIN, event_off);
-        sleep(5);
-    }
-    reactor_stop(thread_get_reactor(test_thread_id));
-    test_thread_id = NULL;
-}
-
 static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     long num = 0;
@@ -1433,19 +1413,31 @@ static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     int index = 0;
     switch (cmd_id) {
         case TEST_ON_OFF:
-            if ((user_cmd[ONE_PARAM][0] != '\0')  && (!test_thread_id)) {
+            if ((user_cmd[ONE_PARAM][0] != '\0')  && (onoff_count == 0)) {
                 errno = 0;
                 num = strtol(user_cmd[ONE_PARAM], &end, 0);
                 if (*end != '\0' || errno != 0 || num < INT_MIN || num > INT_MAX){
                     fprintf( stdout, " Enter numeric Value\n");
                     break;
                 }
-
-                test_thread_id = thread_new ("test_thread");
-                if (test_thread_id)
-                    thread_post(test_thread_id, HandleOnOffTest, (void *) num);
-
-            } else if (test_thread_id) {
+                onoff_index = 1;
+                onoff_count = (long) num;
+                if (g_bt_app->bt_state == BT_STATE_OFF) {
+                  BtEvent *event_on = new BtEvent;
+                  event_on->event_id = MAIN_API_ENABLE;
+                  fprintf( stdout, "Iteration: %d : Posting enable\n", onoff_index);
+                  ALOGD (LOGTAG "Iteration: %d Posting enable\n",onoff_index);
+                  PostMessage (THREAD_ID_MAIN, event_on);
+                } else if (g_bt_app->bt_state == BT_STATE_ON) {
+                  fprintf( stdout, "BT is already Enabled\n", onoff_index);
+                  BtEvent *event_on = new BtEvent;
+                  event_on->event_id = MAIN_API_DISABLE;
+                  fprintf( stdout, "Iteration: %d : Posting Disable\n", onoff_index);
+                  ALOGD (LOGTAG "Iteration: %d Posting Disable\n",onoff_index);
+                  PostMessage (THREAD_ID_MAIN, event_on);
+                }
+                g_bt_app->is_bt_enable_test_menu_ = true;
+            } else  {
                 fprintf( stdout, "Test is ongoing, please wait until it finishes\n");
             }
             break;
@@ -3348,24 +3340,30 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             if (event->state_event.status == BT_STATE_OFF) {
                 fprintf(stdout," Error in Enabling BT\n");
             } else {
-               fprintf(stdout," BT State is ON\n");
+              fprintf(stdout," BT State is ON\n");
 
-		if (is_bt_enable_autotest){
-			if ((g_bt_app->status.enquiry_cmd != COMMAND_INPROGRESS) &&
-                                (g_bt_app->bt_state == BT_STATE_ON)) {
-				g_bt_app->inquiry_list.clear();
-				g_bt_app->status.enquiry_cmd = COMMAND_INPROGRESS;
-				event = new BtEvent;
-				event->event_id = GAP_API_START_INQUIRY;
-				ALOGV (LOGTAG " Posting inquiry to GAP thread");
-				PostMessage (THREAD_ID_GAP, event);
-			} else if (g_bt_app->status.enquiry_cmd == COMMAND_INPROGRESS) {
-				fprintf( stdout, " The inquiry is already in process\n");
-			} else {
-				fprintf( stdout, "currently BT is OFF\n");
-			}
-		}
-	    }
+              if (is_bt_enable_autotest){
+                if ((g_bt_app->status.enquiry_cmd != COMMAND_INPROGRESS) &&
+                     (g_bt_app->bt_state == BT_STATE_ON)) {
+                  g_bt_app->inquiry_list.clear();
+                  g_bt_app->status.enquiry_cmd = COMMAND_INPROGRESS;
+                  event = new BtEvent;
+                  event->event_id = GAP_API_START_INQUIRY;
+                  ALOGV (LOGTAG " Posting inquiry to GAP thread");
+                  PostMessage (THREAD_ID_GAP, event);
+                } else if (g_bt_app->status.enquiry_cmd == COMMAND_INPROGRESS) {
+                  fprintf( stdout, " The inquiry is already in process\n");
+                } else {
+                  fprintf( stdout, "currently BT is OFF\n");
+                }
+              }
+            }
+            if (is_bt_enable_test_menu_) {
+              event = new BtEvent;
+              event->event_id = MAIN_EVENT_TESTMENU_BT_ENABLED;
+              fprintf (stdout, " Posting testmenu_BT enabled event to main thread\n");
+              PostMessage (THREAD_ID_MAIN, event);
+            }
             status.enable_cmd = COMMAND_COMPLETE;
             break;
 
@@ -3385,6 +3383,12 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 system("killall -KILL wcnssfilter");
                 usleep(200);
                 fprintf(stdout, " BT State is OFF\n");
+            }
+            if (is_bt_enable_test_menu_) {
+              event = new BtEvent;
+              event->event_id = MAIN_EVENT_TESTMENU_BT_DISABLED;
+              fprintf (stdout, " Posting testmenu_BT disabled event to main thread\n");
+              PostMessage (THREAD_ID_MAIN, event);
             }
             status.disable_cmd = COMMAND_COMPLETE;
             break;
@@ -3484,6 +3488,50 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             pin_reply.secure = event->pin_request_event.secure;
             // instruct the cmd handler to treat the next inputs for PIN
             pin_notification = true;
+            break;
+
+        case MAIN_EVENT_TESTMENU_BT_ENABLED:
+
+           if (bt_state == BT_STATE_ON)
+           {
+             //fprintf(stdout, "Test_menu BT enabled for Iteration: %d\n",onoff_count);
+             if(onoff_count > 0) {
+               BtEvent *event_off = new BtEvent;
+               event_off->event_id = MAIN_API_DISABLE;
+               fprintf( stdout, "Iteration: %d Posting disable\n",onoff_index);
+               ALOGD (LOGTAG "Iteration: %d Posting disable\n",onoff_index);
+               PostMessage (THREAD_ID_MAIN, event_off);
+             } else
+               is_bt_enable_test_menu_ = false;
+           } else {
+             fprintf(stdout, "Test_menu BT enable failed in Iteration: %d\n",onoff_count);
+             ALOGD (LOGTAG "Test_menu BT enable failed in Iteration: %d\n",onoff_count);
+             onoff_count = 0;
+           }
+           break;
+
+        case MAIN_EVENT_TESTMENU_BT_DISABLED:
+
+            if(onoff_count > 0) {
+              onoff_count--;
+              onoff_index++;
+            }
+            if (bt_state == BT_STATE_OFF)
+            {
+              //fprintf(stdout, "Test_menu BT disabled for Iteration: %d\n",onoff_count);
+              if(onoff_count > 0) {
+                BtEvent *event_off = new BtEvent;
+                event_off->event_id = MAIN_API_ENABLE;
+                fprintf( stdout, "Iteration: %d Posting enable\n",onoff_index);
+                ALOGD (LOGTAG "Iteration: %d Posting enable\n",onoff_index);
+                PostMessage (THREAD_ID_MAIN, event_off);
+              } else
+                is_bt_enable_test_menu_ = false;
+              } else {
+                fprintf(stdout, "Test_menu BT disable failed in Iteration: %d\n",onoff_count);
+                ALOGD (LOGTAG "Test_menu BT disable failed in Iteration: %d\n",onoff_count);
+                onoff_count = 0;
+            }
             break;
 
 #ifdef USE_BT_OBEX
@@ -4041,6 +4089,7 @@ BluetoothApp :: BluetoothApp () {
     cmd_reactor_ = NULL;
     listen_reactor_ = NULL;
     accept_reactor_ = NULL;
+    is_bt_enable_test_menu_ = false;
 
     bt_state = BT_STATE_OFF;
     bt_discovery_state = BT_DISCOVERY_STOPPED;

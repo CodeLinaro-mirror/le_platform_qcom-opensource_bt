@@ -939,6 +939,7 @@ class BluetoothApp {
     bool ssp_notification;
     bool pin_notification;
     bool is_hid_enabled;
+    bool is_bt_enable_test_menu_;
 #ifdef USE_BT_OBEX
     bool incoming_file_notification;
 #endif
