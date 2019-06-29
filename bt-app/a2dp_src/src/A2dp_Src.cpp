@@ -76,6 +76,7 @@ btrc_notification_type_t mAppSettingChangedNotiType = BTRC_NOTIFICATION_TYPE_CHA
 
 uint8_t mfolder_depth = 0;
 bool is_empty_folder = 0;
+bool is_search_req_recieved = false;
 btrc_br_folder_name_t* mp_folders = nullptr;
 uint8_t rootUid[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04};
 uint8_t folderUid1[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03};
@@ -682,6 +683,7 @@ void registerMediaPlayers () {
     featureMasks[5] = featureMasks[5] | 0x02; /*Stop*/
     featureMasks[7] = featureMasks[7] | 0x04; /*Advanced Control Player*/
     featureMasks[7] = featureMasks[7] | 0x08; /*Browsing*/
+    featureMasks[7] = featureMasks[7] | 0x10; /*search operation supported*/
     featureMasks[7] = featureMasks[7] | 0x80; /*Only Browsable when addressed*/
     featureMasks[8] = featureMasks[8] | 0x02; /*Now playing*/
 
@@ -877,6 +879,7 @@ void BtA2dpSourceMsgHandler(void *msg) {
         case AVRCP_TARGET_PLAY_POSITION_TIMEOUT:
         case AVRCP_TARGET_SET_BROWSED_PLAYER_REQ:
         case AVRCP_TARGET_CHANGE_PATH_REQ:
+        case AVRCP_TARGET_SEARCH_CB:
         case AVRCP_TARGET_GET_ITEM_ATTRIBUTES_REQ:
         case AVRCP_TARGET_PLAY_ITEMS_REQ:
         case AVRCP_TARGET_ADDTO_NOW_PLAYING_REQ:
@@ -1885,6 +1888,22 @@ static void btavrcp_target_play_item_callback(uint8_t scope, uint16_t uid_counte
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
 }
 
+static void btavrcp_target_search_callback(uint16_t charset_id, uint16_t str_len,
+                                           uint8_t* p_str, RawAddress* bd_addr)
+{
+    ALOGD(LOGTAG_AVRCP "%s",__func__);
+    is_search_req_recieved = true;
+    BtEvent *pEvent = new BtEvent;
+    memset(pEvent,0,sizeof(BtEvent));
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_SEARCH_CB;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->avrcpTargetEvent.arg1 = charset_id;
+    pEvent->avrcpTargetEvent.buf_size = str_len;
+    pEvent->avrcpTargetEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->avrcpTargetEvent.buf_size);
+    memcpy(pEvent->avrcpTargetEvent.buf_ptr, p_str, pEvent->avrcpTargetEvent.buf_size);
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
 static void btavrcp_target_add_to_now_playing_callback(uint8_t scope, uint8_t* uid,
                                                  uint16_t uid_counter,
                                                  RawAddress* bd_addr){
@@ -1921,7 +1940,7 @@ static btrc_callbacks_t sBluetoothAvrcpTargetCallbacks = {
    btavrcp_target_get_item_attr_callback,
    btavrcp_target_play_item_callback,
    NULL,
-   NULL,
+   btavrcp_target_search_callback,
    btavrcp_target_add_to_now_playing_callback,
    btavrcp_target_connection_state_callback,
 };
@@ -2421,6 +2440,86 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     osi_free(p_param->p_item_list);
                     osi_free(p_param);
                 }
+                break;
+            case BTRC_SCOPE_SEARCH:
+                //always returns first media elemrnt in the list during search rsp
+                p_param = (btrc_vendor_folder_list_entries_t*)osi_malloc(
+                                   sizeof(btrc_vendor_folder_list_entries_t));
+                p_param->status = BTRC_STS_NO_ERROR ;
+                p_param->uid_counter = 0;
+                p_param->item_count =  0;
+
+                if(!is_search_req_recieved) {
+                    //send error response since search req is not recieved
+                    p_param->status = BTRC_STS_BAD_CMD;
+                    sBtAvrcpTargetInterface->get_folder_items_list_rsp(
+                                             &(pEvent->avrcpTargetEvent.bd_addr),
+                                             (btrc_status_t)p_param->status, p_param->uid_counter,
+                                             p_param->item_count, p_param->p_item_list);
+                }
+
+                if (pMediaList.size() > 0) {
+                    list<MediaInfo>::iterator p = pMediaList.begin();
+                    mediaEntry = (char*)osi_malloc(p->RetrieveMediaEntryLength()*sizeof(char));
+                    mediaEntry = p->RetrieveMediaItemEntry();
+                    int length = p->RetrieveMediaEntryLength();
+                    folderItemLengths[0] = length;
+                    for (count = 0; count < length; count ++)
+                        folderItems[positionItemStart + count] = mediaEntry[count];
+                    osi_free(mediaEntry);
+                    p_param->item_count =  1;
+                    p_param->p_item_list = (btrc_folder_items_t*)
+                                           osi_malloc(sizeof(btrc_folder_items_t));
+                    for (countTemp = 0; countTemp < BTRC_UID_SIZE; countTemp ++) {
+                        p_param->p_item_list->media.uid[countTemp] =
+                        folderItems[countTotalBytes]; countTotalBytes++;
+                    }
+                    p_param->p_item_list->item_type =
+                        folderItems[countTotalBytes];
+                    p_param->p_item_list->media.type =
+                        BTRC_MEDIA_TYPE_AUDIO ;
+                    countTotalBytes++;
+                    p_param->p_item_list->media.charset_id =
+                        (uint16_t)(folderItems[countTotalBytes] & 0x00ff);
+                    countTotalBytes++;
+                    p_param->p_item_list->media.charset_id +=
+                        (uint16_t)((folderItems[countTotalBytes] << 8) & 0xff00);
+                    countTotalBytes++;
+                    uint16_t str_len = (uint16_t)(folderItems[countTotalBytes] & 0x00ff);
+                    countTotalBytes++;
+                    str_len += (uint16_t)((folderItems[countTotalBytes] << 8) & 0xff00);
+                    countTotalBytes++;
+                    for (countTemp = 0; countTemp < str_len; countTemp ++) {
+                        p_param->p_item_list->media.name[countTemp] =
+                        folderItems[countTotalBytes]; countTotalBytes++;
+                    }
+                    p_param->p_item_list->media.name[countTemp] = '\0';
+                    p_param->p_item_list->media.num_attrs =
+                        folderItems[countTotalBytes]; countTotalBytes++;
+                    /*To check if byte feeding went well*/
+                    checkLength += folderItemLengths[count];
+                    ALOGD(LOGTAG_AVRCP "checkLength = %u countTotalBytes = %u strlen = %d ",
+                                      checkLength,countTotalBytes,str_len);
+                }
+                sBtAvrcpTargetInterface->get_folder_items_list_rsp(
+                                  &(pEvent->avrcpTargetEvent.bd_addr),
+                                  (btrc_status_t)p_param->status, p_param->uid_counter,
+                                  p_param->item_count, p_param->p_item_list);
+                osi_free(pEvent->avrcpTargetEvent.buf_ptr);
+                osi_free(folderitem);
+                osi_free(folderItems);
+                osi_free(p_param->p_item_list);
+                osi_free(p_param);
+            }
+            break;
+        case AVRCP_TARGET_SEARCH_CB:
+            //Always responds with one media item in search rsp
+            if (pMediaList.size() > 0) {
+                sBtAvrcpTargetInterface->search_rsp(&pEvent->avrcpTargetEvent.bd_addr,
+                                                    BTRC_STS_NO_ERROR, 0, 1);
+            } else {
+                sBtAvrcpTargetInterface->search_rsp(&pEvent->avrcpTargetEvent.bd_addr,
+                                                    BTRC_STS_NO_ERROR, 0, 0);
             }
             break;
         case AVRCP_TARGET_ABS_VOL_TIMEOUT:
@@ -2912,6 +3011,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             break;
         case AVRCP_TARGET_DISCONNECTED_CB:
             mAvrcpConnected = false;
+            is_search_req_recieved = false;
             memset(&mConnectedAvrcpDevice, 0, sizeof(bt_bdaddr_t));
             break;
         case A2DP_SOURCE_AUDIO_CMD_REQ:{
@@ -3200,6 +3300,7 @@ void A2dp_Source::HandleDisableSource(void) {
    pEvent->profile_stop_event.status = true;
    PostMessage(THREAD_ID_GAP, pEvent);
    media_playing = false;
+   is_search_req_recieved = false;
    playStatus = BTRC_PLAYSTATE_STOPPED;
    mCurrentTrackID = NO_TRACK_SELECTED;
    mCurrentAddressedPlayer = DEFAULT_PLAYER_ADDRESSED;
@@ -3295,6 +3396,8 @@ char* A2dp_Source::dump_message(BluetoothEventId event_id) {
         return "AVRCP_TARGET_SET_BROWSED_PLAYER_REQ";
     case AVRCP_TARGET_CHANGE_PATH_REQ:
         return "AVRCP_TARGET_CHANGE_PATH_REQ";
+    case AVRCP_TARGET_SEARCH_CB:
+        return "AVRCP_TARGET_SEARCH_CB";
     case AVRCP_TARGET_GET_ITEM_ATTRIBUTES_REQ:
         return "AVRCP_TARGET_GET_ITEM_ATTRIBUTES_REQ";
     case AVRCP_TARGET_PLAY_ITEMS_REQ:
