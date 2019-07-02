@@ -681,11 +681,13 @@ int ScanManager::ScanNative::getBatchScanIntervalMillis(int scanMode)
 
 void ScanManager::ScanNative::batchScanTimeoutCb(void *context)
 {
-  ScanManager *sM = (ScanManager*)context;
-  for(std::unordered_set<ScanClient*>::iterator it = sM->mBatchClients.begin();
-            it != sM->mBatchClients.end(); ++it){
-    sM->flushBatchScanResults(*it);
-  }
+  BtEvent *event = new BtEvent;
+  CHECK_PARAM_VOID(event);
+
+  event->event_id = BLESCANNER_BATCHSCAN_TIMEOUT_EVENT;
+  event->BleScanner_batchscan_timeout_Event.scanmanager = context;
+
+  PostMessage(THREAD_ID_GATT, event);
 }
 
 void ScanManager::ScanNative::setBatchAlarm()

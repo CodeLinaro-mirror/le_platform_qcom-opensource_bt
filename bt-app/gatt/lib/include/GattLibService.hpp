@@ -473,6 +473,7 @@ class GattLibService           {
     void HandleBleScannerPeriodicAdvSyncLostEvent(BleScannerPeriodicAdvSyncLostEvent *event);
     void HandleBleScannerPeriodicAdvSyncReportEvent(BleScannerPeriodicAdvSyncReportEvent *event);
     void HandleGattAdapterPropertyEvent(GattAdapterPropertyEvent *event);
+    void HandleBleBatchScanTimeoutEvent(BleScannerBatchscantimeoutEvent *event);
 };
 }//namespace gatt
 #endif

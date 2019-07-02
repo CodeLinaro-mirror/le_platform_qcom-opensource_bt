@@ -526,6 +526,7 @@ typedef enum {
     BLESCANNER_PERIODIC_ADVERTISING_SYNC_START_EVENT,
     BLESCANNER_PERIODIC_ADVERTISING_SYNC_LOST_EVENT,
     BLESCANNER_PERIODIC_ADVERTISING_SYNC_REPORT_EVENT,
+    BLESCANNER_BATCHSCAN_TIMEOUT_EVENT,
 
     GATT_EVENT_ADAPTER_PROPERTIES,
     RSP_ENABLE_EVENT = RSP_MSG_BASE,
@@ -1535,6 +1536,13 @@ typedef struct
 typedef struct
 {
     BluetoothEventId event_id;
+    void *scanmanager;
+} BleScannerBatchscantimeoutEvent;
+
+
+typedef struct
+{
+    BluetoothEventId event_id;
     int reg_id;
     uint8_t status;
     uint16_t sync_handle;
@@ -1805,6 +1813,7 @@ typedef union {
     BleScannerPeriodicAdvSyncStartEvent     blescanner_periodic_adv_sync_start_event;
     BleScannerPeriodicAdvSyncLostEvent      blescanner_periodic_adv_sync_lost_event;
     BleScannerPeriodicAdvSyncReportEvent    blescanner_periodic_adv_sync_report_event;
+    BleScannerBatchscantimeoutEvent         BleScanner_batchscan_timeout_Event;
 #ifdef USE_GEN_GATT
     GattAdapterPropertyEvent                gatt_adapter_property_event;
 #endif
