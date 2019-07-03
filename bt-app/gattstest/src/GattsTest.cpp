@@ -1058,6 +1058,8 @@ bool GattsTest::UnregisterServer(string instance)
   if(num_of_server <= MAX_SERVER_INSTANCE) {
     mServer = servInstanceMap[instanceId];
     mServer->close();
+    servInstanceMap.erase(instanceId);
+    num_of_server--;
     return true;
   } else {
     fprintf(stdout,"There are no more servers to unregister \n");
