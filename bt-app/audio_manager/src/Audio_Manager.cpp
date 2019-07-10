@@ -99,12 +99,12 @@ char* BT_Audio_Manager::dump_message(BluetoothEventId event_id) {
 }
 
 void BT_Audio_Manager::HandleEnableBTAM(void) {
+    LoadAudioHal();
     BtEvent *pEvent = new BtEvent;
     pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
     pEvent->profile_start_event.profile_id = PROFILE_ID_BT_AM;
     pEvent->profile_start_event.status = true;
     PostMessage(THREAD_ID_GAP, pEvent);
-    LoadAudioHal();
 }
 
 void BT_Audio_Manager::HandleDisableBTAM(void) {
@@ -149,6 +149,7 @@ void BT_Audio_Manager::LoadAudioHal()
 
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     ALOGD(LOGTAG " Load Audio HAL +");
+    fprintf(stdout, "Load Audio HAL started \n");
     if (qahw_mod_handle != NULL) {
         ALOGD(" Audio HAL already loaded");
     } else {
@@ -159,6 +160,7 @@ void BT_Audio_Manager::LoadAudioHal()
         return;
     }
     ALOGD(LOGTAG "Load Audio HAL -");
+    fprintf(stdout, "Load Audio HAL completed\n");
 #endif
 }
 void BT_Audio_Manager::UnloadAudioHal()

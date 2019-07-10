@@ -657,9 +657,9 @@ void Hfp_Ag::configurescoaudio(bool enable) {
         if ( mWbsState == BTHF_WBS_YES )
           qahw_set_parameters(audio_module, "bt_wbs=on");
       } else {
-        fprintf(stdout, "setting BT_SCO=off\n");
-        ALOGD(LOGTAG " setting BT_SCO=off");
         if ((out_stream_plb_test != NULL) && (in_handle_record != NULL)) {
+          fprintf(stdout, "setting BT_SCO=off\n");
+          ALOGD(LOGTAG " setting BT_SCO=off");
           qahw_set_parameters(audio_module, "BT_SCO=off");
           qahw_set_parameters(audio_module, "bt_wbs=off");
         }
