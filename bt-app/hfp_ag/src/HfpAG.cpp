@@ -36,8 +36,8 @@ using std::string;
 
 Hfp_Ag *pHfpAG = NULL;
 extern BT_Audio_Manager *pBTAM;
-volatile bool stop_record = false;
-volatile bool stop_playback = false;
+volatile bool stop_record = true;
+volatile bool stop_playback = true;
 
 
 static pthread_t record_tid = NULL;
@@ -501,7 +501,14 @@ void unknown_at_callback(char *at_string, bt_bdaddr_t* bd_addr) {
 }
 
 void key_pressed_callback(bt_bdaddr_t* bd_addr) {
+    BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " key_pressed_callback");
+    fprintf(stdout, "key_pressed_callback\n");
+
+    memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->hfp_ag_event.event_id = HFP_AG_KEY_PRESSED_CB;
+    PostMessage(THREAD_ID_HFP_AG, pEvent);
+
 }
 
 void bind_callback(char *at_string, bt_bdaddr_t* bd_addr) {
@@ -811,8 +818,9 @@ static void *start_record(void *in_param) {
 
       FILE *fdt = (FILE *)in_param;
       if (fdt == NULL) {
-        fprintf(stdout, "File open failed in etc\n");
+        fprintf(stdout, "sco_record.wav File open failed\n");
         free(buffer);
+        return NULL;
       }
 
       memset(&in_buf,0, sizeof(qahw_in_buffer_t));
@@ -828,6 +836,7 @@ static void *start_record(void *in_param) {
 
         if (written_size < bytes_read) {
           fprintf(stdout,"Error in fwrite(%d)=%s\n",ferror(fdt), strerror(ferror(fdt)));
+          ALOGD(LOGTAG "Error in fwrite(%d)=%s\n",ferror(fdt), strerror(ferror(fdt)));
           break;
         }
         data_sz += bytes_read;
@@ -889,6 +898,8 @@ void Hfp_Ag::HandleEnableAg(void) {
 
 void Hfp_Ag::HandleDisableAg(void) {
    change_state(HFP_AG_STATE_NOT_STARTED);
+   stop_playback = true;
+   stop_record = true;
    if(sBtHfpAgInterface != NULL) {
        sBtHfpAgInterface->cleanup();
        sBtHfpAgInterface = NULL;
@@ -1040,6 +1051,35 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(HFP_AG_STATE_DISCONNECTED);
+            break;
+	case HFP_AG_AUDIO_STATE_DISCONNECTED_CB:
+
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "Disconnected SCO connection with device %s", str);
+            ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
+
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
+            teardown_sco_path();
+#endif
+            stop_record = true;
+            stop_playback = true;
+
+            if (pHfpAG) {
+              pHfpAG->configurescoaudio(false);
+            }
+
+            if (record_tid != NULL)
+            {
+              pthread_join(record_tid, NULL);
+              record_tid = NULL;
+            }
+            if (playback_tid != NULL)
+            {
+              pthread_join(playback_tid, NULL);
+              playback_tid = NULL;
+            }
+
+            change_state(HFP_AG_STATE_CONNECTED);
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
@@ -1206,10 +1246,11 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
             dial_call(pEvent->hfp_ag_event.str, &pEvent->hfp_ag_event.bd_addr);
 #else
-            if(number_vec.size() == 0 ) {
-              // if we dont add any number , send error
-              // if it is redial request and we don't have last dialled number, send error
-              // if memory dialling is requested, send error
+            if((number_vec.size() == 0) && ((pEvent->hfp_ag_event.str[0] == '>')
+                || (pEvent->hfp_ag_event.str[0] == '\0'))) {
+              // if we don't add any number , send error
+              // if it is redial request and we don't have last dialed number, send error
+              // if memory dialing is requested, send error
               if (sBtHfpAgInterface != NULL)
                 sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
                                                &pEvent->hfp_ag_event.bd_addr);
@@ -1218,10 +1259,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                 sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                                                &pEvent->hfp_ag_event.bd_addr);
                 sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
-                                BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+                        BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
                 usleep(20000);
                 sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_ALERTING,"",
-                                BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+                        BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
             }
 #endif
             break;
@@ -1358,6 +1399,13 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
              process_ril_resp(pEvent);
              break;
 #endif
+        case HFP_AG_KEY_PRESSED_CB:
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "key press cb- AcceptVoipCall %s", str);
+            ALOGD(LOGTAG "key press cb- AcceptVoipCall %s", str);
+
+            AcceptVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            break;
         case HFP_AG_API_CONNECT_AUDIO_REQ:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
             fprintf(stdout, "Connecting SCO/eSCO with device %s", str);
@@ -1381,6 +1429,8 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
             setup_sco_path();
 #endif
+            change_state(HFP_AG_STATE_AUDIO_ON);
+
             stop_record = false;
             stop_playback = false;
 
@@ -1388,9 +1438,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
               pHfpAG->configurescoaudio(true);
             }
 
-            file_fd = fopen("/etc/bluetooth/sco_record.wav", "w");
+            file_fd = fopen("/data/misc/bluetooth/sco_record.wav", "w+");
             if (file_fd == NULL) {
-              fprintf(stdout, "File open failed in etc\n");
+              fprintf(stdout, "sco_record.wav File open failed\n");
+              break;
             }
 
             if (pthread_create(&record_tid, NULL, start_playback, file_fd) != 0) {
@@ -1402,7 +1453,6 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
               if (file_fd) fclose(file_fd);
             }
 
-            change_state(HFP_AG_STATE_AUDIO_ON);
             break;
         case HFP_AG_BIND_CB:
             process_at_bind(pEvent);
@@ -1655,7 +1705,8 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
             dial_call(pEvent->hfp_ag_event.str, &pEvent->hfp_ag_event.bd_addr);
 #else
-            if(number_vec.size() == 0 ) {
+            if((number_vec.size() == 0) && ((pEvent->hfp_ag_event.str[0] == '>')
+                || (pEvent->hfp_ag_event.str[0] == '\0'))) {
               // if we don't add any number , send error
               // if it is redial request and we don't have last dialed number, send error
               // if memory dialing is requested, send error
@@ -1807,6 +1858,13 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
              process_ril_resp(pEvent);
              break;
 #endif
+        case HFP_AG_KEY_PRESSED_CB:
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "key press cb- end the voip call %s", str);
+            ALOGD(LOGTAG "key press cb- end the voip call %s", str);
+
+            EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            break;
         case HFP_AG_BIND_CB:
             process_at_bind(pEvent);
             break;

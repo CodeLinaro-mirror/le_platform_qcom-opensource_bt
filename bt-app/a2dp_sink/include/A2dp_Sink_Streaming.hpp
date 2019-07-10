@@ -109,11 +109,12 @@ class A2dp_Sink_Streaming {
     bool use_bt_a2dp_hal;
     bool sbc_decoding;
     bool fetch_rtp_info;
-    bool enable_delay_report;
     bool relay_sink_data; /* if this is enabled, we relay Sink data to Src */
     bool enable_notification_cb; /* if enabled, notification is received from stack
                                     on incoming media data instrad of polling from
                                     BT-APP*/
+    bool enable_timestamp;/* If TRUE, then media packets recieved bt btapp,
+                             contains timestamp attached at the beginning of packet*/
     // apis for out_stream Audio HAL, to write data.
     void ConfigureAudioHal();
     void CloseAudioStream();
@@ -132,6 +133,7 @@ class A2dp_Sink_Streaming {
     void OnDisconnected();
     void GetLibInterface(const btav_sink_vendor_interface_t *sBtA2dpSinkStrVendorInterface);
     uint16_t codec_type;
+    uint16_t qahw_delay;
     btav_codec_config_t codec_config;
     uint32_t get_a2dp_sbc_sampling_rate(uint8_t frequency);
     uint8_t get_a2dp_sbc_channel_mode(uint8_t channel_count);

@@ -582,6 +582,7 @@ void Hfp_Client::HandleDisableClient(void) {
        sBtHfpClientInterface->cleanup();
        sBtHfpClientInterface = NULL;
    }
+   ConfigureAudio(false);
    BtEvent *pEvent = new BtEvent;
    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
    pEvent->profile_stop_event.profile_id = PROFILE_ID_HFP_CLIENT;
@@ -1346,7 +1347,6 @@ void Hfp_Client::ConfigureAudio(bool enable) {
    audio_io_handle_t handle = 0x999;
 
    ALOGD(LOGTAG "Configure Audio for enable/disable %d, wbs %d", enable, mAudioWbs);
-   fprintf(stdout, "Configure Audio for enable/disable %d, wbs %d\n", enable, mAudioWbs);
 
 
    if (pBTAM == NULL) {
@@ -1379,7 +1379,6 @@ void Hfp_Client::ConfigureAudio(bool enable) {
       }
       else
       {
-         fprintf(stdout, "setting hfp_enable to false\n");
          ALOGD(LOGTAG " setting hfp_enable to false");
          qahw_set_parameters(audio_module, "hfp_enable=false");
 

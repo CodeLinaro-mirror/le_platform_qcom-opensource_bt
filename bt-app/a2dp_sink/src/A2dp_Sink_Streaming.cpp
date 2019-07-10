@@ -92,7 +92,12 @@ extern "C" {
 #define BE_STREAM_TO_UINT16(u16, p) {u16 = (uint16_t)(((uint16_t)(*(p)) << 8) + (uint16_t)(*((p) + 1))); (p) += 2;}
 #define BE_STREAM_TO_UINT32(u32, p) {u32 = ((uint32_t)(*((p) + 3)) + ((uint32_t)(*((p) + 2)) << 8) +((uint32_t)(*((p) + 1)) << 16) + ((uint32_t)(*(p)) << 24)); (p) += 4;}
 
- uint8_t get_rtp_offset(uint8_t* p_start, uint16_t codec_type);
+#define DEFAULT_SBC_SYSTEM_DELAY    60
+#define DEFAULT_MP3_SYSTEM_DELAY    100
+#define DEFAULT_APTX_SYSTEM_DELAY   1330
+#define DEFAULT_AAC_SYSTEM_DELAY    1530
+
+uint8_t get_rtp_offset(uint8_t* p_start, uint16_t codec_type);
 void BtA2dpSinkStreamingMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
     BtEvent* pCleanupEvent = NULL, *pControlRequest = NULL, *pReleaseControlReq = NULL;
@@ -100,7 +105,8 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
     uint8_t rtp_offset = 0;
     uint32_t timestamp_len = 0;
     if (pA2dpSinkStream) {
-        timestamp_len = (pA2dpSinkStream->enable_notification_cb ? sizeof(uint64_t) : 0);
+        timestamp_len = ((pA2dpSinkStream->enable_notification_cb &&
+                         pA2dpSinkStream->enable_timestamp) ? sizeof(uint64_t) : 0);
     }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     qahw_out_buffer_t out_buf;
@@ -227,7 +233,8 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     }
                     /* when callback mechanism is used, remove timestamp before sending data
                      * to Audio Hal */
-                    if (pA2dpSinkStream->enable_notification_cb) {
+                    if (pA2dpSinkStream->enable_notification_cb &&
+                            pA2dpSinkStream->enable_timestamp) {
                         if (pcm_data_read <= 0) {
                             ALOGD(LOGTAG" No Data available in Data queue, break");
                             break;
@@ -529,7 +536,8 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
     uint32_t data_sent_to_audio = 0;
     uint8_t rtp_offset = 0;
     uint64_t timestamp;
-    uint32_t timestamp_len = (pA2dpSinkStream->enable_notification_cb ? sizeof(uint64_t) : 0);
+    uint32_t timestamp_len = ((pA2dpSinkStream->enable_notification_cb &&
+                              pA2dpSinkStream->enable_timestamp) ? sizeof(uint64_t) : 0);
 #if (!defined (USE_GST))
     if (pcm_buf == NULL) {
        // pcm buffer is null, closeStream have been called earlier
@@ -568,7 +576,7 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
             data_read_from_bt =  mBtA2dpSinkStreamingVendorInterface->
                  get_a2dp_sink_streaming_data_vendor(codec_type, pcm_buf, pcm_buf_size);
             // when callback mechanism is used, remove timestamp before sending data to Audio Hal
-            if (pA2dpSinkStream->enable_notification_cb) {
+            if (pA2dpSinkStream->enable_notification_cb && pA2dpSinkStream->enable_timestamp) {
                 if (data_read_from_bt <= 0) {
                     ALOGD(LOGTAG" No Data available in Data queue, break");
                     break;
@@ -999,6 +1007,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         channel_count = get_a2dp_sbc_channel_mode(codec_config.sbc_config.ch_mode);
         config.offload_info.format = AUDIO_FORMAT_PCM_16_BIT;
         flags |= AUDIO_OUTPUT_FLAG_DIRECT_PCM;
+        qahw_delay = DEFAULT_SBC_SYSTEM_DELAY;
         break;
     case A2DP_SINK_AUDIO_CODEC_AAC:
         sample_rate = get_a2dp_aac_sampling_rate(codec_config.aac_config.sampling_freq);
@@ -1006,6 +1015,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         config.offload_info.format = AUDIO_FORMAT_AAC_LATM_LC;
         flags |= AUDIO_OUTPUT_FLAG_NON_BLOCKING;
         flags |= AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD;
+        qahw_delay = DEFAULT_AAC_SYSTEM_DELAY;
         break;
     case A2DP_SINK_AUDIO_CODEC_MP3:
         sample_rate = get_a2dp_mp3_sampling_rate(codec_config.mp3_config.sampling_freq);
@@ -1013,6 +1023,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         config.offload_info.format = AUDIO_FORMAT_MP3;
         flags |= AUDIO_OUTPUT_FLAG_NON_BLOCKING;
         flags |= AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD;
+        qahw_delay = DEFAULT_MP3_SYSTEM_DELAY;
         break;
     case A2DP_SINK_AUDIO_CODEC_APTX:
         #if (defined USE_GST)
@@ -1023,6 +1034,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         config.offload_info.format = AUDIO_FORMAT_APTX;
         flags |= AUDIO_OUTPUT_FLAG_NON_BLOCKING;
         flags |= AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD;
+        qahw_delay = DEFAULT_APTX_SYSTEM_DELAY;
         break;
     }
     ALOGD(LOGTAG " sample_rate = %d, channel_count = %d", sample_rate, channel_count);
@@ -1093,14 +1105,8 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         }
         if (codec_type != A2DP_SINK_AUDIO_CODEC_SBC) {
             qahw_out_set_callback(out_stream, compressed_callback, NULL);
-            if (mBtA2dpSinkStreamingVendorInterface != NULL)
-            {
-                uint16_t delay = qahw_out_get_latency(out_stream);
-                ALOGD(LOGTAG " ConfigureAudioHal : qahw_get_out_latency %d !", delay);
-
-                mBtA2dpSinkStreamingVendorInterface->update_qahw_delay_vendor(delay);
-            }
         }
+        mBtA2dpSinkStreamingVendorInterface->update_qahw_delay_vendor(qahw_delay);
     }
 #endif
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))

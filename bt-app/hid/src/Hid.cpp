@@ -86,6 +86,12 @@ void BtHidMsgHandler(void *msg) {
                 pHid->HandleDisableHID();
             }
             break;
+        case HID_API_DISABLE:
+            ALOGD(LOGTAG " Cleanup hid for disable event");
+            if (pHid) {
+                pHid->ClearHidList();
+            }
+            break;
         case HID_API_BONDED_HID_LIST:
             ALOGD(LOGTAG "add bonded list hid");
             if (pHid && !(pHid->isDeviceinHidList(pEvent->hid_profile_event.bd_addr))) {
@@ -281,7 +287,7 @@ static void raw_hid_data_cb(const RawAddress& bda, uint8_t* rpt, uint16_t len,
              ALOGD(LOGTAG " raw_hid_data_cb Memory not allocated");
              return;
         }
-        memcpy(rpt_data,&rpt[1],rpt_len*sizeof(uint8_t));
+        memcpy(rpt_data,&rpt[0],(rpt_len)*sizeof(uint8_t));
         for (int i=0;i<rpt_len;i++)
             ALOGD(LOGTAG "raw_hid_data_cb : data at idx %d is %d",i,*(rpt_data+i));
     }
@@ -509,9 +515,10 @@ void HidH::ProcessHidRequest(BtEvent* pEvent){
                  bdaddr_to_string(&pEvent->hid_profile_event.bd_addr, str, 18);
                  fprintf(stdout, "Handling conn update for HID device %s\n", str);
                  if (sBtHhVendorInterface != NULL) {
-                     sBtHhVendorInterface->conn_parameter_update(pEvent->hogp_conn_params_event.bd_addr,
+                     if (sBtHhVendorInterface->conn_parameter_update(pEvent->hogp_conn_params_event.bd_addr,
                       pEvent->hogp_conn_params_event.min_int, pEvent->hogp_conn_params_event.max_int,
-                      pEvent->hogp_conn_params_event.latency, pEvent->hogp_conn_params_event.timeout, 0, 0);
+                      pEvent->hogp_conn_params_event.latency, pEvent->hogp_conn_params_event.timeout, 0, 0))
+                      fprintf(stdout, "Connection Parameters are wrong %s\n", str);
                  }
                  break;
         }
@@ -623,4 +630,10 @@ void HidH::ChangeStateHidList(HIDConnectiontState hidState, bt_bdaddr_t addr)
     if(iter != pHid->hid_list.end()){
         iter->state = hidState;
     }
+}
+
+void HidH::ClearHidList(void)
+{
+    ALOGD(LOGTAG  "(%s) Clearing HID List",__FUNCTION__);
+    hid_list.clear();
 }
