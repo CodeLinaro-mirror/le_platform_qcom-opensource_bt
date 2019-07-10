@@ -2341,7 +2341,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, "Disable Gattstest \n");
                 if (gattstest) {
                     gattstest->DisableGATTSTEST();
-                    gattstest->~GattsTest();
+                    delete gattstest;
                     gattstest = NULL;
                     server_num = 0;
                 } else {
@@ -3376,6 +3376,18 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             if (event->state_event.status == BT_STATE_ON) {
                 fprintf(stdout, " Error in disabling BT\n");
             } else {
+                if (gattctest!= NULL) {
+                  fprintf(stdout, " delete Gattctest\n");
+                  delete gattctest;
+                  gattctest = NULL;
+                }
+                if (gattstest!= NULL) {
+                  fprintf(stdout, " delete Gattstest\n");
+                  gattstest->DisableGATTSTEST();
+                  delete gattstest;
+                  gattstest = NULL;
+                  server_num = 0;
+                }
                 // clear the inquiry related cmds
                 status.enquiry_cmd = COMMAND_COMPLETE;
                 status.stop_enquiry_cmd = COMMAND_COMPLETE;
