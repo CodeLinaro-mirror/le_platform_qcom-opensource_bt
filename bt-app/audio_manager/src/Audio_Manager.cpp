@@ -66,6 +66,8 @@ void BtAudioManagerHandler(void *msg) {
             }
             break;
         case PROFILE_API_STOP:
+            break;
+        case BT_AM_DISABLE_REQ:
             ALOGD(LOGTAG " disable BT Audio Manager");
             if (pBTAM) {
                 pBTAM->HandleDisableBTAM();
@@ -112,7 +114,7 @@ void BT_Audio_Manager::HandleDisableBTAM(void) {
         audio_control_stack[i].control_status = REQUEST_TYPE_DEFAULT;
     }
     BtEvent *pEvent = new BtEvent;
-    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
+    pEvent->profile_stop_event.event_id = BT_AM_DISABLE_DONE;
     pEvent->profile_stop_event.profile_id = PROFILE_ID_BT_AM;
     pEvent->profile_stop_event.status = true;
     PostMessage(THREAD_ID_GAP, pEvent);
