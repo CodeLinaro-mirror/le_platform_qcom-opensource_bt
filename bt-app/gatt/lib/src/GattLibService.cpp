@@ -3108,6 +3108,16 @@ void GattLibService::HandleGattAdapterPropertyEvent(GattAdapterPropertyEvent *ev
     }
 }
 
+void GattLibService::HandleBleBatchScanTimeoutEvent(BleScannerBatchscantimeoutEvent *event)
+{
+  ScanManager *sM = (ScanManager*)event->scanmanager;
+
+  for(std::unordered_set<ScanClient*>::iterator it = sM->getBatchScanQueue().begin();
+            it != sM->getBatchScanQueue().end(); ++it){
+    sM->flushBatchScanResults(*it);
+  }
+}
+
 void GattLibService::ProcessEvent(BtEvent* event)
 {
    ALOGD(LOGTAG " Processing event %d", event->event_id);
@@ -3294,6 +3304,9 @@ void GattLibService::ProcessEvent(BtEvent* event)
        break;
      case GATT_EVENT_ADAPTER_PROPERTIES:
        HandleGattAdapterPropertyEvent((GattAdapterPropertyEvent *)event);
+       break;
+     case BLESCANNER_BATCHSCAN_TIMEOUT_EVENT:
+       HandleBleBatchScanTimeoutEvent((BleScannerBatchscantimeoutEvent *)event);
        break;
      default: //All fall-through, enable as needed
        ALOGD(LOGTAG  "(BtMsgHandler) Unhandled Event(%d)", event->event_id);

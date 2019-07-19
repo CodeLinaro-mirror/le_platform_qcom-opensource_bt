@@ -44,6 +44,7 @@ using std::string;
 BT_Audio_Manager *pBTAM = NULL;
 extern A2dp_Sink_Streaming *pA2dpSinkStream;
 static bool is_a2dp_sink_split_enabled;
+static bool is_bt_am_hal_load_unload;
 
 #ifdef __cplusplus
 extern "C" {
@@ -139,6 +140,10 @@ void BT_Audio_Manager::LoadAudioHal()
         ALOGD(" %s Split A2dp Sink enabled, bail out ",__func__);
         return;
     }
+    if(!is_bt_am_hal_load_unload) {
+        ALOGD("%s property set to false, don't load Audio HAL ",__func__);
+        return;
+    }
 
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     ALOGD(LOGTAG " Load Audio HAL +");
@@ -160,6 +165,11 @@ void BT_Audio_Manager::UnloadAudioHal()
         ALOGD(" %s Split A2dp Sink enabled, bail out ",__func__);
         return;
     }
+    if(!is_bt_am_hal_load_unload) {
+        ALOGD("%s property set to false, don't unload Audio HAL ",__func__);
+        return;
+    }
+
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     int ret = 0;
     ALOGD(LOGTAG "UnLoad Audio HAL +");
@@ -339,6 +349,10 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
 BT_Audio_Manager :: BT_Audio_Manager(const bt_interface_t *bt_interface, config_t *config) {
     is_a2dp_sink_split_enabled = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     "BtA2dpSinkSplitEnable", false);
+
+    is_bt_am_hal_load_unload = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    "BtAM_HAL_LOAD_UNLOAD", true);
+
     for(int i= 0 ; i < MAX_PROFILE_ENTRIES; i++) {
         audio_control_stack[i].profile_id =  PROFILE_ID_MAX;
         audio_control_stack[i].control_status = REQUEST_TYPE_DEFAULT;

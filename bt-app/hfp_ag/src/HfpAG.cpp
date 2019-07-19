@@ -36,8 +36,8 @@ using std::string;
 
 Hfp_Ag *pHfpAG = NULL;
 extern BT_Audio_Manager *pBTAM;
-volatile bool stop_record = false;
-volatile bool stop_playback = false;
+volatile bool stop_record = true;
+volatile bool stop_playback = true;
 
 
 static pthread_t record_tid = NULL;
@@ -898,6 +898,8 @@ void Hfp_Ag::HandleEnableAg(void) {
 
 void Hfp_Ag::HandleDisableAg(void) {
    change_state(HFP_AG_STATE_NOT_STARTED);
+   stop_playback = true;
+   stop_record = true;
    if(sBtHfpAgInterface != NULL) {
        sBtHfpAgInterface->cleanup();
        sBtHfpAgInterface = NULL;
@@ -905,15 +907,6 @@ void Hfp_Ag::HandleDisableAg(void) {
    if(sBtHfpAgVendorInterface != NULL) {
        sBtHfpAgVendorInterface->cleanup_vendor();
        sBtHfpAgVendorInterface = NULL;
-   }
-   if (out_stream_plb_test != NULL) {
-       qahw_close_output_stream(out_stream_plb_test);
-       out_stream_plb_test = NULL;
-   }
-   if (in_handle_record != NULL) {
-       //close input stream and device
-       qahw_close_input_stream(in_handle_record);
-       in_handle_record = NULL;
    }
    if (record_tid != NULL)
    {
@@ -924,6 +917,15 @@ void Hfp_Ag::HandleDisableAg(void) {
    {
        pthread_join(playback_tid, NULL);
        playback_tid = NULL;
+   }
+   if (out_stream_plb_test != NULL) {
+       qahw_close_output_stream(out_stream_plb_test);
+       out_stream_plb_test = NULL;
+   }
+   if (in_handle_record != NULL) {
+       //close input stream and device
+       qahw_close_input_stream(in_handle_record);
+       in_handle_record = NULL;
    }
    mActiveCallsNum = 0;
    mHeldCallsNum = 0;
@@ -1049,6 +1051,32 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(HFP_AG_STATE_DISCONNECTED);
+            break;
+        case HFP_AG_AUDIO_STATE_DISCONNECTED_CB:
+
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "Disconnected SCO connection with device %s", str);
+            ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
+
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
+            teardown_sco_path();
+#endif
+            stop_record = true;
+            stop_playback = true;
+
+            if (record_tid != NULL)
+            {
+              pthread_join(record_tid, NULL);
+              record_tid = NULL;
+            }
+            if (playback_tid != NULL)
+            {
+              pthread_join(playback_tid, NULL);
+              playback_tid = NULL;
+            }
+
+            configurescoaudio(false);
+            change_state(HFP_AG_STATE_CONNECTED);
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
@@ -1403,9 +1431,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             stop_record = false;
             stop_playback = false;
 
-            if (pHfpAG) {
-              pHfpAG->configurescoaudio(true);
-            }
+            configurescoaudio(true);
 
             file_fd = fopen("/data/misc/bluetooth/sco_record.wav", "w+");
             if (file_fd == NULL) {
@@ -1549,9 +1575,6 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             stop_record = true;
             stop_playback = true;
 
-            if (pHfpAG) {
-              pHfpAG->configurescoaudio(false);
-            }
 
             if (record_tid != NULL)
             {
@@ -1564,8 +1587,8 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
               playback_tid = NULL;
             }
 
+            configurescoaudio(false);
             change_state(HFP_AG_STATE_CONNECTED);
-
             break;
         case HFP_AG_VOIP_CALL_INDICATION:
             VoipCallInd(&pEvent->hfp_ag_event.bd_addr);

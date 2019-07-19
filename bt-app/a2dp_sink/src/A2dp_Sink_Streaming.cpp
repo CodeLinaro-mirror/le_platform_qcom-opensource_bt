@@ -105,7 +105,8 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
     uint8_t rtp_offset = 0;
     uint32_t timestamp_len = 0;
     if (pA2dpSinkStream) {
-        timestamp_len = (pA2dpSinkStream->enable_notification_cb ? sizeof(uint64_t) : 0);
+        timestamp_len = ((pA2dpSinkStream->enable_notification_cb &&
+                         pA2dpSinkStream->enable_timestamp) ? sizeof(uint64_t) : 0);
     }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     qahw_out_buffer_t out_buf;
@@ -232,7 +233,8 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     }
                     /* when callback mechanism is used, remove timestamp before sending data
                      * to Audio Hal */
-                    if (pA2dpSinkStream->enable_notification_cb) {
+                    if (pA2dpSinkStream->enable_notification_cb &&
+                            pA2dpSinkStream->enable_timestamp) {
                         if (pcm_data_read <= 0) {
                             ALOGD(LOGTAG" No Data available in Data queue, break");
                             break;
@@ -534,7 +536,8 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
     uint32_t data_sent_to_audio = 0;
     uint8_t rtp_offset = 0;
     uint64_t timestamp;
-    uint32_t timestamp_len = (pA2dpSinkStream->enable_notification_cb ? sizeof(uint64_t) : 0);
+    uint32_t timestamp_len = ((pA2dpSinkStream->enable_notification_cb &&
+                              pA2dpSinkStream->enable_timestamp) ? sizeof(uint64_t) : 0);
 #if (!defined (USE_GST))
     if (pcm_buf == NULL) {
        // pcm buffer is null, closeStream have been called earlier
@@ -573,7 +576,7 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
             data_read_from_bt =  mBtA2dpSinkStreamingVendorInterface->
                  get_a2dp_sink_streaming_data_vendor(codec_type, pcm_buf, pcm_buf_size);
             // when callback mechanism is used, remove timestamp before sending data to Audio Hal
-            if (pA2dpSinkStream->enable_notification_cb) {
+            if (pA2dpSinkStream->enable_notification_cb && pA2dpSinkStream->enable_timestamp) {
                 if (data_read_from_bt <= 0) {
                     ALOGD(LOGTAG" No Data available in Data queue, break");
                     break;
