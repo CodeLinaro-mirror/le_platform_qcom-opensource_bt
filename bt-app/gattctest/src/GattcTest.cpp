@@ -82,7 +82,7 @@ extern GattLibService *g_gatt;
 
 mRemoteDev mDeviceMap("", NULL);
 
-GattLeScanner* mScanner = GattLeScanner::getGattLeScanner();
+GattLeScanner* mScanner = NULL;
 ScanSettings *setting = NULL;
 
 enum ReliableWriteState
@@ -500,13 +500,12 @@ class mscancallback : public ScanCallback
 
 gattctestClientCallback *gattCliCallback = NULL;
 mscancallback *mscan_callback = NULL;
-GattLeScanner *mscan = NULL;
 
 GattcTest::GattcTest(GattLibService* gatt)
 {
   ALOGD(LOGTAG "gattctest instantiated ");
   libservice = gatt;
-  mscan = mScanner->getGattLeScanner();
+  mScanner = GattLeScanner::getGattLeScanner();
   mscan_callback = new mscancallback;
   gattCliCallback = new gattctestClientCallback;
   mExecReliableWrite = ReliableWriteState::RELIABLE_WRITE_NONE;
@@ -525,21 +524,33 @@ void GattcTest::enableGattctest()
 
   //Setting NO_AUTO conection by default
   gattctest->isAuto = 0;
+
+  gattctest->gattcli = NULL;
 }
 
 GattcTest::~GattcTest()
 {
-  if (gattCliCallback != NULL) {
-    delete(gattCliCallback);
-    gattCliCallback = NULL;
+  if (gattctest != NULL) {
+    gattctest->setting = NULL;
+    settingMask = 0;
+	if (gattctest->filters.size() > 0)
+	  gattctest->filters.clear();
+    mScanner->stopScan(mscan_callback);
+    if (mscan_callback != NULL) {
+      delete(mscan_callback);
+    }
+    if (gattCliCallback != NULL) {
+      delete(gattCliCallback);
+      gattCliCallback = NULL;
+    }
+    if (gattctest->gattcli != NULL) {
+      gattctest->gattcli->close();
+      delete(gattctest->gattcli);
+      gattctest->gattcli = NULL;
+    }
   }
-  if (gattctest->gattcli != NULL) {
-    delete(gattctest->gattcli);
-    gattctest->gattcli = NULL;
-  }
-  if (mscan_callback != NULL) {
-    delete(mscan_callback);
-  }
+  libservice = NULL;
+
   ALOGD(LOGTAG "(%s) GATTCTEST DeInitialized\n", __FUNCTION__);
 }
 
@@ -1682,10 +1693,10 @@ void GattcTest :: startScan()
                   gattctest->setting->getLegacy(),
                   gattctest->setting->getPhy(),
                   gattctest->setting->getReportDelayMillis());
-    mscan->startScan(gattctest->filters, gattctest->setting,
+    mScanner->startScan(gattctest->filters, gattctest->setting,
         mscan_callback);
   } else {
-    mscan->startScan(mscan_callback);
+    mScanner->startScan(mscan_callback);
   }
 }
 
@@ -1696,23 +1707,24 @@ void GattcTest :: stopScan()
   gattctest->setting = NULL;
   settingMask = 0;
   gattctest->filters.clear();
-  mscan->stopScan(mscan_callback);
+  mScanner->stopScan(mscan_callback);
 }
 
-void GattcTest :: testBatchscan()
+void GattcTest :: testBatchscan(int value)
 {
   ALOGD(LOGTAG "Test Batch scan Mode");
   fprintf(stdout, "Test Batch scan\n");
   ScanSettings *batchscansettings = ScanSettings::Builder()
     .setScanMode(ScanSettings::SCAN_MODE_BALANCED)
     .setReportDelay(BATCH_SCAN_REPORT_DELAY_MILLIS)
+    .setScanResultType(value)
     .build();
   vector < ScanFilter*> filters;
   filters.clear();
-  mscan->startScan(filters, batchscansettings, mscan_callback);
+  mScanner->startScan(filters, batchscansettings, mscan_callback);
   //Sleep for 5 seconds then flush the results
   std::this_thread::sleep_for (std::chrono::seconds(5));
   //Test Flush Pending scan results API
   fprintf(stdout, "Flush pending scan results\n");
-  mscan->flushPendingScanResults(mscan_callback);
+  mScanner->flushPendingScanResults(mscan_callback);
 }

@@ -539,7 +539,7 @@ void Gap::ProcessEvent(BtEvent* event) {
     bt_scan_mode_t scan_mode;
     bt_bdname_t bd_name;
     BtEvent  *bt_event  = NULL;
-    int profile_id, profile_count = 0;
+    int profile_id = 0;
 
     ALOGD(LOGTAG " Processing event %d", event->event_id);
 
@@ -706,8 +706,8 @@ void Gap::ProcessEvent(BtEvent* event) {
             for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
                                                                 profile_id++) {
                 if((profile_config[profile_id].is_enabled)  &&
-                   ((profile_config[profile_id].profile_id ==
-                        event->profile_stop_event.profile_id))) {
+                   (profile_config[profile_id].profile_id ==
+                        event->profile_stop_event.profile_id)) {
                     ALOGD(LOGTAG " Profile %d stopped with status %d",
                         profile_id, event->profile_stop_event.status);
                     profile_config[profile_id].stop_status =
@@ -719,12 +719,20 @@ void Gap::ProcessEvent(BtEvent* event) {
             for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
                                                                 profile_id++) {
                 if((profile_config[profile_id].is_enabled)  &&
-                    (!profile_config[profile_id].stop_status)) {
+                   (!profile_config[profile_id].stop_status &&
+                   profile_config[profile_id].profile_id != PROFILE_ID_BT_AM)) {
                     return;
                 }
             }
 
-            ALOGD(LOGTAG " All profiles stopped");
+            ALOGD(LOGTAG " All profiles stopped, Disable Audio Manager");
+            bt_event = new BtEvent;
+            bt_event->event_id = BT_AM_DISABLE_REQ;
+            PostMessage(THREAD_ID_BT_AM, bt_event);
+            break;
+
+        case BT_AM_DISABLE_DONE:
+            ALOGD(LOGTAG " Audio manager disabled");
             //stoping profile_stop_timer
             alarm_cancel(profile_stop_timer);
             HandleDisable();
@@ -772,10 +780,7 @@ void Gap::ProcessEvent(BtEvent* event) {
                 ALOGD(LOGTAG " Killing the proces due to timeout %d", event->event_id);
                 bt_event = new BtEvent;
                 bt_event->event_id = A2DP_SINK_CLEANUP_REQ;
-                if(is_a2dp_split_sink_enabled)
-                    PostMessage(THREAD_ID_A2DP_SINK_SPLIT, bt_event);
-                else
-                    PostMessage(THREAD_ID_A2DP_SINK, bt_event);
+                PostMessage(profile_config[profile_id].thread_id, bt_event);
                 break;
             }
 
@@ -803,15 +808,15 @@ void Gap::ProcessEvent(BtEvent* event) {
             // start the profile stop timer
             alarm_set(profile_stop_timer, PROFILE_STOP_TIMEOUT_DELAY,
                             profile_stop_timer_expired, NULL);
-            profile_count = 0;
             for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
                                                             profile_id++) {
                 if(profile_config[profile_id].is_enabled &&
-                    profile_config[profile_id].start_status) {
+                   profile_config[profile_id].start_status &&
+                   profile_config[profile_id].profile_id
+                        != PROFILE_ID_BT_AM) {
                     bt_event = new BtEvent;
                     bt_event->event_id = PROFILE_API_STOP;
                     PostMessage(profile_config[profile_id].thread_id, bt_event);
-                    profile_count++;
                 }
             }
 
