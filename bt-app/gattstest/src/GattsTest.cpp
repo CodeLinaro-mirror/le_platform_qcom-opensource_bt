@@ -1070,14 +1070,13 @@ bool GattsTest::UnregisterServer(string instance)
   }
 }
 
-bool GattsTest::StopAdvertisement(string instance)
+void GattsTest::StopAdvertisement(string instance)
 {
   ALOGD(LOGTAG"StopAdvertisement \n");
   int instanceId;
   istringstream(instance) >> instanceId;
   if(instanceId <=0 || instanceId > num_of_server) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
-    return false;
   } else {
     AdvertisingSetCallback *mAdvSetCB;
     mAdvSetCB = advCBInstanceMap[instanceId];
@@ -1086,7 +1085,7 @@ bool GattsTest::StopAdvertisement(string instance)
 }
 
 
-bool GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, string val)
+void GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, string val)
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   mgattCharacteristic = new GattCharacteristic(uid,property,permissions);
@@ -1099,7 +1098,7 @@ bool GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, strin
   ALOGD(LOGTAG"characteristic value: %s", mgattCharacteristic->getValue());
 }
 
-bool GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
+void GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   ALOGD(LOGTAG"string value =  %s", value.c_str());
