@@ -290,6 +290,17 @@ static void vendor_hci_event_recv_cb(uint8_t event_code, uint8_t *buf, uint8_t l
     return;
 }
 
+static void vendor_acl_state_changed_with_reason_cb(bt_status_t status,bt_bdaddr_t *remote_bd_addr,
+                                        bt_acl_state_t state,uint8_t reason,uint8_t transport_type) {
+
+   char str[18];
+   bdaddr_to_string(remote_bd_addr,str,18);
+   fprintf(stdout, " ACL state:%d change with reason %02x for device: %s\n",state,reason,str);
+   ALOGV (LOGTAG " ACL state:%d change with reason %02x for device: %s\n",state,reason,str);
+
+   return;
+}
+
 static btvendor_callbacks_t sVendorCallbacks = {
     sizeof(sVendorCallbacks),
     NULL,
@@ -297,6 +308,7 @@ static btvendor_callbacks_t sVendorCallbacks = {
     NULL,
     vendor_hci_event_recv_cb,
     SsrCleanupCb,
+    vendor_acl_state_changed_with_reason_cb,
 };
 
 void BtGapMsgHandler(void *msg) {
