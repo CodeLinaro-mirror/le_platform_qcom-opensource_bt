@@ -703,6 +703,14 @@ void registerMediaPlayers () {
     ALOGD(LOGTAG_AVRCP "Exit registerMediaPlayers()");
 }
 
+void A2dp_Source::unregisterMediaPlayers () {
+    ALOGD(LOGTAG_AVRCP "unregisterMediaPlayers()");
+    pMediaPlayerList.clear();
+    pFolderList.clear();
+    pMediaList.clear();
+    ALOGD(LOGTAG_AVRCP "Exit unregisterMediaPlayers()");
+}
+
 uint16_t A2DP_SBC_Calculate_FrameLength(A2DP_SBC_FRAME *frame, const uint8_t *data)
 {
     uint8_t d1;
@@ -3308,6 +3316,7 @@ void A2dp_Source::HandleDisableSource(void) {
        list_free(a2dp_sink_relay_data_list);
        a2dp_sink_relay_data_list = NULL;
    }
+   unregisterMediaPlayers();
 }
 
 void A2dp_Source::ProcessEvent(BtEvent* pEvent) {
