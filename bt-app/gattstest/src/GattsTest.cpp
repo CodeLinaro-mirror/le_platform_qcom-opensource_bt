@@ -1058,6 +1058,9 @@ bool GattsTest::UnregisterServer(string instance)
   if(num_of_server <= MAX_SERVER_INSTANCE) {
     mServer = servInstanceMap[instanceId];
     mServer->close();
+    AdvertisingSetCallback *mAdvSetCB;
+    mAdvSetCB = advCBInstanceMap[instanceId];
+    madvertiser->stopAdvertising(mAdvSetCB);
     servInstanceMap.erase(instanceId);
     num_of_server--;
     return true;
