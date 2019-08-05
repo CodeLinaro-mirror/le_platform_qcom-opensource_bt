@@ -317,12 +317,31 @@ static void DidInfoCb(bt_sdp_did_info di_info) {
    fprintf(stdout, "\n*****************FINISH*******************\n");
 }
 
+static void RoleInfoCb(bt_dm_role_info role_info) {
+    bdstr_t bdstr = {0};
+
+    bdaddr_to_string(&role_info.bd_addr, bdstr, sizeof(bdstr));
+
+    ALOGV (LOGTAG " RoleInfo result %s:", (role_info.status == BT_STATUS_SUCCESS) ? "SUCCESS" : "FAIL");
+    ALOGV (LOGTAG " bd addr:%s :", bdstr);
+    ALOGV (LOGTAG " role:%s :", (role_info.role == 1) ? "SLAVE" : "MASTER");
+
+    ALOGV (LOGTAG "----------------FINISH--------------");
+    fprintf(stdout, "\n*****************RoleInfoCb*******************\n");
+    fprintf(stdout, " RoleInfo result %s:\n", (role_info.status == BT_STATUS_SUCCESS) ? "SUCCESS" : "FAIL");
+    fprintf(stdout, " bd addr:%s :\n", bdstr);
+    fprintf(stdout, " role:%s :", (role_info.role == 1) ? "SLAVE" : "MASTER");
+
+    fprintf(stdout, "\n*****************FINISH*******************\n");
+}
+
 static btvendor_callbacks_t sVendorCallbacks = {
     sizeof(sVendorCallbacks),
     NULL,
     SsrCleanupCb,
     VendorAclStateChangedCb,
     DidInfoCb,
+    RoleInfoCb,
 };
 
 void BtGapMsgHandler(void *msg) {
@@ -884,6 +903,10 @@ void Gap::ProcessEvent(BtEvent* event) {
             memcpy(di_uuid.uu, g_di_uuid, sizeof(bt_uuid_t));
             bluetooth_interface_->cancel_discovery();
             bluetooth_interface_->get_remote_service_record(&event->di_device.bd_addr, &di_uuid);
+            break;
+
+        case GAP_API_GET_ROLE_REQ:
+            sBtVendorInterface->get_role_req(&event->di_device.bd_addr);
             break;
 
         case GAP_API_CREATE_BOND:
