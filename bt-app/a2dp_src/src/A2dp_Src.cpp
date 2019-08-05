@@ -3280,6 +3280,8 @@ void A2dp_Source::HandleEnableSource(void) {
     BtEvent *pEvent = new BtEvent;
     uint8_t streaming_param = 0;
     char value[PROPERTY_VALUE_MAX] = {'\0'};
+    set_abs_volume_timer = alarm_new();
+    set_play_postion_timer = alarm_new();
     if (bluetooth_interface != NULL)
     {
         sBtA2dpSourceInterface = (btav_source_interface_t *)bluetooth_interface->
@@ -3353,6 +3355,10 @@ void A2dp_Source::HandleEnableSource(void) {
 void A2dp_Source::HandleDisableSource(void) {
    change_state(STATE_A2DP_SOURCE_NOT_STARTED);
    BtA2dpUnloadA2dpHal();
+   alarm_free(set_abs_volume_timer);
+   alarm_free(set_play_postion_timer);
+   set_abs_volume_timer = NULL;
+   set_play_postion_timer = NULL;
    if(sBtA2dpSourceInterface != NULL) {
        sBtA2dpSourceInterface->cleanup();
        sBtA2dpSourceInterface = NULL;
@@ -3926,8 +3932,6 @@ A2dp_Source :: A2dp_Source(const bt_interface_t *bt_interface, config_t *config)
     sBtAvrcpTargetInterface = NULL;
     mSourceState = STATE_A2DP_SOURCE_NOT_STARTED;
     mAvrcpConnected = false;
-    set_abs_volume_timer = alarm_new();
-    set_play_postion_timer = alarm_new();
     abs_vol_timer = false;
     mVolCmdSetInProgress = false;
     mVolCmdAdjustInProgress = false;
@@ -3962,9 +3966,6 @@ A2dp_Source :: ~A2dp_Source() {
     mLocalVolume = -1;
     mPreviousAddrPlayerId = 0;
     mCurrentAddrPlayerId = 0;
-    alarm_free(set_abs_volume_timer);
-    alarm_free(set_play_postion_timer);
-    set_abs_volume_timer = NULL;
     mAbsVolRemoteSupported = false;
     TRACK_IS_SELECTED = 0L;
     pthread_mutex_destroy(&lock);
