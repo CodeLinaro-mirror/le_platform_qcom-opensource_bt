@@ -1253,6 +1253,8 @@ void Avrcp::HandleEnableAvrcp(void) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG_CTRL " HandleEnableAvrcp ");
 
+    get_play_status_timer = alarm_new();
+
     max_avrcp_conn = config_get_int (config,
             CONFIG_DEFAULT_SECTION, "BtMaxA2dpConn", 1);
     is_a2dp_sink_split_enabled = config_get_bool (config, CONFIG_DEFAULT_SECTION,
@@ -1297,7 +1299,10 @@ void Avrcp::HandleEnableAvrcp(void) {
 }
 
 void Avrcp::HandleDisableAvrcp(void) {
-    ALOGD(LOGTAG_CTRL " HandleDisableAvrcp ");
+   ALOGD(LOGTAG_CTRL " HandleDisableAvrcp ");
+
+   alarm_free(get_play_status_timer);
+   get_play_status_timer = NULL;
 
    if (sBtAvrcpCtrlInterface != NULL) {
        sBtAvrcpCtrlInterface->cleanup();
@@ -1339,12 +1344,9 @@ Avrcp :: Avrcp(const bt_interface_t *bt_interface, config_t *config) {
     pthread_mutex_init(&this->lock, NULL);
     mPreviousPercentageVol = -1;
     mFirstAbsVolCmdRecvd = false;
-    get_play_status_timer = alarm_new();
 }
 
 Avrcp :: ~Avrcp() {
     pthread_mutex_destroy(&lock);
     rc_only_devices.clear();
-    alarm_free(get_play_status_timer);
-    get_play_status_timer = NULL;
 }

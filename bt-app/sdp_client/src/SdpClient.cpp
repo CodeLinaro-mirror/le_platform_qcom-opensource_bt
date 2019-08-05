@@ -138,19 +138,12 @@ static btsdp_callbacks_t sBluetoothSdpClientCallback = {
 SdpClient :: SdpClient(const bt_interface_t *bt_interface, config_t *config)
 {
     this->bluetooth_interface = bt_interface;
-    this->config = config;
-    sdp_search_timer = NULL;
-    if( !(sdp_search_timer = alarm_new())) {
-        ALOGE(LOGTAG, " unable to create sdp_search_timer");
-        return;
-    }
-
-}
+    this->config = config;}
 
 SdpClient :: ~SdpClient()
 {
-    alarm_free(g_sdpClient->sdp_search_timer);
-    g_sdpClient->sdp_search_timer = NULL;
+	g_sdpClient = NULL;
+
 }
 
 void sdp_search_timer_expired(void *context) {
@@ -255,6 +248,12 @@ void SdpClient :: RemoveRecord(int record_handle, SdpRemoveRecordCb cb)
 bool SdpClient :: HandleEnableSdpClient() {
     ALOGV(LOGTAG "%s", __FUNCTION__);
 
+    sdp_search_timer = NULL;
+    if( !(sdp_search_timer = alarm_new())) {
+        ALOGE(LOGTAG, " unable to create sdp_search_timer");
+        return false;
+    }
+
     if ((sdp_client_interface = (btsdp_interface_t *)
             bluetooth_interface->get_profile_interface(BT_PROFILE_SDP_CLIENT_ID)) == NULL) {
         ALOGE(LOGTAG "%s: Failed to get Bluetooth Sdp Client Interface", __FUNCTION__);
@@ -276,6 +275,12 @@ bool SdpClient :: HandleDisableSdpClient()
     ALOGV(LOGTAG "%s", __FUNCTION__);
 
     bt_status_t status;
+
+    if (sdp_search_timer != NULL) {
+      alarm_free(g_sdpClient->sdp_search_timer);
+      g_sdpClient->sdp_search_timer = NULL;
+    }
+
     if (sdp_client_interface != NULL) {
         ALOGE(LOGTAG "%s: Cleaning up Bluetooth Sdp Interface...", __FUNCTION__);
         if ((status = sdp_client_interface->deinit()) != BT_STATUS_SUCCESS) {

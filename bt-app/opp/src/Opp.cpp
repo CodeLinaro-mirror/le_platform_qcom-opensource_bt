@@ -865,6 +865,13 @@ void BtOppMsgHandler(void *msg)
     switch(event->event_id) {
         case PROFILE_API_START:
             {
+                if(g_opp) {
+                  g_opp->opp_connect_timer = NULL;
+                  if( !(g_opp->opp_connect_timer = alarm_new())) {
+                    ALOGE(LOGTAG " unable to create opp_connect_timer");
+                    return;
+                  }
+                }
                 BtEvent *start_event = new BtEvent;
                 memset(&opp, 0, sizeof(OPP_DATA));
                 start_event->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
@@ -876,6 +883,10 @@ void BtOppMsgHandler(void *msg)
 
         case PROFILE_API_STOP:
             if(g_opp) {
+                if (g_opp->opp_connect_timer != NULL) {
+                  alarm_free(g_opp->opp_connect_timer);
+                  g_opp->opp_connect_timer = NULL;
+                }
                 if (opp.clientConnectionHandle) {
                    /* disconnect opp client if connected */
                    ret = OI_OPPClient_Disconnect(opp.clientConnectionHandle);
@@ -918,11 +929,6 @@ Opp :: Opp(const bt_interface_t *bt_interface, config_t *config)
 {
     this->bluetooth_interface = bt_interface;
     this->config = config;
-    opp_connect_timer = NULL;
-    if( !(opp_connect_timer = alarm_new())) {
-        ALOGE(LOGTAG " unable to create opp_connect_timer");
-        return;
-    }
 }
 
 void opp_connect_timer_expired(void *context) {
@@ -936,8 +942,7 @@ void opp_connect_timer_expired(void *context) {
 
 Opp :: ~Opp()
 {
-    alarm_free(g_opp->opp_connect_timer);
-    g_opp->opp_connect_timer = NULL;
+    g_opp = NULL;
 }
 
 void ConnectionCfmCb(OI_OPP_CLIENT_CONNECTION_HANDLE connectionId,

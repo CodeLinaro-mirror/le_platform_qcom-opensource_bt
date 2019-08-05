@@ -39,15 +39,15 @@ ScanManager::ScanManager(GattNativeInterfaceV2 *mGattIf)
 {
   mNative = mGattIf;
   mCurUsedTrackableAdvertisements = 0;
-  batch_scan_timer = alarm_new();
-  if(batch_scan_timer == NULL) {
-    ALOGE(LOGTAG " batch scan timer not set");
-  }
 }
 
 void ScanManager::start()
 {
   mScanNative = new ScanNative(this);
+  batch_scan_timer = alarm_new();
+  if(batch_scan_timer == NULL) {
+    ALOGE(LOGTAG " batch scan timer not set");
+  }
 }
 
 void ScanManager::cleanup()
