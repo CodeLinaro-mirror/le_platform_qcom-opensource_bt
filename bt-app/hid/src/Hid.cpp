@@ -356,6 +356,7 @@ HidH::HidH(const bt_interface_t *bt_interface, config_t *config)
 HidH::~HidH()
 {
     ALOGD(LOGTAG  "(%s) Cleaning up HID Interface",__FUNCTION__);
+    thread_free(hid_report_thread);
     hid_list.clear();
     pthread_mutex_destroy(&lock);
 }

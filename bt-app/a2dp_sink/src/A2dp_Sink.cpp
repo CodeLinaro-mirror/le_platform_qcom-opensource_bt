@@ -1341,6 +1341,8 @@ A2dp_Sink :: A2dp_Sink(const bt_interface_t *bt_interface, config_t *config) {
 }
 
 A2dp_Sink :: ~A2dp_Sink() {
+    thread_free(pA2dpSinkStream->threadInfo.thread_id);
+    delete pA2dpSinkStream;
     pthread_mutex_destroy(&lock);
 }
 
