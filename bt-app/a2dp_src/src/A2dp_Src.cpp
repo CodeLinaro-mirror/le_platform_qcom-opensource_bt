@@ -1674,7 +1674,16 @@ static void btavrcp_target_getfolderitems_cmd_callback(uint8_t scope, uint32_t s
     pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_FOLDER_ITEMS_CB;
 
     FolderListEntries* folderItem = (FolderListEntries*)osi_malloc(sizeof(FolderListEntries));
-    memcpy(&folderItem->p_attr, &p_attr_ids, sizeof(p_attr_ids));
+    memset(folderItem, 0, sizeof(FolderListEntries));
+    if( num_attr == 0 )
+        num_attr = BTRC_MAX_ELEM_ATTR_SIZE;
+    else if ( num_attr == 255 )
+        num_attr = 0;
+
+    if(num_attr <= BTRC_MAX_ELEM_ATTR_SIZE) {
+        memcpy(&folderItem->p_attr, p_attr_ids, num_attr * sizeof(uint32_t));
+    }
+
     folderItem->mStart = start_item;
     folderItem->mEnd = end_item;
     folderItem->mSize = size;
@@ -1980,6 +1989,7 @@ const char* getString(int mAttrType,uint8_t* Uid) {
     const char* playingTimeMs = "abc7";
     const char* tracknum = "abc8";
 
+    ALOGD(LOGTAG_AVRCP "%s mAttrType : %d ", __func__, mAttrType);
     switch (mAttrType) {
         case ATTR_TRACK_NUM:
             return tracknum;
@@ -2428,8 +2438,20 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                             folderItems[countTotalBytes]; countTotalBytes++;
                         }
                         p_param->p_item_list[count].media.name[countTemp] = '\0';
-                        p_param->p_item_list[count].media.num_attrs =
-                        folderItems[countTotalBytes]; countTotalBytes++;
+                        p_param->p_item_list[count].media.num_attrs = folderitem -> mNumAttr;
+                        countTotalBytes++;
+                        p_param->p_item_list[count].media.p_attrs = ( btrc_element_attr_val_t*)osi_malloc( folderitem->mNumAttr*sizeof(btrc_element_attr_val_t));
+                        for(i = 0 ;i < folderitem->mNumAttr; ++i) {
+                            if( folderitem->mNumAttr == BTRC_MAX_ELEM_ATTR_SIZE )
+                                p_param->p_item_list[count].media.p_attrs[i].attr_id = i;
+                            else
+                                p_param->p_item_list[count].media.p_attrs[i].attr_id = folderitem->p_attr[i];
+                            memcpy(p_param->p_item_list[count].media.p_attrs[i].text,
+                                   getString(p_param->p_item_list[count].media.p_attrs[i].attr_id, NULL),
+                                   strlen(getString(p_param->p_item_list[count].media.p_attrs[i].attr_id, NULL)) + 1);
+                            ALOGD(LOGTAG_AVRCP " %s attrid : %d value :%s ", __func__, p_param->p_item_list[count].media.p_attrs[i].attr_id,
+                            p_param->p_item_list[count].media.p_attrs[i].text);
+                        }
                         /*To check if byte feeding went well*/
                         checkLength += folderItemLengths[count];
                         ALOGD(LOGTAG_AVRCP "checkLength = %u countTotalBytes = %u strlen = %d ", checkLength,countTotalBytes,str_len);
@@ -2442,6 +2464,9 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     }
                     sBtAvrcpTargetInterface->get_folder_items_list_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)p_param->status, p_param->uid_counter,
                       p_param->item_count, p_param->p_item_list);
+                    for(count = 0; count < p_param->item_count; count++) {
+                       osi_free(p_param->p_item_list[count].media.p_attrs);
+                    }
                     osi_free(pEvent->avrcpTargetEvent.buf_ptr);
                     osi_free(folderitem);
                     osi_free(folderItems);
