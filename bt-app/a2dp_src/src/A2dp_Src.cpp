@@ -887,6 +887,7 @@ void BtA2dpSourceMsgHandler(void *msg) {
         case AVRCP_TARGET_PLAY_POSITION_TIMEOUT:
         case AVRCP_TARGET_SET_BROWSED_PLAYER_REQ:
         case AVRCP_TARGET_CHANGE_PATH_REQ:
+        case AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB:
         case AVRCP_TARGET_SEARCH_CB:
         case AVRCP_TARGET_GET_ITEM_ATTRIBUTES_REQ:
         case AVRCP_TARGET_PLAY_ITEMS_REQ:
@@ -1905,6 +1906,18 @@ static void btavrcp_target_play_item_callback(uint8_t scope, uint16_t uid_counte
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
 }
 
+static void btavrcp_target_get_total_num_of_items_callback(uint8_t scope,
+                                                           RawAddress* bd_addr)
+{
+    ALOGD(LOGTAG_AVRCP "%s",__func__);
+    BtEvent *pEvent = new BtEvent;
+    memset(pEvent,0,sizeof(BtEvent));
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->avrcpTargetEvent.arg1 = (uint16_t) scope;
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
 static void btavrcp_target_search_callback(uint16_t charset_id, uint16_t str_len,
                                            uint8_t* p_str, RawAddress* bd_addr)
 {
@@ -1956,7 +1969,7 @@ static btrc_callbacks_t sBluetoothAvrcpTargetCallbacks = {
    btavrcp_target_change_path_callback,
    btavrcp_target_get_item_attr_callback,
    btavrcp_target_play_item_callback,
-   NULL,
+   btavrcp_target_get_total_num_of_items_callback,
    btavrcp_target_search_callback,
    btavrcp_target_add_to_now_playing_callback,
    btavrcp_target_connection_state_callback,
@@ -2545,6 +2558,30 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                 osi_free(p_param);
             }
             break;
+        case AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB: {
+            uint32_t num_items = 0;
+            scope = pEvent->avrcpTargetEvent.arg1;
+            switch(scope){
+            case BTRC_SCOPE_PLAYER_LIST:
+                num_items = 1;
+                break;
+            case BTRC_SCOPE_FILE_SYSTEM:
+                num_items = 2;
+                break;
+            case BTRC_SCOPE_SEARCH:
+                num_items = 1;
+                break;
+            case BTRC_SCOPE_NOW_PLAYING:
+                num_items = 2;
+                break;
+            default:
+                ALOGE(LOGTAG_AVRCP "Invalid scope id,scope id: %d", scope);
+                break;
+            }
+            sBtAvrcpTargetInterface->
+                    get_total_num_of_items_rsp(&pEvent->avrcpTargetEvent.bd_addr,
+                                               BTRC_STS_NO_ERROR,0,num_items);
+            } break;
         case AVRCP_TARGET_SEARCH_CB:
             //Always responds with one media item in search rsp
             if (pMediaList.size() > 0) {
@@ -3430,6 +3467,8 @@ char* A2dp_Source::dump_message(BluetoothEventId event_id) {
         return "AVRCP_TARGET_SET_BROWSED_PLAYER_REQ";
     case AVRCP_TARGET_CHANGE_PATH_REQ:
         return "AVRCP_TARGET_CHANGE_PATH_REQ";
+    case AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB:
+        return "AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB";
     case AVRCP_TARGET_SEARCH_CB:
         return "AVRCP_TARGET_SEARCH_CB";
     case AVRCP_TARGET_GET_ITEM_ATTRIBUTES_REQ:
