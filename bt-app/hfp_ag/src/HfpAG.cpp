@@ -263,6 +263,8 @@ extern "C" {
 const char *MCM_LIBRARY_NAME = "/usr/lib/libmcm.so.0";
 #endif
 
+vector<BtEvent> memorized_evt;
+
 void BtHfpAgMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
     if(!msg) {
@@ -1079,7 +1081,21 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             }
 
             configurescoaudio(false);
-            change_state(HFP_AG_STATE_CONNECTED);
+            if(memorized_evt.empty() == true) {
+                change_state(HFP_AG_STATE_CONNECTED);
+            }
+            else {
+                if(memorized_evt[memorized_evt.size() -1].event_id == HFP_AG_API_DISCONNECT_REQ) {
+                    bt_status_t ret_val = sBtHfpAgInterface->disconnect(
+                             &memorized_evt[memorized_evt.size() -1].hfp_ag_event.bd_addr);
+                    if (ret_val != BT_STATUS_SUCCESS) {
+                       fprintf(stdout, "Failure disconnecting with device %s", str);
+                       ALOGD(LOGTAG "Failure disconnecting with device %s", str);
+                       break;
+                    }
+                    memorized_evt.pop_back();
+                }
+            }
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
@@ -1543,18 +1559,13 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
                 // no need to check if disconnection of SCO is success here.
                 sBtHfpAgInterface->disconnect_audio(&pEvent->hfp_ag_event.bd_addr);
 
-                ret_val = sBtHfpAgInterface->disconnect(&pEvent->hfp_ag_event.bd_addr);
-                if (ret_val != BT_STATUS_SUCCESS) {
-                    fprintf(stdout, "Failure disconnecting with device %s", str);
-                    ALOGD(LOGTAG "Failure disconnecting with device %s", str);
-                    break;
-                }
+                BtEvent tmpEvent;
+                memcpy(&tmpEvent, pEvent, sizeof(BtEvent));
+                memorized_evt.push_back(tmpEvent);
             }
 
             fprintf(stdout, "Disconnecting with device %s", str);
             ALOGD(LOGTAG "Disconnecting with device %s", str);
-            memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
-            memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(HFP_AG_STATE_PENDING);
             break;
         case HFP_AG_API_DISCONNECT_AUDIO_REQ:
