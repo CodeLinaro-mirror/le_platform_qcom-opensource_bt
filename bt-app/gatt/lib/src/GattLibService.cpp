@@ -2568,6 +2568,7 @@ void GattLibService::updateFeatureSupport(void *value, int len)
                  mIsLeExtendedAdvertisingSupported,
                  mIsLePeriodicAdvertisingSupported,
                  mLeMaximumAdvertisingDataLength);
+  delete[] val;
 }
 
 
