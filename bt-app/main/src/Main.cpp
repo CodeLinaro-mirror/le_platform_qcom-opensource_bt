@@ -2513,6 +2513,24 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     event = new BtEvent;
                     event->event_id = GAP_API_CREATE_BOND;
                     string_to_bdaddr(user_cmd[ONE_PARAM], &event->bond_device.bd_addr);
+                    switch (atoi(user_cmd[TWO_PARAM])){
+                    case 0:
+                        event->bond_device.transport = 0;
+                        fprintf( stdout, " Auto select in the stack \n");
+                        break;
+                    case 1:
+                        event->bond_device.transport = 1;
+                        fprintf( stdout, " BR/EDR Bonding\n");
+                        break;
+                    case 2:
+                        event->bond_device.transport = 2;
+                        fprintf( stdout, " BLE Bonding \n");
+                        break;
+                    default:
+                        event->bond_device.transport = 0;
+                        fprintf( stdout, " Invalid transport parameter, auto selecting \n");
+                        return;
+                    }
                     PostMessage (THREAD_ID_GAP, event);
                 } else {
                  fprintf( stdout, " BD address is NULL/Invalid \n");

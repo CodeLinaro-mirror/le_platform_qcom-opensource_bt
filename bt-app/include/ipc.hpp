@@ -767,6 +767,7 @@ typedef struct {
 typedef struct {
     BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
+    uint8_t             transport;
 } DeviceBondRequest;
 
 /**
