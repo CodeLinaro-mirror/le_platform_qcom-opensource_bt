@@ -400,8 +400,8 @@ UserMenuList GapMenu[] = {
     {BT_DISABLE,            "disable",          ZERO_PARAM,    "disable"},
     {START_ENQUIRY,         "inquiry",          ZERO_PARAM,    "inquiry"},
     {CANCEL_ENQUIRY,        "cancel_inquiry",   ZERO_PARAM,    "cancel_inquiry"},
-    {START_PAIR,            "pair",             ONE_PARAM,    "pair<space><bt_address> \
-    eg. pair 00:11:22:33:44:55"},
+    {START_PAIR,            "pair",             TWO_PARAM,    "pair<space><bt_address><space><transport> \
+    eg. pair 00:11:22:33:44:55 0(auto)/1(BREDR)/2(BLE)"},
     {UNPAIR,                "unpair",           ONE_PARAM,    "unpair<space><bt_address> \
     eg. unpair 00:11:22:33:44:55"},
     {INQUIRY_LIST,          "inquiry_list",     ZERO_PARAM,    "inquiry_list"},
