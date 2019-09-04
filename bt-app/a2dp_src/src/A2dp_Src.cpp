@@ -1359,7 +1359,6 @@ static void *thread_func(void *in_param)
     uint8_t hdr_buffer[32];
     btav_codec_config_t snk_codec_cfg;
     uint16_t snk_codec_type;
-    uint16_t use_file_stream =0;
     uint8_t tmpval;
     ALOGD(LOGTAG_A2DP "Streaming thread started");
     if(!bt_a2dp_split_enabled) {
@@ -1395,9 +1394,7 @@ static void *thread_func(void *in_param)
                     BtA2dpResumeStreaming();
                 }
                 srcStream = SRC_STREAMING;
-                if (snk_codec_type != A2DP_SINK_AUDIO_CODEC_SBC)
-                    use_file_stream = 1;
-                else
+                if (snk_codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
                 {
                         codec_type = get_codec_relay_data();
                         if(codec_type == INVALID_CODEC)
@@ -1410,14 +1407,12 @@ static void *thread_func(void *in_param)
                             if((src_codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
                                &&(!memcmp(&src_codec_cfg,&snk_codec_cfg,5)))
                             {
-                                use_file_stream = 0;
                                 len = get_pcm_data((uint8_t*)buffer, out_buffer_size);
                             }
                             else
                             {
-                                ALOGD(LOGTAG_A2DP "audio parameter not mach, using file");
+                                ALOGD(LOGTAG_A2DP "audio parameter not matched ");
                                 len=0;
-                                use_file_stream = 1;
                             }
                         }
                         else if(codec_type == A2DP_SINK_AUDIO_CODEC_SBC)//pcm data
@@ -1444,20 +1439,17 @@ static void *thread_func(void *in_param)
                                 {
                                     ALOGD(LOGTAG_A2DP "sbc codec not match, and decoding is not enabled");
                                     break;
-                                    use_file_stream = 1;
                                 }
                             }
                             else
                             {
                                 len=0;
-                                use_file_stream = 1;
                             }
                         }
                  }
             }
             else
             {
-                use_file_stream = 0;
                 ALOGD(LOGTAG_A2DP "cannot get the snk info, may be no streaming ");
                 if((a2dp_playstatus == A2DP_SOURCE_AUDIO_STARTED) &&( srcStream != SRC_NO_STREAMING))
                 {
@@ -1467,17 +1459,21 @@ static void *thread_func(void *in_param)
                 srcStream= SRC_NO_STREAMING;
                 len =0;
             }
-            if (len == 0 && (use_file_stream ==0)) {
+            if (len == 0) {
                 ALOGD(LOGTAG_A2DP "Read %d bytes from file sleep 20ms", len);
                 usleep(20000);
                 continue;
             }
         }
-        ALOGD("use file steaming %d relay %d",use_file_stream,is_sink_relay_enabled);
-        if(!is_sink_relay_enabled || use_file_stream)
+        ALOGD(" relay %d",is_sink_relay_enabled);
+        if(!is_sink_relay_enabled)
         {
              /* Use file for streaming */
              ALOGD(LOGTAG_A2DP "use file steaming Read %d buffer size", out_buffer_size);
+             if (!in_file) {
+                 ALOGE(LOGTAG_A2DP "File stream is NULL!! ");
+                 break;
+             }
              len = fread(buffer, out_buffer_size, 1, in_file);
              if (len == 0) {
                  ALOGD(LOGTAG_A2DP "Read %d bytes from file", len);
