@@ -49,7 +49,7 @@
 #define MAX_BONDED_DEVICES (20)
 #define PROFILE_STARTUP_TIMEOUT_DELAY     (5000)
 #define PROFILE_STOP_TIMEOUT_DELAY        (5000)
-#define ENABLE_TIMEOUT_DELAY              (12000)
+#define ENABLE_TIMEOUT_DELAY              (40000)
 #define DISABLE_TIMEOUT_DELAY             (8000)
 
 const unsigned char g_audiosink_uuid[16] = {0x00, 0x00, 0x11, 0x0B, 0x00, 0x00,
