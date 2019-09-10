@@ -3082,6 +3082,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
         case AVRCP_TARGET_DISCONNECTED_CB:
             mAvrcpConnected = false;
             is_search_req_recieved = false;
+            mfolder_depth = 0;
             memset(&mConnectedAvrcpDevice, 0, sizeof(bt_bdaddr_t));
             break;
         case A2DP_SOURCE_AUDIO_CMD_REQ:{
