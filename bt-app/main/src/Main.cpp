@@ -2199,7 +2199,6 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     if (gattstest) {
                         if(init_server_file)  {
                             server_num++;
-                            fprintf(stdout,"Adding Server %d \n",server_num);
                             gattstest->AddServer();
                         } else {
                             fprintf(stdout,"Do gattstest_init_server first \n");
