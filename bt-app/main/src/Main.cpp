@@ -3343,6 +3343,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             if (event->state_event.status == BT_STATE_OFF) {
                 fprintf(stdout," Error in Enabling BT\n");
             } else {
+              ALOGD (LOGTAG " BT State is ON : %d",event->state_event.status);
               fprintf(stdout," BT State is ON\n");
 
               if (is_bt_enable_autotest){
@@ -3397,6 +3398,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 inq_db_count = 0;
                 system("killall -KILL wcnssfilter");
                 usleep(200);
+                ALOGD (LOGTAG " BT State is OFF : %d",bt_state);
                 fprintf(stdout, " BT State is OFF\n");
             }
             if (is_bt_enable_test_menu_) {
