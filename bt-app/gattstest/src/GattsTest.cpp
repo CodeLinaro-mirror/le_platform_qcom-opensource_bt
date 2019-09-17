@@ -82,7 +82,6 @@ using namespace gatt;
 
 GattsTest *gattstest = NULL;
 extern GattLibService *g_gatt;
-int num_of_server;
 int num_of_devices;
 int num_of_advertiser = 0;
 GattServer *mgattServer = NULL;
@@ -620,8 +619,15 @@ void GattsTest::ParseServiceElement(int instance)
 void GattsTest::AddServer()
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
-  if(num_of_server <= MAX_SERVER_INSTANCE) {
-    num_of_server++;
+  int num_of_server;
+  if(servInstanceMap.size() <= MAX_SERVER_INSTANCE) {
+//  Add new server at first missing key on consecutive order
+    for(num_of_server = 1; num_of_server <= servInstanceMap.size(); num_of_server++) {
+      if(!servInstanceMap.count(num_of_server)) {
+         break;
+      }
+    }
+    fprintf(stdout,"Adding Server %d \n", num_of_server);
     ALOGD(LOGTAG"Adding Server Instance : %d", num_of_server);
     mgattServer = new GattServer(g_gatt,TRANSPORT);
     servInstanceMap.insert(pair <int,GattServer*> (num_of_server,mgattServer));
@@ -655,11 +661,11 @@ bool GattsTest::AddService(string server_instance,string service_instance)
   int permissions = 0;
   string char_val = "QTI_LE";
   string desc_val = "QTI_DESC";
-  if(server_inst > num_of_server) {
+  if(!servInstanceMap.count(server_inst)) {
     fprintf(stdout,"Please create the server instance first \n");
     return false;
-  } else if((server_inst <= 0) || (server_inst > MAX_SERVER_INSTANCE) || (service_inst <=0) || (service_inst > MAX_SERVICE_INSTANCE) ) {
-    fprintf(stdout,"Incorrect instance values  \n" );
+  } else if((service_inst <= 0) || (service_inst > MAX_SERVICE_INSTANCE) ) {
+    fprintf(stdout,"Incorrect service instance values  \n" );
     return false;
   } else if (service_inst < 6) {
     mServer = servInstanceMap[server_inst];
@@ -1041,18 +1047,27 @@ bool GattsTest::UnregisterServer(string instance)
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   int instanceId;
   istringstream(instance) >> instanceId;
-  if(instanceId <=0 || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if(!servInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   }
-  if(num_of_server <= MAX_SERVER_INSTANCE) {
+  if(servInstanceMap.size() <= MAX_SERVER_INSTANCE) {
     mServer = servInstanceMap[instanceId];
     mServer->close();
-    AdvertisingSetCallback *mAdvSetCB;
-    mAdvSetCB = advCBInstanceMap[instanceId];
-    madvertiser->stopAdvertising(mAdvSetCB);
+    if(!AdvSet_list.empty()){
+      AdvertisingSetCallback *mAdvSetCB;
+      mAdvSetCB = advCBInstanceMap[instanceId];
+      madvertiser->stopAdvertising(mAdvSetCB);
+    }
+    unordered_map <gattstestServerCallback*,GattServer*> ::iterator itr;
+    for(itr = servCBInstanceMap.begin(); itr!= servCBInstanceMap.end(); ++itr) {
+      if(itr->second == mServer ){
+         servCBInstanceMap.erase(itr->first);
+         break;
+       }
+    }
     servInstanceMap.erase(instanceId);
-    num_of_server--;
+    advCBInstanceMap.erase(instanceId);
     return true;
   } else {
     fprintf(stdout,"There are no more servers to unregister \n");
@@ -1065,7 +1080,7 @@ void GattsTest::StopAdvertisement(string instance)
   ALOGD(LOGTAG"StopAdvertisement \n");
   int instanceId;
   istringstream(instance) >> instanceId;
-  if(instanceId <=0 || instanceId > num_of_server) {
+  if(!advCBInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
   } else {
     AdvertisingSetCallback *mAdvSetCB;
@@ -1109,7 +1124,7 @@ bool GattsTest::ReadPhy(string instance,string deviceAddress)
   istringstream(instance) >> instanceId;
   GattServer *mServer;
 
-  if(instanceId <=VALID_VALUE || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if(!servInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   } else {
@@ -1143,7 +1158,7 @@ bool GattsTest::SetPreferredPhy(string deviceAddress,string instance,string txPh
   GattServer *mServer;
   vector <string> ::iterator str;
   bool connected= false;
-  if (instanceId <= VALID_VALUE || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if(!servInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   } else {
@@ -1207,6 +1222,7 @@ bool GattsTest::DisableGATTSTEST()
   gattstestAdvertiserCallback *mAdvertisercallback = NULL;
   map <int, GattServer*> ::iterator itr;
   map <int,gattstestAdvertiserCallback*> ::iterator at;
+  g_gatt->unregAll();
   servInstanceMap.clear();
   unordered_map  <gattstestServerCallback*,GattServer*> ::iterator it;
   for(it = servCBInstanceMap.begin(); it != servCBInstanceMap.end(); ++it) {
@@ -1222,7 +1238,6 @@ bool GattsTest::DisableGATTSTEST()
     delete(mAdvertisercallback);
   }
   advCBInstanceMap.clear();
-  num_of_server = 0;
   return true;
 }
 
