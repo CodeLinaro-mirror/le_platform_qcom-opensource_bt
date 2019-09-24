@@ -3958,7 +3958,9 @@ void BluetoothApp :: InitHandler (void) {
 
 
 void BluetoothApp :: DeInitHandler (void) {
-    UnLoadBtStack ();
+    if(g_bt_app->bt_state == BT_STATE_ON) {
+        UnLoadBtStack ();
+    }
 
     ALOGV (LOGTAG "  %s:",__func__);
     if (is_hid_enable_default_) {
