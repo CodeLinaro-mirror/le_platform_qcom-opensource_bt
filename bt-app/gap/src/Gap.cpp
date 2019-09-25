@@ -62,6 +62,7 @@ using std::list;
 using std::string;
 
 Gap *g_gap = NULL;
+int g_nr_evt_raw_cmd = -1;
 
 
 #ifdef __cplusplus
@@ -249,21 +250,27 @@ static void EnergyInfoRecvCb(bt_activity_energy_info *p_energy_info) {
 }
 
 static void hci_raw_event_show(uint8_t event_code, uint8_t *buf, uint8_t len){
-    int i;
+	int i;
 
-    fprintf(stdout, "#### raw event received ####\n");
-    fprintf(stdout, "%02x %02x ", event_code, len);
+	if (g_nr_evt_raw_cmd < 0)
+		return;
+	if (g_nr_evt_raw_cmd++  >=  MAX_EVT_RAW_CMD) {
+		g_nr_evt_raw_cmd = -1;
+		return;
+	}
 
-    i = 2;
-    while (i < (len + 2)) {
-        if ((i % 16) == 0)
-            fprintf(stdout, "\n");
-        fprintf(stdout, "%02x ", buf[i - 2]);
-        i++;
-    }
-    fprintf(stdout, "\n#### end ####\n");
+	fprintf(stdout, "<- : %02x %02x ", event_code, len);
 
-    return;
+	i = 2;
+	while (i < (len + 2)) {
+		if ((i % 16) == 0)
+			fprintf(stdout, "\n     ");
+		fprintf(stdout, "%02x ", buf[i - 2]);
+		i++;
+	}
+	fprintf(stdout, "\n");
+
+	return;
 }
 
 //TODO: update the callbacks, made NULL to compile

@@ -1428,29 +1428,30 @@ static int send_hci_cmd_parse_args(char *args, unsigned char **cmd)
 }
 
 static void handle_send_hci_cmd(void *cmd_ptr) {
-    int i;
-    int cmd_size;
-    uint8_t *cmd =(uint8_t *)cmd_ptr;
+	int i;
+	int cmd_size;
+	uint8_t *cmd =(uint8_t *)cmd_ptr;
 
-    fprintf(stdout, "**** send hci cmd ****\n");
-    cmd_size = cmd[2] + 3;
+	g_nr_evt_raw_cmd = 0;
+	fprintf(stdout, "-> : ");
+	cmd_size = cmd[2] + 3;
 
-    i = 0;
-    while (i < cmd_size) {
-        fprintf(stdout, "%02x ", cmd[i]);
-        i++;
-        if (i % 16 == 0)
-            fprintf(stdout, "\n");
-    }
-    fprintf(stdout, "\n**** end ****\n");
+	i = 0;
+	while (i < cmd_size) {
+		fprintf(stdout, "%02x ", cmd[i]);
+		i++;
+		if (i % 16 == 0)
+			fprintf(stdout, "\n     ");
+	}
+	fprintf(stdout, "\n");
 
-    g_bt_app->bt_interface->hci_cmd_send(*(uint16_t *)cmd, &cmd[3], cmd[2]);
-    osi_free(cmd_ptr);
+	g_bt_app->bt_interface->hci_cmd_send(*(uint16_t *)cmd, &cmd[3], cmd[2]);
+	osi_free(cmd_ptr);
 
-    reactor_stop(thread_get_reactor(test_thread_id));
-    test_thread_id = NULL;
+	reactor_stop(thread_get_reactor(test_thread_id));
+	test_thread_id = NULL;
 
-    return;
+	return;
 }
 
 static void HandleTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {

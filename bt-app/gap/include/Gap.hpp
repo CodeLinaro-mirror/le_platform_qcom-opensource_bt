@@ -330,4 +330,7 @@ class Gap {
     void SetLeBtName(btvendor_lename_t *name);
 };
 
+#define MAX_EVT_RAW_CMD  4
+extern int g_nr_evt_raw_cmd;
+
 #endif
