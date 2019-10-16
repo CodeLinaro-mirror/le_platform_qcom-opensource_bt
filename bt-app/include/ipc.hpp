@@ -169,6 +169,8 @@ typedef enum {
     MAIN_EVENT_DISABLED,
     MAIN_EVENT_SSP_REQUEST,
     MAIN_EVENT_PIN_REQUEST,
+    MAIN_EVENT_TESTMENU_BT_ENABLED,
+    MAIN_EVENT_TESTMENU_BT_DISABLED,
 #ifdef USE_BT_OBEX
     MAIN_EVENT_INCOMING_FILE_REQUEST,
 #endif
@@ -181,6 +183,8 @@ typedef enum {
     BT_AM_REQUEST_CONTROL = AUDIO_MANAGER_MSG_BASE,
     BT_AM_RELEASE_CONTROL,
     BT_AM_CONTROL_STATUS,
+    BT_AM_DISABLE_REQ,
+    BT_AM_DISABLE_DONE,
 
     A2DP_SINK_API_CONNECT_REQ = A2DP_SINK_MSG_BASE,
     A2DP_SINK_API_DISCONNECT_REQ,
@@ -390,6 +394,8 @@ typedef enum {
     AVRCP_TARGET_SEND_VOL_UP_DOWN,
     AVRCP_TARGET_PLAY_POSITION_TIMEOUT,
     AVRCP_TARGET_GET_FOLDER_ITEMS_CB,
+    AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB,
+    AVRCP_TARGET_SEARCH_CB,
     AVRCP_TARGET_SET_ADDR_PLAYER_CB,
     AVRCP_TARGET_ADDR_PLAYER_CHANGED,
     AVRCP_TARGET_AVAIL_PLAYER_CHANGED,
@@ -525,6 +531,7 @@ typedef enum {
     BLESCANNER_PERIODIC_ADVERTISING_SYNC_START_EVENT,
     BLESCANNER_PERIODIC_ADVERTISING_SYNC_LOST_EVENT,
     BLESCANNER_PERIODIC_ADVERTISING_SYNC_REPORT_EVENT,
+    BLESCANNER_BATCHSCAN_TIMEOUT_EVENT,
 
     GATT_EVENT_ADAPTER_PROPERTIES,
     RSP_ENABLE_EVENT = RSP_MSG_BASE,
@@ -1534,6 +1541,13 @@ typedef struct
 typedef struct
 {
     BluetoothEventId event_id;
+    void *scanmanager;
+} BleScannerBatchscantimeoutEvent;
+
+
+typedef struct
+{
+    BluetoothEventId event_id;
     int reg_id;
     uint8_t status;
     uint16_t sync_handle;
@@ -1804,6 +1818,7 @@ typedef union {
     BleScannerPeriodicAdvSyncStartEvent     blescanner_periodic_adv_sync_start_event;
     BleScannerPeriodicAdvSyncLostEvent      blescanner_periodic_adv_sync_lost_event;
     BleScannerPeriodicAdvSyncReportEvent    blescanner_periodic_adv_sync_report_event;
+    BleScannerBatchscantimeoutEvent         BleScanner_batchscan_timeout_Event;
 #ifdef USE_GEN_GATT
     GattAdapterPropertyEvent                gatt_adapter_property_event;
 #endif

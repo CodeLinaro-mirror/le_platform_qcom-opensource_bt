@@ -506,7 +506,7 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_SCANFILTER_MAN_DATA,       "gattctest_scanFilter_manData",    THREE_PARAM,    "gattctest_scanFilter_manData<space><manuId><space><ManuData><space><ManuMask>"},
     {GATTCTEST_START_SCAN,        "gattctest_start_scan", ZERO_PARAM,    "gattctest_start_scan"},
     {GATTCTEST_STOP_SCAN,         "gattctest_stop_scan",  ZERO_PARAM,    "gattctest_stop_scan"},
-    {GATTCTEST_BATCH_SCAN,        "gattctest_batch_scan", ZERO_PARAM,    "gattctest_batch_scan"},
+    {GATTCTEST_BATCH_SCAN,        "gattctest_batch_scan", ONE_PARAM,    "gattctest_batch_scan  0-FULL MODE 1- TRUNCATED MODE"},
     {BACK_TO_MAIN,          "main_menu",      ZERO_PARAM,    "main_menu"},
     {GATTCTEST_CONN_PARAMS,       "gattctest_conn_params",    THREE_PARAM,    "gattctest_conn_params<space><isAuto><space><phy><space><isOppur> \
         eg: isAuto(0/1);phy (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination); isOppur(0/1))"},
@@ -939,6 +939,7 @@ class BluetoothApp {
     bool ssp_notification;
     bool pin_notification;
     bool is_hid_enabled;
+    bool is_bt_enable_test_menu_;
 #ifdef USE_BT_OBEX
     bool incoming_file_notification;
 #endif

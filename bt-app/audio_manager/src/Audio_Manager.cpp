@@ -44,6 +44,7 @@ using std::string;
 BT_Audio_Manager *pBTAM = NULL;
 extern A2dp_Sink_Streaming *pA2dpSinkStream;
 static bool is_a2dp_sink_split_enabled;
+static bool is_bt_am_hal_load_unload;
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,6 +66,8 @@ void BtAudioManagerHandler(void *msg) {
             }
             break;
         case PROFILE_API_STOP:
+            break;
+        case BT_AM_DISABLE_REQ:
             ALOGD(LOGTAG " disable BT Audio Manager");
             if (pBTAM) {
                 pBTAM->HandleDisableBTAM();
@@ -96,12 +99,12 @@ char* BT_Audio_Manager::dump_message(BluetoothEventId event_id) {
 }
 
 void BT_Audio_Manager::HandleEnableBTAM(void) {
+    LoadAudioHal();
     BtEvent *pEvent = new BtEvent;
     pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
     pEvent->profile_start_event.profile_id = PROFILE_ID_BT_AM;
     pEvent->profile_start_event.status = true;
     PostMessage(THREAD_ID_GAP, pEvent);
-    LoadAudioHal();
 }
 
 void BT_Audio_Manager::HandleDisableBTAM(void) {
@@ -111,7 +114,7 @@ void BT_Audio_Manager::HandleDisableBTAM(void) {
         audio_control_stack[i].control_status = REQUEST_TYPE_DEFAULT;
     }
     BtEvent *pEvent = new BtEvent;
-    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
+    pEvent->profile_stop_event.event_id = BT_AM_DISABLE_DONE;
     pEvent->profile_stop_event.profile_id = PROFILE_ID_BT_AM;
     pEvent->profile_stop_event.status = true;
     PostMessage(THREAD_ID_GAP, pEvent);
@@ -139,9 +142,14 @@ void BT_Audio_Manager::LoadAudioHal()
         ALOGD(" %s Split A2dp Sink enabled, bail out ",__func__);
         return;
     }
+    if(!is_bt_am_hal_load_unload) {
+        ALOGD("%s property set to false, don't load Audio HAL ",__func__);
+        return;
+    }
 
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     ALOGD(LOGTAG " Load Audio HAL +");
+    fprintf(stdout, "Load Audio HAL started \n");
     if (qahw_mod_handle != NULL) {
         ALOGD(" Audio HAL already loaded");
     } else {
@@ -152,6 +160,7 @@ void BT_Audio_Manager::LoadAudioHal()
         return;
     }
     ALOGD(LOGTAG "Load Audio HAL -");
+    fprintf(stdout, "Load Audio HAL completed\n");
 #endif
 }
 void BT_Audio_Manager::UnloadAudioHal()
@@ -160,6 +169,11 @@ void BT_Audio_Manager::UnloadAudioHal()
         ALOGD(" %s Split A2dp Sink enabled, bail out ",__func__);
         return;
     }
+    if(!is_bt_am_hal_load_unload) {
+        ALOGD("%s property set to false, don't unload Audio HAL ",__func__);
+        return;
+    }
+
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
     int ret = 0;
     ALOGD(LOGTAG "UnLoad Audio HAL +");
@@ -339,6 +353,10 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
 BT_Audio_Manager :: BT_Audio_Manager(const bt_interface_t *bt_interface, config_t *config) {
     is_a2dp_sink_split_enabled = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     "BtA2dpSinkSplitEnable", false);
+
+    is_bt_am_hal_load_unload = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    "BtAM_HAL_LOAD_UNLOAD", true);
+
     for(int i= 0 ; i < MAX_PROFILE_ENTRIES; i++) {
         audio_control_stack[i].profile_id =  PROFILE_ID_MAX;
         audio_control_stack[i].control_status = REQUEST_TYPE_DEFAULT;

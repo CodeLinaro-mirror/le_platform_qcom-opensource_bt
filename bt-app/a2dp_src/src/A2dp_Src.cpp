@@ -76,6 +76,7 @@ btrc_notification_type_t mAppSettingChangedNotiType = BTRC_NOTIFICATION_TYPE_CHA
 
 uint8_t mfolder_depth = 0;
 bool is_empty_folder = 0;
+bool is_search_req_recieved = false;
 btrc_br_folder_name_t* mp_folders = nullptr;
 uint8_t rootUid[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04};
 uint8_t folderUid1[BTRC_UID_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03};
@@ -682,6 +683,7 @@ void registerMediaPlayers () {
     featureMasks[5] = featureMasks[5] | 0x02; /*Stop*/
     featureMasks[7] = featureMasks[7] | 0x04; /*Advanced Control Player*/
     featureMasks[7] = featureMasks[7] | 0x08; /*Browsing*/
+    featureMasks[7] = featureMasks[7] | 0x10; /*search operation supported*/
     featureMasks[7] = featureMasks[7] | 0x80; /*Only Browsable when addressed*/
     featureMasks[8] = featureMasks[8] | 0x02; /*Now playing*/
 
@@ -699,6 +701,14 @@ void registerMediaPlayers () {
             BTRC_ITEM_MEDIA, 0x006A, 6, Media1, 0));
 
     ALOGD(LOGTAG_AVRCP "Exit registerMediaPlayers()");
+}
+
+void A2dp_Source::unregisterMediaPlayers () {
+    ALOGD(LOGTAG_AVRCP "unregisterMediaPlayers()");
+    pMediaPlayerList.clear();
+    pFolderList.clear();
+    pMediaList.clear();
+    ALOGD(LOGTAG_AVRCP "Exit unregisterMediaPlayers()");
 }
 
 uint16_t A2DP_SBC_Calculate_FrameLength(A2DP_SBC_FRAME *frame, const uint8_t *data)
@@ -877,6 +887,8 @@ void BtA2dpSourceMsgHandler(void *msg) {
         case AVRCP_TARGET_PLAY_POSITION_TIMEOUT:
         case AVRCP_TARGET_SET_BROWSED_PLAYER_REQ:
         case AVRCP_TARGET_CHANGE_PATH_REQ:
+        case AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB:
+        case AVRCP_TARGET_SEARCH_CB:
         case AVRCP_TARGET_GET_ITEM_ATTRIBUTES_REQ:
         case AVRCP_TARGET_PLAY_ITEMS_REQ:
         case AVRCP_TARGET_ADDTO_NOW_PLAYING_REQ:
@@ -1347,7 +1359,6 @@ static void *thread_func(void *in_param)
     uint8_t hdr_buffer[32];
     btav_codec_config_t snk_codec_cfg;
     uint16_t snk_codec_type;
-    uint16_t use_file_stream =0;
     uint8_t tmpval;
     ALOGD(LOGTAG_A2DP "Streaming thread started");
     if(!bt_a2dp_split_enabled) {
@@ -1383,9 +1394,7 @@ static void *thread_func(void *in_param)
                     BtA2dpResumeStreaming();
                 }
                 srcStream = SRC_STREAMING;
-                if (snk_codec_type != A2DP_SINK_AUDIO_CODEC_SBC)
-                    use_file_stream = 1;
-                else
+                if (snk_codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
                 {
                         codec_type = get_codec_relay_data();
                         if(codec_type == INVALID_CODEC)
@@ -1398,14 +1407,12 @@ static void *thread_func(void *in_param)
                             if((src_codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
                                &&(!memcmp(&src_codec_cfg,&snk_codec_cfg,5)))
                             {
-                                use_file_stream = 0;
                                 len = get_pcm_data((uint8_t*)buffer, out_buffer_size);
                             }
                             else
                             {
-                                ALOGD(LOGTAG_A2DP "audio parameter not mach, using file");
+                                ALOGD(LOGTAG_A2DP "audio parameter not matched ");
                                 len=0;
-                                use_file_stream = 1;
                             }
                         }
                         else if(codec_type == A2DP_SINK_AUDIO_CODEC_SBC)//pcm data
@@ -1432,20 +1439,17 @@ static void *thread_func(void *in_param)
                                 {
                                     ALOGD(LOGTAG_A2DP "sbc codec not match, and decoding is not enabled");
                                     break;
-                                    use_file_stream = 1;
                                 }
                             }
                             else
                             {
                                 len=0;
-                                use_file_stream = 1;
                             }
                         }
                  }
             }
             else
             {
-                use_file_stream = 0;
                 ALOGD(LOGTAG_A2DP "cannot get the snk info, may be no streaming ");
                 if((a2dp_playstatus == A2DP_SOURCE_AUDIO_STARTED) &&( srcStream != SRC_NO_STREAMING))
                 {
@@ -1455,17 +1459,21 @@ static void *thread_func(void *in_param)
                 srcStream= SRC_NO_STREAMING;
                 len =0;
             }
-            if (len == 0 && (use_file_stream ==0)) {
+            if (len == 0) {
                 ALOGD(LOGTAG_A2DP "Read %d bytes from file sleep 20ms", len);
                 usleep(20000);
                 continue;
             }
         }
-        ALOGD("use file steaming %d relay %d",use_file_stream,is_sink_relay_enabled);
-        if(!is_sink_relay_enabled || use_file_stream)
+        ALOGD(" relay %d",is_sink_relay_enabled);
+        if(!is_sink_relay_enabled)
         {
              /* Use file for streaming */
              ALOGD(LOGTAG_A2DP "use file steaming Read %d buffer size", out_buffer_size);
+             if (!in_file) {
+                 ALOGE(LOGTAG_A2DP "File stream is NULL!! ");
+                 break;
+             }
              len = fread(buffer, out_buffer_size, 1, in_file);
              if (len == 0) {
                  ALOGD(LOGTAG_A2DP "Read %d bytes from file", len);
@@ -1663,7 +1671,16 @@ static void btavrcp_target_getfolderitems_cmd_callback(uint8_t scope, uint32_t s
     pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_FOLDER_ITEMS_CB;
 
     FolderListEntries* folderItem = (FolderListEntries*)osi_malloc(sizeof(FolderListEntries));
-    memcpy(&folderItem->p_attr, &p_attr_ids, sizeof(p_attr_ids));
+    memset(folderItem, 0, sizeof(FolderListEntries));
+    if( num_attr == 0 )
+        num_attr = BTRC_MAX_ELEM_ATTR_SIZE;
+    else if ( num_attr == 255 )
+        num_attr = 0;
+
+    if(num_attr <= BTRC_MAX_ELEM_ATTR_SIZE) {
+        memcpy(&folderItem->p_attr, p_attr_ids, num_attr * sizeof(uint32_t));
+    }
+
     folderItem->mStart = start_item;
     folderItem->mEnd = end_item;
     folderItem->mSize = size;
@@ -1885,6 +1902,34 @@ static void btavrcp_target_play_item_callback(uint8_t scope, uint16_t uid_counte
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
 }
 
+static void btavrcp_target_get_total_num_of_items_callback(uint8_t scope,
+                                                           RawAddress* bd_addr)
+{
+    ALOGD(LOGTAG_AVRCP "%s",__func__);
+    BtEvent *pEvent = new BtEvent;
+    memset(pEvent,0,sizeof(BtEvent));
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->avrcpTargetEvent.arg1 = (uint16_t) scope;
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
+static void btavrcp_target_search_callback(uint16_t charset_id, uint16_t str_len,
+                                           uint8_t* p_str, RawAddress* bd_addr)
+{
+    ALOGD(LOGTAG_AVRCP "%s",__func__);
+    is_search_req_recieved = true;
+    BtEvent *pEvent = new BtEvent;
+    memset(pEvent,0,sizeof(BtEvent));
+    pEvent->avrcpTargetEvent.event_id = AVRCP_TARGET_SEARCH_CB;
+    memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+    pEvent->avrcpTargetEvent.arg1 = charset_id;
+    pEvent->avrcpTargetEvent.buf_size = str_len;
+    pEvent->avrcpTargetEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->avrcpTargetEvent.buf_size);
+    memcpy(pEvent->avrcpTargetEvent.buf_ptr, p_str, pEvent->avrcpTargetEvent.buf_size);
+    PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
+}
+
 static void btavrcp_target_add_to_now_playing_callback(uint8_t scope, uint8_t* uid,
                                                  uint16_t uid_counter,
                                                  RawAddress* bd_addr){
@@ -1920,8 +1965,8 @@ static btrc_callbacks_t sBluetoothAvrcpTargetCallbacks = {
    btavrcp_target_change_path_callback,
    btavrcp_target_get_item_attr_callback,
    btavrcp_target_play_item_callback,
-   NULL,
-   NULL,
+   btavrcp_target_get_total_num_of_items_callback,
+   btavrcp_target_search_callback,
    btavrcp_target_add_to_now_playing_callback,
    btavrcp_target_connection_state_callback,
 };
@@ -1953,6 +1998,7 @@ const char* getString(int mAttrType,uint8_t* Uid) {
     const char* playingTimeMs = "abc7";
     const char* tracknum = "abc8";
 
+    ALOGD(LOGTAG_AVRCP "%s mAttrType : %d ", __func__, mAttrType);
     switch (mAttrType) {
         case ATTR_TRACK_NUM:
             return tracknum;
@@ -2401,8 +2447,20 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                             folderItems[countTotalBytes]; countTotalBytes++;
                         }
                         p_param->p_item_list[count].media.name[countTemp] = '\0';
-                        p_param->p_item_list[count].media.num_attrs =
-                        folderItems[countTotalBytes]; countTotalBytes++;
+                        p_param->p_item_list[count].media.num_attrs = folderitem -> mNumAttr;
+                        countTotalBytes++;
+                        p_param->p_item_list[count].media.p_attrs = ( btrc_element_attr_val_t*)osi_malloc( folderitem->mNumAttr*sizeof(btrc_element_attr_val_t));
+                        for(i = 0 ;i < folderitem->mNumAttr; ++i) {
+                            if( folderitem->mNumAttr == BTRC_MAX_ELEM_ATTR_SIZE )
+                                p_param->p_item_list[count].media.p_attrs[i].attr_id = i;
+                            else
+                                p_param->p_item_list[count].media.p_attrs[i].attr_id = folderitem->p_attr[i];
+                            memcpy(p_param->p_item_list[count].media.p_attrs[i].text,
+                                   getString(p_param->p_item_list[count].media.p_attrs[i].attr_id, NULL),
+                                   strlen(getString(p_param->p_item_list[count].media.p_attrs[i].attr_id, NULL)) + 1);
+                            ALOGD(LOGTAG_AVRCP " %s attrid : %d value :%s ", __func__, p_param->p_item_list[count].media.p_attrs[i].attr_id,
+                            p_param->p_item_list[count].media.p_attrs[i].text);
+                        }
                         /*To check if byte feeding went well*/
                         checkLength += folderItemLengths[count];
                         ALOGD(LOGTAG_AVRCP "checkLength = %u countTotalBytes = %u strlen = %d ", checkLength,countTotalBytes,str_len);
@@ -2415,12 +2473,119 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     }
                     sBtAvrcpTargetInterface->get_folder_items_list_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)p_param->status, p_param->uid_counter,
                       p_param->item_count, p_param->p_item_list);
+                    for(count = 0; count < p_param->item_count; count++) {
+                       osi_free(p_param->p_item_list[count].media.p_attrs);
+                    }
                     osi_free(pEvent->avrcpTargetEvent.buf_ptr);
                     osi_free(folderitem);
                     osi_free(folderItems);
                     osi_free(p_param->p_item_list);
                     osi_free(p_param);
                 }
+                break;
+            case BTRC_SCOPE_SEARCH:
+                //always returns first media elemrnt in the list during search rsp
+                p_param = (btrc_vendor_folder_list_entries_t*)osi_malloc(
+                                   sizeof(btrc_vendor_folder_list_entries_t));
+                p_param->status = BTRC_STS_NO_ERROR ;
+                p_param->uid_counter = 0;
+                p_param->item_count =  0;
+
+                if(!is_search_req_recieved) {
+                    //send error response since search req is not recieved
+                    p_param->status = BTRC_STS_BAD_CMD;
+                    sBtAvrcpTargetInterface->get_folder_items_list_rsp(
+                                             &(pEvent->avrcpTargetEvent.bd_addr),
+                                             (btrc_status_t)p_param->status, p_param->uid_counter,
+                                             p_param->item_count, p_param->p_item_list);
+                }
+
+                if (pMediaList.size() > 0) {
+                    list<MediaInfo>::iterator p = pMediaList.begin();
+                    mediaEntry = (char*)osi_malloc(p->RetrieveMediaEntryLength()*sizeof(char));
+                    mediaEntry = p->RetrieveMediaItemEntry();
+                    int length = p->RetrieveMediaEntryLength();
+                    folderItemLengths[0] = length;
+                    for (count = 0; count < length; count ++)
+                        folderItems[positionItemStart + count] = mediaEntry[count];
+                    osi_free(mediaEntry);
+                    p_param->item_count =  1;
+                    p_param->p_item_list = (btrc_folder_items_t*)
+                                           osi_malloc(sizeof(btrc_folder_items_t));
+                    for (countTemp = 0; countTemp < BTRC_UID_SIZE; countTemp ++) {
+                        p_param->p_item_list->media.uid[countTemp] =
+                        folderItems[countTotalBytes]; countTotalBytes++;
+                    }
+                    p_param->p_item_list->item_type =
+                        folderItems[countTotalBytes];
+                    p_param->p_item_list->media.type =
+                        BTRC_MEDIA_TYPE_AUDIO ;
+                    countTotalBytes++;
+                    p_param->p_item_list->media.charset_id =
+                        (uint16_t)(folderItems[countTotalBytes] & 0x00ff);
+                    countTotalBytes++;
+                    p_param->p_item_list->media.charset_id +=
+                        (uint16_t)((folderItems[countTotalBytes] << 8) & 0xff00);
+                    countTotalBytes++;
+                    uint16_t str_len = (uint16_t)(folderItems[countTotalBytes] & 0x00ff);
+                    countTotalBytes++;
+                    str_len += (uint16_t)((folderItems[countTotalBytes] << 8) & 0xff00);
+                    countTotalBytes++;
+                    for (countTemp = 0; countTemp < str_len; countTemp ++) {
+                        p_param->p_item_list->media.name[countTemp] =
+                        folderItems[countTotalBytes]; countTotalBytes++;
+                    }
+                    p_param->p_item_list->media.name[countTemp] = '\0';
+                    p_param->p_item_list->media.num_attrs =
+                        folderItems[countTotalBytes]; countTotalBytes++;
+                    /*To check if byte feeding went well*/
+                    checkLength += folderItemLengths[count];
+                    ALOGD(LOGTAG_AVRCP "checkLength = %u countTotalBytes = %u strlen = %d ",
+                                      checkLength,countTotalBytes,str_len);
+                }
+                sBtAvrcpTargetInterface->get_folder_items_list_rsp(
+                                  &(pEvent->avrcpTargetEvent.bd_addr),
+                                  (btrc_status_t)p_param->status, p_param->uid_counter,
+                                  p_param->item_count, p_param->p_item_list);
+                osi_free(pEvent->avrcpTargetEvent.buf_ptr);
+                osi_free(folderitem);
+                osi_free(folderItems);
+                osi_free(p_param->p_item_list);
+                osi_free(p_param);
+            }
+            break;
+        case AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB: {
+            uint32_t num_items = 0;
+            scope = pEvent->avrcpTargetEvent.arg1;
+            switch(scope){
+            case BTRC_SCOPE_PLAYER_LIST:
+                num_items = 1;
+                break;
+            case BTRC_SCOPE_FILE_SYSTEM:
+                num_items = 2;
+                break;
+            case BTRC_SCOPE_SEARCH:
+                num_items = 1;
+                break;
+            case BTRC_SCOPE_NOW_PLAYING:
+                num_items = 2;
+                break;
+            default:
+                ALOGE(LOGTAG_AVRCP "Invalid scope id,scope id: %d", scope);
+                break;
+            }
+            sBtAvrcpTargetInterface->
+                    get_total_num_of_items_rsp(&pEvent->avrcpTargetEvent.bd_addr,
+                                               BTRC_STS_NO_ERROR,0,num_items);
+            } break;
+        case AVRCP_TARGET_SEARCH_CB:
+            //Always responds with one media item in search rsp
+            if (pMediaList.size() > 0) {
+                sBtAvrcpTargetInterface->search_rsp(&pEvent->avrcpTargetEvent.bd_addr,
+                                                    BTRC_STS_NO_ERROR, 0, 1);
+            } else {
+                sBtAvrcpTargetInterface->search_rsp(&pEvent->avrcpTargetEvent.bd_addr,
+                                                    BTRC_STS_NO_ERROR, 0, 0);
             }
             break;
         case AVRCP_TARGET_ABS_VOL_TIMEOUT:
@@ -2912,6 +3077,8 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             break;
         case AVRCP_TARGET_DISCONNECTED_CB:
             mAvrcpConnected = false;
+            is_search_req_recieved = false;
+            mfolder_depth = 0;
             memset(&mConnectedAvrcpDevice, 0, sizeof(bt_bdaddr_t));
             break;
         case A2DP_SOURCE_AUDIO_CMD_REQ:{
@@ -3113,6 +3280,8 @@ void A2dp_Source::HandleEnableSource(void) {
     BtEvent *pEvent = new BtEvent;
     uint8_t streaming_param = 0;
     char value[PROPERTY_VALUE_MAX] = {'\0'};
+    set_abs_volume_timer = alarm_new();
+    set_play_postion_timer = alarm_new();
     if (bluetooth_interface != NULL)
     {
         sBtA2dpSourceInterface = (btav_source_interface_t *)bluetooth_interface->
@@ -3186,6 +3355,10 @@ void A2dp_Source::HandleEnableSource(void) {
 void A2dp_Source::HandleDisableSource(void) {
    change_state(STATE_A2DP_SOURCE_NOT_STARTED);
    BtA2dpUnloadA2dpHal();
+   alarm_free(set_abs_volume_timer);
+   alarm_free(set_play_postion_timer);
+   set_abs_volume_timer = NULL;
+   set_play_postion_timer = NULL;
    if(sBtA2dpSourceInterface != NULL) {
        sBtA2dpSourceInterface->cleanup();
        sBtA2dpSourceInterface = NULL;
@@ -3200,6 +3373,7 @@ void A2dp_Source::HandleDisableSource(void) {
    pEvent->profile_stop_event.status = true;
    PostMessage(THREAD_ID_GAP, pEvent);
    media_playing = false;
+   is_search_req_recieved = false;
    playStatus = BTRC_PLAYSTATE_STOPPED;
    mCurrentTrackID = NO_TRACK_SELECTED;
    mCurrentAddressedPlayer = DEFAULT_PLAYER_ADDRESSED;
@@ -3207,6 +3381,7 @@ void A2dp_Source::HandleDisableSource(void) {
        list_free(a2dp_sink_relay_data_list);
        a2dp_sink_relay_data_list = NULL;
    }
+   unregisterMediaPlayers();
 }
 
 void A2dp_Source::ProcessEvent(BtEvent* pEvent) {
@@ -3295,6 +3470,10 @@ char* A2dp_Source::dump_message(BluetoothEventId event_id) {
         return "AVRCP_TARGET_SET_BROWSED_PLAYER_REQ";
     case AVRCP_TARGET_CHANGE_PATH_REQ:
         return "AVRCP_TARGET_CHANGE_PATH_REQ";
+    case AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB:
+        return "AVRCP_TARGET_GET_TOTAL_NUM_OF_ITEMS_CB";
+    case AVRCP_TARGET_SEARCH_CB:
+        return "AVRCP_TARGET_SEARCH_CB";
     case AVRCP_TARGET_GET_ITEM_ATTRIBUTES_REQ:
         return "AVRCP_TARGET_GET_ITEM_ATTRIBUTES_REQ";
     case AVRCP_TARGET_PLAY_ITEMS_REQ:
@@ -3753,8 +3932,6 @@ A2dp_Source :: A2dp_Source(const bt_interface_t *bt_interface, config_t *config)
     sBtAvrcpTargetInterface = NULL;
     mSourceState = STATE_A2DP_SOURCE_NOT_STARTED;
     mAvrcpConnected = false;
-    set_abs_volume_timer = alarm_new();
-    set_play_postion_timer = alarm_new();
     abs_vol_timer = false;
     mVolCmdSetInProgress = false;
     mVolCmdAdjustInProgress = false;
@@ -3789,9 +3966,6 @@ A2dp_Source :: ~A2dp_Source() {
     mLocalVolume = -1;
     mPreviousAddrPlayerId = 0;
     mCurrentAddrPlayerId = 0;
-    alarm_free(set_abs_volume_timer);
-    alarm_free(set_play_postion_timer);
-    set_abs_volume_timer = NULL;
     mAbsVolRemoteSupported = false;
     TRACK_IS_SELECTED = 0L;
     pthread_mutex_destroy(&lock);

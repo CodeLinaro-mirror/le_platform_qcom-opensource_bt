@@ -759,6 +759,13 @@ void BtPbapClientMsgHandler(void *msg)
     switch(event->event_id) {
         case PROFILE_API_START:
             {
+                if(g_pbapClient) {
+                  g_pbapClient->pbap_connect_timer = NULL;
+                  if( !(g_pbapClient->pbap_connect_timer = alarm_new())) {
+                    ALOGE(LOGTAG, " unable to create pbap_connect_timer");
+                    return;
+                  }
+                }
                 BtEvent *start_event = new BtEvent;
                 memset(&pbap_client, 0, sizeof(PBAP_CLIENT_DATA));
                 start_event->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
@@ -770,6 +777,10 @@ void BtPbapClientMsgHandler(void *msg)
 
         case PROFILE_API_STOP:
             if(g_pbapClient) {
+                if(g_pbapClient->pbap_connect_timer != NULL) {
+                  alarm_free(g_pbapClient->pbap_connect_timer);
+                  g_pbapClient->pbap_connect_timer = NULL;
+                }
                 if (pbap_client.connection) {
                     pbap_client.state = STATE_DEINITIALIZING;
                     /* disconnect connected device */
@@ -892,11 +903,6 @@ PbapClient :: PbapClient(const bt_interface_t *bt_interface, config_t *config)
 {
     this->bluetooth_interface = bt_interface;
     this->config = config;
-    pbap_connect_timer = NULL;
-    if( !(pbap_connect_timer = alarm_new())) {
-        ALOGE(LOGTAG, " unable to create pbap_connect_timer");
-        return;
-    }
 }
 
 void pbap_connect_timer_expired(void *context) {
@@ -910,8 +916,7 @@ void pbap_connect_timer_expired(void *context) {
 
 PbapClient :: ~PbapClient()
 {
-    alarm_free(g_pbapClient->pbap_connect_timer);
-    g_pbapClient->pbap_connect_timer = NULL;
+  g_pbapClient = NULL;
 }
 
 void connectionCfm(OI_PBAP_CONNECTION connectionId,

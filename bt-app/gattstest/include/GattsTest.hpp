@@ -105,11 +105,11 @@ class GattsTest {
     bool StartAdvertisement(string);
     bool BuildAdvertisingParameters(int);
     bool BuildAdvertisingData(int);
-    bool StopAdvertisement(string);
+    void StopAdvertisement(string);
     bool UnregisterServer(string);
     bool AddService(string,string);
-    bool AddCharacteristics(Uuid,int,int,string);
-    bool AddDescriptors(Uuid,int,string);
+    void AddCharacteristics(Uuid,int,int,string);
+    void AddDescriptors(Uuid,int,string);
     bool SetPreferredPhy(string,string,string,string,int);
     bool ReadPhy(string,string);
     bool EnablePeriodicAdvertising(bool);

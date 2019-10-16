@@ -82,7 +82,6 @@ using namespace gatt;
 
 GattsTest *gattstest = NULL;
 extern GattLibService *g_gatt;
-int num_of_server;
 int num_of_devices;
 int num_of_advertiser = 0;
 GattServer *mgattServer = NULL;
@@ -620,8 +619,15 @@ void GattsTest::ParseServiceElement(int instance)
 void GattsTest::AddServer()
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
-  if(num_of_server <= MAX_SERVER_INSTANCE) {
-    num_of_server++;
+  int num_of_server;
+  if(servInstanceMap.size() <= MAX_SERVER_INSTANCE) {
+//  Add new server at first missing key on consecutive order
+    for(num_of_server = 1; num_of_server <= servInstanceMap.size(); num_of_server++) {
+      if(!servInstanceMap.count(num_of_server)) {
+         break;
+      }
+    }
+    fprintf(stdout,"Adding Server %d \n", num_of_server);
     ALOGD(LOGTAG"Adding Server Instance : %d", num_of_server);
     mgattServer = new GattServer(g_gatt,TRANSPORT);
     servInstanceMap.insert(pair <int,GattServer*> (num_of_server,mgattServer));
@@ -655,11 +661,11 @@ bool GattsTest::AddService(string server_instance,string service_instance)
   int permissions = 0;
   string char_val = "QTI_LE";
   string desc_val = "QTI_DESC";
-  if(server_inst > num_of_server) {
+  if(!servInstanceMap.count(server_inst)) {
     fprintf(stdout,"Please create the server instance first \n");
     return false;
-  } else if((server_inst <= 0) || (server_inst > MAX_SERVER_INSTANCE) || (service_inst <=0) || (service_inst > MAX_SERVICE_INSTANCE) ) {
-    fprintf(stdout,"Incorrect instance values  \n" );
+  } else if((service_inst <= 0) || (service_inst > MAX_SERVICE_INSTANCE) ) {
+    fprintf(stdout,"Incorrect service instance values  \n" );
     return false;
   } else if (service_inst < 6) {
     mServer = servInstanceMap[server_inst];
@@ -846,48 +852,38 @@ bool GattsTest::StartAdvertisement(string        instanceID)
 
 bool GattsTest::BuildAdvertisingParameters(int instance)
 {
-  int connectableflag;
-  int scannableflag;
-  int legacyflag;
-  int anonymousflag;
-  int periodicflag;
-  int includeTxPowerflag;
-  int primary_phy;
-  int secondary_phy;
-  int interval;
-  int tx_power;
-  int power_mode;
-  int timeout_legacy;
-  int advertise_mode;
   ALOGD(LOGTAG"%s",__FUNCTION__);
-  AdvertiseSet *temp;
-  temp = AdvSet_list[instance - 1];
-  if(temp == NULL) {
+  AdvertiseSet *setParams;
+  setParams = AdvSet_list[instance - 1];
+  if(setParams == NULL) {
     ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
     return false;
   }
-  legacyflag = temp->legacyflag;
-  //input validation
-  if (legacyflag < VALID_VALUE && connectableflag < VALID_VALUE && scannableflag < VALID_VALUE &&
-      periodicflag < VALID_VALUE && anonymousflag < VALID_VALUE && includeTxPowerflag < VALID_VALUE &&
-      primary_phy < VALID_VALUE && secondary_phy < VALID_VALUE && interval < VALID_VALUE &&
-      power_mode < VALID_VALUE && timeout_legacy < VALID_VALUE && advertise_mode < VALID_VALUE) {
+  if (setParams->legacyflag < VALID_VALUE && setParams->connectableflag < VALID_VALUE &&
+      setParams->scannableflag < VALID_VALUE && setParams->periodicflag < VALID_VALUE &&
+      setParams->anonymousflag < VALID_VALUE && setParams->includeTxPowerflag < VALID_VALUE &&
+      setParams->primary_phy < VALID_VALUE && setParams->secondary_phy < VALID_VALUE &&
+      setParams->interval < VALID_VALUE && setParams->timeout_legacy < VALID_VALUE &&
+      setParams->advertise_mode < VALID_VALUE) {
     fprintf(stdout,"Incorrect flag value \n");
     return false;
   }
-  if (legacyflag > 1 && connectableflag > 1 && scannableflag > 1 && periodicflag > 1 && anonymousflag > 1 && includeTxPowerflag > 1) {
-    fprintf(stdout,"Flags values set incorrectly, Please check 'legacyflag' 'connectableflag' 'scannableflag' periodicflag' 'anonymousflag' includetxpowerflag' \n");
+  if (setParams->legacyflag > 1 && setParams->connectableflag > 1 &&
+      setParams->scannableflag > 1 && setParams->periodicflag > 1 &&
+      setParams->anonymousflag > 1 && setParams->includeTxPowerflag > 1) {
+    fprintf(stdout,"Flags values set incorrectly, Please check 'legacyflag' 'connectableflag'\
+    'scannableflag' periodicflag' 'anonymousflag' includetxpowerflag' \n");
     return false;
   }
 
   try {
-    if(legacyflag) {
+    if(setParams->legacyflag) {
       ALOGD(LOGTAG" Legacy Advertising will be used \n");
       mAdvertiseSettings = AdvertiseSettings::Builder()
-                           .setAdvertiseMode(temp->advertise_mode)
-                           .setTxPowerLevel(temp->tx_power)
-                           .setConnectable(temp->connectableflag)
-                           .setTimeout(temp->timeout_legacy)
+                           .setAdvertiseMode(setParams->advertise_mode)
+                           .setTxPowerLevel(setParams->tx_power)
+                           .setConnectable(setParams->connectableflag)
+                           .setTimeout(setParams->timeout_legacy)
                            .build();
 
       ALOGD(LOGTAG"Advertising Settings connectable = %d \
@@ -897,15 +893,15 @@ bool GattsTest::BuildAdvertisingParameters(int instance)
             mAdvertiseSettings->getTimeout());
     } else {
       mAdvertisingParameters = AdvertisingSetParameters::Builder()
-                              .setConnectable(temp->connectableflag)
-                              .setScannable(temp->scannableflag)
-                              .setLegacyMode(temp->legacyflag)
-                              .setAnonymous(temp->anonymousflag)
-                              .setIncludeTxPower(temp->includeTxPowerflag)
-                              .setPrimaryPhy(temp->primary_phy)
-                              .setSecondaryPhy(temp->secondary_phy)
-                              .setInterval(temp->interval)
-                              .setTxPowerLevel(temp->tx_power)
+                              .setConnectable(setParams->connectableflag)
+                              .setScannable(setParams->scannableflag)
+                              .setLegacyMode(setParams->legacyflag)
+                              .setAnonymous(setParams->anonymousflag)
+                              .setIncludeTxPower(setParams->includeTxPowerflag)
+                              .setPrimaryPhy(setParams->primary_phy)
+                              .setSecondaryPhy(setParams->secondary_phy)
+                              .setInterval(setParams->interval)
+                              .setTxPowerLevel(setParams->tx_power)
                               .build();
 
     ALOGD(LOGTAG"Advertising parameters connectable = %d \
@@ -1051,13 +1047,27 @@ bool GattsTest::UnregisterServer(string instance)
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   int instanceId;
   istringstream(instance) >> instanceId;
-  if(instanceId <=0 || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if(!servInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   }
-  if(num_of_server <= MAX_SERVER_INSTANCE) {
+  if(servInstanceMap.size() <= MAX_SERVER_INSTANCE) {
     mServer = servInstanceMap[instanceId];
     mServer->close();
+    if(!AdvSet_list.empty()){
+      AdvertisingSetCallback *mAdvSetCB;
+      mAdvSetCB = advCBInstanceMap[instanceId];
+      madvertiser->stopAdvertising(mAdvSetCB);
+    }
+    unordered_map <gattstestServerCallback*,GattServer*> ::iterator itr;
+    for(itr = servCBInstanceMap.begin(); itr!= servCBInstanceMap.end(); ++itr) {
+      if(itr->second == mServer ){
+         servCBInstanceMap.erase(itr->first);
+         break;
+       }
+    }
+    servInstanceMap.erase(instanceId);
+    advCBInstanceMap.erase(instanceId);
     return true;
   } else {
     fprintf(stdout,"There are no more servers to unregister \n");
@@ -1065,14 +1075,13 @@ bool GattsTest::UnregisterServer(string instance)
   }
 }
 
-bool GattsTest::StopAdvertisement(string instance)
+void GattsTest::StopAdvertisement(string instance)
 {
   ALOGD(LOGTAG"StopAdvertisement \n");
   int instanceId;
   istringstream(instance) >> instanceId;
-  if(instanceId <=0 || instanceId > num_of_server) {
+  if(!advCBInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
-    return false;
   } else {
     AdvertisingSetCallback *mAdvSetCB;
     mAdvSetCB = advCBInstanceMap[instanceId];
@@ -1081,7 +1090,7 @@ bool GattsTest::StopAdvertisement(string instance)
 }
 
 
-bool GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, string val)
+void GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, string val)
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   mgattCharacteristic = new GattCharacteristic(uid,property,permissions);
@@ -1094,7 +1103,7 @@ bool GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, strin
   ALOGD(LOGTAG"characteristic value: %s", mgattCharacteristic->getValue());
 }
 
-bool GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
+void GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   ALOGD(LOGTAG"string value =  %s", value.c_str());
@@ -1115,7 +1124,7 @@ bool GattsTest::ReadPhy(string instance,string deviceAddress)
   istringstream(instance) >> instanceId;
   GattServer *mServer;
 
-  if(instanceId <=VALID_VALUE || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if(!servInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   } else {
@@ -1149,7 +1158,7 @@ bool GattsTest::SetPreferredPhy(string deviceAddress,string instance,string txPh
   GattServer *mServer;
   vector <string> ::iterator str;
   bool connected= false;
-  if (instanceId <= VALID_VALUE || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if(!servInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   } else {
@@ -1213,6 +1222,7 @@ bool GattsTest::DisableGATTSTEST()
   gattstestAdvertiserCallback *mAdvertisercallback = NULL;
   map <int, GattServer*> ::iterator itr;
   map <int,gattstestAdvertiserCallback*> ::iterator at;
+  g_gatt->unregAll();
   servInstanceMap.clear();
   unordered_map  <gattstestServerCallback*,GattServer*> ::iterator it;
   for(it = servCBInstanceMap.begin(); it != servCBInstanceMap.end(); ++it) {
@@ -1228,8 +1238,6 @@ bool GattsTest::DisableGATTSTEST()
     delete(mAdvertisercallback);
   }
   advCBInstanceMap.clear();
-  delete(madvertiser);
-  num_of_server = 0;
   return true;
 }
 

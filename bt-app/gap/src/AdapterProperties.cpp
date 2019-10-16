@@ -167,7 +167,10 @@ void AdapterProperties::GetCorePropertyList(int num_properties,
            }
            break;
            default:
+           {
              ALOGD (LOGTAG " Unknown Type");
+             delete event;
+           }
         }
     }
 }

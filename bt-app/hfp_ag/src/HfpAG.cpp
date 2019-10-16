@@ -263,6 +263,8 @@ extern "C" {
 const char *MCM_LIBRARY_NAME = "/usr/lib/libmcm.so.0";
 #endif
 
+vector<BtEvent> memorized_evt;
+
 void BtHfpAgMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
     if(!msg) {
@@ -640,8 +642,6 @@ void Hfp_Ag::configurescoaudio(bool enable) {
 
 #if defined(BT_AUDIO_HAL_INTEGRATION)
     qahw_module_handle_t* audio_module;
-    audio_config_t config;
-    audio_io_handle_t handle = 0x999;
 
     if (pBTAM == NULL) {
       ALOGD(LOGTAG "Audio Manager not initialized");
@@ -649,37 +649,22 @@ void Hfp_Ag::configurescoaudio(bool enable) {
       return;
     }
 
-    config.channel_mask = audio_channel_out_mask_from_count(1);
-    config.format = AUDIO_FORMAT_PCM_16_BIT;
-    config.offload_info.size = sizeof(audio_offload_info_t);
-    config.offload_info.format = AUDIO_FORMAT_PCM_16_BIT;
-    config.offload_info.version = AUDIO_OFFLOAD_INFO_VERSION_CURRENT;
-    // channel count 1 for mono
-    config.offload_info.channel_mask = audio_channel_out_mask_from_count(1);
-    if (pHfpAG) {
-      if ( pHfpAG->mWbsState == BTHF_WBS_YES ) {
-        config.sample_rate = 16000;
-        config.offload_info.sample_rate = 16000;
-      } else {
-        config.sample_rate = 8000;
-        config.offload_info.sample_rate = 8000;
-      }
-    }
-
     audio_module = pBTAM->GetAudioDevice();
     if(audio_module != NULL) {
       if (enable) {
-        // select speaker(2) as output device
-        qahw_open_output_stream(audio_module, handle, OUT_DEVICE_BLUETOOTH_SCO,
-              AUDIO_OUTPUT_FLAG_NONE, &config, &out_stream_plb_test, "bt_sco");
         fprintf(stdout, "setting BT_SCO to on\n");
         ALOGD(LOGTAG " setting BT_SCO to on");
 
         qahw_set_parameters(audio_module, "BT_SCO=on");
+        if ( mWbsState == BTHF_WBS_YES )
+          qahw_set_parameters(audio_module, "bt_wbs=on");
       } else {
-        fprintf(stdout, "setting BT_SCO=off\n");
-        ALOGD(LOGTAG " setting BT_SCO=off");
-        qahw_set_parameters(audio_module, "BT_SCO=off");
+        if ((out_stream_plb_test != NULL) && (in_handle_record != NULL)) {
+          fprintf(stdout, "setting BT_SCO=off\n");
+          ALOGD(LOGTAG " setting BT_SCO=off");
+          qahw_set_parameters(audio_module, "BT_SCO=off");
+          qahw_set_parameters(audio_module, "bt_wbs=off");
+        }
 
         if (out_stream_plb_test != NULL) {
           fprintf(stdout, "closing output stream for SCO/eSCO\n");
@@ -708,6 +693,9 @@ void Hfp_Ag::configurescoaudio(bool enable) {
 
 static void *start_playback(void *in_param) {
 #if defined(BT_AUDIO_HAL_INTEGRATION)
+    qahw_module_handle_t* audio_module;
+    audio_config_t config;
+    audio_io_handle_t handle = 0x999;
     int i = 0, j = 0, ret = 0;
     qahw_out_buffer_t out_buf_plb_test;
     // 40msec of 8kz 16-bit mono = 40*8*2 = 640 bytes
@@ -722,23 +710,53 @@ static void *start_playback(void *in_param) {
      return NULL;
     }
 
-    out_buf_plb_test.buffer = buf;
-    out_buf_plb_test.bytes = 640;
+    config.channel_mask = audio_channel_out_mask_from_count(1);
+    config.format = AUDIO_FORMAT_PCM_16_BIT;
+    config.offload_info.size = sizeof(audio_offload_info_t);
+    config.offload_info.format = AUDIO_FORMAT_PCM_16_BIT;
+    config.offload_info.version = AUDIO_OFFLOAD_INFO_VERSION_CURRENT;
+    // channel count 1 for mono
+    config.offload_info.channel_mask = audio_channel_out_mask_from_count(1);
+    if (pHfpAG) {
+      if ( pHfpAG->mWbsState == BTHF_WBS_YES ) {
+        config.sample_rate = 16000;
+        config.offload_info.sample_rate = 16000;
+      } else {
+        config.sample_rate = 8000;
+        config.offload_info.sample_rate = 8000;
+      }
+    }
 
-    for(i = 0; i < 10; i++)
-    {
-      while(!stop_playback)
+    audio_module = pBTAM->GetAudioDevice();
+    fprintf(stdout, "start_playback: getting audio module\n");
+    ALOGD(LOGTAG " start_playback: getting audio module");
+    if(audio_module != NULL) {
+      // select speaker(2) as output device
+      qahw_open_output_stream(audio_module, handle, OUT_DEVICE_BLUETOOTH_SCO,
+           AUDIO_OUTPUT_FLAG_NONE, &config, &out_stream_plb_test, "bt_sco");
+
+      out_buf_plb_test.buffer = buf;
+      out_buf_plb_test.bytes = 640;
+
+      for(i = 0; i < 10; i++)
       {
-        memcpy(buf, (void*)(playback_test + j * 640), 640);
-        if ((pBTAM->GetAudioDevice() != NULL) && (out_stream_plb_test != NULL)) {
-          ret = qahw_out_write(out_stream_plb_test, &out_buf_plb_test);
-          //fprintf(stdout, "start_playback: playing  tone:%d\n",ret);
-          if (ret < 0) {
-            fprintf(stdout, "start_playback: writing data to audio hal failed:%d\n",ret);
-            ALOGE(LOGTAG " %s: writing data to audio hal failed", __func__);
+        while(!stop_playback)
+        {
+          memcpy(buf, (void*)(playback_test + j * 640), 640);
+          if ((pBTAM->GetAudioDevice() != NULL) && (out_stream_plb_test != NULL)) {
+            ret = qahw_out_write(out_stream_plb_test, &out_buf_plb_test);
+            //fprintf(stdout, "start_playback: playing  tone:%d\n",ret);
+            if (ret < 0) {
+              fprintf(stdout, "start_playback: writing data to audio hal failed:%d\n",ret);
+              ALOGE(LOGTAG " %s: writing data to audio hal failed", __func__);
+            }
           }
         }
       }
+    }
+    else {
+      fprintf(stdout, "start_playback: audio_device is NULL\n");
+      ALOGD(LOGTAG " start_playback: audio_device is NULL");
     }
 
     if (buf)
@@ -787,7 +805,6 @@ static void *start_record(void *in_param) {
     fprintf(stdout, "start_record: getting audio module\n");
     ALOGD(LOGTAG " start_record: getting audio module");
     if(audio_module != NULL) {
-      qahw_set_parameters(audio_module, "BT_SCO=on");
       rc = qahw_open_input_stream(audio_module,
                              NULL, IN_DEVICE_BLUETOOTH_SCO_HEADSET,
                              &config, &in_handle_record,
@@ -798,12 +815,6 @@ static void *start_record(void *in_param) {
       }
 
       qahw_in_set_parameters(in_handle_record, "audio_stream_profile=none");
-      if (pHfpAG) {
-        if ( pHfpAG->mWbsState == BTHF_WBS_YES )
-          qahw_set_parameters(audio_module, "bt_wbs=on");
-        else
-          qahw_set_parameters(audio_module, "bt_wbs=off");
-      }
 
       /* Get buffer size to get upper bound on data to read from the HAL */
       size_t buffer_size = qahw_in_get_buffer_size(in_handle_record);
@@ -897,6 +908,7 @@ void Hfp_Ag::HandleEnableAg(void) {
 }
 
 void Hfp_Ag::HandleDisableAg(void) {
+
    change_state(HFP_AG_STATE_NOT_STARTED);
    stop_playback = true;
    stop_record = true;
@@ -908,15 +920,6 @@ void Hfp_Ag::HandleDisableAg(void) {
        sBtHfpAgVendorInterface->cleanup_vendor();
        sBtHfpAgVendorInterface = NULL;
    }
-   if (out_stream_plb_test != NULL) {
-       qahw_close_output_stream(out_stream_plb_test);
-       out_stream_plb_test = NULL;
-   }
-   if (in_handle_record != NULL) {
-       //close input stream and device
-       qahw_close_input_stream(in_handle_record);
-       in_handle_record = NULL;
-   }
    if (record_tid != NULL)
    {
        pthread_join(record_tid, NULL);
@@ -927,6 +930,8 @@ void Hfp_Ag::HandleDisableAg(void) {
        pthread_join(playback_tid, NULL);
        playback_tid = NULL;
    }
+   configurescoaudio(false);
+
    mActiveCallsNum = 0;
    mHeldCallsNum = 0;
    number_vec.clear();
@@ -1052,7 +1057,7 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(HFP_AG_STATE_DISCONNECTED);
             break;
-	case HFP_AG_AUDIO_STATE_DISCONNECTED_CB:
+        case HFP_AG_AUDIO_STATE_DISCONNECTED_CB:
 
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
             fprintf(stdout, "Disconnected SCO connection with device %s", str);
@@ -1063,10 +1068,6 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
 #endif
             stop_record = true;
             stop_playback = true;
-
-            if (pHfpAG) {
-              pHfpAG->configurescoaudio(false);
-            }
 
             if (record_tid != NULL)
             {
@@ -1079,7 +1080,22 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
               playback_tid = NULL;
             }
 
-            change_state(HFP_AG_STATE_CONNECTED);
+            configurescoaudio(false);
+            if(memorized_evt.empty() == true) {
+                change_state(HFP_AG_STATE_CONNECTED);
+            }
+            else {
+                if(memorized_evt[memorized_evt.size() -1].event_id == HFP_AG_API_DISCONNECT_REQ) {
+                    bt_status_t ret_val = sBtHfpAgInterface->disconnect(
+                             &memorized_evt[memorized_evt.size() -1].hfp_ag_event.bd_addr);
+                    if (ret_val != BT_STATUS_SUCCESS) {
+                       fprintf(stdout, "Failure disconnecting with device %s", str);
+                       ALOGD(LOGTAG "Failure disconnecting with device %s", str);
+                       break;
+                    }
+                    memorized_evt.pop_back();
+                }
+            }
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
@@ -1434,9 +1450,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             stop_record = false;
             stop_playback = false;
 
-            if (pHfpAG) {
-              pHfpAG->configurescoaudio(true);
-            }
+            configurescoaudio(true);
 
             file_fd = fopen("/data/misc/bluetooth/sco_record.wav", "w+");
             if (file_fd == NULL) {
@@ -1545,18 +1559,13 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
                 // no need to check if disconnection of SCO is success here.
                 sBtHfpAgInterface->disconnect_audio(&pEvent->hfp_ag_event.bd_addr);
 
-                ret_val = sBtHfpAgInterface->disconnect(&pEvent->hfp_ag_event.bd_addr);
-                if (ret_val != BT_STATUS_SUCCESS) {
-                    fprintf(stdout, "Failure disconnecting with device %s", str);
-                    ALOGD(LOGTAG "Failure disconnecting with device %s", str);
-                    break;
-                }
+                BtEvent tmpEvent;
+                memcpy(&tmpEvent, pEvent, sizeof(BtEvent));
+                memorized_evt.push_back(tmpEvent);
             }
 
             fprintf(stdout, "Disconnecting with device %s", str);
             ALOGD(LOGTAG "Disconnecting with device %s", str);
-            memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
-            memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(HFP_AG_STATE_PENDING);
             break;
         case HFP_AG_API_DISCONNECT_AUDIO_REQ:
@@ -1580,9 +1589,6 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             stop_record = true;
             stop_playback = true;
 
-            if (pHfpAG) {
-              pHfpAG->configurescoaudio(false);
-            }
 
             if (record_tid != NULL)
             {
@@ -1595,8 +1601,8 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
               playback_tid = NULL;
             }
 
+            configurescoaudio(false);
             change_state(HFP_AG_STATE_CONNECTED);
-
             break;
         case HFP_AG_VOIP_CALL_INDICATION:
             VoipCallInd(&pEvent->hfp_ag_event.bd_addr);

@@ -237,6 +237,7 @@ class A2dp_Source {
     list<MediaPlayerInfo> pMediaPlayerList;
     list<FolderInfo> pFolderList;
     list<MediaInfo> pMediaList;
+    void unregisterMediaPlayers();
 };
 
 #endif

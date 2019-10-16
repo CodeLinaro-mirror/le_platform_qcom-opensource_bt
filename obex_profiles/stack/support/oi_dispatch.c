@@ -308,6 +308,7 @@ void OI_Dispatch_Terminate(void)
         for (i = 0; i < Dispatcher.MaxUsedEntry; ++i) {
             FreeCBEntry(i);
         }
+        OI_Free(Dispatcher.Table);
         Dispatcher.Table = NULL;
     }
 }
