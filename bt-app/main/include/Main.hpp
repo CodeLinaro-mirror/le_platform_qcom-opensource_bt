@@ -204,6 +204,7 @@ typedef enum {
     SET_REPEAT_VAL,
     SET_SHUFFLE_VAL,
     SET_SCAN_VAL,
+    SET_SCMST_CP_FLAG,
     BIGGER_METADATA,
     PAN_OPTION,
     CONNECTED_LIST,
@@ -606,6 +607,7 @@ UserMenuList A2dpSourceMenu[] = {
     {SET_REPEAT_VAL,     "setrepeatval",  ONE_PARAM,     "setrepeatval<space><val> (1 to 4)"},
     {SET_SHUFFLE_VAL,     "setshuffleval",  ONE_PARAM,     "setshuffleval<space><val>(1 to 3)"},
     {SET_SCAN_VAL,     "setscanval",  ONE_PARAM,     "setscanval<space><val> (1 to 3)"},
+    {SET_SCMST_CP_FLAG,     "set_scmst_cp_flag",TWO_PARAM,    "set_scmst_cp_flag<space><bd_addr><space><0/2> (0-Copyrighted 2-Content not protected) "},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 

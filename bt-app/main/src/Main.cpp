@@ -963,6 +963,13 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
             event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
+        case SET_SCMST_CP_FLAG:
+            event = new BtEvent;
+            event->a2dpSourceEvent.event_id = A2DP_SOURCE_SET_SCMST_CP_FLAG;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSourceEvent.bd_addr);
+            event->a2dpSourceEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
         case BACK_TO_MAIN:
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
