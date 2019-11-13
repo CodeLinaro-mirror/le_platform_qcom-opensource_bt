@@ -3120,8 +3120,6 @@ void GattLibService::HandleBleAdvertiserPeriodicAdvSetEnableEvent(
 void GattLibService::HandleGattAdapterPropertyEvent(GattAdapterPropertyEvent *event)
 {
   int type = event->type;
-  int len = event->len;
-  void *val = event->val;
 
   switch (type)
     {
@@ -3138,6 +3136,7 @@ void GattLibService::HandleGattAdapterPropertyEvent(GattAdapterPropertyEvent *ev
                           event->len);
       break;
     }
+  delete [] event->val;
 }
 
 void GattLibService::HandleBleBatchScanTimeoutEvent(BleScannerBatchscantimeoutEvent *event)

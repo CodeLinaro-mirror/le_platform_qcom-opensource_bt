@@ -96,9 +96,9 @@ void RemoteDevices::ClearPropertyList(int num_properties,
     int index;
 
     for (index = 0; index < num_properties; index++) {
-        delete properties[index].val;
+        delete [] properties[index].val;
     }
-    delete properties;
+    delete [] properties;
 }
 
 
