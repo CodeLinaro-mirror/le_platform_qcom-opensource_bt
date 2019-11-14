@@ -247,6 +247,16 @@ static void EnergyInfoRecvCb(bt_activity_energy_info *p_energy_info) {
     ALOGV (LOGTAG " EnergyInfoRecvCb: ");
 }
 
+static void ReadClockCb(bt_clock_info * p_clock_info) {
+    if(p_clock_info->status == BT_STATUS_SUCCESS) {
+        fprintf(stdout, "Bluetooth read clock success:0x%.8x\n",p_clock_info->clock);
+        ALOGV(LOGTAG "Bluetooth read clock success:0x%.8x",p_clock_info->clock);
+    } else {
+        fprintf(stdout, "Bluetooth read clock failed\n");
+        ALOGV(LOGTAG "Bluetooth read clock failed");
+    }
+}
+
 //TODO: update the callbacks, made NULL to compile
 static bt_callbacks_t sBluetoothCallbacks = {
     sizeof(sBluetoothCallbacks),
@@ -264,6 +274,7 @@ static bt_callbacks_t sBluetoothCallbacks = {
     LeTestModeRecvCb,
     NULL,
     NULL,
+    ReadClockCb,
 };
 
 static void SsrCleanupCb() {
@@ -554,6 +565,16 @@ void Gap::SetLeBtName(btvendor_lename_t *name) {
 void Gap::SetScanMode(bt_scan_mode_t mode, bool ignoreLeScanMode){
     if (sBtVendorInterface != NULL) {
         sBtVendorInterface->setScanMode(mode, ignoreLeScanMode);
+    }
+}
+
+void Gap::ReadClock(int whichClock, bt_bdaddr_t bd_addr) {
+    int status;
+    if ((adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_ON) &&
+       ((status = bluetooth_interface_->read_clock(&bd_addr, whichClock)) == BT_STATUS_SUCCESS)) {
+       fprintf( stdout, " Bluetooth read clock command is sent\n");
+    } else {
+       fprintf( stdout, " Bluetooth read clock command failed:%d\n", status);
     }
 }
 
@@ -934,6 +955,11 @@ void Gap::ProcessEvent(BtEvent* event) {
                 event->set_scan_mode_event.ignoreLeScanMode);
             SetScanMode(event->set_scan_mode_event.mode,
                 event->set_scan_mode_event.ignoreLeScanMode);
+            break;
+
+        case GAP_API_READ_CLOCK:
+            ALOGD(LOGTAG " ReadClock whichClock %d", event->read_clock_event.which_clock);
+            ReadClock(event->read_clock_event.which_clock, event->read_clock_event.bd_addr);
             break;
 
         default:

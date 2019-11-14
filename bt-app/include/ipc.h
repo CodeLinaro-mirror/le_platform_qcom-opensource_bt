@@ -384,6 +384,7 @@ typedef enum {
     GAP_API_SET_BDNAME,
     GAP_API_SET_LE_BDNAME,
     GAP_API_SET_SCAN_MODE,
+    GAP_API_READ_CLOCK,
     GAP_EVENT_ADAPTER_STATE,
     GAP_EVENT_ACL_STATE_CHANGED,
     GAP_EVENT_DISCOVERY_STATE_CHANGED,
@@ -925,6 +926,12 @@ typedef struct {
     bt_bdaddr_t bd_addr;
 } PanDeviceConnectEvent;
 
+typedef struct {
+    BluetoothEventId event_id;
+    bt_bdaddr_t bd_addr;
+    int which_clock;
+} ReadClock;
+
 /**
  * Event for notifying Pan connected device list
  */
@@ -1436,6 +1443,7 @@ typedef union {
     SetDeviceName                           set_device_name_event;
     SetDeviceLeName                         set_device_le_name_event;
     SetScanMode                             set_scan_mode_event;
+    ReadClock                               read_clock_event;
     RemotePropertiesEvent                   remote_properties_event;
     AdapterPropertiesEvent                  adapater_properties_event;
     DeviceDiscoverRequest                   discover_request;

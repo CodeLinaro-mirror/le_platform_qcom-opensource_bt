@@ -1838,6 +1838,21 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             }
             break;
 
+        case READ_CLOCK:
+            if ( g_bt_app->GetState() == BT_STATE_ON ) {
+                if (string_is_bdaddr(user_cmd[TWO_PARAM])) {
+                    event = new BtEvent;
+                    event->event_id = GAP_API_READ_CLOCK;
+                    event->read_clock_event.which_clock= atoi(user_cmd[ONE_PARAM]);
+                    string_to_bdaddr(user_cmd[TWO_PARAM], &event->read_clock_event.bd_addr);
+                    PostMessage (THREAD_ID_GAP, event);
+                } else {
+                    fprintf( stdout, " Incorrect paramters\n");
+                }
+            } else {
+                fprintf( stdout, " Currently BT is OFF\n");
+            }
+            break;
         default:
             ALOGV (LOGTAG " Command not handled");
             break;

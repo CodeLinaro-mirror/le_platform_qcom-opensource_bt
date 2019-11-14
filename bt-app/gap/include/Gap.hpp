@@ -337,6 +337,7 @@ class Gap {
      * @return status
      */
     void SetScanMode(bt_scan_mode_t mode, bool ignoreLeScanModes);
+    void ReadClock(int whichClock, bt_bdaddr_t bd_addr);
 };
 
 #endif
