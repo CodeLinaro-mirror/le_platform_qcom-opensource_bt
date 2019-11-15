@@ -784,7 +784,10 @@ void A2dp_Sink_Streaming::StopRemoteSuspendWaitTimer() {
 void A2dp_Sink_Streaming::HandleEnableSinkStreaming(void) {
     ALOGD(LOGTAG " HandleEnableSinkStreaming");
 
-    BtEvent *pEvent = new BtEvent;
+    pcm_data_fetch_timer = alarm_new();
+    remote_suspend_wait_timer = alarm_new();
+    compress_audio_feed_timer = alarm_new();
+
     use_bt_a2dp_hal = config_get_bool (config,
             CONFIG_DEFAULT_SECTION, "BtUseA2dpHalForSink", false);
     ALOGD(LOGTAG " Use BT A2DP HAL ENabled %d", use_bt_a2dp_hal);
@@ -809,6 +812,13 @@ void A2dp_Sink_Streaming::HandleDisableSinkStreaming(void) {
    if(use_bt_a2dp_hal) {
        UnLoadBtA2dpHAL();
    }
+
+   alarm_free(pcm_data_fetch_timer);
+   alarm_free(remote_suspend_wait_timer);
+   alarm_free(compress_audio_feed_timer);
+   pcm_data_fetch_timer = NULL;
+   remote_suspend_wait_timer = NULL;
+   compress_audio_feed_timer = NULL;
 
    ALOGD(LOGTAG " set the mStreamingDevice to zero");
    memset(&mStreamingDevice, 0, sizeof(bt_bdaddr_t));
@@ -1330,9 +1340,6 @@ A2dp_Sink_Streaming :: A2dp_Sink_Streaming( config_t *config) {
     memset(&mStreamingDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mResumingDevice, 0, sizeof(bt_bdaddr_t));
     pthread_mutex_init(&this->lock, NULL);
-    pcm_data_fetch_timer = alarm_new();
-    remote_suspend_wait_timer = alarm_new();
-    compress_audio_feed_timer = alarm_new();
     pcm_buf = NULL;
     pcm_timer = false;
     compress_offload_timer = false;
@@ -1362,12 +1369,6 @@ A2dp_Sink_Streaming :: ~A2dp_Sink_Streaming() {
     controlStatus = STATUS_LOSS;
     threadInfo.thread_handler = &BtA2dpSinkStreamingMsgHandler;
     threadInfo.thread_name = "A2dp_Sink_Streaming_Thread";
-    alarm_free(pcm_data_fetch_timer);
-    alarm_free(remote_suspend_wait_timer);
-    alarm_free(compress_audio_feed_timer);
-    pcm_data_fetch_timer = NULL;
-    remote_suspend_wait_timer = NULL;
-    compress_audio_feed_timer = NULL;
     memset(&mStreamingDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mResumingDevice, 0, sizeof(bt_bdaddr_t));
     mBtA2dpSinkStreamingVendorInterface = NULL;
