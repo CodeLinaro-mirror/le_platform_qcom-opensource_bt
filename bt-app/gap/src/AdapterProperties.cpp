@@ -133,7 +133,9 @@ void AdapterProperties::GetCorePropertyList(int num_properties,
 
         event->event_id = GATT_EVENT_ADAPTER_PROPERTIES;
         event->gatt_adapter_property_event.len = properties[index].len;
-        event->gatt_adapter_property_event.val = properties[index].val;
+        event->gatt_adapter_property_event.val = new char[properties[index].len];
+        std::memcpy(event->gatt_adapter_property_event.val, properties[index].val,
+                    properties[index].len);
 
         switch(properties[index].type) {
           case BT_PROPERTY_BDADDR:
@@ -169,6 +171,7 @@ void AdapterProperties::GetCorePropertyList(int num_properties,
            default:
            {
              ALOGD (LOGTAG " Unknown Type");
+             delete [] event->gatt_adapter_property_event.val;
              delete event;
            }
         }
@@ -253,4 +256,9 @@ void AdapterProperties :: AdapterPropertiesUpdate(AdapterPropertiesEvent *event)
     }
 
     GetCorePropertyList(event->num_properties, event->properties);
+
+    for (index = 0; index < event->num_properties; index++) {
+        delete [] event->properties[index].val;
+    }
+    delete [] event->properties;
 }
