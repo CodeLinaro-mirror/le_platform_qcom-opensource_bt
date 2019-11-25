@@ -50,6 +50,8 @@ qahw_stream_handle_t* out_stream_plb_test;
 qahw_stream_handle_t* in_handle_record;
 #endif
 
+static void *start_record(void *in_param);
+
 
 char playback_test[] =
 {
@@ -702,6 +704,7 @@ static void *start_playback(void *in_param) {
     uint8_t *buf = (uint8_t*)osi_malloc(640);
     ALOGD(LOGTAG "start_playback - start");
     fprintf(stdout, "start_playback - start\n");
+    FILE *file_fd = NULL;
 
     if (buf == NULL)
     {
@@ -734,6 +737,18 @@ static void *start_playback(void *in_param) {
       // select speaker(2) as output device
       qahw_open_output_stream(audio_module, handle, OUT_DEVICE_BLUETOOTH_SCO,
            AUDIO_OUTPUT_FLAG_NONE, &config, &out_stream_plb_test, "bt_sco");
+
+      file_fd = fopen("/data/misc/bluetooth/sco_record.wav", "w+");
+      if (file_fd == NULL) {
+       fprintf(stdout, "sco_record.wav File open failed\n");
+       return NULL;
+      }
+
+      if (pthread_create(&record_tid, NULL, start_record, file_fd) != 0) {
+        fprintf(stdout, " Failed to create record thread \n");
+        if (file_fd) fclose(file_fd);
+        return NULL;
+      }
 
       out_buf_plb_test.buffer = buf;
       out_buf_plb_test.bytes = 640;
@@ -1108,7 +1123,6 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
     fprintf(stdout, "state_connected_handler Processing event = %d", pEvent->event_id);
     char str[18];
     BtEvent *pControlRequest, *pReleaseControlReq;
-    FILE *file_fd = NULL;
     switch(pEvent->event_id) {
         case HFP_AG_API_CONNECT_REQ: // TODO: handle connections to another device
             break;
@@ -1452,19 +1466,8 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 
             configurescoaudio(true);
 
-            file_fd = fopen("/data/misc/bluetooth/sco_record.wav", "w+");
-            if (file_fd == NULL) {
-              fprintf(stdout, "sco_record.wav File open failed\n");
-              break;
-            }
-
-            if (pthread_create(&record_tid, NULL, start_playback, file_fd) != 0) {
-              fprintf(stdout, " Failed to create record thread \n");
-              if (file_fd) fclose(file_fd);
-            }
-            if (pthread_create(&record_tid, NULL, start_record, file_fd) != 0) {
-              fprintf(stdout, " Failed to create record thread \n");
-              if (file_fd) fclose(file_fd);
+            if (pthread_create(&record_tid, NULL, start_playback, NULL) != 0) {
+              fprintf(stdout, " Failed to create  playback hread \n");
             }
 
             break;
