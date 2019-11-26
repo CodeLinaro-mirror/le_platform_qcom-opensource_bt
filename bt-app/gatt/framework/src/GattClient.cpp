@@ -264,6 +264,10 @@ void GattClient::onCharacteristicWrite(string address, int status, int handle)
         mService->writeCharacteristic(mClientIf, address, handle,
               characteristic->getWriteType(), authReq,
               characteristic->getValue(), characteristic->getValueLength());
+      {
+        std::lock_guard<std::mutex> myLock(mDeviceBusyLock);
+        mDeviceBusy = false;
+      }
       mAuthRetryState++;
       return;
     } catch (std::exception& e) {
@@ -333,6 +337,10 @@ void GattClient::onDescriptorRead(string address, int status, int handle, uint8_
 
       if(mService != NULL) {
         mService->readDescriptor(mClientIf, address, handle, authReq);
+        {
+        std::lock_guard<std::mutex> myLock(mDeviceBusyLock);
+        mDeviceBusy = false;
+        }
         mAuthRetryState++;
         return;
       }
@@ -385,6 +393,10 @@ void GattClient::onDescriptorWrite(string address, int status, int handle)
       if(mService != NULL)
         mService->writeDescriptor(mClientIf, address, handle,
               authReq, descriptor->getValue(), descriptor->getValueLength());
+      {
+       std::lock_guard<std::mutex> myLock(mDeviceBusyLock);
+       mDeviceBusy = false;
+      }
       mAuthRetryState++;
       return;
     } catch (std::exception& e) {
@@ -1012,6 +1024,7 @@ bool GattClient::writeDescriptor(GattDescriptor &descriptor)
     if (mDeviceBusy) {
       return false;
     }
+    mDeviceBusy = true;
   }
 
   try {
