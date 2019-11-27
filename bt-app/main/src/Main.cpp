@@ -2009,7 +2009,7 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    if (i == 1) {
                        gattctest->writeDescriptor(user_cmd[ONE_PARAM],
                          (uint8_t *)&(user_cmd[THREE_PARAM]),
-                           j);
+                         atoi(user_cmd[FIVE_PARAM]), j);
                    } else if (i == 2) {
                        gattctest->readDescriptor(user_cmd[ONE_PARAM],
                          atoi(user_cmd[FOUR_PARAM]));
@@ -2046,13 +2046,14 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    if (i == 1) {
                        gattctest->writeCharacteristic(user_cmd[ONE_PARAM],
                          (uint8_t *)&(user_cmd[THREE_PARAM]),
-                           j);
+                           atoi(user_cmd[FIVE_PARAM]), j);
                    } else if (i == 2) {
                        gattctest->readCharacteristic(user_cmd[ONE_PARAM],
                          atoi(user_cmd[FOUR_PARAM]));
                    } else if (i == 3) {
                        gattctest->prepareWriteCharacteristic(user_cmd[ONE_PARAM],
-                           (uint8_t *)&(user_cmd[THREE_PARAM]), j);
+                           (uint8_t *)&(user_cmd[THREE_PARAM]),
+                           atoi(user_cmd[FIVE_PARAM]), j);
                    }else {
                        fprintf(stdout, "Enter the correct 2nd parameter.."
                          "1 -write , 2 -read\n");
