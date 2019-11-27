@@ -1782,8 +1782,17 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    fprintf(stdout, "Enter proper auto value\n");
                    break;
                 }
-                fprintf(stdout,"starting batch scan \n");
-                gattctest->testBatchscan(atoi(user_cmd[ONE_PARAM]));
+                switch (atoi(user_cmd[ONE_PARAM])){
+                    case 0:
+                    case 1:
+                        fprintf(stdout,"starting batch scan \n");
+                        gattctest->testBatchscan(atoi(user_cmd[ONE_PARAM]));
+                        break;
+                    default:
+                        fprintf( stdout, "Enter proper parameter \n");
+                        fprintf( stdout, "0-FULL MODE 1- TRUNCATED MODE \n");
+                        break;
+                }
             } else {
                 fprintf(stdout,"Do the GATTCINIT first\n");
             }
