@@ -2352,6 +2352,8 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     delete gattstest;
                     gattstest = NULL;
                     server_num = 0;
+                    file_read = 0;
+                    init_advertiser_file = false;
                 } else {
                     fprintf( stdout, "Do Init first \n ");
                 }
