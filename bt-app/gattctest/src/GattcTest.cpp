@@ -714,13 +714,28 @@ void GattcTest :: getServices(string bdaddr)
       for(tmp_it = tmp_char.begin(); tmp_it != tmp_char.end();
           tmp_it++) {
         Uuid char_uuid = (*tmp_it)->getUuid();
-        fprintf(stdout, "== == == CHAR uuid is %s InstanceId "
+        fprintf(stdout, "== == CHAR uuid is %s InstanceId "
             ": %d\n", char_uuid.ToString().c_str(),
             (*tmp_it)->getInstanceId());
-        fprintf(stdout, "== == == Properties %d ; permissions %d;"
+        fprintf(stdout, "== == Properties %d ; permissions %d;"
             "writeType %d\n", (*tmp_it)->getProperties(),
             (*tmp_it)->getPermissions(),
             (*tmp_it)->getWriteType());
+
+       std::vector<GattDescriptor*> tmp_desc
+                 = (*tmp_it)->getDescriptors();
+        ALOGD(LOGTAG "The no of descriptors for this"
+                   "char: %d", tmp_desc.size());
+        fprintf(stdout, "The no of descriptors for this"
+                   "char %ld\n", tmp_desc.size());
+        std::vector<GattDescriptor*>::iterator desc_it;
+        for (desc_it = tmp_desc.begin(); desc_it != tmp_desc.end(); desc_it++) {
+          Uuid desc_uuid = (*desc_it)->getUuid();
+          fprintf(stdout, "== == == Desc uuid is %s InstanceId : %d\n",
+              desc_uuid.ToString().c_str(), (*desc_it)->getInstanceId());
+          fprintf(stdout, "== == == Permissions %d ; value %s\n\n",
+              (*desc_it)->getPermissions(), (*desc_it)->getValue());
+        }
       }
     }
   }
