@@ -232,7 +232,7 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
 
 void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,int requestId,
                             GattCharacteristic *characteristic,bool preparedWrite,bool responseNeeded,
-                            int offset,uint8_t* value)
+                            int offset,uint8_t* value, int length)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   string temp((char *)value);
@@ -251,7 +251,7 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
      executeWriteChar = characteristic;
      receivedData += temp;
   } else {
-    characteristic->setValue(value);
+    characteristic->setValue(value, length);
   }
   if (responseNeeded) {
     mServer->sendResponse(deviceAddress,requestId,0,offset,value);
@@ -290,7 +290,8 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
 
 void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int requestId,
                                                     GattDescriptor *descriptor,bool preparedWrite,
-                                                    bool responseNeeded, int offset, uint8_t * value)
+                                                    bool responseNeeded, int offset, uint8_t * value,
+                                                    int length)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   string temp((char *)value);
@@ -313,7 +314,7 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
      executeWriteDesc = descriptor;
      receivedDescValue += temp;
   } else {
-    descriptor->setValue(value);
+    descriptor->setValue(value, length);
   }
   if (responseNeeded) {
     bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
@@ -1096,7 +1097,8 @@ void GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, strin
   mgattCharacteristic = new GattCharacteristic(uid,property,permissions);
   uint8_t char_val[val.length()+1];
   std::copy(val.begin(),val.end(),char_val);
-  mgattCharacteristic->setValue(char_val);
+  char_val[val.length()] = '\0';
+  mgattCharacteristic->setValue(char_val, val.length()+1);
   ALOGD(LOGTAG"CharacteristicUUID: %s  ", uid.ToString().c_str());
   ALOGD(LOGTAG"Characteristic Property: %d ", mgattCharacteristic->getProperties());
   ALOGD(LOGTAG"characteristic Permissions: %d ", mgattCharacteristic->getPermissions());
@@ -1110,7 +1112,8 @@ void GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
   mgattDescriptor = new GattDescriptor(uid,permissions);
   uint8_t dsc_val[value.length()+1];
   std::copy(value.begin(),value.end(),dsc_val);
-  mgattDescriptor->setValue(dsc_val);
+  dsc_val[value.length()] = '\0';
+  mgattDescriptor->setValue(dsc_val, value.length()+1);
   ALOGD(LOGTAG"Descriptor UUID: %s  ", uid.ToString().c_str());
   ALOGD(LOGTAG"Descriptor Permissions: %d ", mgattDescriptor->getPermissions());
 }
