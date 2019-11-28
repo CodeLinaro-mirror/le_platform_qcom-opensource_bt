@@ -46,6 +46,7 @@
     for (;;)                                                                                      \
     {                                                                                             \
       datatype vect;                                                                              \
+      \      
       res = sd_bus_message_read_basic(m, sdbus_type, &vect);                                      \
       if (0 == res || res < 0)                                                                    \
         break;                                                                                    \
