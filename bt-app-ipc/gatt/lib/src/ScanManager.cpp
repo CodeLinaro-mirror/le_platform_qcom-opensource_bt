@@ -143,7 +143,7 @@ void ScanManager::resetCountDownLatch()
   countDown = false;
 }
 
-bool ScanManager::waitForCallback()
+void ScanManager::waitForCallback()
 {
   std::unique_lock<std::mutex> lk(lock);
   if (cv.wait_for(lk,std::chrono::milliseconds(OPERATION_TIME_OUT_MILLIS), [] {return countDown;})) {

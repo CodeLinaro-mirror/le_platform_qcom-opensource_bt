@@ -86,7 +86,6 @@ int num_of_server;
 int num_of_devices;
 int num_of_advertiser = 0;
 GattServer *mgattServer = NULL;
-GattClient *mgattClient = NULL;
 gattstestServerCallback *gattstestServerCb = NULL;
 
 
@@ -141,260 +140,6 @@ bool split (const string &s, char c,vector<string> &v)
   }
 }
 
-
-class gattstestClientCallback:public GattClientCallback 
-   {  
-     public:  
-       void onConnectionStateChange(GattClient *gatt, int status, int newState) 
-       { 
-         ALOGD(LOGTAG "onConnectionStateChange: status= (%d) Connected:%d", 
-             status, newState); 
-         if (status == GATT_SUCCESS) { 
-           if (newState == GattDevice::STATE_CONNECTED) { 
-             ALOGE("OnConnectionStateChange device Connected to Rem Dev:%s", 
-                 gatt->getDeviceAddress().c_str());
-             fprintf(stdout, "OnConnectionStateChange device Connected to Rem Dev:%s\n", 
-                 gatt->getDeviceAddress().c_str());  
-             gatt->discoverServices(); 
-           } 
-           if (newState == GattDevice::STATE_DISCONNECTED) { 
-             ALOGE("OnConnectionStateChange device disconnected " 
-                 "From Rem Dev:%s", gatt->getDeviceAddress().c_str()); 
-           fprintf(stdout, "OnConnectionStateChange device disconnected to Rem Dev:%s\n", 
-                 gatt->getDeviceAddress().c_str()); 
-             gatt->close(); 
-           } 
-         } else { 
-           gatt->close(); 
-         }  
-       } 
-     
-       void onPhyUpdate (GattClient *gatt, int txPhy, int rxPhy, int status)  
-       {  
-         ALOGD(LOGTAG "onPhyUpdate status %d", status);  
-     
-         if (status == GATT_SUCCESS) { 
-           ALOGD(LOGTAG "Txphy is %d and RxPhy is %d", txPhy, rxPhy); 
-           fprintf(stdout, "Txphy is %d and RxPhy is %d\n", txPhy, rxPhy); 
-         } else { 
-           ALOGE(LOGTAG "onPhyUpdate Failed %d", status); 
-           fprintf(stdout, "onPhyUpdate Failed %d\n", status);  
-         } 
-       } 
-   
-       void onPhyRead (GattClient *gatt, int txPhy, int rxPhy, int status) 
-       { 
-         ALOGD(LOGTAG "onPhyRead status (%d)", status);
-         if (status == GATT_SUCCESS) { 
-           ALOGD(LOGTAG "Txphy is %d and RxPhy is %d", txPhy, rxPhy); 
-           fprintf(stdout, "Txphy is %d and RxPhy is %d\n", txPhy, rxPhy); 
-         } else { 
-           ALOGE(LOGTAG "onPhyRead Failed %d", status); 
-           fprintf(stdout, "onPhyRead Failed %d\n", status);
-         }  
-       }  
-    
-       void onServicesDiscovered (GattClient *gatt, int status)  
-       {  
-         ALOGD(LOGTAG " onServiceDiscovered status : %d", status);  
-  
-         if ((status == GATT_SUCCESS)) {
-           std::list<GattService*> list_services = gatt->getServices();  
-           if (list_services.size() > 0) {
-             ALOGD(LOGTAG "The no of services: %d", list_services.size());  
-             for (auto it = list_services.begin(); 
-                 it != list_services.end(); it++) { 
-               fprintf(stdout, "===============================\n");
-               fprintf(stdout, "===The service type is %d InstaceId %d\n",
-                   (*it)->getType(), (*it)->getInstanceId());
-               Uuid tmp_uuid = (*it)->getUuid();  
-               fprintf(stdout, "== SERVICE uuid is %s\n", 
-                   tmp_uuid.ToString().c_str()); 
- 
-               std::vector<GattCharacteristic*> tmp_char 
-                 = (*it)->getCharacteristics(); 
-               ALOGD(LOGTAG "The no of Characteristics for this service:"  
-                   "%d", tmp_char.size());
-               fprintf(stdout, "The no of Characteristics for this" 
-                   "service: %ld\n", tmp_char.size()); 
-               std::vector<GattCharacteristic*>::const_iterator tmp_it; 
-               for(tmp_it = tmp_char.begin(); tmp_it != tmp_char.end();  
-                   tmp_it++) { 
-                 Uuid char_uuid = (*tmp_it)->getUuid(); 
-                 fprintf(stdout, "== ==CHAR uuid is %s   " 
-                     "InstanceID %d\n", char_uuid.ToString().c_str(), 
-                     (*tmp_it)->getInstanceId());
-                 fprintf(stdout, "== ==Properties %d ; "
-                     "permissions %d; writeType %d\n", 
-                     (*tmp_it)->getProperties(),  
-                     (*tmp_it)->getPermissions(),  
-                     (*tmp_it)->getWriteType());  
-                 std::vector<GattDescriptor*> tmp_desc 
-                   = (*tmp_it)->getDescriptors();
-                 ALOGD(LOGTAG "The no of descriptors for this"  
-                     "char: %d", tmp_desc.size());  
-                 fprintf(stdout, "The no of descriptors for this" 
-                     "char %ld\n", tmp_desc.size()); 
-               } 
-             }  
-           } else { 
-             ALOGE(LOGTAG "No Services Found"); 
-             fprintf(stdout, "No Services Found\n");  
-           } 
-         } else { 
-           ALOGE(LOGTAG "onServiceDiscovered failed status %d", status);  
-           fprintf(stdout, "onServiceDiscovered failed status %d\n", status);  
-         }  
-       }  
-     
-       void onCharacteristicRead (GattClient *gattc,  
-           GattCharacteristic *characteristic, int status)  
-       { 
-         ALOGD(LOGTAG "onCharacteristicRead");  
-         Uuid uid = characteristic->getUuid();  
-     
-         if (status == GATT_SUCCESS) {  
-           uint8_t *value = characteristic->getValue();  
-           ALOGD(LOGTAG "onCharacteristicRead UUID %s, value is %s",  
-               characteristic->getUuid().ToString().c_str(), value);  
-           fprintf(stdout,"onCharacteristicRead UUID %s, value is %s\n",  
-               characteristic->getUuid().ToString().c_str(), value);  
-         } else if (status == GattClient::GATT_READ_NOT_PERMITTED) {  
-           ALOGE(LOGTAG "onCharacteristicRead error");  
-           fprintf(stdout, "onCharacteristicRead"  
-               "GATT_READ_NOT_PERMITTED\n");  
-         } else if(status == GattClient::GATT_INSUFFICIENT_AUTHENTICATION) {  
-           ALOGE(LOGTAG "Not Authentication Read");  
-           fprintf(stdout, "onCharacteristicRead "  
-               "GATT_INSUFFICIENT_AUTHENTICATION\n");  
-         } else {  
-           ALOGE(LOGTAG "Failed to read characteristic: ");  
-           fprintf(stdout, "Failed to read characteristic\n");  
-         }  
-       }  
-     
-       void onCharacteristicWrite (GattClient *gattc,  
-           GattCharacteristic *characteristic, int status)  
-       {  
-         ALOGD(LOGTAG "onCharacteristicWrite: characteristic.val %d", status);  
-       }  
-     
-       void onCharacteristicChanged(GattClient *gattc,  
-           GattCharacteristic *characteristic)  
-       {  
-         ALOGD(LOGTAG "onCharacteristicChanged: uid");  
-         Uuid uid = characteristic->getUuid();  
-     
-         if (!uid.IsEmpty()) {  
-           ALOGD(LOGTAG "onCharacteristicChanged Equal");  
-           ALOGD(LOGTAG "onCharacteristicChanged intimation");  
-         }  
-       }  
-     
-       void onDescriptorRead(GattClient *gatt, GattDescriptor *descriptor,  
-           int status)  
-       {  
-         ALOGD(LOGTAG "(%s)", __FUNCTION__);  
-         Uuid uid = descriptor->getUuid();  
-         if (status == GATT_SUCCESS) {  
-           if (uid.IsEmpty()) {  
-             ALOGE(LOGTAG "(%s) UUID is EMPTY\n", __FUNCTION__);  
-             fprintf(stdout, " descriptor UUID is EMPTY\n");  
-           }  
-           uint8_t *des = descriptor->getValue();  
-           if(des != NULL) {  
-             ALOGD(LOGTAG "(%s) DESCRIPTOR VALUE is %s", __FUNCTION__, des);  
-             fprintf(stdout, " DESCRIPTOR VALUE is %s\n", des);  
-           }  
-         } else if (status == GattClient::GATT_READ_NOT_PERMITTED) {  
-           ALOGE(LOGTAG "(%s) UUID READ NOT PERMITTED\n", __FUNCTION__);  
-           fprintf(stdout, " DESCRIPTOR VALUE is GATT_READ_NOT_PERMITTED\n");  
-         } else {  
-           ALOGE(LOGTAG "(%s)  Failed to read descriptor", __FUNCTION__);  
-           fprintf(stdout, " Failed to read descriptor\n");  
-         }  
-       }  
-     
-       void onDescriptorWrite (GattClient *gatt, GattDescriptor *descriptor,  
-           int status)  
-       {  
-         ALOGD(LOGTAG "onDescriptorWrite Completed %d", status);  
-         fprintf(stdout, "onDescriptorWrite Completed %d\n", status);  
-         Uuid uid = descriptor->getUuid();  
-     
-         if ((status == GATT_SUCCESS)) {  
-           ALOGD(LOGTAG "onDescriptorWrite Success Value : %s",  
-               descriptor->getValue());  
-           fprintf(stdout, "onDescriptorWrite Success Value : %s\n",  
-               descriptor->getValue());  
-         } else if (status == GattClient::GATT_WRITE_NOT_PERMITTED) {  
-           ALOGE(LOGTAG, "Write NOT PERMITTED for the descriptor");  
-           fprintf(stdout, "Write NOT PERMITTED for the descriptor\n");  
-         } else {  
-           ALOGE(LOGTAG "onDescriptorWrite FAILED %d", status);  
-           fprintf(stdout, "onDescriptorWrite FAILED %d\n", status);  
-         }  
-       }  
-     
-       void onReliableWriteCompleted (GattClient *gatt, int status)  
-       {  
-         ALOGD(LOGTAG "onReliableWrite %d", status);  
-       }  
-     
-       void onReadRemoteRssi (GattClient *gatt, int rssi, int status)  
-       {  
-         ALOGD(LOGTAG "onReadRemoteRssi");  
-     
-         if (status == GATT_SUCCESS) {  
-           ALOGD(LOGTAG "onReadRemoteRssi RSSI: %d", rssi);  
-           fprintf(stdout, "onReadRemoteRssi RSSI: %d\n", rssi);  
-         } else {  
-           ALOGE(LOGTAG "Failed to read remote rssi");  
-           fprintf(stdout, "Failed to read remote rssi\n");  
-         }  
-       }  
-     
-       void onMtuChanged (GattClient *gatt, int mtu, int status)  
-       {  
-         ALOGD(LOGTAG "onMtuChanged");  
-     
-         if (status == GATT_SUCCESS) {  
-           if (mtu >= 23 && mtu <= 512) { 
-             ALOGE(LOGTAG "onMtuChanged to (%d)", mtu);  
-             fprintf(stdout, "MTU changed %d\n", mtu);  
-           } else {  
-             ALOGE(LOGTAG "Invalid Mtu value (%d)", mtu);  
-             fprintf(stdout, "Invalid Mtu value %d\n", mtu);  
-           }  
-         } else {  
-           ALOGE(LOGTAG "Failed to request mtu: (%d)", status);  
-           fprintf(stdout, "Failed to request mtu: (%d)", status);  
-         }  
-       }  
-     
-       void onConnectionUpdated (GattClient *gatt, int interval, int latency,  
-           int timeout, int status)  
-       {  
-         ALOGD(LOGTAG "onConnectionUpdated");  
-     
-         if ((status == GATT_SUCCESS)) {  
-           ALOGD(LOGTAG "onConnectionUpdated interval (%d), latency (%d),"  
-               "timeout (%d), status (%d)\n", interval, latency, timeout,  
-               status);  
-           fprintf(stdout, "onConnectionUpdated interval (%d), latency (%d),"  
-               "timeout (%d), status (%d)\n", interval, latency, timeout,  
-               status);  
-         } else {  
-           ALOGE(LOGTAG "Connection Update failed status %d\n", status);  
-           fprintf(stdout, "Connection Update failed status %d\n", status);  
-         }  
-       }  
-   };  
-     
-   gattstestClientCallback *gattstestClientCb = NULL;  
-   
-
-
 void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int status,
                                                                int newState)
 {
@@ -430,14 +175,7 @@ void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int 
     } else {
       DeviceMap.insert(pair <string,GattServer*> (deviceAddress,mServer));
     }
-    //mServer->connect(deviceAddress,AUTO_CONNECT);
-
-    mgattClient = new GattClient(g_gatt, deviceAddress, 2, 0, 1);  
-    gattstestClientCb = new gattstestClientCallback;  
-    bool status = mgattClient->connect(0, *gattstestClientCb);  
-    ALOGD(LOGTAG"Connected: %d", status); 
-
-
+    mServer->connect(deviceAddress,AUTO_CONNECT);
     }
   } else if(newState == GattDevice::STATE_DISCONNECTED) {
     fprintf(stdout,"The device %s got disconnected \n", deviceAddress.c_str());
@@ -1310,6 +1048,11 @@ bool GattsTest::UnregisterServer(string instance)
   if(num_of_server <= MAX_SERVER_INSTANCE) {
     mServer = servInstanceMap[instanceId];
     mServer->close();
+    AdvertisingSetCallback *mAdvSetCB;
+    mAdvSetCB = advCBInstanceMap[instanceId];
+    madvertiser->stopAdvertising(mAdvSetCB);
+    servInstanceMap.erase(instanceId);
+    num_of_server--;
     return true;
   } else {
     fprintf(stdout,"There are no more servers to unregister \n");
@@ -1317,14 +1060,13 @@ bool GattsTest::UnregisterServer(string instance)
   }
 }
 
-bool GattsTest::StopAdvertisement(string instance)
+void GattsTest::StopAdvertisement(string instance)
 {
   ALOGD(LOGTAG"StopAdvertisement \n");
   int instanceId;
   istringstream(instance) >> instanceId;
   if(instanceId <=0 || instanceId > num_of_server) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
-    return false;
   } else {
     AdvertisingSetCallback *mAdvSetCB;
     mAdvSetCB = advCBInstanceMap[instanceId];
@@ -1333,7 +1075,7 @@ bool GattsTest::StopAdvertisement(string instance)
 }
 
 
-bool GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, string val)
+void GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, string val)
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   mgattCharacteristic = new GattCharacteristic(uid,property,permissions);
@@ -1346,7 +1088,7 @@ bool GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, strin
   ALOGD(LOGTAG"characteristic value: %s", mgattCharacteristic->getValue());
 }
 
-bool GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
+void GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   ALOGD(LOGTAG"string value =  %s", value.c_str());
@@ -1471,6 +1213,7 @@ bool GattsTest::DisableGATTSTEST()
     mServercallback = it->first;
     delete(mServercallback);
     mServer = it->second;
+    mServer->close();
     delete(mServer);
   }
   servCBInstanceMap.clear();
