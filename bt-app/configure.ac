@@ -81,7 +81,7 @@ AC_ARG_ENABLE([audiohal],
             no)  audiohal=false ;;
             *) AC_MSG_ERROR([bad value ${enableval} for --enable-audiohal]) ;;
         esac],[audiohal=false])
-AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$audiohal" = "x$true"])
+AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$audiohal" = "xtrue"])
 
 AC_SUBST(SYS_LIB)
 AC_SUBST([CFLAGS])
