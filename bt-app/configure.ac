@@ -74,12 +74,14 @@ AC_ARG_WITH([btobex],
 
 AM_CONDITIONAL(USE_BT_OBEX, test "x${with_btobex}" = "xyes")
 
-AC_ARG_ENABLE(target,
-  [AS_HELP_STRING([--enable-target=TARGET], [Specify the target product to build])],
-  [TARGET=$enableval],
-  [TARGET=none]
-)
-AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$TARGET" = "xapq8009" -o "x$TARGET" = "xapq8017" -o "x$TARGET" = "xapq8096" -o "x$TARGET" = "xapq8053" -o "x$TARGET" = "xapq8098"  -o "x$TARGET" = "xqcs605" -o "x$TARGET" = "xsdm845"])
+AC_ARG_ENABLE([audiohal],
+        [  --enable-audiohal Enable audio-hal],
+        [case "${enableval}" in
+            yes) audiohal=true ;;
+            no)  audiohal=false ;;
+            *) AC_MSG_ERROR([bad value ${enableval} for --enable-audiohal]) ;;
+        esac],[audiohal=false])
+AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$audiohal" = "x$true"])
 
 AC_SUBST(SYS_LIB)
 AC_SUBST([CFLAGS])
