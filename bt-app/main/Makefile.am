@@ -12,39 +12,36 @@ AM_CFLAGS += -DOI_CPU_TYPE=19
 endif
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/audio_manager/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/a2dp_sink/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/avrcp/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/a2dp_src/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/osi/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gap/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/pan/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/hid/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/rsp/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattctest/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/gattstest/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/main/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_client/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_ag/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
-               -I${WORKSPACE}/qcom-opensource/bt/gatt/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
-               -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
-               -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
-               -I${WORKSPACE}/mcm-api/api
+AM_CPPFLAGS +=  \
+               -I${top_srcdir} \
+               -I${top_srcdir}/utils/include \
+               -I$(top_srcdir)/audio_manager/include \
+               -I$(top_srcdir)/a2dp_sink/include \
+               -I$(top_srcdir)/avrcp/include \
+               -I$(top_srcdir)/a2dp_src/include \
+               -I$(top_srcdir)/osi/include \
+               -I$(top_srcdir)/gap/include \
+               -I$(top_srcdir)/pan/include \
+               -I$(top_srcdir)/hid/include \
+               -I$(top_srcdir)/rsp/include \
+               -I$(top_srcdir)/gattctest/include \
+               -I$(top_srcdir)/gattstest/include \
+               -I$(top_srcdir)/main/include \
+               -I$(top_srcdir)/hfp_client/include \
+               -I$(top_srcdir)/hfp_ag/include \
+               -I$(top_srcdir)/include \
+               -I$(top_srcdir)/sdp_client/include
 
 if USE_BT_OBEX
 AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/pbap_client/include \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/opp/include \
-               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include \
-               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/include/profiles \
-               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/profiles/obex \
-               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/include \
-               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/include/profiles \
-               -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/oem
+               -I$(top_srcdir)/pbap_client/include \
+               -I$(top_srcdir)/opp/include \
+               -I$(top_srcdir)/../obex_profiles/include \
+               -I$(top_srcdir)/../obex_profiles/include/profiles \
+               -I$(top_srcdir)/../obex_profiles/profiles/obex \
+               -I$(top_srcdir)/../obex_profiles/sdk/include \
+               -I$(top_srcdir)/../obex_profiles/sdk/include/profiles \
+               -I$(top_srcdir)/../obex_profiles/sdk/oem
 endif
 
 if AUDIO_HAL_SUPPORTED

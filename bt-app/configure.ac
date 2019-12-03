@@ -56,6 +56,7 @@ AC_ARG_WITH([common_includes],
 
 if test "x$with_common_includes" != "xno"; then
    CFLAGS="${CFLAGS} -I${common_incdir}"
+   CPPFLAGS="${CPPFLAGS} -I${common_incdir}"
 fi
 
 AC_ARG_WITH([lib_path],
