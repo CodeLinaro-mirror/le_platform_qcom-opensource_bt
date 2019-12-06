@@ -321,9 +321,6 @@ void GattClient::onDescriptorRead(string address, int status, int handle, uint8_
     mDeviceBusy = false;
   }
 
-  GattDescriptor *descriptor = getDescriptorById(mDeviceAddress, handle);
-  if (descriptor == NULL) return;
-
   if ((status == GATT_INSUFFICIENT_AUTHENTICATION
           || status == GATT_INSUFFICIENT_ENCRYPTION)
           && (mAuthRetryState != AUTH_RETRY_STATE_MITM)) {
@@ -354,6 +351,9 @@ void GattClient::onDescriptorRead(string address, int status, int handle, uint8_
   }
 
   mAuthRetryState = AUTH_RETRY_STATE_IDLE;
+
+  GattDescriptor *descriptor = getDescriptorById(mDeviceAddress, handle);
+  if (descriptor == NULL) return;
 
   if (mCallback != NULL) {
     if (status == 0) descriptor->setValue(value, length);
