@@ -2208,7 +2208,6 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     if (gattstest) {
                         if(init_server_file)  {
                             server_num++;
-                            fprintf(stdout,"Adding Server %d \n",server_num);
                             gattstest->AddServer();
                         } else {
                             fprintf(stdout,"Do gattstest_init_server first \n");
@@ -3355,6 +3354,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             if (event->state_event.status == BT_STATE_OFF) {
                 fprintf(stdout," Error in Enabling BT\n");
             } else {
+              ALOGD (LOGTAG " BT State is ON : %d",event->state_event.status);
               fprintf(stdout," BT State is ON\n");
 
               if (is_bt_enable_autotest){
@@ -3409,6 +3409,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 inq_db_count = 0;
                 system("killall -KILL wcnssfilter");
                 usleep(200);
+                ALOGD (LOGTAG " BT State is OFF : %d",bt_state);
                 fprintf(stdout, " BT State is OFF\n");
             }
             if (is_bt_enable_test_menu_) {
@@ -3959,7 +3960,9 @@ void BluetoothApp :: InitHandler (void) {
 
 
 void BluetoothApp :: DeInitHandler (void) {
-    UnLoadBtStack ();
+    if(g_bt_app->bt_state == BT_STATE_ON) {
+        UnLoadBtStack ();
+    }
 
     ALOGV (LOGTAG "  %s:",__func__);
     if (is_hid_enable_default_) {
