@@ -248,7 +248,7 @@ class ScanManager {
     bool isBatchClient(ScanClient *client);
     bool isScanSupported(ScanClient *client);
     void resetCountDownLatch();
-    bool waitForCallback();
+    void waitForCallback();
     void timeoutCb();
     alarm_t* batch_scan_timer;
 
