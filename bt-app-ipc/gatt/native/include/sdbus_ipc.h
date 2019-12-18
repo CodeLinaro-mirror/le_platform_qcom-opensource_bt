@@ -27,7 +27,7 @@
 #ifndef SDBUS_IPC_H
 #define SDBUS_IPC_H
 
-#include <systemd/sd-bus.h>
+#include <systemdq/sd-bus.h>
 #include <sys/eventfd.h>
 
 #define DBUS_SVC_NAME   "com.qualcomm.qti.adk.btipc.app"
