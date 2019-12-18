@@ -125,7 +125,7 @@ static void RemoteDevicePropertiesCb(bt_status_t status, bt_bdaddr_t *bd_addr,
     unsigned short index;
     BtEvent *event = new BtEvent;
 
-    ALOGV (LOGTAG " RemoteDevicePropertiesCb:");
+    ALOGV (LOGTAG " RemoteDevicePropertiesCb: num_properties %d", num_properties);
     props = new bt_property_t[num_properties];
     memcpy(props, properties, num_properties * sizeof(bt_property_t));
     for (index = 0; index < num_properties; index++) {
@@ -913,7 +913,7 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_API_CREATE_BOND:
             // Calling the cancel_discovery before create_bond
             bluetooth_interface_->cancel_discovery();
-            bluetooth_interface_->create_bond(&event->bond_device.bd_addr, 1);
+            bluetooth_interface_->create_bond(&event->bond_device.bd_addr, event->bond_device.transport);
             break;
 
         case GAP_API_SSP_REPLY:
