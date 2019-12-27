@@ -72,6 +72,7 @@ using namespace btapp;
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
 int server_num;
 bool file_read = 0;
+bool init_advertiser_file = 0;
 long onoff_count = 0;
 long onoff_index = 0;
 
@@ -2174,7 +2175,6 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     int  advMaxEvents = 0;
     bool isConnected=0;
     static bool init_server_file=0;
-    static bool init_advertiser_file = 0;
     int  server_inst = 0;
     int  service_inst = 0;
     switch (cmd_id) {
@@ -3417,6 +3417,8 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                   delete gattstest;
                   gattstest = NULL;
                   server_num = 0;
+                  file_read = 0;
+                  init_advertiser_file = false;
                 }
                 // clear the inquiry related cmds
                 status.enquiry_cmd = COMMAND_COMPLETE;
