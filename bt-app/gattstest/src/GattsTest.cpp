@@ -224,7 +224,8 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
     }
   }
   mServer= str->second;
-  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value + offset);
+  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value + offset,
+                                      characteristic->getValueLength());
   if(status) {
     ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
   }
@@ -254,7 +255,7 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
     characteristic->setValue(value);
   }
   if (responseNeeded) {
-    mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+    mServer->sendResponse(deviceAddress,requestId,0,offset,value, characteristic->getValueLength());
   }
   int d = characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY;
   if((characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY) != 0) {
@@ -282,7 +283,7 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
         break;
     }
     mServer= str->second;
-    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset, descriptor->getValueLength());
     if(status) {
         ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
     }
@@ -316,7 +317,7 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
     descriptor->setValue(value);
   }
   if (responseNeeded) {
-    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset, length);
     if (status) {
       ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
     }
@@ -342,7 +343,7 @@ void gattstestServerCallback::onExecuteWrite(string deviceAddress, int requestId
   } else {
      receivedData.clear();
   }
-  bool status = mServer->sendResponse(deviceAddress,requestId,GATT_SUCCESS,0,NULL);
+  bool status = mServer->sendResponse(deviceAddress,requestId,GATT_SUCCESS,0,NULL,0);
   if (status) {
     ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
   }
