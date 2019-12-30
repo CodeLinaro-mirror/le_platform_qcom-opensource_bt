@@ -846,7 +846,7 @@ bool GattsTest::StartAdvertisement(string        instanceID)
       madvertiser->startAdvertising(mAdvertiseSettings,mAdvertiseData,mScanResponseData,gattstestAdvCb);
     } else {
       madvertiser->startAdvertisingSet(mAdvertisingParameters,
-                         mAdvertiseData,mScanResponseData,mPeriodicParams,mPeriodicData,gattstestAdvCb);
+                          mAdvertiseData,mScanResponseData,mPeriodicParams,mPeriodicData,gattstestAdvCb);
     }
   } catch(const std::exception &ex) {
     ALOGD(LOGTAG"%s start Advertising exception  %s", __FUNCTION__, ex.what());
@@ -1040,6 +1040,10 @@ bool GattsTest::SetScanResponseData(int instance)
   scannable_flag = temp->scannableflag;
   if(scannable_flag) {
     mScanResponseData = mAdvertiseData;
+    /* Advertise Data is not allowed for Extended Scannable adv type */
+    if(!temp->legacyflag) {
+      mAdvertiseData = NULL;
+    }
   } else {
     mScanResponseData = NULL;
   }
