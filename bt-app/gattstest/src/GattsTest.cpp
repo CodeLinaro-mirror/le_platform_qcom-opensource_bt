@@ -93,7 +93,6 @@ map<int, AdvertisingSet*> advSetMap;
 vector <string> connectedDevices;
 unordered_map < gattstestServerCallback*, GattServer*> servCBInstanceMap;
 
-map<gattstestServerCallback*,string> connectedDeviceMap;
 map<string,GattServer*> DeviceMap;
 
 
@@ -147,8 +146,6 @@ void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int 
   GattServer *mServer;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator ptr;
   map <string,GattServer*> ::iterator dtr = DeviceMap.find(deviceAddress);
-  map<gattstestServerCallback*,string> ::iterator iter;
-  iter =connectedDeviceMap.find(gattstestServerCb);
   vector <string> ::iterator it;
   it = find(connectedDevices.begin(),connectedDevices.end(),deviceAddress);
   ALOGD(LOGTAG"%s status = %d newState = %d", __FUNCTION__ , status , newState);
@@ -1241,6 +1238,8 @@ bool GattsTest::DisableGATTSTEST()
     delete(mAdvertisercallback);
   }
   advCBInstanceMap.clear();
+  advSetMap.clear();
+  DeviceMap.clear();
   return true;
 }
 
