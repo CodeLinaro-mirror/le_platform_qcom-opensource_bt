@@ -60,8 +60,6 @@ using namespace btapp;
 #define NO_AUTO_CONNECTION 0
 #define AUTO_CONNECTION 1
 
-#define UUID_FOR_CHARACTERISTIC_WRITE "ffffeeee-0000-1000-8000-00805f9b34fb"
-
 #define PREPARE_WRITE_DATA 0xAA
 #define PREPARE_WRITE_NEXT_DATA 0xBB
 
@@ -274,8 +272,6 @@ class gattctestClientCallback:public GattClientCallback
         {
           mExecReliableWrite =
             ReliableWriteState::RELIABLE_WRITE_WRITE_2ND_DATA;
-          string str = UUID_FOR_CHARACTERISTIC_WRITE;
-          if (uid.ToString().compare(str) == 0) {
             ALOGD(LOGTAG "Sending prepare write after 1st prepare "
               "write successfully finished");
             fprintf(stdout, "Sending prepare write after 1st prepare "
@@ -295,7 +291,6 @@ class gattctestClientCallback:public GattClientCallback
             } else {
               fprintf(stdout, "write failed \n");
             }
-          }
           break;
         }
         case ReliableWriteState::RELIABLE_WRITE_WRITE_2ND_DATA:
@@ -1176,23 +1171,6 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
     fprintf(stdout, "beginReliableWrite Failed\n");
     return false;
   }
-  //Abort after 2 seconds
-  std::this_thread::sleep_for (std::chrono::seconds(2));
-  CliDevice->abortReliableWrite();
-  ALOGD(LOGTAG "Reliable write Aborted");
-  fprintf(stdout, "Reliable write Aborted\n");
-
-  // Again Writing the Preparewrites
-  std::this_thread::sleep_for (std::chrono::seconds(1));
-  status = CliDevice->beginReliableWrite();
-  if (status) {
-    ALOGD(LOGTAG "beginReliableWrite initiated");
-  } else {
-    ALOGE(LOGTAG "beginReliableWrite Failed");
-    fprintf(stdout, "beginReliableWrite Failed\n");
-    return false;
-  }
-  std::this_thread::sleep_for (std::chrono::seconds(1));
 
   GattCharacteristic *characteristic = CliDevice->getCharacteristicById
     (bdaddr, instanceid);
@@ -1200,13 +1178,12 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
     mExecReliableWrite = ReliableWriteState::RELIABLE_WRITE_NONE;
     return false;
   }
-  string str = UUID_FOR_CHARACTERISTIC_WRITE;
-  if (characteristic->getUuid().ToString().compare(str) == 0) {
+  {
     fprintf(stdout, "checking reliable writes\n");
     /*
-       Writing some default value to tmp buffer to test the
-       prepare write and execute write scenario.
-       */
+      Writing some default value to tmp buffer to test the
+      prepare write and execute write scenario.
+     */
     uint8_t tmp_ch[10];
     int i;
     for (i = 0; i < 10; i++)
@@ -1223,10 +1200,6 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
     }
     status = CliDevice->writeCharacteristic(*characteristic);
     fprintf(stdout, "write characteristic executedexecuted\n");
-  } else {
-    ALOGE(LOGTAG "Reliable write failed due to mismatch in UUID");
-    fprintf(stdout, "Reliable write failed due to mismatch in UUID\n");
-    return false;
   }
   return true;
 }
