@@ -58,6 +58,7 @@
 
 #define LOGTAG  "MAIN "
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
+bool exithandler_waitbtoff = FALSE;
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
@@ -331,28 +332,19 @@ static void SignalHandler(int sig) {
 }
 
 static void ExitHandler(void) {
-
-    // post the disable message to GAP incase BT is on
-    if ( g_bt_app && g_bt_app->bt_state == BT_STATE_ON) {
-        SendDisableCmdToGap();
-        sleep(3);
-        system("killall -KILL wcnssfilter");
-        usleep(200);
+    if ( g_bt_app ) {
+        // post the disable message to GAP incase BT is on
+        if(g_bt_app->bt_state == BT_STATE_ON) {
+            SendDisableCmdToGap();
+            // No need to wait here, wait for BT turn off(BT Disable event)
+            // before proceeding to close the BT APP
+            exithandler_waitbtoff = TRUE;
+        } else if(g_bt_app->bt_state == BT_STATE_OFF){
+            // If BT is already Disabled just kill the BT APP.
+            fprintf (stdout, " \n BT is Already OFF, Just exiting APP\n");
+            kill(getpid(), SIGKILL);
+        }
     }
-
-    // TODO to wait for complete turn off before proceeding
-
-    if (g_bt_app) {
-        BtEvent *event = new BtEvent;
-        event->event_id = MAIN_API_DEINIT;
-        g_bt_app->ProcessEvent (event);
-        delete event;
-        delete g_bt_app;
-        g_bt_app = NULL;
-    }
-
-    // stop the reactor for self exit of main thread
-    reactor_stop (thread_get_reactor (threadInfo[THREAD_ID_MAIN].thread_id));
 }
 
 static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
@@ -2042,6 +2034,11 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 system("killall -KILL wcnssfilter");
                 usleep(200);
                 fprintf(stdout, " BT State is OFF\n");
+                if(exithandler_waitbtoff){
+                    // in exit scenario wait for BT disable once BT is disabled
+                    // kill the process the to close the app
+                    kill(getpid(), SIGKILL);
+                }
             }
             status.disable_cmd = COMMAND_COMPLETE;
             break;
