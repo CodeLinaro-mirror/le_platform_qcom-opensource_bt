@@ -78,7 +78,12 @@ c_sources +=  ../pbap_client/src/PbapClient.cpp \
               ../opp/src/Opp.cpp
 endif
 
-requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware
+if USE_BTVENDORHAL
+ requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal
+else
+ requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware
+endif
+
 requiredlibs += $(SYS_LIB)/libgengatt.la
 if AUDIO_HAL_SUPPORTED
 requiredlibs += $(SYS_LIB)/libqahw.la

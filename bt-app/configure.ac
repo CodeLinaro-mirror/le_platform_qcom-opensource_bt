@@ -33,6 +33,12 @@ fi
 
 AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
 
+AC_ARG_WITH([btvendorhal],
+     AC_HELP_STRING([--with-btvendorhal],
+        [enable btvendorhal, building HLOS systems which use btvendorhal]))
+
+AM_CONDITIONAL([USE_BTVENDORHAL], [test "x$with_btvendorhal" = "xyes"])
+
 # Library configs
 AC_ARG_WITH([common_includes],
       AC_HELP_STRING([--with-common-includes=@<:@dir@:>@],
