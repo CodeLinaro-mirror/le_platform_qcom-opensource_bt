@@ -893,15 +893,30 @@ void BtA2dpSourceMsgHandler(void *msg) {
         case AVRCP_TARGET_PLAY_ITEMS_REQ:
         case AVRCP_TARGET_ADDTO_NOW_PLAYING_REQ:
             if (pA2dpSource) {
+                if(pA2dpSource->get_state() == STATE_A2DP_SOURCE_NOT_STARTED) {
+                    fprintf(stdout, "Ignore!! Make sure BT is turned on!!\n");
+                    ALOGE(LOGTAG_A2DP " STATE UNINITIALIZED, return");
+                    break;
+                }
                 pA2dpSource->HandleAvrcpEvents(( BtEvent *) msg);
             }
             break;
         case A2DP_SOURCE_CODEC_LIST:
+            if(pA2dpSource && pA2dpSource->get_state() == STATE_A2DP_SOURCE_NOT_STARTED) {
+                fprintf(stdout, "Ignore!! Make sure BT is turned on!!\n");
+                ALOGE(LOGTAG_A2DP " STATE UNINITIALIZED, return");
+                break;
+            }
             A2dpCodecList(pEvent->a2dpCodecListEvent.codec_list, &num_codec_cfgs);
             if (num_codec_cfgs)
                 pA2dpSource->UpdateSupportedCodecs(pEvent->a2dpSourceEvent.bd_addr, num_codec_cfgs);
             break;
         case A2DP_SOURCE_CODEC_MODE_CHANGE:
+            if(pA2dpSource && pA2dpSource->get_state() == STATE_A2DP_SOURCE_NOT_STARTED) {
+                fprintf(stdout, "Ignore!! Make sure BT is turned on!!\n");
+                ALOGE(LOGTAG_A2DP " STATE UNINITIALIZED, return");
+                break;
+            }
             aptxad_mode_change(pEvent->a2dpCodecListEvent.codec_list, &num_codec_cfgs);
             pA2dpSource->UpdateSupportedCodecs(pEvent->a2dpCodecListEvent.bd_addr, num_codec_cfgs);
             break;
