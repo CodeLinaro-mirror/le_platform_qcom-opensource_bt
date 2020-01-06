@@ -353,6 +353,11 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         }
                         pA2dpSinkStream->CloseAudioStream();
                         pA2dpSinkStream->StopDataFetchTimer();
+                        // Notify Audio Stream close
+                        pReleaseControlReq = new BtEvent;
+                        pReleaseControlReq->btamControlRelease.event_id = BT_AM_OUT_CLOSE;
+                        pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+                        PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
                         break;
                     case STATUS_GAIN:
                     ALOGD(LOGTAG " BT_AM_CONTROL_STATUS, STATUS_GAIN");
