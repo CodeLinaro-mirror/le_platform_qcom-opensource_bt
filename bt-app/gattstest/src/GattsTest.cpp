@@ -93,7 +93,8 @@ map<int, AdvertisingSet*> advSetMap;
 vector <string> connectedDevices;
 unordered_map < gattstestServerCallback*, GattServer*> servCBInstanceMap;
 
-map<string,GattServer*> DeviceMap;
+//DeviceMap to store connected client addr and servers connected to client
+map<string,vector<GattServer*>> DeviceMap;
 
 
 vector <string> service_field;
@@ -141,42 +142,42 @@ bool split (const string &s, char c,vector<string> &v)
 void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int status,
                                                                int newState)
 {
-  bool connected= false;
   string address;
-  GattServer *mServer;
+  GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator ptr;
-  map <string,GattServer*> ::iterator dtr = DeviceMap.find(deviceAddress);
+  map <string,vector<GattServer*>> ::iterator dtr = DeviceMap.find(deviceAddress);
   vector <string> ::iterator it;
   it = find(connectedDevices.begin(),connectedDevices.end(),deviceAddress);
   ALOGD(LOGTAG"%s status = %d newState = %d", __FUNCTION__ , status , newState);
   ALOGD(LOGTAG"%s device address: %s",__FUNCTION__, deviceAddress.c_str());
+  gattstestServerCb = this;
+  //Find server associated with this callback
+  for(ptr = servCBInstanceMap.begin(); ptr != servCBInstanceMap.end() ; ++ptr ) {
+    if(ptr->first == gattstestServerCb) {
+      mServer = ptr->second;
+      break;
+    }
+  }
+
   if (newState == GattDevice::STATE_CONNECTED && status == GATT_SUCCESS) {
     fprintf(stdout,"The device %s got connected \n", deviceAddress.c_str());
-    gattstestServerCb = this;
     if(it != connectedDevices.end()) {
       //Device already exists do not insert
     } else {
         connectedDevices.push_back(deviceAddress);
     }
-    for(ptr = servCBInstanceMap.begin(); ptr != servCBInstanceMap.end() ; ++ptr ) {
-      if(ptr->first == gattstestServerCb) {
-        connected = true;
-        break;
-      }
-    }
-    if(connected) {
-      mServer= ptr->second;
-      if(dtr != DeviceMap.end()) {
-      //Device Already exists do not add
-    } else {
-      DeviceMap.insert(pair <string,GattServer*> (deviceAddress,mServer));
-    }
+    //Add server to connected DeviceMap
+    DeviceMap[deviceAddress].push_back(mServer);
+
     mServer->connect(deviceAddress,AUTO_CONNECT);
-    }
+
   } else if(newState == GattDevice::STATE_DISCONNECTED) {
     fprintf(stdout,"The device %s got disconnected \n", deviceAddress.c_str());
     if(dtr != DeviceMap.end()) {
-      DeviceMap.erase(dtr);
+      //Remove server from list of servers connected to deviceAddress
+      vector <GattServer*>& conn_servers = DeviceMap[deviceAddress];
+      conn_servers.erase(std::remove(conn_servers.begin(),conn_servers.end(),mServer),
+                         conn_servers.end());
     }
     for(it = connectedDevices.begin(); it != connectedDevices.end() ; ++it ) {
       if(*it == deviceAddress) {
@@ -1209,21 +1210,19 @@ void GattsTest::CancelConnection(string remoteAddress)
 {
   ALOGD(LOGTAG"%s", __FUNCTION__);
   GattServer *mServer = NULL;
-  bool connected = false;
-  map <string,GattServer*> ::iterator dtr = DeviceMap.find(remoteAddress);
-  for(dtr = DeviceMap.begin(); dtr != DeviceMap.end() ; ++dtr) {
-    if(remoteAddress == dtr->first) {
-      mServer = dtr->second;
-      connected = true;
-      break;
-    }
-  }
-  if(connected) {
-    mServer->cancelConnection(remoteAddress);
+  vector<GattServer*>::iterator dtr;
+  if(DeviceMap.find(remoteAddress) != DeviceMap.end()) {
+    ALOGD(LOGTAG" %s No.of servers connected to this addr : %d", __FUNCTION__,
+            DeviceMap[remoteAddress].size());
+    //Send cancel connection on each server connected to this addr
+    for(dtr = DeviceMap[remoteAddress].begin(); dtr !=DeviceMap[remoteAddress].end(); dtr++) {
+        mServer = *dtr;
+        mServer->cancelConnection(remoteAddress);
+     }
   } else {
-    fprintf(stdout,"Device %s is not connected", remoteAddress.c_str());
-    ALOGD(LOGTAG"Device %s is not connected", remoteAddress.c_str());
+    ALOGD(LOGTAG"%s remote Address not connected ", __FUNCTION__);
   }
+
 }
 
 bool GattsTest::DisableGATTSTEST()
