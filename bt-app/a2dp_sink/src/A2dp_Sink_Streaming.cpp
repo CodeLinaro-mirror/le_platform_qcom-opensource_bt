@@ -225,11 +225,18 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     }
                     else
                     {
+                        uint32_t pcm_buf_size = 0;
+                        if(pA2dpSinkStream->peer_mtu > (pA2dpSinkStream->pcm_buf_size/4)){
+                            pcm_buf_size = pA2dpSinkStream->peer_mtu + 50;
+                            //50 is to make sure that buf_size is more than pack size in stack
+                        } else {
+                            pcm_buf_size = pA2dpSinkStream->pcm_buf_size/4;
+                        }
                         pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
                         get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_SBC,
                         pA2dpSinkStream->pcm_buf,
                         (pA2dpSinkStream->enable_notification_cb ? pA2dpSinkStream->pcm_buf_size :
-                        (pA2dpSinkStream->pcm_buf_size)/4));
+                        pcm_buf_size));
                     }
                     /* when callback mechanism is used, remove timestamp before sending data
                      * to Audio Hal */
