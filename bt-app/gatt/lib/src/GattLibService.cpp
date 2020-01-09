@@ -2165,8 +2165,35 @@ void GattLibService::sendResponse(int serverIf, string address, int requestId, i
   mHandleMap->deleteRequest(requestId);
 }
 
+void GattLibService::sendResponse(int serverIf, string address, int requestId, int status,
+        int offset, uint8_t *value, int valueLength)
+{
+  if (VDBG) {
+    ALOGD(LOGTAG " sendResponse() - address %s", address.c_str());
+  }
+
+  int handle = 0;
+  HandleMap::Entry *entry = mHandleMap->getByRequestId(requestId);
+  if (entry != NULL) {
+    handle = entry->handle;
+  }
+  int connId = mServerMap->connIdByAddress(serverIf, address);
+  if (connId < 0)
+    connId = 0;
+  std::vector<uint8_t> val_vec;
+  int i;
+  if(value != NULL) {
+    for(i=0;i<valueLength;i++)
+      val_vec.push_back(value[i]);
+  }
+
+  mNative->gattServerSendResponseNative(serverIf, connId , requestId,
+          (uint8_t) status, handle, offset, val_vec, (uint8_t) 0);
+  mHandleMap->deleteRequest(requestId);
+}
+
 void GattLibService::sendNotification(int serverIf, string address, int handle, bool confirm,
-        uint8_t *value)
+        uint8_t *value, int valueLength)
 {
   if (VDBG) {
     ALOGD(LOGTAG " sendNotification() - address %s  handle %d", address.c_str(), handle);
@@ -2178,9 +2205,10 @@ void GattLibService::sendNotification(int serverIf, string address, int handle, 
   }
 
   std::vector<uint8_t> val_vec;
+  int i;
   if(value != NULL) {
-    size_t len = strlen((char*)value);
-    val_vec.assign(&value[0], &value[len]);
+    for(i=0;i<valueLength;i++)
+      val_vec.push_back(value[i]);
   }
 
   if (confirm) {
