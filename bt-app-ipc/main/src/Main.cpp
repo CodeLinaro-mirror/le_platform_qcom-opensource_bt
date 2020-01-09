@@ -64,7 +64,7 @@ extern Hfp_Ag *pHfpAG;
 bool gattsEnabled = false;
 
 static BluetoothApp *g_bt_app = NULL;
-extern ThreadInfo threadInfo[THREAD_ID_MAX];
+extern QThreadInfo threadInfo[THREAD_ID_MAX];
 
 #ifdef USE_BT_OBEX
 static alarm_t *opp_incoming_file_accept_timer = NULL;
@@ -102,7 +102,7 @@ int main (int argc, char *argv[]) {
     // initialize signal handler
     signal(SIGINT, SignalHandler);
 
-    ThreadInfo *main_thread = &threadInfo[THREAD_ID_MAIN];
+    QThreadInfo *main_thread = &threadInfo[THREAD_ID_MAIN];
 #ifndef USE_ANDROID_LOGGING
     openlog ("bt-app", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 #endif
@@ -1438,6 +1438,23 @@ BluetoothApp :: ~BluetoothApp () {
 bool BluetoothApp::LoadConfigParameters (const char *configpath) {
 
     bool is_bt_ext_ldo, fw_snoop_enable,soc_log_enable;
+
+    // checking for the BT auto test Enable option in config file
+    is_bt_enable_autotest = false;
+    //checking for user input // console 
+    is_user_input_enabled_ = true;
+    //checking for hfp ag
+    is_hfp_ag_enabled_ = true; //config_get_bool (config, CONFIG_DEFAULT_SECTION, BT_HFP_AG_ENABLED, false);
+
+#ifdef USE_GEN_GATT
+    //checking for Gatt handler
+    is_gatt_enable_default_= true; //config_get_bool (config, CONFIG_DEFAULT_SECTION, BT_GATT_ENABLED, false);
+#endif
+
+    is_bt_ext_ldo = true;
+    fw_snoop_enable = false;
+    soc_log_enable = false;
+    
     config = config_new (configpath);
     if (!config) {
         ALOGE (LOGTAG " Unable to open config file");
@@ -1466,20 +1483,6 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     }else{
         property_set("persist.service.bdroid.soclog", "false");
     }
-
-    // checking for the BT auto test Enable option in config file
-    is_bt_enable_autotest = false;
-    //checking for user input // console 
-    is_user_input_enabled_ = true;
-    //checking for hfp ag
-    is_hfp_ag_enabled_ = true; //config_get_bool (config, CONFIG_DEFAULT_SECTION, BT_HFP_AG_ENABLED, false);
-
-
-
-#ifdef USE_GEN_GATT
-    //checking for Gatt handler
-    is_gatt_enable_default_= true; //config_get_bool (config, CONFIG_DEFAULT_SECTION, BT_GATT_ENABLED, false);
-#endif
 
     return true;
 }

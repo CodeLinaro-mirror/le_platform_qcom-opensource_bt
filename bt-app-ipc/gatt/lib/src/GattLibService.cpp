@@ -2504,9 +2504,7 @@ void GattLibService::setDeviceName(void *val, int len)
 
 void GattLibService::HardcodeFeatureSet (void)
 {
-
-	mDeviceName = string("Kakao-GATT");
-
+	mDeviceName = string("0000");
 
 	mNumOfAdvertisementInstancesSupported = 16;                  
 	mRpaOffloadSupported = 1;                 

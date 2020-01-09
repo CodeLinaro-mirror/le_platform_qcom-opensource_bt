@@ -22,10 +22,10 @@
 #include "osi/include/thread.h"
 #include "osi/include/log.h"
 
-ThreadInfo threadInfo[THREAD_ID_MAX] = {
+QThreadInfo threadInfo[THREAD_ID_MAX] = {
     //thread_id thread type            Thread Message Handler    Thread Name
-    { NULL ,    THREAD_ID_MAIN,        &BtMainMsgHandler,        "Main_Thread" } ,
     { NULL ,    THREAD_ID_GATT,        &BtGattMsgHandler,        "Gatt_Thread" } ,
+    { NULL ,    THREAD_ID_MAIN,        &BtMainMsgHandler,        "Main_Thread" } ,
     { NULL ,    THREAD_ID_HFP_AG,      &BtHfpAgMsgHandler,       "Hfp_AG_Thread" } ,
 };
 

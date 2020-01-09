@@ -321,10 +321,10 @@ class GattLibService           {
     // Helper method to extract bytes from byte array.
     std::vector<uint8_t> extractBytes(std::vector<uint8_t> scanRecord, int start, int length);
     void setAddress(void *val, int len);
-    void setDeviceName(void *val, int len);
     void updateFeatureSupport(void *value, int len);
 
   public:
+    void setDeviceName(void *val, int len);
     void onScanResult(int eventType, int addressType, string address, int primaryPhy,
             int secondaryPhy, int advertisingSid, int txPower, int rssi, int periodicAdvInt,
             std::vector<uint8_t> advData);

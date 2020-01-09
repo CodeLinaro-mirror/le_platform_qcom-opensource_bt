@@ -23,12 +23,12 @@ libgstbtappuuid_la_CC = @CC@
 libgstbtappuuid_la_SOURCES = $(cpp_sources)
 libgstbtappuuid_la_CPPFLAGS =$(AM_CPPFLAGS) -std=c++11 -fpermissive -D__GLIBC__
 libgstbtappuuid_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB
-libgstbtappuuid_la_LDFLAGS = -static $(requiredlibs)
+libgstbtappuuid_la_LDFLAGS = -shared $(requiredlibs)
 else
 lib_LTLIBRARIES = libbtappuuid.la
 libbtappuuid_la_CC = @CC@
 libbtappuuid_la_SOURCES = $(cpp_sources)
 libbtappuuid_la_CPPFLAGS =$(AM_CPPFLAGS) -std=c++11 -fpermissive -D__GLIBC__
 libbtappuuid_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB
-libbtappuuid_la_LDFLAGS = -static $(requiredlibs)
+libbtappuuid_la_LDFLAGS = -shared $(requiredlibs)
 endif

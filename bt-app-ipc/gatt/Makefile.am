@@ -63,5 +63,5 @@ lib_LTLIBRARIES = libgengatt.la
 libgengatt_la_CC = @CC@
 libgengatt_la_SOURCES = $(cpp_sources)
 libgengatt_la_CPPFLAGS = $(AM_CPPFLAGS)
-libgengatt_la_LDFLAGS = $(AM_LDFLAGS) -static -lpthread -lm -ldl -lrt
+libgengatt_la_LDFLAGS = $(AM_LDFLAGS) -shared -lpthread -lm -ldl -lrt
 endif

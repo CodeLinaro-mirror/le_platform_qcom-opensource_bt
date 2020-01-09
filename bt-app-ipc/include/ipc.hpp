@@ -85,8 +85,8 @@ extern thread_t *g_pbapc_thread;
  *   Threads info
  */
 typedef enum {
-    THREAD_ID_MAIN = 0,
-    THREAD_ID_GATT,
+    THREAD_ID_GATT = 0,
+    THREAD_ID_MAIN,
     THREAD_ID_HFP_AG,
     THREAD_ID_MAX,
 } ThreadIdType;
@@ -125,7 +125,7 @@ typedef struct {
     ThreadIdType thread_type;
     ThreadHandler thread_handler;
     char thread_name[50];
-} ThreadInfo;
+} QThreadInfo; // for avoid a conflict with Customer ThreadInfo type
 
 /**
  *  list of EVENTS used by GAP and MAIN thread
