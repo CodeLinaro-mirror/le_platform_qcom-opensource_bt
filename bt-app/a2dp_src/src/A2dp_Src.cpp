@@ -1641,6 +1641,9 @@ static void bta2dp_audio_registration_callback(bool state) {
 static void scmst_capabalities_vendor_callback(bt_bdaddr_t *bd_addr, bool scmst_enabled) {
     ALOGD(LOGTAG_A2DP " %s , bd_addr : %s, scmst_enabled: %d",__func__,
           bd_addr->ToString().c_str(),scmst_enabled);
+    if(scmst_enabled) {
+        fprintf(stdout, "Connection established with SCMS-T content protection \n");
+    }
 }
 
 static btav_source_callbacks_t sBluetoothA2dpSourceCallbacks = {
@@ -3809,7 +3812,11 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG_A2DP "%s SCMS-T Cp flag: %x ",__func__, p);
             fprintf(stdout, "SCMS-T Cp flag : %x\n", p);
             if(sBtA2dpSourceVendorInterface) {
-                sBtA2dpSourceVendorInterface->update_cp(&pEvent->a2dpSourceEvent.bd_addr, p);
+                if(sBtA2dpSourceVendorInterface->update_cp_header(
+                        &pEvent->a2dpSourceEvent.bd_addr, p) != BT_STATUS_SUCCESS ) {
+                  ALOGD(LOGTAG_A2DP "%s Invalid parameters for SCMS-T",__func__, p);
+                  fprintf(stdout, "Invalid parameters for SCMS-T \n", p);
+                }
             } else {
                 ALOGE(LOGTAG_A2DP " sBtA2dpSourceVendorInterface is NULL ");
             }
