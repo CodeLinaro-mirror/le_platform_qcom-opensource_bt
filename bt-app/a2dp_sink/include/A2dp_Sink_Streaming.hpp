@@ -148,6 +148,7 @@ class A2dp_Sink_Streaming {
     void StopCompressAudioFeedTimer();
     void SetStreamVol(int curr_audio_index);
     uint64_t get_cur_time();
+    uint16_t peer_mtu;
 };
 
 #endif

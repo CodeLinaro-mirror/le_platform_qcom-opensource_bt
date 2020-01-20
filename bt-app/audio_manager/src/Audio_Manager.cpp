@@ -318,8 +318,6 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
                                                       audio_control_stack[top].profile_id);
                         AddNewNode(pEvent->btamControlReq.profile_id,
                                                       pEvent->btamControlReq.request_type);
-                        SendControlStatusMessage(STATUS_GAIN_TRANSIENT,
-                                                      audio_control_stack[top+1].profile_id);
                     }
                     else if(pEvent->btamControlReq.request_type == REQUEST_TYPE_PERMANENT) {
                         SendControlStatusMessage(STATUS_LOSS,
@@ -346,6 +344,11 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
                                        audio_control_stack[top-1].profile_id);
             }
             RemoveNode(profile_index);
+            break;
+        case BT_AM_OUT_CLOSE:
+            // Control to other profile
+            top = GetTopIndex();
+            SendControlStatusMessage(STATUS_GAIN_TRANSIENT,audio_control_stack[top].profile_id);
             break;
     }
 }

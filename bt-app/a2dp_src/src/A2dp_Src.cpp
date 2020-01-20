@@ -893,15 +893,30 @@ void BtA2dpSourceMsgHandler(void *msg) {
         case AVRCP_TARGET_PLAY_ITEMS_REQ:
         case AVRCP_TARGET_ADDTO_NOW_PLAYING_REQ:
             if (pA2dpSource) {
+                if(pA2dpSource->get_state() == STATE_A2DP_SOURCE_NOT_STARTED) {
+                    fprintf(stdout, "Ignore!! Make sure BT is turned on!!\n");
+                    ALOGE(LOGTAG_A2DP " STATE UNINITIALIZED, return");
+                    break;
+                }
                 pA2dpSource->HandleAvrcpEvents(( BtEvent *) msg);
             }
             break;
         case A2DP_SOURCE_CODEC_LIST:
+            if(pA2dpSource && pA2dpSource->get_state() == STATE_A2DP_SOURCE_NOT_STARTED) {
+                fprintf(stdout, "Ignore!! Make sure BT is turned on!!\n");
+                ALOGE(LOGTAG_A2DP " STATE UNINITIALIZED, return");
+                break;
+            }
             A2dpCodecList(pEvent->a2dpCodecListEvent.codec_list, &num_codec_cfgs);
             if (num_codec_cfgs)
                 pA2dpSource->UpdateSupportedCodecs(pEvent->a2dpSourceEvent.bd_addr, num_codec_cfgs);
             break;
         case A2DP_SOURCE_CODEC_MODE_CHANGE:
+            if(pA2dpSource && pA2dpSource->get_state() == STATE_A2DP_SOURCE_NOT_STARTED) {
+                fprintf(stdout, "Ignore!! Make sure BT is turned on!!\n");
+                ALOGE(LOGTAG_A2DP " STATE UNINITIALIZED, return");
+                break;
+            }
             aptxad_mode_change(pEvent->a2dpCodecListEvent.codec_list, &num_codec_cfgs);
             pA2dpSource->UpdateSupportedCodecs(pEvent->a2dpCodecListEvent.bd_addr, num_codec_cfgs);
             break;
@@ -1623,6 +1638,11 @@ static void bta2dp_audio_registration_callback(bool state) {
     ALOGD(LOGTAG_A2DP " Audio Registration Callback: state = %d", state);
 }
 
+static void scmst_capabalities_vendor_callback(bt_bdaddr_t *bd_addr, bool scmst_enabled) {
+    ALOGD(LOGTAG_A2DP " %s , bd_addr : %s, scmst_enabled: %d",__func__,
+          bd_addr->ToString().c_str(),scmst_enabled);
+}
+
 static btav_source_callbacks_t sBluetoothA2dpSourceCallbacks = {
     sizeof(sBluetoothA2dpSourceCallbacks),
     bta2dp_connection_state_callback,
@@ -1640,6 +1660,7 @@ static btav_vendor_callbacks_t sBluetoothA2dpSourceVendorCallbacks = {
     NULL,
     mtu_packettype_vendor_callback,
     NULL,
+    scmst_capabalities_vendor_callback,
 };
 
 static void btavrcp_target_passthrough_cmd_callback(int id, int key_state, bt_bdaddr_t* bd_addr) {
@@ -3480,6 +3501,8 @@ char* A2dp_Source::dump_message(BluetoothEventId event_id) {
         return "AVRCP_TARGET_PLAY_ITEMS_REQ";
     case AVRCP_TARGET_ADDTO_NOW_PLAYING_REQ:
         return "AVRCP_TARGET_ADDTO_NOW_PLAYING_REQ";
+    case A2DP_SOURCE_SET_SCMST_CP_FLAG:
+        return "A2DP_SOURCE_SET_SCMST_CP_FLAG";
     }
     return "UNKNOWN";
 }
@@ -3780,6 +3803,18 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
                update_src_codec_config(&src_codec_cfg, cur_codec_cfg);
             osi_free(pEvent->a2dpSourceEvent.buf_ptr);
              break;
+        case A2DP_SOURCE_SET_SCMST_CP_FLAG:
+            {
+            uint8_t p = (uint8_t)pEvent->a2dpSourceEvent.arg1;
+            ALOGD(LOGTAG_A2DP "%s SCMS-T Cp flag: %x ",__func__, p);
+            fprintf(stdout, "SCMS-T Cp flag : %x\n", p);
+            if(sBtA2dpSourceVendorInterface) {
+                sBtA2dpSourceVendorInterface->update_cp(&pEvent->a2dpSourceEvent.bd_addr, p);
+            } else {
+                ALOGE(LOGTAG_A2DP " sBtA2dpSourceVendorInterface is NULL ");
+            }
+            break;
+            }
         default:
             fprintf(stdout, "Event not processed in connected state %d ", pEvent->event_id);
             ALOGE(LOGTAG_A2DP " event not handled %d ", pEvent->event_id);

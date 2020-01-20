@@ -655,6 +655,17 @@ static void bta2dp_audio_registration_callback(bool state) {
 static void bta2dp_audio_mtu_config_callback(uint16_t mtu, const RawAddress& bd_addr) {
     ALOGD(LOGTAG " %s, mtu = %d, bdaddr = %s",__func__,mtu,
           bd_addr.ToString().c_str());
+    pA2dpSinkStream->peer_mtu = mtu;
+}
+
+static void bta2dp_audio_scmst_capabilities_callback(bt_bdaddr_t *bd_addr, bool scmst_enabled) {
+    ALOGD(LOGTAG " %s, scmst_enabled = %d, bdaddr = %s",__func__,scmst_enabled,
+          bd_addr->ToString().c_str());
+}
+
+static void bta2dp_audio_update_cp_callback(const RawAddress& bd_addr, uint8_t cp_header) {
+    ALOGD(LOGTAG " %s, cp_header = %d, bdaddr = %s",__func__,cp_header,
+          bd_addr.ToString().c_str());
 }
 
 static btav_sink_callbacks_t sBluetoothA2dpSinkCallbacks = {
@@ -673,6 +684,8 @@ static btav_sink_vendor_callbacks_t sBluetoothA2dpSinkVendorCallbacks = {
     NULL,
     NULL,
     bta2dp_audio_mtu_config_callback,
+    bta2dp_audio_scmst_capabilities_callback,
+    bta2dp_audio_update_cp_callback,
 };
 
 void A2dp_Sink::HandleEnableSink(void) {

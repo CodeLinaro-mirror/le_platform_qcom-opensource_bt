@@ -148,8 +148,12 @@ static void btgattc_notify_cb(int conn_id, const btgatt_notify_params_t& p_data)
   CHECK_PARAM_VOID(event);
 
   event->event_id = BTGATTC_NOTIFY_EVENT;
-  event->gattc_notify_event.conn_id= conn_id;
-  std::memcpy(&event->gattc_notify_event.p_data, &p_data,sizeof(btgatt_notify_params_t));
+  event->gattc_notify_event.conn_id = conn_id;
+  std::memcpy(&event->gattc_notify_event.p_data.value, &p_data.value, sizeof(uint8_t)*GATT_MAX_ATTR_LEN);
+  event->gattc_notify_event.p_data.bda = addr2Str(p_data.bda);
+  event->gattc_notify_event.p_data.handle = p_data.handle;
+  event->gattc_notify_event.p_data.len = p_data.len;
+  event->gattc_notify_event.p_data.is_notify = p_data.is_notify;
 
   PostMessage(THREAD_ID_GATT, event);
 

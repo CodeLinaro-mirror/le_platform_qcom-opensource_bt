@@ -185,6 +185,7 @@ typedef enum {
     BT_AM_CONTROL_STATUS,
     BT_AM_DISABLE_REQ,
     BT_AM_DISABLE_DONE,
+    BT_AM_OUT_CLOSE,
 
     A2DP_SINK_API_CONNECT_REQ = A2DP_SINK_MSG_BASE,
     A2DP_SINK_API_DISCONNECT_REQ,
@@ -378,6 +379,7 @@ typedef enum {
     A2DP_SOURCE_AUDIO_STARTED,
     A2DP_SOURCE_CODEC_LIST,
     A2DP_SOURCE_CODEC_MODE_CHANGE,
+    A2DP_SOURCE_SET_SCMST_CP_FLAG,
     AVRCP_TARGET_CONNECTED_CB,
     AVRCP_TARGET_DISCONNECTED_CB,
     AVRCP_TARGET_GET_ELE_ATTR,
@@ -767,6 +769,7 @@ typedef struct {
 typedef struct {
     BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
+    uint8_t             transport;
 } DeviceBondRequest;
 
 /**

@@ -72,9 +72,10 @@ using namespace btapp;
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
 int server_num;
 bool file_read = 0;
+bool init_advertiser_file = 0;
 long onoff_count = 0;
 long onoff_index = 0;
-
+bool exithandler_waitbtoff = FALSE;
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
@@ -366,28 +367,19 @@ static void SignalHandler(int sig) {
 }
 
 static void ExitHandler(void) {
-
-    // post the disable message to GAP incase BT is on
-    if ( g_bt_app && g_bt_app->bt_state == BT_STATE_ON) {
-        SendDisableCmdToGap();
-        sleep(3);
-        system("killall -KILL wcnssfilter");
-        usleep(200);
+    if ( g_bt_app ) {
+        // post the disable message to GAP incase BT is on
+        if(g_bt_app->bt_state == BT_STATE_ON) {
+            SendDisableCmdToGap();
+            // No need to wait here, wait for BT turn off(BT Disable event)
+            // before proceeding to close the BT APP
+            exithandler_waitbtoff = TRUE;
+        } else if(g_bt_app->bt_state == BT_STATE_OFF){
+            // If BT is already Disabled just kill the BT APP.
+            fprintf (stdout, " \n BT is Already OFF, Just exiting APP\n");
+            kill(getpid(), SIGKILL);
+        }
     }
-
-    // TODO to wait for complete turn off before proceeding
-
-    if (g_bt_app) {
-        BtEvent *event = new BtEvent;
-        event->event_id = MAIN_API_DEINIT;
-        g_bt_app->ProcessEvent (event);
-        delete event;
-        delete g_bt_app;
-        g_bt_app = NULL;
-    }
-
-    // stop the reactor for self exit of main thread
-    reactor_stop (thread_get_reactor (threadInfo[THREAD_ID_MAIN].thread_id));
 }
 
 static int GetArgsFromString(char cmdString[COMMAND_ARG_SIZE], uint8_t* nArgs){
@@ -960,6 +952,13 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
             event = new BtEvent;
             event->avrcpTargetEvent.event_id = AVRCP_SET_SCAN_VAL;
             event->avrcpTargetEvent.arg3 = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            break;
+        case SET_SCMST_CP_FLAG:
+            event = new BtEvent;
+            event->a2dpSourceEvent.event_id = A2DP_SOURCE_SET_SCMST_CP_FLAG;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSourceEvent.bd_addr);
+            event->a2dpSourceEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
             PostMessage (THREAD_ID_A2DP_SOURCE, event);
             break;
         case BACK_TO_MAIN:
@@ -1782,8 +1781,17 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    fprintf(stdout, "Enter proper auto value\n");
                    break;
                 }
-                fprintf(stdout,"starting batch scan \n");
-                gattctest->testBatchscan(atoi(user_cmd[ONE_PARAM]));
+                switch (atoi(user_cmd[ONE_PARAM])){
+                    case 0:
+                    case 1:
+                        fprintf(stdout,"starting batch scan \n");
+                        gattctest->testBatchscan(atoi(user_cmd[ONE_PARAM]));
+                        break;
+                    default:
+                        fprintf( stdout, "Enter proper parameter \n");
+                        fprintf( stdout, "0-FULL MODE 1- TRUNCATED MODE \n");
+                        break;
+                }
             } else {
                 fprintf(stdout,"Do the GATTCINIT first\n");
             }
@@ -2000,7 +2008,7 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    if (i == 1) {
                        gattctest->writeDescriptor(user_cmd[ONE_PARAM],
                          (uint8_t *)&(user_cmd[THREE_PARAM]),
-                           j);
+                         atoi(user_cmd[FIVE_PARAM]), j);
                    } else if (i == 2) {
                        gattctest->readDescriptor(user_cmd[ONE_PARAM],
                          atoi(user_cmd[FOUR_PARAM]));
@@ -2037,13 +2045,14 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    if (i == 1) {
                        gattctest->writeCharacteristic(user_cmd[ONE_PARAM],
                          (uint8_t *)&(user_cmd[THREE_PARAM]),
-                           j);
+                           atoi(user_cmd[FIVE_PARAM]), j);
                    } else if (i == 2) {
                        gattctest->readCharacteristic(user_cmd[ONE_PARAM],
                          atoi(user_cmd[FOUR_PARAM]));
                    } else if (i == 3) {
                        gattctest->prepareWriteCharacteristic(user_cmd[ONE_PARAM],
-                           (uint8_t *)&(user_cmd[THREE_PARAM]), j);
+                           (uint8_t *)&(user_cmd[THREE_PARAM]),
+                           atoi(user_cmd[FIVE_PARAM]), j);
                    }else {
                        fprintf(stdout, "Enter the correct 2nd parameter.."
                          "1 -write , 2 -read\n");
@@ -2164,7 +2173,6 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     int  advMaxEvents = 0;
     bool isConnected=0;
     static bool init_server_file=0;
-    static bool init_advertiser_file = 0;
     int  server_inst = 0;
     int  service_inst = 0;
     switch (cmd_id) {
@@ -2343,6 +2351,8 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     delete gattstest;
                     gattstest = NULL;
                     server_num = 0;
+                    file_read = 0;
+                    init_advertiser_file = false;
                 } else {
                     fprintf( stdout, "Do Init first \n ");
                 }
@@ -2501,6 +2511,24 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     event = new BtEvent;
                     event->event_id = GAP_API_CREATE_BOND;
                     string_to_bdaddr(user_cmd[ONE_PARAM], &event->bond_device.bd_addr);
+                    switch (atoi(user_cmd[TWO_PARAM])){
+                    case 0:
+                        event->bond_device.transport = 0;
+                        fprintf( stdout, " Auto select in the stack \n");
+                        break;
+                    case 1:
+                        event->bond_device.transport = 1;
+                        fprintf( stdout, " BR/EDR Bonding\n");
+                        break;
+                    case 2:
+                        event->bond_device.transport = 2;
+                        fprintf( stdout, " BLE Bonding \n");
+                        break;
+                    default:
+                        event->bond_device.transport = 0;
+                        fprintf( stdout, " Invalid transport parameter, auto selecting \n");
+                        return;
+                    }
                     PostMessage (THREAD_ID_GAP, event);
                 } else {
                  fprintf( stdout, " BD address is NULL/Invalid \n");
@@ -3387,6 +3415,8 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                   delete gattstest;
                   gattstest = NULL;
                   server_num = 0;
+                  file_read = 0;
+                  init_advertiser_file = false;
                 }
                 // clear the inquiry related cmds
                 status.enquiry_cmd = COMMAND_COMPLETE;
@@ -3400,6 +3430,11 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 usleep(200);
                 ALOGD (LOGTAG " BT State is OFF : %d",bt_state);
                 fprintf(stdout, " BT State is OFF\n");
+                if(exithandler_waitbtoff){
+                    // in exit scenario wait for BT disable once BT is disabled
+                    // kill the process the to close the app
+                    kill(getpid(), SIGKILL);
+                }
             }
             if (is_bt_enable_test_menu_) {
               event = new BtEvent;
