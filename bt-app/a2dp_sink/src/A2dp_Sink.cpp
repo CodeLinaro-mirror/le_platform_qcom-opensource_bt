@@ -661,6 +661,9 @@ static void bta2dp_audio_mtu_config_callback(uint16_t mtu, const RawAddress& bd_
 static void bta2dp_audio_scmst_capabilities_callback(bt_bdaddr_t *bd_addr, bool scmst_enabled) {
     ALOGD(LOGTAG " %s, scmst_enabled = %d, bdaddr = %s",__func__,scmst_enabled,
           bd_addr->ToString().c_str());
+    if(scmst_enabled) {
+        fprintf(stdout, "Connection estblished with SCMS-T content protection\n");
+    }
 }
 
 static void bta2dp_audio_update_cp_callback(const RawAddress& bd_addr, uint8_t cp_header) {
