@@ -602,8 +602,17 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    fprintf(stdout, "Enter proper auto value\n");
                    break;
                 }
-                fprintf(stdout,"starting batch scan \n");
-                gattctest->testBatchscan(atoi(user_cmd[ONE_PARAM]));
+                switch (atoi(user_cmd[ONE_PARAM])){
+                    case 0:
+                    case 1:
+                        fprintf(stdout,"starting batch scan \n");
+                        gattctest->testBatchscan(atoi(user_cmd[ONE_PARAM]));
+                        break;
+                    default:
+                        fprintf( stdout, "Enter proper parameter \n");
+                        fprintf( stdout, "0-FULL MODE 1- TRUNCATED MODE \n");
+                        break;
+                }
             } else {
                 fprintf(stdout,"Do the GATTCINIT first\n");
             }
@@ -820,7 +829,7 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    if (i == 1) {
                        gattctest->writeDescriptor(user_cmd[ONE_PARAM],
                          (uint8_t *)&(user_cmd[THREE_PARAM]),
-                           j);
+                         atoi(user_cmd[FIVE_PARAM]), j);
                    } else if (i == 2) {
                        gattctest->readDescriptor(user_cmd[ONE_PARAM],
                          atoi(user_cmd[FOUR_PARAM]));
@@ -857,13 +866,14 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    if (i == 1) {
                        gattctest->writeCharacteristic(user_cmd[ONE_PARAM],
                          (uint8_t *)&(user_cmd[THREE_PARAM]),
-                           j);
+                           atoi(user_cmd[FIVE_PARAM]), j);
                    } else if (i == 2) {
                        gattctest->readCharacteristic(user_cmd[ONE_PARAM],
                          atoi(user_cmd[FOUR_PARAM]));
                    } else if (i == 3) {
                        gattctest->prepareWriteCharacteristic(user_cmd[ONE_PARAM],
-                           (uint8_t *)&(user_cmd[THREE_PARAM]), j);
+                           (uint8_t *)&(user_cmd[THREE_PARAM]),
+                           atoi(user_cmd[FIVE_PARAM]), j);
                    }else {
                        fprintf(stdout, "Enter the correct 2nd parameter.."
                          "1 -write , 2 -read\n");
@@ -1019,7 +1029,6 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     if (gattstest) {
                         if(init_server_file)  {
                             server_num++;
-                            fprintf(stdout,"Adding Server %d \n",server_num);
                             gattstest->AddServer();
                         } else {
                             fprintf(stdout,"Do gattstest_init_server first \n");
@@ -1161,9 +1170,11 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, "Disable Gattstest \n");
                 if (gattstest) {
                     gattstest->DisableGATTSTEST();
-                    gattstest->~GattsTest();
+                    delete gattstest;
                     gattstest = NULL;
                     server_num = 0;
+                    file_read = 0;
+                    init_advertiser_file = false;
                 } else {
                     fprintf( stdout, "Do Init first \n ");
                 }
@@ -1433,7 +1444,6 @@ BluetoothApp :: ~BluetoothApp () {
     inquiry_list.clear();
     inq_db_count = 0;
 }
-
 
 bool BluetoothApp::LoadConfigParameters (const char *configpath) {
 

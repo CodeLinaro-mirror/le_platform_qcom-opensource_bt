@@ -39,15 +39,15 @@ ScanManager::ScanManager(GattNativeInterfaceV2 *mGattIf)
 {
   mNative = mGattIf;
   mCurUsedTrackableAdvertisements = 0;
-  batch_scan_timer = alarm_new();
-  if(batch_scan_timer == NULL) {
-    ALOGE(LOGTAG " batch scan timer not set");
-  }
 }
 
 void ScanManager::start()
 {
   mScanNative = new ScanNative(this);
+  batch_scan_timer = alarm_new();
+  if(batch_scan_timer == NULL) {
+    ALOGE(LOGTAG " batch scan timer not set");
+  }
 }
 
 void ScanManager::cleanup()
@@ -681,11 +681,13 @@ int ScanManager::ScanNative::getBatchScanIntervalMillis(int scanMode)
 
 void ScanManager::ScanNative::batchScanTimeoutCb(void *context)
 {
-  ScanManager *sM = (ScanManager*)context;
-  for(std::unordered_set<ScanClient*>::iterator it = sM->mBatchClients.begin();
-            it != sM->mBatchClients.end(); ++it){
-    sM->flushBatchScanResults(*it);
-  }
+  BtEvent *event = new BtEvent;
+  CHECK_PARAM_VOID(event);
+
+  event->event_id = BLESCANNER_BATCHSCAN_TIMEOUT_EVENT;
+  event->BleScanner_batchscan_timeout_Event.scanmanager = context;
+
+  PostMessage(THREAD_ID_GATT, event);
 }
 
 void ScanManager::ScanNative::setBatchAlarm()

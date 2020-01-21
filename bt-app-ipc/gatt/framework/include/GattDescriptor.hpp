@@ -71,6 +71,11 @@ class GattDescriptor {
      */
     uint8_t *mValue = NULL;
 
+    /**
+     * The length of value for this descriptor.
+     */
+    int mValueLength = 0;
+
   public:
     /**
      * Value used to enable notification for a client configuration descriptor
@@ -183,7 +188,15 @@ class GattDescriptor {
      * @return Cached value of the descriptor
      */
     uint8_t* getValue();
+    /**
+     * Returns the stored value length of this descriptor
+     *
+     * This function returns the stored value length for this descriptor.
+     *
+     * @return value length of the descriptor
+     */
 
+    int getValueLength();
     /**
      * Updates the locally stored value of this descriptor.
      *
@@ -191,11 +204,12 @@ class GattDescriptor {
      * descriptor.
      *
      * @param value New value for this descriptor
+     * @param value_len Length of value
      * @return true if the locally stored value has been set, false if the requested value could not
      * be stored locally.
      */
-    bool setValue(uint8_t *value);
 
+    bool setValue(uint8_t *value, int value_len);
     /**
     * Returns the instance ID for this descriptor.
     *

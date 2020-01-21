@@ -157,7 +157,7 @@ void GattServer::onCharacteristicWriteRequest(string address, int transId, int o
 
   try {
     mCallback->onCharacteristicWriteRequest(address, transId, characteristic,
-            isPrep, needRsp, offset, value);
+            isPrep, needRsp, offset, value, length);
   } catch (std::exception& e) {
     ALOGE(LOGTAG " Unhandled exception in callback: %s", e.what());
   }
@@ -178,7 +178,7 @@ void GattServer::onDescriptorWriteRequest(string address, int transId, int offse
 
   try {
     mCallback->onDescriptorWriteRequest(address, transId, descriptor,
-            isPrep, needRsp, offset, value);
+            isPrep, needRsp, offset, value, length);
   } catch (std::exception& e) {
     ALOGE(LOGTAG " Unhandled exception in callback: %s", e.what());
   }

@@ -82,7 +82,7 @@ extern GattLibService *g_gatt;
 
 mRemoteDev mDeviceMap("", NULL);
 
-GattLeScanner* mScanner = GattLeScanner::getGattLeScanner();
+GattLeScanner* mScanner = NULL;
 ScanSettings *setting = NULL;
 
 enum ReliableWriteState
@@ -288,7 +288,7 @@ class gattctestClientCallback:public GattClientCallback
             std::string s;
             s.assign(tmp_ch, tmp_ch + sizeof(tmp_ch));
             fprintf(stdout, "string write is %s\n", s.c_str());
-            characteristic->setValue(tmp_ch);
+            characteristic->setValue((uint8_t*)tmp_ch, (int)(sizeof(tmp_ch)/sizeof(tmp_ch[0])));
             int status = gattc->writeCharacteristic(*characteristic);
             if (status) {
               fprintf(stdout, "write success\n");
@@ -380,10 +380,8 @@ class gattctestClientCallback:public GattClientCallback
       Uuid uid = descriptor->getUuid();
 
       if ((status == GattClient::GATT_SUCCESS)) {
-        ALOGD(LOGTAG "onDescriptorWrite Success Value : %s",
-            descriptor->getValue());
-        fprintf(stdout, "onDescriptorWrite Success Value : %s\n",
-            descriptor->getValue());
+        ALOGD(LOGTAG "onDescriptorWrite Success ");
+        fprintf(stdout, "onDescriptorWrite Success \n");
       } else if (status == GattClient::GATT_WRITE_NOT_PERMITTED) {
         ALOGE(LOGTAG, "Write NOT PERMITTED for the descriptor");
         fprintf(stdout, "Write NOT PERMITTED for the descriptor\n");
@@ -500,13 +498,12 @@ class mscancallback : public ScanCallback
 
 gattctestClientCallback *gattCliCallback = NULL;
 mscancallback *mscan_callback = NULL;
-GattLeScanner *mscan = NULL;
 
 GattcTest::GattcTest(GattLibService* gatt)
 {
   ALOGD(LOGTAG "gattctest instantiated ");
   libservice = gatt;
-  mscan = mScanner->getGattLeScanner();
+  mScanner = GattLeScanner::getGattLeScanner();
   mscan_callback = new mscancallback;
   gattCliCallback = new gattctestClientCallback;
   mExecReliableWrite = ReliableWriteState::RELIABLE_WRITE_NONE;
@@ -525,21 +522,33 @@ void GattcTest::enableGattctest()
 
   //Setting NO_AUTO conection by default
   gattctest->isAuto = 0;
+
+  gattctest->gattcli = NULL;
 }
 
 GattcTest::~GattcTest()
 {
-  if (gattCliCallback != NULL) {
-    delete(gattCliCallback);
-    gattCliCallback = NULL;
+  if (gattctest != NULL) {
+    gattctest->setting = NULL;
+    settingMask = 0;
+	if (gattctest->filters.size() > 0)
+	  gattctest->filters.clear();
+    mScanner->stopScan(mscan_callback);
+    if (mscan_callback != NULL) {
+      delete(mscan_callback);
+    }
+    if (gattCliCallback != NULL) {
+      delete(gattCliCallback);
+      gattCliCallback = NULL;
+    }
+    if (gattctest->gattcli != NULL) {
+      gattctest->gattcli->close();
+      delete(gattctest->gattcli);
+      gattctest->gattcli = NULL;
+    }
   }
-  if (gattctest->gattcli != NULL) {
-    delete(gattctest->gattcli);
-    gattctest->gattcli = NULL;
-  }
-  if (mscan_callback != NULL) {
-    delete(mscan_callback);
-  }
+  libservice = NULL;
+
   ALOGD(LOGTAG "(%s) GATTCTEST DeInitialized\n", __FUNCTION__);
 }
 
@@ -826,7 +835,7 @@ GattCharacteristic* GattcTest :: getCharacteristic(Uuid uid, string bdaddr)
 }
 
 bool GattcTest :: writeCharacteristic(string bdaddr, uint8_t *writeValue,
-    int instanceId)
+    int valueLength, int instanceId)
 {
   ALOGD(LOGTAG "writeCharacteristic value is %s", writeValue);
   fprintf(stdout, "writeCharacteristic value %s\n", writeValue);
@@ -843,7 +852,7 @@ bool GattcTest :: writeCharacteristic(string bdaddr, uint8_t *writeValue,
   characteristic = CliDevice->getCharacteristicById(bdaddr, instanceId);
 
   if (characteristic != NULL) {
-    characteristic->setValue(writeValue);
+    characteristic->setValue(writeValue, valueLength);
     ALOGD(LOGTAG "Instance ID   %d", characteristic->getInstanceId());
 
     bool status = CliDevice->writeCharacteristic(*characteristic);
@@ -883,7 +892,7 @@ bool GattcTest:: reqConnPri(string bdaddr, int conn_priority)
 }
 
 void GattcTest :: writeDescriptor(string bdaddr,
-    uint8_t *writeValue, int instanceid)
+    uint8_t *writeValue, int valueLength, int instanceid)
 {
   ALOGD(LOGTAG "writeDescriptor");
 
@@ -897,8 +906,7 @@ void GattcTest :: writeDescriptor(string bdaddr,
   GattDescriptor* descriptor =
     CliDevice->getDescriptorById(bdaddr, instanceid);
   if (descriptor != NULL) {
-    descriptor->setValue(writeValue);
-
+    descriptor->setValue(writeValue, valueLength);
     if (!CliDevice->writeDescriptor(*descriptor)) {
       ALOGE(LOGTAG "WriteDescriptor Failed");
       fprintf(stdout, "Write Descriptor Failed\n");
@@ -1097,7 +1105,7 @@ void GattcTest :: gattrequestMtu(string bdaddr, int mtu_value)
 }
 
 bool GattcTest::prepareWriteCharacteristic(string bdaddr,
-    uint8_t * writeValue, int instanceId)
+    uint8_t * writeValue, int valueLength, int instanceId)
 {
   ALOGD(LOGTAG "prepareWriteCharacteristic");
   fprintf(stdout, "prepareWriteCharacteristic\n");
@@ -1124,7 +1132,7 @@ bool GattcTest::prepareWriteCharacteristic(string bdaddr,
   characteristic = CliDevice->getCharacteristicById(bdaddr, instanceId);
 
   if (characteristic != NULL) {
-    characteristic->setValue(writeValue);
+    characteristic->setValue(writeValue, valueLength);
     bool status = CliDevice->writeCharacteristic(*characteristic);
 
     if (status) {
@@ -1204,7 +1212,7 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
     for (i = 0; i < 10; i++)
       tmp_ch[i] = PREPARE_WRITE_DATA;
     tmp_ch[i] = '\0';
-    characteristic->setValue(tmp_ch);
+    characteristic->setValue((uint8_t *)tmp_ch, (int) (sizeof(tmp_ch)/sizeof(tmp_ch[0])));
 
     if (mExecReliableWrite == ReliableWriteState::RELIABLE_WRITE_NONE) {
       mExecReliableWrite =
@@ -1682,10 +1690,10 @@ void GattcTest :: startScan()
                   gattctest->setting->getLegacy(),
                   gattctest->setting->getPhy(),
                   gattctest->setting->getReportDelayMillis());
-    mscan->startScan(gattctest->filters, gattctest->setting,
+    mScanner->startScan(gattctest->filters, gattctest->setting,
         mscan_callback);
   } else {
-    mscan->startScan(mscan_callback);
+    mScanner->startScan(mscan_callback);
   }
 }
 
@@ -1696,7 +1704,7 @@ void GattcTest :: stopScan()
   gattctest->setting = NULL;
   settingMask = 0;
   gattctest->filters.clear();
-  mscan->stopScan(mscan_callback);
+  mScanner->stopScan(mscan_callback);
 }
 
 void GattcTest :: testBatchscan(int value)
@@ -1710,10 +1718,10 @@ void GattcTest :: testBatchscan(int value)
     .build();
   vector < ScanFilter*> filters;
   filters.clear();
-  mscan->startScan(filters, batchscansettings, mscan_callback);
+  mScanner->startScan(filters, batchscansettings, mscan_callback);
   //Sleep for 5 seconds then flush the results
   std::this_thread::sleep_for (std::chrono::seconds(5));
   //Test Flush Pending scan results API
   fprintf(stdout, "Flush pending scan results\n");
-  mscan->flushPendingScanResults(mscan_callback);
+  mScanner->flushPendingScanResults(mscan_callback);
 }

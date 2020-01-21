@@ -35,10 +35,16 @@
 #include <hardware/bluetooth.h>
 #include <hardware/bt_hf.h>
 #include <pthread.h>
+#if (defined BT_AUDIO_HAL_INTEGRATION)
+#include "qahw_api.h"
+#include "qahw_defs.h"
+
+#endif
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
+#include "osi/include/allocator.h"
 #include "osi/include/compat.h"
 #include "ipc.hpp"
 #include "utils.h"
@@ -97,6 +103,14 @@ typedef enum {
     HFP_AG_STATE_CONNECTED,
     HFP_AG_STATE_AUDIO_ON
 }HfpAgState;
+
+
+#define OUT_DEVICE_SPEAKER                         0x2
+#define OUT_DEVICE_LINE_OUT                        131072
+#define OUT_DEVICE_BLUETOOTH_SCO                   0x10
+#define IN_DEVICE_BLUETOOTH_SCO_HEADSET            0x80000008
+
+
 
 #if defined(BT_MODEM_INTEGRATION)
 
@@ -169,11 +183,13 @@ class Hfp_Ag {
     int mHfIndHfList[MAX_HF_INDICATORS];
     // index 0 is for 1st assigned number, index 1 for 2nd assigned number etc
     int mHfIndAgList[MAX_HF_INDICATORS];
+    int mActiveCallsNum;
+    int mHeldCallsNum;
+    std::vector<char *> number_vec;
     const bt_interface_t * bluetooth_interface;
     const bthf_interface_t *sBtHfpAgInterface;
     HfpAgState mAgState;
     ControlStatusType mcontrolStatus;
-    bthf_wbs_config_t mWbsState;
     bthf_nrec_t mNrec;
     const bthf_vendor_interface_t *sBtHfpAgVendorInterface;
   public:
@@ -188,13 +204,19 @@ class Hfp_Ag {
     pthread_mutex_t lock;
     bt_bdaddr_t mConnectingDevice;
     bt_bdaddr_t mConnectedDevice;
+    bthf_wbs_config_t mWbsState;
     void HandleEnableAg();
     void HandleDisableAg();
     void ConfigureAudio(bool enable);
     bool VoipCallInd(bt_bdaddr_t *bd_addr);
     bool EndVoipCall(bt_bdaddr_t *bd_addr);
+    bool VoipCallIncomingInd(bt_bdaddr_t *bd_addr,char* number,int call_active);
+    bool AcceptVoipCall(bt_bdaddr_t *bd_addr);
+    bool SwapVoipCall(bt_bdaddr_t *bd_addr);
     void process_at_bind(BtEvent* pEvent);
     void process_at_biev(BtEvent* pEvent);
+    void update_activecall_num(int active);
+    void update_heldcall_num(int held);
 #if defined(BT_MODEM_INTEGRATION)
     void init_modem();
     void release_modem();
@@ -218,6 +240,7 @@ class Hfp_Ag {
     void setup_sco_path();
     void teardown_sco_path();
     void release_audio();
+    void configurescoaudio(bool enable);
 };
 
 #endif

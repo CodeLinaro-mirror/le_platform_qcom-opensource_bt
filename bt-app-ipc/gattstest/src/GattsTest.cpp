@@ -67,7 +67,7 @@ using namespace gatt;
 #define PERIODIC_INTERVAL 200
 #define PHY_LE_1M 1
 #define PHY_LE_2M 2
-#define PHY_LE_CODED 3
+#define PHY_LE_CODED 4
 #define PROPERTY_READ 2
 #define SERVICE_LINE_MIN 0
 #define SERVICE_LINE_MAX 4
@@ -82,7 +82,6 @@ using namespace gatt;
 
 GattsTest *gattstest = NULL;
 extern GattLibService *g_gatt;
-int num_of_server;
 int num_of_devices;
 int num_of_advertiser = 0;
 GattServer *mgattServer = NULL;
@@ -233,7 +232,7 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
 
 void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,int requestId,
                             GattCharacteristic *characteristic,bool preparedWrite,bool responseNeeded,
-                            int offset,uint8_t* value)
+                            int offset,uint8_t* value, int length)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   string temp((char *)value);
@@ -252,7 +251,7 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
      executeWriteChar = characteristic;
      receivedData += temp;
   } else {
-    characteristic->setValue(value);
+    characteristic->setValue(value, length);
   }
   if (responseNeeded) {
     mServer->sendResponse(deviceAddress,requestId,0,offset,value);
@@ -291,7 +290,8 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
 
 void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int requestId,
                                                     GattDescriptor *descriptor,bool preparedWrite,
-                                                    bool responseNeeded, int offset, uint8_t * value)
+                                                    bool responseNeeded, int offset, uint8_t * value,
+                                                    int length)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   string temp((char *)value);
@@ -314,7 +314,7 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
      executeWriteDesc = descriptor;
      receivedDescValue += temp;
   } else {
-    descriptor->setValue(value);
+    descriptor->setValue(value, length);
   }
   if (responseNeeded) {
     bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
@@ -620,8 +620,15 @@ void GattsTest::ParseServiceElement(int instance)
 void GattsTest::AddServer()
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
-  if(num_of_server <= MAX_SERVER_INSTANCE) {
-    num_of_server++;
+  int num_of_server;
+  if(servInstanceMap.size() <= MAX_SERVER_INSTANCE) {
+//  Add new server at first missing key on consecutive order
+    for(num_of_server = 1; num_of_server <= servInstanceMap.size(); num_of_server++) {
+      if(!servInstanceMap.count(num_of_server)) {
+         break;
+      }
+    }
+    fprintf(stdout,"Adding Server %d \n", num_of_server);
     ALOGD(LOGTAG"Adding Server Instance : %d", num_of_server);
     mgattServer = new GattServer(g_gatt,TRANSPORT);
     servInstanceMap.insert(pair <int,GattServer*> (num_of_server,mgattServer));
@@ -655,11 +662,11 @@ bool GattsTest::AddService(string server_instance,string service_instance)
   int permissions = 0;
   string char_val = "QTI_LE";
   string desc_val = "QTI_DESC";
-  if(server_inst > num_of_server) {
+  if(!servInstanceMap.count(server_inst)) {
     fprintf(stdout,"Please create the server instance first \n");
     return false;
-  } else if((server_inst <= 0) || (server_inst > MAX_SERVER_INSTANCE) || (service_inst <=0) || (service_inst > MAX_SERVICE_INSTANCE) ) {
-    fprintf(stdout,"Incorrect instance values  \n" );
+  } else if((service_inst <= 0) || (service_inst > MAX_SERVICE_INSTANCE) ) {
+    fprintf(stdout,"Incorrect service instance values  \n" );
     return false;
   } else if (service_inst < 6) {
     mServer = servInstanceMap[server_inst];
@@ -1041,18 +1048,27 @@ bool GattsTest::UnregisterServer(string instance)
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   int instanceId;
   istringstream(instance) >> instanceId;
-  if(instanceId <=0 || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if(!servInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   }
-  if(num_of_server <= MAX_SERVER_INSTANCE) {
+  if(servInstanceMap.size() <= MAX_SERVER_INSTANCE) {
     mServer = servInstanceMap[instanceId];
     mServer->close();
-    AdvertisingSetCallback *mAdvSetCB;
-    mAdvSetCB = advCBInstanceMap[instanceId];
-    madvertiser->stopAdvertising(mAdvSetCB);
+    if(!AdvSet_list.empty()){
+      AdvertisingSetCallback *mAdvSetCB;
+      mAdvSetCB = advCBInstanceMap[instanceId];
+      madvertiser->stopAdvertising(mAdvSetCB);
+    }
+    unordered_map <gattstestServerCallback*,GattServer*> ::iterator itr;
+    for(itr = servCBInstanceMap.begin(); itr!= servCBInstanceMap.end(); ++itr) {
+      if(itr->second == mServer ){
+         servCBInstanceMap.erase(itr->first);
+         break;
+       }
+    }
     servInstanceMap.erase(instanceId);
-    num_of_server--;
+    advCBInstanceMap.erase(instanceId);
     return true;
   } else {
     fprintf(stdout,"There are no more servers to unregister \n");
@@ -1065,7 +1081,7 @@ void GattsTest::StopAdvertisement(string instance)
   ALOGD(LOGTAG"StopAdvertisement \n");
   int instanceId;
   istringstream(instance) >> instanceId;
-  if(instanceId <=0 || instanceId > num_of_server) {
+  if(!advCBInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
   } else {
     AdvertisingSetCallback *mAdvSetCB;
@@ -1081,7 +1097,8 @@ void GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, strin
   mgattCharacteristic = new GattCharacteristic(uid,property,permissions);
   uint8_t char_val[val.length()+1];
   std::copy(val.begin(),val.end(),char_val);
-  mgattCharacteristic->setValue(char_val);
+  char_val[val.length()] = '\0';
+  mgattCharacteristic->setValue((uint8_t*)char_val, (int)val.length()+1);
   ALOGD(LOGTAG"CharacteristicUUID: %s  ", uid.ToString().c_str());
   ALOGD(LOGTAG"Characteristic Property: %d ", mgattCharacteristic->getProperties());
   ALOGD(LOGTAG"characteristic Permissions: %d ", mgattCharacteristic->getPermissions());
@@ -1095,7 +1112,8 @@ void GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
   mgattDescriptor = new GattDescriptor(uid,permissions);
   uint8_t dsc_val[value.length()+1];
   std::copy(value.begin(),value.end(),dsc_val);
-  mgattDescriptor->setValue(dsc_val);
+  dsc_val[value.length()] = '\0';
+  mgattDescriptor->setValue(dsc_val, value.length()+1);
   ALOGD(LOGTAG"Descriptor UUID: %s  ", uid.ToString().c_str());
   ALOGD(LOGTAG"Descriptor Permissions: %d ", mgattDescriptor->getPermissions());
 }
@@ -1109,7 +1127,7 @@ bool GattsTest::ReadPhy(string instance,string deviceAddress)
   istringstream(instance) >> instanceId;
   GattServer *mServer;
 
-  if(instanceId <=VALID_VALUE || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if(!servInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   } else {
@@ -1143,7 +1161,7 @@ bool GattsTest::SetPreferredPhy(string deviceAddress,string instance,string txPh
   GattServer *mServer;
   vector <string> ::iterator str;
   bool connected= false;
-  if (instanceId <= VALID_VALUE || instanceId > num_of_server || instanceId > MAX_SERVER_INSTANCE) {
+  if(!servInstanceMap.count(instanceId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   } else {
@@ -1207,6 +1225,7 @@ bool GattsTest::DisableGATTSTEST()
   gattstestAdvertiserCallback *mAdvertisercallback = NULL;
   map <int, GattServer*> ::iterator itr;
   map <int,gattstestAdvertiserCallback*> ::iterator at;
+  g_gatt->unregAll();
   servInstanceMap.clear();
   unordered_map  <gattstestServerCallback*,GattServer*> ::iterator it;
   for(it = servCBInstanceMap.begin(); it != servCBInstanceMap.end(); ++it) {
@@ -1222,7 +1241,6 @@ bool GattsTest::DisableGATTSTEST()
     delete(mAdvertisercallback);
   }
   advCBInstanceMap.clear();
-  num_of_server = 0;
   return true;
 }
 
