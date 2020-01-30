@@ -208,10 +208,11 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   uint8_t *value = NULL;
   value = characteristic->getValue();
+  string valueString = (char*)characteristic->getValue();
   GattService *mService = characteristic->getService();
   Uuid s_uuid = mService->getUuid();
   Uuid c_uuid = characteristic->getUuid();
-  ALOGD(LOGTAG"%s value = %s", __FUNCTION__, value);
+  ALOGD(LOGTAG"%s value = %s", __FUNCTION__, valueString);
   ALOGD(LOGTAG"%s service Uuid = %s", __FUNCTION__, s_uuid.ToString().c_str());
   ALOGD(LOGTAG"%s characteristic uuid = %s", __FUNCTION__, c_uuid.ToString().c_str());
   GattServer *mServer = NULL;
@@ -271,9 +272,10 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   uint8_t *value = NULL;
+  string valueString = (char*)descriptor->getValue();
   Uuid desc_uuid = descriptor->getUuid();
   value = descriptor->getValue();
-  ALOGD(LOGTAG"%s Descriptor UUID: %s  value = %s", __FUNCTION__, desc_uuid.ToString().c_str(),descriptor->getValue());
+  ALOGD(LOGTAG"%s Descriptor UUID: %s  value = %s", __FUNCTION__, desc_uuid.ToString().c_str(), valueString);
   GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
     gattstestServerCb = this;
@@ -297,9 +299,9 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
   GattCharacteristic *characteristic = descriptor->getCharacteristic();
   Uuid d_uid = descriptor->getUuid();
   Uuid c_uid = characteristic->getUuid();
-  value = descriptor->getValue();
+  string valueString = (char*)descriptor->getValue();
   ALOGD(LOGTAG"%s  descriptor_uuid: %s value = %s", __FUNCTION__, d_uid.ToString().c_str(),
-                                                    descriptor->getValue());
+                                                    valueString);
   GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
   gattstestServerCb = this;
