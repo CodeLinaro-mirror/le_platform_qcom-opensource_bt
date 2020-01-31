@@ -2438,6 +2438,9 @@ void GattLibService::unregAll()
   if (mAdvertiserManager != NULL) {
     mAdvertiserManager->stopAdvertisingSets();
   }
+  if (mHandleMap != NULL) {
+    mHandleMap->clear();
+  }
 }
 
 int GattLibService::numHwTrackFiltersAvailable()
