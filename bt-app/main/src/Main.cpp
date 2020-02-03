@@ -3522,7 +3522,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
               // instruct the cmd handler to treat the next inputs for SSP
               fprintf(stdout, "\n*************************************************");
               fprintf(stdout, "\n Pair with Device :: %s", ssp_data.bd_name.name);
-              fprintf(stdout, "\n Bluetooth Pairing code::%d", ssp_data.pass_key);
+              fprintf(stdout, "\n Bluetooth Pairing code::%06d", ssp_data.pass_key);
               fprintf(stdout, "\n Type the pairing code then press Return or Enter");
               fprintf(stdout, "\n*************************************************\n");
               fprintf(stdout, "** Please Enter cancel **\n");
@@ -3530,7 +3530,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             } else{
               // instruct the cmd handler to treat the next inputs for SSP
               fprintf(stdout, "\n*************************************************");
-              fprintf(stdout, "\n BT pairing request::Device %s::Pairing Code:: %d",
+              fprintf(stdout, "\n BT pairing request::Device %s::Pairing Code:: %06d",
                                       ssp_data.bd_name.name, ssp_data.pass_key);
               fprintf(stdout, "\n*************************************************\n");
               fprintf(stdout, " ** Please enter yes / no **\n");
