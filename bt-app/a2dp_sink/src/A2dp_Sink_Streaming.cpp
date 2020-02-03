@@ -755,7 +755,9 @@ void remote_suspend_wait_timer_handler(void *context) {
         else {
             pA2dpSinkStream->FillCompressBuffertoAudioOutHal();
         }
+#if (defined BT_AUDIO_HAL_INTEGRATION)
         qahw_out_resume(pA2dpSinkStream->out_stream);
+#endif
     }
 }
 
