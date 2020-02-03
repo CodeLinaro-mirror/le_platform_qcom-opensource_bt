@@ -734,8 +734,10 @@ void Hfp_Ag::HandleEnableAg(void) {
         mActiveCallsNum = 0;
         mHeldCallsNum = 0;
         sBtHfpAgVendorInterface->init_vendor(&sBluetoothHfpAgVendorCallbacks);
+#if defined(BT_AUDIO_HAL_INTEGRATION)
         out_stream_plb_test = NULL;
         in_handle_record = NULL;
+#endif
 
 #if defined(BT_MODEM_INTEGRATION)
         init_modem();

@@ -561,11 +561,11 @@ void Hfp_Client::HandleEnableClient(void) {
             ALOGE(LOGTAG "get profile interface failed, returning");
             return;
         }
-
+#if defined(BT_AUDIO_HAL_INTEGRATION)
         audio_out_device = (uint32_t)config_get_int(config,
             CONFIG_DEFAULT_SECTION, "AudioOutDevice", 131072);
         ALOGD(LOGTAG "Audio Out Device %d", audio_out_device);
-
+#endif
         change_state(HFP_CLIENT_STATE_DISCONNECTED);
         sBtHfpClientInterface->init(&sBluetoothHfpClientCallbacks);
         BtEvent *pEvent = new BtEvent;
