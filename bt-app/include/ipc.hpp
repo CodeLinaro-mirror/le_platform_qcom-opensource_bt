@@ -81,6 +81,10 @@ extern thread_t *g_pbapc_thread;
 #define KEY_PRESSED             0
 #define KEY_RELEASED            1
 
+#define BT_SSP_VARIANT_PASSKEY_CONFIRMATION  00
+#define BT_SSP_VARIANT_PASSKEY_ENTRY         01
+#define BT_SSP_VARIANT_CONSENT               02
+#define BT_SSP_VARIANT_PASSKEY_NOTIFICATION  03
 /**
  *   Threads info
  */
