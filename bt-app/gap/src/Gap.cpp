@@ -407,6 +407,12 @@ void Gap::HandleSspRequestEvent(SSPRequestEvent *event) {
         bluetooth_interface_->ssp_reply(&event->bd_addr, event->pairing_variant,
             1, event->pass_key);
     } else {
+        // auto accept if pairing variant is passkey notification and continue
+        // showing passkey
+        if(event->pairing_variant == BT_SSP_VARIANT_PASSKEY_NOTIFICATION) {
+          bluetooth_interface_->ssp_reply(&event->bd_addr, event->pairing_variant,
+              1, event->pass_key);
+        }
         // pass the same event to Main thread
         bt_event = new BtEvent;
         memcpy(bt_event, event, sizeof(BtEvent));
