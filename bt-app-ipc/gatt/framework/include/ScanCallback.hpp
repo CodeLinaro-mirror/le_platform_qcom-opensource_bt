@@ -67,6 +67,7 @@ class ScanCallback {
 
     static const int NO_ERROR = 0;
 
+    virtual ~ScanCallback() = default;
     /**
      * Callback when a BLE advertisement has been found.
      *

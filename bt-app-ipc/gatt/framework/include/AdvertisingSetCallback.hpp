@@ -66,6 +66,7 @@ class AdvertisingSetCallback {
      */
     static const int ADVERTISE_FAILED_FEATURE_UNSUPPORTED = 5;
 
+    virtual ~AdvertisingSetCallback() = default;
     /**
      * Callback triggered in response to GattLeAdvertiser#startAdvertisingSets
      * indicating result of the operation. If status is ADVERTISE_SUCCESS, then advertisingSet
