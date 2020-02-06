@@ -2507,10 +2507,18 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             if ((g_bt_app->status.pairing_cmd != COMMAND_INPROGRESS) &&
                 (g_bt_app->bt_state == BT_STATE_ON)) {
                 if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                    bt_bdaddr_t address;
+                    string_to_bdaddr(user_cmd[ONE_PARAM], &address);
+                    /* Check if device is already bonded */
+                    if(g_gap->IsDeviceBonded(address))
+                    {
+                       fprintf( stdout, "Device is already paired!\n");
+                       return;
+                    }
                     g_bt_app->status.pairing_cmd = COMMAND_INPROGRESS;
                     event = new BtEvent;
                     event->event_id = GAP_API_CREATE_BOND;
-                    string_to_bdaddr(user_cmd[ONE_PARAM], &event->bond_device.bd_addr);
+                    memcpy(&event->bond_device.bd_addr, &address, sizeof(bt_bdaddr_t));
                     switch (atoi(user_cmd[TWO_PARAM])){
                     case 0:
                         event->bond_device.transport = 0;
