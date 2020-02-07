@@ -242,6 +242,7 @@ class Hfp_Ag {
     void release_audio();
 #endif
     void configurescoaudio(bool enable);
+    void clear_audio_params();
 };
 
 #endif

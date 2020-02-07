@@ -488,6 +488,24 @@ void Hfp_Ag::configurescoaudio(bool enable) {
 #endif
 }
 
+void Hfp_Ag::clear_audio_params(){
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
+    teardown_sco_path();
+#endif
+    stop_record = true;
+    stop_playback = true;
+    if (record_tid != NULL)
+    {
+        pthread_join(record_tid, NULL);
+        record_tid = NULL;
+    }
+    if (playback_tid != NULL)
+    {
+        pthread_join(playback_tid, NULL);
+        playback_tid = NULL;
+    }
+    configurescoaudio(false);
+}
 static void *start_playback(void *in_param) {
 #if defined(BT_AUDIO_HAL_INTEGRATION)
     qahw_module_handle_t* audio_module;
@@ -737,8 +755,6 @@ void Hfp_Ag::HandleEnableAg(void) {
 void Hfp_Ag::HandleDisableAg(void) {
 
    change_state(HFP_AG_STATE_NOT_STARTED);
-   stop_playback = true;
-   stop_record = true;
    if(sBtHfpAgInterface != NULL) {
        sBtHfpAgInterface->cleanup();
        sBtHfpAgInterface = NULL;
@@ -747,17 +763,7 @@ void Hfp_Ag::HandleDisableAg(void) {
        sBtHfpAgVendorInterface->cleanup_vendor();
        sBtHfpAgVendorInterface = NULL;
    }
-   if (record_tid != NULL)
-   {
-       pthread_join(record_tid, NULL);
-       record_tid = NULL;
-   }
-   if (playback_tid != NULL)
-   {
-       pthread_join(playback_tid, NULL);
-       playback_tid = NULL;
-   }
-   configurescoaudio(false);
+   clear_audio_params();
 
    mActiveCallsNum = 0;
    mHeldCallsNum = 0;
@@ -890,24 +896,8 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             fprintf(stdout, "Disconnected SCO connection with device %s", str);
             ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
-            teardown_sco_path();
-#endif
-            stop_record = true;
-            stop_playback = true;
+            clear_audio_params();
 
-            if (record_tid != NULL)
-            {
-              pthread_join(record_tid, NULL);
-              record_tid = NULL;
-            }
-            if (playback_tid != NULL)
-            {
-              pthread_join(playback_tid, NULL);
-              playback_tid = NULL;
-            }
-
-            configurescoaudio(false);
             if(memorized_evt.empty() == true) {
                 change_state(HFP_AG_STATE_CONNECTED);
             }
@@ -937,6 +927,8 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
     BtEvent *pControlRequest, *pReleaseControlReq;
     switch(pEvent->event_id) {
         case HFP_AG_API_CONNECT_REQ: // TODO: handle connections to another device
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "HFP AG Already Connected to %s\n", str);
             break;
         case HFP_AG_API_DISCONNECT_REQ:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
@@ -1398,26 +1390,21 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             fprintf(stdout, "Disconnected SCO connection with device %s", str);
             ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
-            teardown_sco_path();
-#endif
-            stop_record = true;
-            stop_playback = true;
+            clear_audio_params();
 
-
-            if (record_tid != NULL)
-            {
-              pthread_join(record_tid, NULL);
-              record_tid = NULL;
-            }
-            if (playback_tid != NULL)
-            {
-              pthread_join(playback_tid, NULL);
-              playback_tid = NULL;
-            }
-
-            configurescoaudio(false);
             change_state(HFP_AG_STATE_CONNECTED);
+            break;
+        case HFP_AG_DISCONNECTED_CB:
+            bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
+            fprintf(stdout, "Disconnected with device %s", str);
+            ALOGD(LOGTAG "Disconnected with device %s", str);
+            fprintf(stdout, "Clearing of SCO params for device %s", str);
+
+            clear_audio_params();
+
+            memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
+            memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
+            change_state(HFP_AG_STATE_DISCONNECTED);
             break;
         case HFP_AG_VOIP_CALL_INDICATION:
             VoipCallInd(&pEvent->hfp_ag_event.bd_addr);
