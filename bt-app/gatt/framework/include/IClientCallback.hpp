@@ -34,6 +34,8 @@ namespace gatt{
   */
 class IClientCallback {
   public:
+    virtual ~IClientCallback() = default;
+
     virtual void onClientRegistered(int status, int clientIf){}
 
     virtual void onConnectionState(int status, int clientIf,

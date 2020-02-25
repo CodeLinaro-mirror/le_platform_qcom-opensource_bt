@@ -32,6 +32,7 @@ namespace gatt{
 class PeriodicAdvertisingReport;
 class IPeriodicAdvertisingCallback {
   public:
+    virtual ~IPeriodicAdvertisingCallback() = default;
     virtual void onSyncEstablished(int syncHandle, string device,
             int advertisingSid, int skip, int timeout,
             int status) {}

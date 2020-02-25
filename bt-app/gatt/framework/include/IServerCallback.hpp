@@ -29,6 +29,7 @@ namespace gatt {
   */
 class IServerCallback {
   public:
+    virtual ~IServerCallback() = default;
     virtual void onServerRegistered(int status, int serverIf) {}
     virtual void onConnectionState(int status, int serverIf,
                                      bool connected, string address){}

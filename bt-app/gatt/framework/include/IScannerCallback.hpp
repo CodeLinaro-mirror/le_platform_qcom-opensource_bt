@@ -32,6 +32,7 @@ namespace gatt{
 class ScanResult;
 class IScannerCallback {
   public:
+    virtual ~IScannerCallback() = default;
     virtual void onScannerRegistered(int status, int scannerId){}
 
     virtual void onScanResult(ScanResult *scanResult){}

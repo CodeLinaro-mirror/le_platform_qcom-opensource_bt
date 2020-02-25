@@ -33,6 +33,7 @@ namespace gatt{
  */
 class GattServerCallback {
   public:
+    virtual ~GattServerCallback() = default;
     /**
      * Callback indicating when a remote device has been connected or disconnected.
      *
