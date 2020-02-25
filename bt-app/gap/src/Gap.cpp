@@ -125,7 +125,7 @@ static void RemoteDevicePropertiesCb(bt_status_t status, bt_bdaddr_t *bd_addr,
     unsigned short index;
     BtEvent *event = new BtEvent;
 
-    ALOGV (LOGTAG " RemoteDevicePropertiesCb:");
+    ALOGV (LOGTAG " RemoteDevicePropertiesCb: num_properties %d", num_properties);
     props = new bt_property_t[num_properties];
     memcpy(props, properties, num_properties * sizeof(bt_property_t));
     for (index = 0; index < num_properties; index++) {
@@ -407,6 +407,12 @@ void Gap::HandleSspRequestEvent(SSPRequestEvent *event) {
         bluetooth_interface_->ssp_reply(&event->bd_addr, event->pairing_variant,
             1, event->pass_key);
     } else {
+        // auto accept if pairing variant is passkey notification and continue
+        // showing passkey
+        if(event->pairing_variant == BT_SSP_VARIANT_PASSKEY_NOTIFICATION) {
+          bluetooth_interface_->ssp_reply(&event->bd_addr, event->pairing_variant,
+              1, event->pass_key);
+        }
         // pass the same event to Main thread
         bt_event = new BtEvent;
         memcpy(bt_event, event, sizeof(BtEvent));
@@ -559,31 +565,11 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_EVENT_ADAPTER_STATE:
             adapter_properties_obj_->SetState((AdapterState)event->state_event.status);
             if ( event->state_event.status == BT_STATE_ON ) {
-
-                if (enable_timer)
-                    alarm_cancel(enable_timer);
-
-                //Scan mode is BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE by default
-                scan_mode = (bt_scan_mode_t)config_get_int(config_,
-                            CONFIG_DEFAULT_SECTION, BT_SCAN_MODE_TYPE,
-                                        BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE);
-                prop.type = BT_PROPERTY_ADAPTER_SCAN_MODE;
-                prop.val = &scan_mode;
-                prop.len = sizeof(bt_scan_mode_t);
-                bluetooth_interface_->set_adapter_property(&prop);
-
-                prop.type = BT_PROPERTY_BDNAME;
-                strlcpy((char*)&bd_name.name[0], config_get_string (config_,
-                   CONFIG_DEFAULT_SECTION, BT_LOCAL_DEV_NAME, "MDM_Fluoride"), sizeof(bd_name));
-                prop.val = &bd_name;
-                prop.len = strlen((char*)bd_name.name);
-                bluetooth_interface_->set_adapter_property(&prop);
-
-                //Sending update to the Main thread
+                //Sending profile start to GAP thread
                 bt_event = new BtEvent;
-                bt_event->event_id = MAIN_EVENT_ENABLED;
+                bt_event->event_id = PROFILE_API_START;
                 bt_event->state_event.status = event->state_event.status;
-                PostMessage(THREAD_ID_MAIN, bt_event);
+                PostMessage(THREAD_ID_GAP, bt_event);
 
             } else if ( event->state_event.status == BT_STATE_OFF) {
                 if (disable_timer)
@@ -612,7 +598,6 @@ void Gap::ProcessEvent(BtEvent* event) {
                 bt_event->event_id = MAIN_EVENT_DISABLED;
                 bt_event->state_event.status = event->state_event.status;
                 PostMessage(THREAD_ID_MAIN, bt_event);
-
             }
             break;
 
@@ -635,53 +620,50 @@ void Gap::ProcessEvent(BtEvent* event) {
                 break;
             }
 
-            // check if there are profiles enabled
-            if(!supported_profiles_count) {
-                HandleEnable();
-                break;
-            }
-
             ALOGV (LOGTAG "Start QC BT Daemon");
             system("qcbtdaemon &");
+            HandleEnable();
 
+            break;
+        case PROFILE_API_START:
+            {
 #ifdef USE_BT_OBEX
-            /* Initialize OBEX if enabled in config */
-            if (is_obex_enabled_) {
-                if ((sock_interface_ = (btsock_interface_t_v1 *)
-                    bluetooth_interface_->get_profile_interface(BT_PROFILE_OBEX_ID)) == NULL) {
-                    ALOGE(LOGTAG "%s: Failed to get Bluetooth socket interface", __FUNCTION__);
-                } else {
-                    OI_OBEX_Init(50);
-                    OI_OBEX_LOWER_SetSocketInterface(sock_interface_);
-                    OI_SetLogLevel(obex_logging_level_);
-                }
-            }
+              /* Initialize OBEX if enabled in config */
+               if (is_obex_enabled_) {
+                 if ((sock_interface_ = (btsock_interface_t_v1 *)
+                     bluetooth_interface_->get_profile_interface(BT_PROFILE_OBEX_ID)) == NULL) {
+                     ALOGE(LOGTAG "%s: Failed to get Bluetooth socket interface", __FUNCTION__);
+                 } else {
+                     OI_OBEX_Init(50);
+                     OI_OBEX_LOWER_SetSocketInterface(sock_interface_);
+                     OI_SetLogLevel(obex_logging_level_);
+                 }
+               }
 #endif
-
-            // reset start status for all supported profiles
-            for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
-                                                                profile_id++) {
+              // reset start status for all supported profiles
+              for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                  profile_id++) {
                 if(profile_config[profile_id].is_enabled) {
-                    profile_config[profile_id].start_status = false;
+                  profile_config[profile_id].start_status = false;
                 }
-            }
+              }
 
-             // start the profile start timer
-            alarm_set(profile_startup_timer, PROFILE_STARTUP_TIMEOUT_DELAY,
-                                profile_startup_timer_expired, NULL);
+              // start the profile start timer
+              alarm_set(profile_startup_timer, PROFILE_STARTUP_TIMEOUT_DELAY,
+                        profile_startup_timer_expired, NULL);
 
-            for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
-                                                                profile_id++) {
+              for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                  profile_id++) {
                 if(profile_config[profile_id].is_enabled) {
-                    bt_event = new BtEvent;
-                    bt_event->event_id = PROFILE_API_START;
-                    ALOGD(LOGTAG " sending start to Profile %d Profile name = %s",
-                        profile_id, profile_config[profile_id].name);
-                    PostMessage(profile_config[profile_id].thread_id, bt_event);
+                  bt_event = new BtEvent;
+                  bt_event->event_id = PROFILE_API_START;
+                  ALOGD(LOGTAG " sending start to Profile %d Profile name = %s",
+                    profile_id, profile_config[profile_id].name);
+                  PostMessage(profile_config[profile_id].thread_id, bt_event);
                 }
+              }
             }
             break;
-
         case PROFILE_EVENT_START_DONE:
 
             // set the start status for the given profile
@@ -709,7 +691,32 @@ void Gap::ProcessEvent(BtEvent* event) {
             ALOGD(LOGTAG " All profiles started");
             //stoping profile_startup_timer
             alarm_cancel(profile_startup_timer);
-            HandleEnable();
+
+            // all profiles started now, now send BT ENABLED event
+            if (enable_timer)
+                alarm_cancel(enable_timer);
+
+            //Scan mode is BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE by default
+            scan_mode = (bt_scan_mode_t)config_get_int(config_,
+                         CONFIG_DEFAULT_SECTION, BT_SCAN_MODE_TYPE,
+                         BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+            prop.type = BT_PROPERTY_ADAPTER_SCAN_MODE;
+            prop.val = &scan_mode;
+            prop.len = sizeof(bt_scan_mode_t);
+            bluetooth_interface_->set_adapter_property(&prop);
+
+            prop.type = BT_PROPERTY_BDNAME;
+            strlcpy((char*)&bd_name.name[0], config_get_string (config_,
+               CONFIG_DEFAULT_SECTION, BT_LOCAL_DEV_NAME, "MDM_Fluoride"), sizeof(bd_name));
+            prop.val = &bd_name;
+            prop.len = strlen((char*)bd_name.name);
+            bluetooth_interface_->set_adapter_property(&prop);
+
+            //Sending update to the Main thread
+            bt_event = new BtEvent;
+            bt_event->event_id = MAIN_EVENT_ENABLED;
+            bt_event->state_event.status = BT_STATE_ON;
+            PostMessage(THREAD_ID_MAIN, bt_event);
 
             break;
         case PROFILE_EVENT_STOP_DONE:
@@ -737,10 +744,18 @@ void Gap::ProcessEvent(BtEvent* event) {
                 }
             }
 
-            ALOGD(LOGTAG " All profiles stopped, Disable Audio Manager");
-            bt_event = new BtEvent;
-            bt_event->event_id = BT_AM_DISABLE_REQ;
-            PostMessage(THREAD_ID_BT_AM, bt_event);
+            if (!profile_config[PROFILE_ID_BT_AM].is_enabled)
+            {
+              // if AM is not enabled, directly send AM disabled event
+              bt_event = new BtEvent;
+              bt_event->event_id = BT_AM_DISABLE_DONE;
+              PostMessage(THREAD_ID_GAP, bt_event);
+            } else {
+              ALOGD(LOGTAG " All profiles stopped, Disable Audio Manager");
+              bt_event = new BtEvent;
+              bt_event->event_id = BT_AM_DISABLE_REQ;
+              PostMessage(THREAD_ID_BT_AM, bt_event);
+            }
             break;
 
         case BT_AM_DISABLE_DONE:
@@ -748,6 +763,8 @@ void Gap::ProcessEvent(BtEvent* event) {
             //stoping profile_stop_timer
             alarm_cancel(profile_stop_timer);
             HandleDisable();
+            ALOGV (LOGTAG "Stop QC BT Daemon");
+            system("killall -s SIGTERM qcbtdaemon");
             break;
 
         case GAP_EVENT_PROFILE_START_TIMEOUT:
@@ -789,25 +806,15 @@ void Gap::ProcessEvent(BtEvent* event) {
 
             if (profile_config[PROFILE_ID_A2DP_SINK].is_enabled)
             {
-                ALOGD(LOGTAG " Killing the proces due to timeout %d", event->event_id);
+                ALOGD(LOGTAG " Sending SINK CLEAN up REQ %d", event->event_id);
                 bt_event = new BtEvent;
                 bt_event->event_id = A2DP_SINK_CLEANUP_REQ;
-                PostMessage(profile_config[profile_id].thread_id, bt_event);
+                PostMessage(profile_config[PROFILE_ID_A2DP_SINK].thread_id, bt_event);
                 break;
             }
 
             /*Fall through*/
         case A2DP_SINK_CLEANUP_DONE:
-            // check if there are profiles enabled
-            if(!supported_profiles_count) {
-                HandleDisable();
-                ALOGV (LOGTAG "Stop QC BT Daemon");
-                system("killall -s SIGTERM qcbtdaemon");
-                break;
-            }
-
-            ALOGV (LOGTAG "Stop QC BT Daemon");
-            system("killall -s SIGTERM qcbtdaemon");
 
             // reset stop status for all supported profiles
             for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
@@ -828,6 +835,8 @@ void Gap::ProcessEvent(BtEvent* event) {
                         != PROFILE_ID_BT_AM) {
                     bt_event = new BtEvent;
                     bt_event->event_id = PROFILE_API_STOP;
+                    ALOGD(LOGTAG " sending stop to Profile %d Profile name = %s",
+                          profile_id, profile_config[profile_id].name);
                     PostMessage(profile_config[profile_id].thread_id, bt_event);
                 }
             }
@@ -910,7 +919,7 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_API_CREATE_BOND:
             // Calling the cancel_discovery before create_bond
             bluetooth_interface_->cancel_discovery();
-            bluetooth_interface_->create_bond(&event->bond_device.bd_addr, 1);
+            bluetooth_interface_->create_bond(&event->bond_device.bd_addr, event->bond_device.transport);
             break;
 
         case GAP_API_SSP_REPLY:

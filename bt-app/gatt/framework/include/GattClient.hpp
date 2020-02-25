@@ -477,17 +477,17 @@ class GattClient : public IClientCallback, public GattClientCallback {
 
     void onSearchComplete(string address, std::vector<GattService*> services, int status);
 
-    void onCharacteristicRead(string address, int status, int handle, uint8_t *value);
+    void onCharacteristicRead(string address, int status, int handle, uint8_t *value, int length);
 
     void onCharacteristicWrite(string address, int status, int handle);
 
     void onExecuteWrite(string address, int status);
 
-    void onDescriptorRead(string address, int status, int handle, uint8_t *value);
+    void onDescriptorRead(string address, int status, int handle, uint8_t *value, int length);
 
     void onDescriptorWrite(string address, int status, int handle);
 
-    void onNotify(string address, int handle, uint8_t *value);
+    void onNotify(string address, int handle, uint8_t *value, int length);
 
     void onReadRemoteRssi(string address, int rssi, int status);
 
