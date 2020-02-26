@@ -43,7 +43,7 @@
 sd_bus *g_sdbus = nullptr;
 sd_bus *g_sdbus_call = nullptr;
 int g_stop_dbus_fd = -1;
-bool g_dbus_running = true;
+bool g_dbus_running = false;
 
 bool open_sdbus_ipc()
 {
@@ -99,6 +99,8 @@ bool open_sdbus_ipc()
     }
 
     ALOGD(LOGTAG "::%s Successed to open bus!! : service - %s", __func__, DBUS_SVC_NAME);
+
+    g_dbus_running = true;
 
     return true;
 }
