@@ -59,7 +59,7 @@ using namespace gatt;
 #define ADV_CFG_FILE_PATH "/data/misc/bluetooth/AdvertiserConfigFile.txt"
 #define GATT_SUCCESS 0
 #define AUTO_CONNECT 0
-#define TRANSPORT 0
+#define TRANSPORT 2
 #define MAX_SERVER_INSTANCE 20
 #define MAX_SERVICE_INSTANCE 5
 #define INVALID_VALUE -1
