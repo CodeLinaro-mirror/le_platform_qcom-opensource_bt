@@ -21,7 +21,6 @@
 #include <hardware/bt_gatt_types.h>
 #include <hardware/bluetooth.h>
 #include <base/bind.h>
-#include <poll.h>
 
 #include "sdbus_ipc.h"
 
@@ -88,7 +87,6 @@ public:
   static void init(const btgatt_native_interface_callbacks_t *btgatt_native_callback);
   static void deinit(void);
   static bool initSDBus();
-  static void *process_dbus_request(void *ptr);
 
   static int gattClientGetDeviceTypeNative(string address);
   static void gattClientRegisterAppNative(btapp::Uuid uuid);
@@ -2057,7 +2055,6 @@ void GattNativeInterfaceV2bImpl::deinit(void)
 
 bool GattNativeInterfaceV2bImpl::initSDBus(void)
 {
-  pthread_t t_id;
 
   // Create DBus interface for Adapter functionalities
   static const sd_bus_vtable dbus_vtable[] = {
@@ -2146,44 +2143,9 @@ bool GattNativeInterfaceV2bImpl::initSDBus(void)
     return false;
   }
 
-  pthread_create(&t_id, NULL, process_dbus_request, NULL);
-  ALOGD(LOGTAG "::%s Start a thread to process dbus request", __func__);
-
   return true;
 }
 
-void *GattNativeInterfaceV2bImpl::process_dbus_request(void *ptr)
-{
-  int rtn;
-  struct pollfd fds[2];
-
-  fds[0].fd = g_stop_dbus_fd;
-  fds[0].events = POLLIN;
-
-  fds[1].fd = sd_bus_get_fd(g_sdbus);
-  fds[1].events = POLLIN;
-
-  while (g_dbus_running)
-  {
-    rtn = sd_bus_process(g_sdbus, NULL);
-    if (rtn < 0)
-    {
-      ALOGE(LOGTAG "::%s Error : sd_bus_process() : %d", __func__, rtn);
-      break;
-    }
-
-    if (rtn > 0)
-      continue;
-
-    poll(fds, 2, -1);
-    if (fds[0].revents & POLLIN)
-    {
-      ALOGD(LOGTAG "::%s Stop triggered, exiting process system bus", __func__);
-      break;
-    }
-  }
-  ALOGD(LOGTAG "::%s exit", __func__);
-}
 
 /////////////////////////////////////////////////
 //MACROS for quick coding

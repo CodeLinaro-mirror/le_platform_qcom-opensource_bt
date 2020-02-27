@@ -33,6 +33,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <poll.h>
 
 #include "GattNativeInterfaceV2_b.hpp"
 
@@ -42,8 +43,44 @@
 
 sd_bus *g_sdbus = nullptr;
 sd_bus *g_sdbus_call = nullptr;
-int g_stop_dbus_fd = -1;
-bool g_dbus_running = false;
+static int g_stop_dbus_fd = -1;
+static bool g_dbus_running = false;
+static pthread_t g_tid = 0;
+
+void *process_dbus_request(void *ptr)
+{
+  int rtn;
+  struct pollfd fds[2];
+
+  fds[0].fd = g_stop_dbus_fd;
+  fds[0].events = POLLIN;
+
+  fds[1].fd = sd_bus_get_fd(g_sdbus);
+  fds[1].events = POLLIN;
+
+  while (g_dbus_running)
+  {
+    rtn = sd_bus_process(g_sdbus, NULL);
+    if (rtn < 0)
+    {
+      ALOGE(LOGTAG "::%s Error : sd_bus_process() : %d", __func__, rtn);
+      break;
+    }
+
+    if (rtn > 0)
+      continue;
+
+    poll(fds, 2, -1);
+    if (fds[0].revents & POLLIN)
+    {
+      ALOGD(LOGTAG "::%s Stop triggered, exiting process system bus", __func__);
+      break;
+    }
+  }
+  ALOGD(LOGTAG "::%s exit", __func__);
+
+  return ptr;
+}
 
 bool open_sdbus_ipc()
 {
@@ -92,26 +129,31 @@ bool open_sdbus_ipc()
         return false;
     }
 
+
+    g_dbus_running = true;
     g_stop_dbus_fd = eventfd(0, 0);
     if (g_stop_dbus_fd < 0) {
-        ALOGE(LOGTAG "sdbusInit failed to to create eventfd");
+       ALOGE(LOGTAG "::%s sdbusInit failed to to create eventfd", __func__);
         return false;
     }
 
-    ALOGD(LOGTAG "::%s Successed to open bus!! : service - %s", __func__, DBUS_SVC_NAME);
+    pthread_create(&g_tid, NULL, process_dbus_request, NULL);
+    ALOGD(LOGTAG "::%s Start a thread to process dbus request", __func__);
 
-    g_dbus_running = true;
+    ALOGD(LOGTAG "::%s Successed to open bus!! : service - %s", __func__, DBUS_SVC_NAME);
 
     return true;
 }
 
 void close_sdbus_ipc()
 {
+    void *status;
+    g_dbus_running = false;
+
     // Make a thread stop
     eventfd_write(g_stop_dbus_fd, 1);
     close(g_stop_dbus_fd);
-
-    g_dbus_running = false;
+    pthread_join(g_tid, &status);
 
     if (g_sdbus != nullptr)
     {
@@ -124,5 +166,6 @@ void close_sdbus_ipc()
         sd_bus_flush_close_unref(g_sdbus_call);
         g_sdbus_call = nullptr;
     }
+    ALOGD(LOGTAG "::%s closed sdbus ipc", __func__);
 }
 

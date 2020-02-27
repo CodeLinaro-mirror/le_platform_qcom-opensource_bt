@@ -38,8 +38,6 @@
 
 extern sd_bus *g_sdbus;
 extern sd_bus *g_sdbus_call;
-extern int g_stop_dbus_fd;
-extern bool g_dbus_running;
 
 bool open_sdbus_ipc();
 void close_sdbus_ipc();
