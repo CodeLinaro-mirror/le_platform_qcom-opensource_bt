@@ -212,6 +212,10 @@ void RemoteDevices::RemoteDeviceProperties(RemotePropertiesEvent *event) {
                                    sizeof(bt_bdname_t));
         PostMessage(THREAD_ID_MAIN, bt_event);
         rem_dev_prop->broadcast = false;
+    } else if((rem_dev_prop->name[0] == '\0') &&
+              (old_name[0] != '\0')) {
+        ALOGI (LOGTAG "-prop name is empty and old name is not empty copy old name to prop name");
+        memcpy(rem_dev_prop->name,old_name, sizeof(rem_dev_prop->name));
     }
 
     GetValueFromPropertyList(event->num_properties, event->properties,

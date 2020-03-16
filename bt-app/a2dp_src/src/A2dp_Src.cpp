@@ -3406,6 +3406,7 @@ void A2dp_Source::HandleDisableSource(void) {
        a2dp_sink_relay_data_list = NULL;
    }
    unregisterMediaPlayers();
+   a2dpSrcCodecList.clear();
 }
 
 void A2dp_Source::ProcessEvent(BtEvent* pEvent) {
