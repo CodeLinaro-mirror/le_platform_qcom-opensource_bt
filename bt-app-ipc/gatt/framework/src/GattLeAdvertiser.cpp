@@ -38,7 +38,7 @@ GattLeAdvertiser* GattLeAdvertiser::getGattLeAdvertiser()
 
 GattLeAdvertiser::GattLeAdvertiser()
 {
-  mGattDevice = new GattDevice();
+  //mGattDevice = new GattDevice();
 }
 
 GattLeAdvertiser::~GattLeAdvertiser()
@@ -344,7 +344,7 @@ void GattLeAdvertiser::cleanup()
   mCb = NULL;
   mCallback.clear();
   mAdvertisingSets.clear();
-  delete(mGattDevice);
+  //delete(mGattDevice);
   mGattDevice = NULL;
   sGattLeAdvertiser = NULL;
 }

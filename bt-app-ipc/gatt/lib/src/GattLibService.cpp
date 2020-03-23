@@ -1395,7 +1395,7 @@ GattLibService::GattLibService(const bt_interface_t *bt_interface)
     ALOGE(LOGTAG "Gatt Native Interface init failed");
     return;
   }
-  mGattDevice = new GattDevice();
+  //mGattDevice = new GattDevice();
   mAdvertiserManager = new AdvertiserManager(mNative);
   mScanManager = new ScanManager(mNative);
   mPeriodicScanManager = new PeriodicScanManager(mNative);
@@ -1424,7 +1424,7 @@ void GattLibService::cleanup()
   mNative = NULL;
 
   if(mGattDevice != NULL) {
-    delete(mGattDevice);
+    //delete(mGattDevice);
   }
   mGattDevice = NULL;
 

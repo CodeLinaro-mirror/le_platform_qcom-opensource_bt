@@ -50,7 +50,7 @@ void GattLeScanner::cleanup()
   }
 
   if (mGattDevice!=NULL) {
-    delete(mGattDevice);
+    //delete(mGattDevice);
     mGattDevice = NULL;
   }
 
@@ -75,7 +75,7 @@ GattLeScanner* GattLeScanner::getGattLeScanner()
 
 GattLeScanner::GattLeScanner()
 {
-  mGattDevice = new GattDevice();
+  //mGattDevice = new GattDevice();
 }
 
 GattLeScanner::~GattLeScanner()

@@ -40,7 +40,7 @@ AdvertiserManager::AdvertiserManager(GattNativeInterfaceV2 *mGattIf)
 
 void AdvertiserManager::start()
 {
-  mGattDevice = new GattDevice();
+  //mGattDevice = new GattDevice();
 }
 
 void AdvertiserManager::cleanup()
@@ -53,7 +53,7 @@ void AdvertiserManager::cleanup()
   sTempRegistrationId = -1;
   mNative = NULL;
   if(mGattDevice) {
-    delete(mGattDevice);
+    //delete(mGattDevice);
     mGattDevice = NULL;
   }
 }
@@ -116,11 +116,6 @@ periodic_advertising_parameters_t AdvertiserManager::
           parsePeriodicParams(PeriodicAdvertiseParameters *parameter)
 {
   periodic_advertising_parameters_t p;
-
-#if 1 // 
-  p.enable = false;
-  return p;
-#endif
 
   if (parameter == NULL) {
     p.enable = false;
