@@ -40,6 +40,11 @@ void GattServer::onServerRegistered(int status, int serverIf)
 
   if (mCallback != NULL) {
     mServerIf = serverIf;
+    try {
+      mCallback->onServerRegistered(status, mServerIf);
+    } catch (std::exception& e) {
+        ALOGE(LOGTAG " Unhandled exception in callback: %s", e.what());
+    }
   } else {
     // registration timeout
     ALOGE(LOGTAG " onServerRegistered() : mCallback is null");

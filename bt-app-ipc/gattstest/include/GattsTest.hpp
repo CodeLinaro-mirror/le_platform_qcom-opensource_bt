@@ -124,6 +124,7 @@ class gattstestServerCallback :public GattServerCallback
 {
 
   public:
+  void onServerRegistered (int status, int serverIf);
   void onConnectionStateChange(string deviceAddress, int status, int newState);
   void onServiceAdded(int status,GattService *service);
   void onCharacteristicReadRequest(string deviceAddress, int requestId, int offset,

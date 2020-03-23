@@ -139,6 +139,9 @@ bool split (const string &s, char c,vector<string> &v)
   }
 }
 
+void gattstestServerCallback::onServerRegistered (int status, int serverIf) {
+  printf("serverIf:%d is registered with status:%d]n", serverIf, status);
+}
 void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int status,
                                                                int newState)
 {

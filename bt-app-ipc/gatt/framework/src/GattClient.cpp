@@ -62,9 +62,8 @@ void GattClient::onClientRegistered(int status, int clientIf)
       std::lock_guard<std::mutex> myLock(mStateLock);
       mConnState = CONN_STATE_IDLE;
     }
-    return;
   }
-
+  else {
   try {
     if(mService != nullptr)
       mService->clientConnect(mClientIf, mDeviceAddress,
@@ -72,6 +71,18 @@ void GattClient::onClientRegistered(int status, int clientIf)
                             mPhy); // autoConnect is inverse of "isDirect"
   } catch (std::exception& e) {
     ALOGE(LOGTAG " %s", e.what());
+    }
+  }
+
+  if (mCallback != NULL) {
+    try {
+      mCallback->onClientRegistered(status, mClientIf);
+    } catch (std::exception& e) {
+        ALOGE(LOGTAG " Unhandled exception in callback: %s", e.what());
+    }
+  } else {
+    // registration timeout
+    ALOGE(LOGTAG " onClientRegistered() : mCallback is null");
   }
 }
 

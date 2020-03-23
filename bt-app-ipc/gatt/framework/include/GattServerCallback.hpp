@@ -34,6 +34,8 @@ namespace gatt{
 class GattServerCallback {
   public:
     virtual ~GattServerCallback() = default;
+
+    virtual void onServerRegistered (int status, int serverIf){}    
     /**
      * Callback indicating when a remote device has been connected or disconnected.
      *

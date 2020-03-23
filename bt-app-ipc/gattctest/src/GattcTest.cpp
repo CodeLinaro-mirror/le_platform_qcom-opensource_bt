@@ -98,6 +98,9 @@ ReliableWriteState mExecReliableWrite;
 class gattctestClientCallback:public GattClientCallback
 {
   public:
+    void onClientRegistered (int status, int clientIf){
+      printf("clientIf:%d is registered with status:%d]n", clientIf, status);
+    }
     void onConnectionStateChange(GattClient *gatt, int status, int newState)
     {
       ALOGD(LOGTAG "onConnectionStateChange: status= (%d) Connected:%d",
