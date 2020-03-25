@@ -299,8 +299,8 @@ void key_pressed_callback(bt_bdaddr_t* bd_addr) {
 
 void bind_callback(char *at_string, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
-    ALOGD(LOGTAG " bind_cmd_vendor_cb");
-    fprintf(stdout, " bind_cmd_vendor_cb\n");
+    ALOGD(LOGTAG " bind_cb");
+    fprintf(stdout, " bind_cb\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     strlcpy(pEvent->hfp_ag_event.str, at_string, strlen(at_string)+1);
@@ -311,12 +311,12 @@ void bind_callback(char *at_string, bt_bdaddr_t* bd_addr) {
 void biev_callback(bthf_hf_ind_type_t ind_id, int ind_value,
                                         RawAddress *bd_addr) {
     BtEvent *pEvent = new BtEvent;
-    ALOGD(LOGTAG " biev_cmd_vendor_cb");
-    fprintf(stdout, " biev_cmd_vendor_cb\n");
+    ALOGD(LOGTAG " biev_cb");
+    fprintf(stdout, " biev_cb\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.arg1 = ind_id;
-    pEvent->hfp_ag_event.arg1 = ind_value;
+    pEvent->hfp_ag_event.arg2 = ind_value;
     pEvent->hfp_ag_event.event_id = HFP_AG_BIEV_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
 }
@@ -329,7 +329,7 @@ void bind_cmd_vendor_cb(char* hf_ind, bthf_vendor_bind_type_t type, bt_bdaddr_t*
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     strlcpy(pEvent->hfp_ag_event.str, hf_ind, strlen(hf_ind)+1);
     pEvent->hfp_ag_event.arg1 = type;
-    pEvent->hfp_ag_event.event_id = HFP_AG_BIND_CB;
+    pEvent->hfp_ag_event.event_id = HFP_AG_BIND_VENDOR_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
 }
 
@@ -340,7 +340,7 @@ void biev_cmd_vendor_cb(char* hf_ind_val, bt_bdaddr_t* bd_addr) {
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     strlcpy(pEvent->hfp_ag_event.str, hf_ind_val, strlen(hf_ind_val)+1);
-    pEvent->hfp_ag_event.event_id = HFP_AG_BIEV_CB;
+    pEvent->hfp_ag_event.event_id = HFP_AG_BIEV_VENDOR_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
 }
 
@@ -975,6 +975,13 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
         case HFP_AG_BIEV_CB:
             process_at_biev(pEvent);
             break;
+        case HFP_AG_BIND_VENDOR_CB:
+            process_at_bind_vendor(pEvent);
+            break;
+        case HFP_AG_BIEV_VENDOR_CB:
+            process_at_biev_vendor(pEvent);
+            break;
+            
         case HFP_AG_API_ACCEPT_CALL_REQ:
             if (sBtHfpAgInterface != NULL) {
             }
@@ -1689,13 +1696,36 @@ void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
 }
 
 void Hfp_Ag::process_at_biev(BtEvent* pEvent) {
-    // TODO: just send OK for now
+    // it is just for battery indication.
+    ALOGD(LOGTAG " %s: evend ind:%d, level:%d", __func__, pEvent->hfp_ag_event.arg1, pEvent->hfp_ag_event.arg2);
+    // acooding to the id and value, the return value may be error, for now, OK is used for all cases. 
     if (sBtHfpAgInterface != NULL) {
         sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                     &pEvent->hfp_ag_event.bd_addr);
     }
 }
 
+void Hfp_Ag::process_at_bind_vendor (BtEvent* pEvent) {
+   char *at_string;
+   char str [32];
+
+   at_string = pEvent->hfp_ag_event.str;
+   ALOGD(LOGTAG " %s: type is %d, ind:%s, bdaddr:%s", __func__, 
+    pEvent->hfp_ag_event.arg1, 
+    pEvent->hfp_ag_event.str, 
+    bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, sizeof(str)));
+
+}
+
+void Hfp_Ag::process_at_biev_vendor (BtEvent* pEvent) {
+   char *at_string;
+   char str [32];
+
+   at_string = pEvent->hfp_ag_event.str;
+   ALOGD(LOGTAG " %s: ind:%s, bdaddr:%s", __func__, 
+    pEvent->hfp_ag_event.str, 
+    bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, sizeof(str)));
+}
 void Hfp_Ag::change_state(HfpAgState mState) {
    ALOGD(LOGTAG " current State = %d, new state = %d", mAgState, mState);
    pthread_mutex_lock(&lock);

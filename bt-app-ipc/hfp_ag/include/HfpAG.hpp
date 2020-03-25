@@ -215,6 +215,8 @@ class Hfp_Ag {
     bool SwapVoipCall(bt_bdaddr_t *bd_addr);
     void process_at_bind(BtEvent* pEvent);
     void process_at_biev(BtEvent* pEvent);
+    void process_at_bind_vendor (BtEvent* pEvent);
+    void process_at_biev_vendor(BtEvent* pEvent);
     void update_activecall_num(int active);
     void update_heldcall_num(int held);
 #if defined(BT_MODEM_INTEGRATION)
