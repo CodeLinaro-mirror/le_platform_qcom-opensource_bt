@@ -29,6 +29,7 @@ namespace gatt{
 class GattClient;
 class GattClientCallback {
   public:
+    virtual ~GattClientCallback() = default;
     /**
     * Callback triggered as result of GattClient#setPreferredPhy, or as a result of
     * remote device changing the PHY.

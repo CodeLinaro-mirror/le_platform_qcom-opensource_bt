@@ -31,6 +31,7 @@ namespace gatt{
   */
 class IAdvertisingSetCallback {
   public:
+    virtual ~IAdvertisingSetCallback() = default;
     virtual void onAdvertisingSetStarted(int advertiserId, int tx_power, int status){}
     virtual void onOwnAddressRead(int advertiserId, int addressType, string address){}
     virtual void onAdvertisingSetStopped(int advertiserId){}
