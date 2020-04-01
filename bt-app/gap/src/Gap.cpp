@@ -346,6 +346,29 @@ static void RoleInfoCb(bt_dm_role_info role_info) {
     fprintf(stdout, "\n*****************FINISH*******************\n");
 }
 
+static void VendorA2DPTxCompleteCb(bt_bdaddr_t *bd_addr, bool flush) {
+    bdstr_t bd_str;
+    bdaddr_to_string(bd_addr, &bd_str[0], sizeof(bd_str));
+    ALOGD (LOGTAG "%s Local bdaddr %s, isflush %d", __func__, bd_str, flush);
+    /**************************************************************************************
+     * TODO: customer should maintain a queue (sent_a2dp_queue) to save the sent packets.
+     * For example, when call send_encoded_data_vendor, and the return value is true,
+     * then save the timestamp and enqueue to sent_a2dp_queue.
+     * In this callback function, dequeue an item from the head of sent_a2dp_queue,
+     * calculate the time delta between current time and the timestamp in the dequeued item.
+     * This value is the cost of this packet from host to successfully sent out in f/w.
+     *
+     * If send_encoded_data_vendor return false, it means MAX_OUTPUT_A2DP_FRAME_QUEUE_SZ packets are discarded in host,
+     * it should remove the LAST MAX_OUTPUT_A2DP_FRAME_QUEUE_SZ items in sent_a2dp_queue.
+     *
+     * If flush in this callback function is true, which means the flush occurs in f/w. it should deque one items from
+     * the HEAD of sent_a2dp_queue. Customer can calc the time delta of each item or do some other flush event handler
+     * since those packets are not successfully sent by f/w.
+     *
+     * currently, f/w flush is disabled.
+     * ************************************************************************************/
+}
+
 static btvendor_callbacks_t sVendorCallbacks = {
     sizeof(sVendorCallbacks),
     NULL,
@@ -353,6 +376,7 @@ static btvendor_callbacks_t sVendorCallbacks = {
     VendorAclStateChangedCb,
     DidInfoCb,
     RoleInfoCb,
+    VendorA2DPTxCompleteCb,
 };
 
 void BtGapMsgHandler(void *msg) {
