@@ -1005,6 +1005,7 @@ static bt_status_t bthf_bind_response_vendor (int anum, bthf_vendor_hf_indicator
   	   status,
   	   bd_addr->ToString().c_str());			  
   CHECK_DBUS_CALL_RESULT( rtn, m );
+  return BT_STATUS_SUCCESS;	
 }
 /** Response for BIND TEST command */
 static bt_status_t bthf_bind_string_response_vendor (const char* result, bt_bdaddr_t *bd_addr)
@@ -1024,6 +1025,7 @@ static bt_status_t bthf_bind_string_response_vendor (const char* result, bt_bdad
   	   result,
   	   bd_addr->ToString().c_str());
   CHECK_DBUS_CALL_RESULT( rtn, m );
+  return BT_STATUS_SUCCESS;	
 }
 /** Closes the hf vednor interface. */
 static void bthf_cleanup_vendor (void)
