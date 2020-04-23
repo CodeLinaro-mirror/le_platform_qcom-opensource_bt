@@ -48,9 +48,9 @@ void BtGattMsgHandler (void *context)
       if (sGattLibService) {
         sGattLibService->ProcessEvent(( BtEvent *) context);
       }
-      delete event;
       break;
   }
+  delete event;
 }
 
 namespace gatt {
@@ -1118,11 +1118,13 @@ void GattLibService::onServiceAdded(int status, int serverIf,
     if (el->type == GattDbElement::TYPE_PRIMARY_SERVICE) {
       mHandleMap->addService(serverIf, el->attributeHandle, el->uuid,
              GattService::SERVICE_TYPE_PRIMARY, 0, false);
+      if (svc) delete svc;
       svc = new GattService(svcEl->uuid, svcEl->attributeHandle,
              GattService::SERVICE_TYPE_PRIMARY);
     } else if (el->type == GattDbElement::TYPE_SECONDARY_SERVICE) {
        mHandleMap->addService(serverIf, el->attributeHandle, el->uuid,
                GattService::SERVICE_TYPE_SECONDARY, 0, false);
+      if (svc) delete svc;
        svc = new GattService(svcEl->uuid, svcEl->attributeHandle,
                GattService::SERVICE_TYPE_SECONDARY);
     } else if (el->type == GattDbElement::TYPE_CHARACTERISTIC) {
@@ -1143,10 +1145,9 @@ void GattLibService::onServiceAdded(int status, int serverIf,
 
   ServerMap::App *app = mServerMap->getById(serverIf);
   if (app != NULL) {
-    for (GattDbElement *el : service)
-      delete el;
     app->callback->onServiceAdded(status, svc);
   }
+  delete svc;
 }
 
 void GattLibService::onServiceStopped(int status, int serverIf, int srvcHandle)
@@ -1366,11 +1367,9 @@ GattLibService* GattLibService::getGatt()
 
 GattLibService* GattLibService::getInstance(const bt_interface_t *bt_interface)
 {
+  std::lock_guard<std::mutex> myLock(singletonLock);
   if(sGattService == NULL) {
-    std::lock_guard<std::mutex> myLock(singletonLock);
-    if(sGattService == NULL) {
       sGattService = new GattLibService(bt_interface);
-    }
   }
   ALOGE(LOGTAG " getInstance() ");
   return sGattService;
@@ -1378,9 +1377,7 @@ GattLibService* GattLibService::getInstance(const bt_interface_t *bt_interface)
 
 GattLibService::~GattLibService()
 {
-  if(sGattService != NULL)
-    cleanup();
-
+  cleanup();
   ALOGE(LOGTAG " Deinit Done");
 }
 
@@ -1395,7 +1392,6 @@ GattLibService::GattLibService(const bt_interface_t *bt_interface)
     ALOGE(LOGTAG "Gatt Native Interface init failed");
     return;
   }
-  //mGattDevice = new GattDevice();
   mAdvertiserManager = new AdvertiserManager(mNative);
   mScanManager = new ScanManager(mNative);
   mPeriodicScanManager = new PeriodicScanManager(mNative);
@@ -1423,11 +1419,6 @@ void GattLibService::cleanup()
   }
   mNative = NULL;
 
-  if(mGattDevice != NULL) {
-    //delete(mGattDevice);
-  }
-  mGattDevice = NULL;
-
   if(mAdvertiserManager != NULL) {
     delete(mAdvertiserManager);
   }
@@ -1452,18 +1443,26 @@ void GattLibService::cleanup()
 
   if(mScannerMap != NULL) {
     mScannerMap->clear();
+    delete mScannerMap;
   }
   mScannerMap = NULL;
 
   if(mClientMap != NULL) {
     mClientMap->clear();
+    delete mClientMap;
   }
   mClientMap = NULL;
 
   if(mServerMap != NULL) {
     mServerMap->clear();
+    delete mServerMap;
   }
   mServerMap = NULL;
+
+  if (mHandleMap) {
+    mHandleMap->clear();
+    delete mHandleMap;
+  }
 
   if(sGattService != NULL) {
     sGattService = NULL;
@@ -2046,18 +2045,18 @@ std::vector<gatt_db_element_t> GattLibService::fillGattDbStructureArray(
                                                                 int count)
 {
   std::vector<gatt_db_element_t> db_vec;
+  gatt_db_element_t db_struct;
   for (int i = 0;i < count; i++) {
-    gatt_db_element_t *db_struct = new gatt_db_element_t;
-    db_struct->id = db[i]->id;
-    db_struct->attribute_handle = db[i]->attributeHandle;
-    db_struct->type = static_cast<gatt_db_attribute_type_t>(db[i]->type);
-    db_struct->start_handle = db[i]->startHandle;
-    db_struct->end_handle = db[i]->endHandle;
-    db_struct->properties = db[i]->properties;
-    db_struct->permissions = db[i]->permissions;
-    db_struct->uuid = db[i]->uuid;
+    db_struct.id = db[i]->id;
+    db_struct.attribute_handle = db[i]->attributeHandle;
+    db_struct.type = static_cast<gatt_db_attribute_type_t>(db[i]->type);
+    db_struct.start_handle = db[i]->startHandle;
+    db_struct.end_handle = db[i]->endHandle;
+    db_struct.properties = db[i]->properties;
+    db_struct.permissions = db[i]->permissions;
+    db_struct.uuid = db[i]->uuid;
 
-    db_vec.push_back(*db_struct);
+    db_vec.push_back(db_struct);
   }
   for(GattDbElement *temp_db : db)
     delete temp_db;
@@ -2150,8 +2149,35 @@ void GattLibService::sendResponse(int serverIf, string address, int requestId, i
   mHandleMap->deleteRequest(requestId);
 }
 
+void GattLibService::sendResponse(int serverIf, string address, int requestId, int status,
+        int offset, uint8_t *value, int valueLength)
+{
+  if (VDBG) {
+    ALOGD(LOGTAG " sendResponse() - address %s", address.c_str());
+  }
+
+  int handle = 0;
+  HandleMap::Entry *entry = mHandleMap->getByRequestId(requestId);
+  if (entry != NULL) {
+    handle = entry->handle;
+  }
+  int connId = mServerMap->connIdByAddress(serverIf, address);
+  if (connId < 0)
+    connId = 0;
+  std::vector<uint8_t> val_vec;
+  int i;
+  if(value != NULL) {
+    for(i=0;i<valueLength;i++)
+      val_vec.push_back(value[i]);
+  }
+
+  mNative->gattServerSendResponseNative(serverIf, connId , requestId,
+          (uint8_t) status, handle, offset, val_vec, (uint8_t) 0);
+  mHandleMap->deleteRequest(requestId);
+}
+
 void GattLibService::sendNotification(int serverIf, string address, int handle, bool confirm,
-        uint8_t *value)
+        uint8_t *value, int valueLength)
 {
   if (VDBG) {
     ALOGD(LOGTAG " sendNotification() - address %s  handle %d", address.c_str(), handle);
@@ -2163,9 +2189,10 @@ void GattLibService::sendNotification(int serverIf, string address, int handle, 
   }
 
   std::vector<uint8_t> val_vec;
+  int i;
   if(value != NULL) {
-    size_t len = strlen((char*)value);
-    val_vec.assign(&value[0], &value[len]);
+    for(i=0;i<valueLength;i++)
+      val_vec.push_back(value[i]);
   }
 
   if (confirm) {
@@ -2394,6 +2421,9 @@ void GattLibService::unregAll()
   }
   if (mAdvertiserManager != NULL) {
     mAdvertiserManager->stopAdvertisingSets();
+  }
+  if (mHandleMap != NULL) {
+    mHandleMap->clear();
   }
 }
 
@@ -2628,12 +2658,14 @@ void GattLibService::HandleGattcOpenEvent(GattcOpenEvent *event)
 {
   if (!sGattService) return;
   sGattService->onConnected(event->clientIf, event->conn_id, event->status, *(event->bda));
+  delete event->bda;
 }
 
 void GattLibService::HandleGattcCloseEvent(GattcCloseEvent *event)
 {
   if (!sGattService) return;
   sGattService->onDisconnected(event->clientIf, event->conn_id, event->status, *(event->bda));
+  delete event->bda;
 }
 
 void GattLibService::HandleGattcSearchCompleteEvent(GattcSearchCompleteEvent *event)
@@ -2657,6 +2689,8 @@ void GattLibService::HandleGattcNotifyEvent(GattcNotifyEvent *event)
   std::memcpy(value, &event->p_data.value, event->p_data.len);
   sGattService->onNotify(event->conn_id, *(event->p_data.bda), event->p_data.handle,
                                 event->p_data.is_notify, value, event->p_data.len);
+
+  delete event->p_data.bda;
 }
 
 void GattLibService::HandleGattcReadCharacteristicEvent(
@@ -2709,6 +2743,7 @@ void GattLibService::HandleGattcRemoteRssiEvent(GattcRemoteRssiEvent *event)
   if (!sGattService) return;
    sGattService->onReadRemoteRssi(event->client_if, *(event->bda), event->rssi,
                               event->status);
+   delete event->bda;
 }
 
 void GattLibService::HandleGattcConfigureMtuEvent(GattcConfigureMtuEvent *event)
@@ -2730,6 +2765,8 @@ void GattLibService::HandleGattcGetGattDbEvent(GattcGetGattDbEvent *event)
     fillGattDbElementArray(event->db, event->count);
 
   sGattService->onGetGattDb(event->conn_id, service);
+
+  delete [] event->db;
 }
 
 void GattLibService::HandleGattcPhyUpdatedEvent(GattcPhyUpdatedEvent *event)
@@ -2750,6 +2787,7 @@ void GattLibService::HandleGattcReadPhyEvent(GattcReadPhyEvent *event)
   if (!sGattService) return;
   sGattService->onClientPhyRead(event->clientIf, *(event->bda), event->tx_phy,
                                         event->rx_phy, event->status);
+  delete event->bda;
 }
 
 void GattLibService::HandleGattsRegisterAppEvent(GattsRegisterAppEvent *event)
@@ -2763,6 +2801,7 @@ void GattLibService::HandleGattsConnectionEvent(GattsConnectionEvent *event)
   if (!sGattService) return;
   sGattService->onClientConnected(*(event->bda), event->connected, event->conn_id,
                                                 event->server_if);
+  delete event->bda;
 }
 
 GattDbElement* GattLibService::getSampleGattDbElement()
@@ -2773,7 +2812,6 @@ GattDbElement* GattLibService::getSampleGattDbElement()
 std::vector<GattDbElement*> GattLibService::fillGattDbElementArray
                                               (gatt_db_element_t *db, int count)
 {
-
   std::vector<GattDbElement*> gdb_vec;
   for (int i = 0; i < count; i++) {
     GattDbElement *gdb = getSampleGattDbElement();
@@ -2800,8 +2838,13 @@ void GattLibService::HandleGattsServiceAddedEvent(GattsServiceAddedEvent *event)
                       fillGattDbElementArray(event->service->data(),
                                              static_cast<int>(event->service->size()));
   sGattService->onServiceAdded(event->status, event->server_if, service);
-}
 
+  delete event->service;
+
+  for (GattDbElement *el : service)
+    delete el;   
+  service.clear();
+}
 void GattLibService::HandleGattsServiceStoppedEvent(GattsServiceStoppedEvent *event)
 {
   if (!sGattService) return;
@@ -2820,6 +2863,7 @@ void GattLibService::HandleGattsRequestReadCharacteristicEvent(
   if (!sGattService) return;
   sGattService->onServerReadCharacteristic(*(event->bda), event->conn_id, event->trans_id,
                                 event->attr_handle, event->offset, event->is_long);
+  delete event->bda;
 }
 
 void GattLibService::HandleGattsRequestReadDescriptorEvent(GattsRequestReadDescriptorEvent *event)
@@ -2827,6 +2871,7 @@ void GattLibService::HandleGattsRequestReadDescriptorEvent(GattsRequestReadDescr
   if (!sGattService) return;
   sGattService->onServerReadDescriptor(*(event->bda), event->conn_id, event->trans_id,
                                   event->attr_handle,event->offset, event->is_long);
+  delete event->bda;
 }
 
 void GattLibService::HandleGattsRequestWriteCharacteristicEvent(
@@ -2845,6 +2890,10 @@ void GattLibService::HandleGattsRequestWriteCharacteristicEvent(
   sGattService->onServerWriteCharacteristic(*(event->bda), event->conn_id, event->trans_id,
                                         event->attr_handle, event->offset, event->value->size(),
                                         event->need_rsp, event->is_prep, p_value);
+  
+  delete event->bda;
+  delete event->value;
+  delete [] p_value;
 }
 
 void GattLibService::HandleGattsRequestWriteDescriptorEvent(
@@ -2863,12 +2912,16 @@ void GattLibService::HandleGattsRequestWriteDescriptorEvent(
   sGattService->onServerWriteDescriptor(*(event->bda), event->conn_id, event->trans_id,
                                            event->attr_handle, event->offset, event->value->size(),
                                            event->need_rsp, event->is_prep, p_value);
+  delete event->bda;
+  delete event->value;
+  delete [] p_value;
 }
 
 void GattLibService::HandleGattsRequestExecWriteEvent(GattsRequestExecWriteEvent *event)
 {
   if (!sGattService) return;
   sGattService->onExecuteWrite(*(event->bda), event->conn_id, event->trans_id, event->exec_write);
+  delete event->bda;
 }
 
 void GattLibService::HandleGattsResponseConfirmationEvent(
@@ -2914,6 +2967,7 @@ void GattLibService::HandleGattsReadPhyEvent(GattsReadPhyEvent *event) {
   if (!sGattService) return;
   sGattService->onServerPhyRead(event->serverIf, *(event->bda),
                                         event->tx_phy, event->rx_phy, event->status);
+  delete event->bda;
 }
 
 void GattLibService::HandleBleScannerRegisterScannerEvent(
@@ -2945,6 +2999,8 @@ void GattLibService::HandleBleScannerScanResultEvent(BleScannerScanResultEvent *
   sGattService->onScanResult(event->event_type, event->addr_type, *(event->bda),
                     event->primary_phy, event->secondary_phy, event->advertising_sid,
                     event->tx_power, event->rssi, event->periodic_adv_int, p_value);
+  delete event->bda;
+  delete event->adv_data;
 }
 
 void GattLibService::HandleBleScannerBatchScanReportsEvent(
@@ -2995,6 +3051,11 @@ void GattLibService::HandleBleScannerTrackAdvEvent(BleScannerTrackAdvEvent *even
                                         event->p_adv_track_info.time_stamp);
 
   sGattService->onTrackAdvFoundLost(adv_info);
+
+  delete [] event->p_adv_track_info.p_adv_pkt_data;
+  delete [] event->p_adv_track_info.p_scan_rsp_data;
+  delete event->p_adv_track_info.bd_addr;
+  delete adv_info;
 
 }
 
@@ -3071,6 +3132,7 @@ void GattLibService::HandleBleAdvertiserGetOwnAddressEvent(
 {
   if (!mAdvertiserManager) return;
   mAdvertiserManager->onOwnAddressRead(event->advertiser_id, event->address_type, event->bda);
+  delete event->bda;
 }
 
 void GattLibService::HandleBleAdvertiserAdvSetStartEvent(BleAdvertiserAdvSetStartEvent *event)
@@ -3101,6 +3163,8 @@ void GattLibService::HandleBleScannerPeriodicAdvSyncStartEvent(
   mPeriodicScanManager->onSyncStarted(event->reg_id, event->sync_handle, event->sid,
                           event->address_type, *(event->bda), event->phy, event->interval,
                           event->status);
+  delete event->bda;
+  
 }
 void GattLibService::HandleBleScannerPeriodicAdvSyncLostEvent(
                                                     BleScannerPeriodicAdvSyncLostEvent *event)
@@ -3115,6 +3179,7 @@ void GattLibService::HandleBleScannerPeriodicAdvSyncReportEvent(
   if (!mPeriodicScanManager) return;
   mPeriodicScanManager->onSyncReport(event->sync_handle, event->tx_power, event->rssi,
                                       event->data_status, *(event->data));
+  delete event->data;
 }
 
 void GattLibService::HandleBleAdvertiserPeriodicAdvSetEnableEvent(

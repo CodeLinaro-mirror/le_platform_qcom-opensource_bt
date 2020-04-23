@@ -62,7 +62,6 @@ class GattLeAdvertiser : public IAdvertisingSetCallback {
     int byteLength(std::vector<uint8_t> array);
 
     AdvertisingSetCallback *mCb = NULL;
-    GattDevice *mGattDevice = NULL;
     GattLibService *mGattLibService = NULL;
 
     std::unordered_map<const AdvertisingSetCallback*, IAdvertisingSetCallback*> mCallback;
@@ -76,7 +75,38 @@ class GattLeAdvertiser : public IAdvertisingSetCallback {
     */
 
     GattLeAdvertiser();
-
+    /**
+     * Creates a new advertising set. If operation succeed, device will start advertising. This
+     * method returns immediately, the operation status is delivered through
+     * callback.onAdvertisingSetStarted().
+     * <p>
+     *
+     * @param parameters advertising set parameters.
+     * @param advertiseData Advertisement data to be broadcasted.
+     * @param scanResponse Scan response associated with the advertisement data.
+     * @param periodicParameters periodic advertisng parameters. If null, periodic advertising will
+     * not be started.
+     * @param periodicData Periodic advertising data.
+     * @param duration advertising duration, in 10ms unit. Valid range is from 1 (10ms) to 65535
+     * (655,350 ms). 0 means advertising should continue until stopped.
+     * @param maxExtendedAdvertisingEvents maximum number of extended advertising events the
+     * controller shall attempt to send prior to terminating the extended advertising, even if the
+     * duration has not expired. Valid range is from 1 to 255. 0 means no maximum.
+     * @param callback Callback for advertising set..
+     * @ throw std::invalid_argument exception if :
+     * callback is NULL (OR)
+     * AdvertisingData/ScanResponseData/PeriodicAdvertisingData is too big (OR)
+     * maxExtendedAdvertisingEvents out of range (OR)
+     * Unsupported primary/secondary PHY selected (OR)
+     * Conroller doesnt support LE Extended Advertising (OR)
+     * Duration is out of range.
+     */
+    void startAdvertisingSet(AdvertisingSetParameters *parameters,
+            AdvertiseData *advertiseData, AdvertiseData *scanResponse,
+            PeriodicAdvertiseParameters *periodicParameters,
+            AdvertiseData *periodicData, int duration,
+            int maxExtendedAdvertisingEvents,
+            AdvertisingSetCallback *callback);
   public:
     /**
     * Use getGattLeAdvertiser() to get GattLeAdvertiser object
@@ -139,38 +169,7 @@ class GattLeAdvertiser : public IAdvertisingSetCallback {
             AdvertiseData *advertiseData, AdvertiseData *scanResponse,
             PeriodicAdvertiseParameters *periodicParameters,
             AdvertiseData *periodicData,AdvertisingSetCallback *callback);
-    /**
-     * Creates a new advertising set. If operation succeed, device will start advertising. This
-     * method returns immediately, the operation status is delivered through
-     * callback.onAdvertisingSetStarted().
-     * <p>
-     *
-     * @param parameters advertising set parameters.
-     * @param advertiseData Advertisement data to be broadcasted.
-     * @param scanResponse Scan response associated with the advertisement data.
-     * @param periodicParameters periodic advertisng parameters. If null, periodic advertising will
-     * not be started.
-     * @param periodicData Periodic advertising data.
-     * @param duration advertising duration, in 10ms unit. Valid range is from 1 (10ms) to 65535
-     * (655,350 ms). 0 means advertising should continue until stopped.
-     * @param maxExtendedAdvertisingEvents maximum number of extended advertising events the
-     * controller shall attempt to send prior to terminating the extended advertising, even if the
-     * duration has not expired. Valid range is from 1 to 255. 0 means no maximum.
-     * @param callback Callback for advertising set..
-     * @ throw std::invalid_argument exception if :
-     * callback is NULL (OR)
-     * AdvertisingData/ScanResponseData/PeriodicAdvertisingData is too big (OR)
-     * maxExtendedAdvertisingEvents out of range (OR)
-     * Unsupported primary/secondary PHY selected (OR)
-     * Conroller doesnt support LE Extended Advertising (OR)
-     * Duration is out of range.
-     */
-    void startAdvertisingSet(AdvertisingSetParameters *parameters,
-            AdvertiseData *advertiseData, AdvertiseData *scanResponse,
-            PeriodicAdvertiseParameters *periodicParameters,
-            AdvertiseData *periodicData, int duration,
-            int maxExtendedAdvertisingEvents,
-            AdvertisingSetCallback *callback);
+
     /**
      * Used to dispose of a AdvertisingSet object, obtained with
      * GattLeAdvertiser#startAdvertisingSet.

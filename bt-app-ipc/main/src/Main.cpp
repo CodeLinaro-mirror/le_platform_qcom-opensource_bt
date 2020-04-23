@@ -86,6 +86,9 @@ extern "C"
 
 thread_t *test_thread_id = NULL;
 ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,split
+#define BTIPC_MODULE_ID "bluetoothipc"
+
+const gatt_native_interface_v2b_t *g_gatt_native_interface_v2b = NULL;
 
 /**
  * @brief main function
@@ -97,7 +100,277 @@ ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,spl
  * @param  *argv[]
  *
  */
+#define GATTSERVER_LOOP_TEST
+#define TEST_DIRECT_UNREGISTER_GATTSERVER
+#ifdef GATTSERVER_LOOP_TEST
+
+static int g_serverIf = 0;
+
+class ServerCallbackTest :public GattServerCallback
+{
+
+  public:
+  virtual void onServerRegistered (int status, int serverIf){
+    printf("serverIf:%d is registered with status:%d]n", serverIf, status);
+    g_serverIf = serverIf;
+  }
+
+  void onConnectionStateChange(string deviceAddress, int status, int newState){}
+  void onServiceAdded(int status,GattService *service){}
+  void onCharacteristicReadRequest(string deviceAddress, int requestId, int offset,
+                                      GattCharacteristic *characteristic){}
+  void onCharacteristicWriteRequest(string deviceAddress,int requestId,
+                                      GattCharacteristic *characteristic,bool preparedWrite,
+                                      bool responseNeeded,int offset,uint8_t* value, int length){}
+  void onDescriptorReadRequest(string deviceAddress, int requestId, int offset,
+                                      GattDescriptor *descriptor){}
+  void onDescriptorWriteRequest(string deviceAddress, int requestId,
+                                      GattDescriptor *descriptor,bool preparedWrite,
+                                      bool responseNeeded, int offset, uint8_t * value, int length){}
+  void onExecuteWrite(string deviceAddress, int requestId, bool execute){}
+  void onNotificationSent(string deviceAddress, int status){}
+  void onMtuChanged(string deviceAddress, int mtu){}
+  void onPhyUpdate(string deviceAddress,int txPhy, int rxPhy, int status){}
+  void onPhyRead(string deviceAddress,int txPhy,int rxPhy,int status){}
+  void onConnectionUpdated(string deviceAddress,int interval,int latency,
+                                    int timeout,int status){}
+};
+
+
+class AdvertiserCallbackTest  :public AdvertisingSetCallback
+{
+  public:
+  void onAdvertisingSetStarted (AdvertisingSet *advertisingSet, int txPower, int status) {
+    ALOGD(LOGTAG"%s status: %d  txpower: %d", __FUNCTION__, status, txPower);
+  }
+
+  void  onAdvertisingDataSet(AdvertisingSet *advertisingset,int status)
+  {
+    ALOGD(LOGTAG"%s status: %d", __FUNCTION__, status);
+  }
+
+  void onAdvertisingSetStopped (AdvertisingSet *advertisingSet)
+  {
+    ALOGD(LOGTAG"%s Advertiser ID  %d",__FUNCTION__,advertisingSet->getAdvertiserId());
+  }
+
+  void onAdvertisingEnabled (AdvertisingSet *advertisingSet, bool enable, int status)
+  {
+    ALOGD(LOGTAG"%s  enable: %d status %d",__FUNCTION__,enable,status);
+  }
+
+  void onScanResponseDataSet (AdvertisingSet *advertisingSet, int status)
+  {
+    ALOGD(LOGTAG"onScanResponseDataSet status: %d", status);
+  }
+
+  void onAdvertisingParametersUpdated (AdvertisingSet *advertisingSet, int txPower, int status)
+  {
+    ALOGD(LOGTAG"onAdvertisingParametersUpdated txpower: %d status %d", txPower, status);
+  }
+
+  void onPeriodicAdvertisingParametersUpdated (AdvertisingSet *advertisingSet, int status)
+  {
+    ALOGD(LOGTAG"onPeriodicParametersUpdated  status: %d", status);
+  }
+
+  void onPeriodicAdvertisingDataSet (AdvertisingSet *advertisingSet, int status)
+  {
+    ALOGD(LOGTAG"onPeriodicAAdvertisingDataSet status: %d", status);
+  }
+
+  void onPeriodicAdvertisingEnabled (AdvertisingSet *advertisingSet, bool enable, int status)
+  {
+    ALOGD(LOGTAG"onPeriodicAdvertisingEnabled enable : %d status: %d Advertiser id: %d", enable,
+                                                      status, advertisingSet->getAdvertiserId());
+  }
+
+  void onOwnAddressRead (AdvertisingSet *advertisingSet, int addressType, string address)
+  {
+    ALOGD(LOGTAG"onOwnAddressRead  addressType: %d  address: %s advertiser id: %d", addressType, 
+                                                address.c_str(), advertisingSet->getAdvertiserId());
+  }
+
+  void onStartSuccess(AdvertiseSettings *settingsInEffect)
+  {
+    ALOGD(LOGTAG "onStartSuccess()");
+  }
+
+  void onStartFailure(int errorCode)
+  {
+    ALOGE(LOGTAG "onStartFailure() %d", errorCode);
+  }
+
+};
+
+
+const Uuid TEST_SERVICE_UUID = Uuid::FromString("0000AA01-0000-1000-8000-00805f9b34fb");
+const Uuid TEST_CHAR_UUID = Uuid::FromString("0000BB02-0000-1000-8000-00805f9b34fb");
+
+static GattLibService *gattLibService_;
+static ServerCallbackTest *peripheralCb_;
+static GattServer * gattServer_;
+static GattService *mService;
+static GattCharacteristic *g_char;
+static AdvertiseSettings *advertiseSettings_;
+static AdvertiseData *advertiseData_;
+static AdvertiserCallbackTest *advertiserCb_;
+static GattLeAdvertiser *gattLeAdvertiser_;
+
+void gattserver_load (void)
+{
+  g_gatt_native_interface_v2b = &GattNativeInterfaceV2bImplInst;
+  threadInfo[THREAD_ID_GATT].thread_id = thread_new(threadInfo[THREAD_ID_GATT].thread_name);
+  gattLibService_ = GattLibService::getInstance(NULL); //
+#if 1  // seg-fault - 136 times
+  peripheralCb_ = new ServerCallbackTest;
+  gattServer_ = new GattServer(gattLibService_, 0);
+  gattServer_->registerCallback(*peripheralCb_);
+#endif  
+#if 1  
+  mService = new GattService(TEST_SERVICE_UUID,GattService::SERVICE_TYPE_PRIMARY);
+  int property = 2;
+  int permissions = 1;
+  g_char = new GattCharacteristic(TEST_CHAR_UUID,property,permissions);
+  g_char->setValue(reinterpret_cast<uint8_t*>(const_cast<char*>("hello")), 1);
+  mService->addCharacteristic(g_char);
+  gattServer_->addService(*mService);
+  gattLeAdvertiser_ = GattLeAdvertiser::getGattLeAdvertiser();
+#endif
+#if 1 //-- seg fault  
+  advertiseSettings_ = AdvertiseSettings::Builder()
+  .setAdvertiseMode(AdvertiseSettings::ADVERTISE_MODE_BALANCED)
+  .setConnectable(true)
+  .setTimeout(0)
+  .setTxPowerLevel(AdvertiseSettings::ADVERTISE_TX_POWER_MEDIUM)
+  .build();
+  
+  AdvertiseData::Builder builder = AdvertiseData::Builder()
+  .setIncludeDeviceName(true)
+  .addServiceUuid(TEST_SERVICE_UUID);
+  advertiseData_ = builder.build();
+  
+  advertiserCb_ = new AdvertiserCallbackTest();
+  gattLeAdvertiser_->startAdvertising(advertiseSettings_, advertiseData_, NULL, advertiserCb_);
+#endif
+
+}
+
+void gattserver_unload (void)
+{
+#if 1
+  //stopping Gatt Service
+  if (gattLeAdvertiser_) gattLeAdvertiser_->stopAdvertising(advertiserCb_);
+
+  if (advertiserCb_) delete advertiserCb_;
+  advertiserCb_ = NULL;
+  if (advertiseData_) delete advertiseData_;
+  advertiseData_ = NULL;
+  if (advertiseSettings_) delete advertiseSettings_;
+  advertiseSettings_ = NULL;
+#endif
+
+#if 1
+  if (gattLeAdvertiser_) delete gattLeAdvertiser_; // I added this
+  gattLeAdvertiser_ = NULL;
+  
+#endif
+
+
+#if 1
+  if (gattServer_) {
+    gattServer_->clearServices();
+    gattServer_->close();
+    //it is deleted in Service desructor - delete gchar;
+    //it is deleted in addService call  - delete mService;
+    delete gattServer_;
+  }
+  gattServer_ = NULL;
+  if (peripheralCb_) delete peripheralCb_;
+  peripheralCb_ = NULL;
+  
+#endif  
+  if (gattLibService_) delete gattLibService_; // I added this
+  gattLibService_ = NULL;
+
+  if (threadInfo[THREAD_ID_GATT].thread_id != NULL)
+    thread_free(threadInfo[THREAD_ID_GATT].thread_id);
+  threadInfo[THREAD_ID_GATT].thread_id = NULL;
+}
+
+
+
+void gattserver_loop_test (void) {
+
+  printf("\niniailizing and pending for 10 seconds\n");
+
+  open_sdbus_ipc();
+  gattserver_load();
+
+  for (int i=0; i<20; i++) {
+    sleep(1); //
+    printf("*\n");
+  }
+  printf("\nclosing and pending for 10 seconds\n");
+
+  gattserver_unload();
+  close_sdbus_ipc();
+
+  for (int i=0; i<10; i++) {
+    sleep(1); //
+    printf(".\n");
+  }
+}
+
+
+int loopback_test = 0;
+int unregister_test = 0;
+
+static void sigint_handler(int sig) {
+  printf("\nclosing by SIGINT...\n");
+  signal(SIGINT, SIG_IGN);
+  if (unregister_test) {
+    printf("try to unregister %d\n", g_serverIf);
+    if (g_serverIf != 0) g_gatt_native_interface_v2b->gattServerUnregisterAppNative(g_serverIf);
+  } else {
+    gattserver_unload();
+  }
+  close_sdbus_ipc();
+  exit(0);
+}
+#endif
+
+
 int main (int argc, char *argv[]) {
+
+#ifdef GATTSERVER_LOOP_TEST
+  if (2 <= argc) {
+    for (int i; i<argc; i++){
+      if (argv[i][0] == '-') {
+        if (argv[i][1] == 't') {
+          loopback_test = 1;
+          printf("\nloopback test\n");
+        } else if (argv[i][1] == 'u') {
+          unregister_test = 1;
+          printf("\nunregister server, client test\n");
+        }
+      }
+    }
+  }
+#endif
+
+  if (loopback_test)
+  {
+    int count = 0;
+    // initialize signal handler
+    signal(SIGINT, sigint_handler);
+    while (1) 
+    {
+      printf("test #%d\n", count++);
+      gattserver_loop_test();
+    }
+    return 0;
+  }
 
     // initialize signal handler
     signal(SIGINT, SignalHandler);
@@ -1311,9 +1584,6 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
     }
 }
 
-#define BTIPC_MODULE_ID "bluetoothipc"
-
-const gatt_native_interface_v2b_t *g_gatt_native_interface_v2b = NULL;
 
 const gatt_native_interface_v2b_t *get_gatt_native_interface_v2b_inst (void)
 {
@@ -1378,7 +1648,6 @@ void BluetoothApp :: InitHandler (void) {
     }
 
 }
-
 
 void BluetoothApp :: DeInitHandler (void) {
 

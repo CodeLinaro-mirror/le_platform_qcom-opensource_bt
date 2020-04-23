@@ -140,7 +140,6 @@ class ScanManager {
         std::mutex trackAdvLock;
 
         ScanManager *sManager;
-        GattDevice *mGattDevice;
 
       public:
         PhyInfo* getPhyInfo(std::unordered_set<ScanClient*> cList);

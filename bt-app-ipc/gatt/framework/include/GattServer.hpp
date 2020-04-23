@@ -173,7 +173,25 @@ class GattServer : public IServerCallback, public GattServerCallback {
      */
     bool sendResponse(string deviceAddress, int requestId,
                           int status, int offset, uint8_t *value);
-
+    /**
+     * Send a response to a read or write request to a remote device.
+     *
+     * <p>This function must be invoked in when a remote read/write request
+     * is received by one of these callback methods:
+     *
+     * GattServerCallback#onCharacteristicReadRequest
+     * GattServerCallback#onCharacteristicWriteRequest
+     * GattServerCallback#onDescriptorReadRequest
+     * GattServerCallback#onDescriptorWriteRequest
+     * @param device The remote device address to send this response to
+     * @param requestId The ID of the request that was received with the callback
+     * @param status The status of the request to be sent to the remote devices
+     * @param offset Value offset for partial read/write response
+     * @param value The value of the attribute that was read/written (optional)
+     * @param length The value length of the attribute that was read/written (optional)
+     */
+    bool sendResponse(string deviceAddress, int requestId,
+                          int status, int offset, uint8_t *value, int length);
     /**
      * Send a notification or indication that a local characteristic has been
      * updated.

@@ -192,6 +192,8 @@ Rsp::Rsp(GattLibService* g_gatt) {
 Rsp::~Rsp() {
   fprintf(stdout, "(%s) RSP DeInitialized",__FUNCTION__);
   SetDeviceState(WLAN_INACTIVE);
+  if (mParameters) delete mParameters;
+  if (mAdvData) delete mAdvData;
   delete(mServer);
   delete(mRSPAdvCb);
   delete(mRspServerCb);
@@ -214,6 +216,7 @@ bool Rsp::StartAdvertisement() {
   ALOGE(LOGTAG "%s",__FUNCTION__);
   fprintf(stdout,"Rsp::StartAdvertisement \n");
   SetDeviceState(WLAN_INACTIVE);
+  if (mParameters) delete mParameters;
   mParameters = AdvertisingSetParameters::Builder()
                             .setConnectable(CONNECTABLE)
                             .setScannable(SCANNABLE)
@@ -227,6 +230,7 @@ bool Rsp::StartAdvertisement() {
                                   .setIncludeTxPowerLevel(false);
   builder.addServiceUuid(SERVICE_UUID);
   builder.addServiceData(SERVICE_UUID,vec);
+  if (mAdvData) delete mAdvData;
   mAdvData = builder.build();
   try {
       mAdvertiser->startAdvertisingSet(mParameters,
@@ -274,6 +278,8 @@ bool Rsp::HandleWlanOn() {
 void Rsp::StopAdvertisement(){
   ALOGE(LOGTAG "%s",__FUNCTION__);
   mAdvertiser->stopAdvertising(mRSPAdvCb);
+  if (mParameters) delete mParameters;
+  if (mAdvData) delete mAdvData;
 }
 
 bool Rsp::AddService() {

@@ -102,7 +102,6 @@ void GattServer::onServiceAdded(int status, GattService *service)
   }
 
   mServices.push_back(tmp);
-  delete service;
   try {
     mCallback->onServiceAdded(status, tmp);
   } catch (std::exception& e) {
@@ -467,6 +466,22 @@ bool GattServer::sendResponse(string deviceAddress, int requestId,
   return true;
 }
 
+bool GattServer::sendResponse(string deviceAddress, int requestId,
+          int status, int offset, uint8_t *value, int length)
+{
+  if (VDBG) ALOGD(LOGTAG " sendResponse() - device: %s", deviceAddress.c_str());
+  if (mService == NULL || mServerIf == 0) return false;
+
+  try {
+    mService->sendResponse(mServerIf, deviceAddress, requestId,
+            status, offset, value, length);
+  } catch (std::exception& e) {
+      ALOGE(LOGTAG " %s", e.what());
+      return false;
+  }
+  return true;
+}
+
 bool GattServer::notifyCharacteristicChanged(string deviceAddress,
           GattCharacteristic &characteristic, bool confirm)
 {
@@ -485,7 +500,7 @@ bool GattServer::notifyCharacteristicChanged(string deviceAddress,
   try {
     mService->sendNotification(mServerIf, deviceAddress,
             characteristic.getInstanceId(), confirm,
-            characteristic.getValue());
+            characteristic.getValue(), characteristic.getValueLength());
   } catch (std::exception& e) {
       ALOGE(LOGTAG " %s", e.what());
       return false;

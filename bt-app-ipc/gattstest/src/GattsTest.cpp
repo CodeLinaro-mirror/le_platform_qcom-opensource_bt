@@ -93,8 +93,8 @@ map<int, AdvertisingSet*> advSetMap;
 vector <string> connectedDevices;
 unordered_map < gattstestServerCallback*, GattServer*> servCBInstanceMap;
 
-map<gattstestServerCallback*,string> connectedDeviceMap;
-map<string,GattServer*> DeviceMap;
+//DeviceMap to store connected client addr and servers connected to client
+map<string,vector<GattServer*>> DeviceMap;
 
 
 vector <string> service_field;
@@ -111,9 +111,9 @@ GattDescriptor *executeWriteDesc;
 
 
 
-AdvertisingSetParameters *mAdvertisingParameters;
-PeriodicAdvertiseParameters *mPeriodicParams;
-AdvertisingSet *mAdvertisingSet;
+AdvertisingSetParameters *mAdvertisingParameters = NULL;
+PeriodicAdvertiseParameters *mPeriodicParams = NULL;
+AdvertisingSet *mAdvertisingSet = NULL;
 
 bool split (const string &s, char c,vector<string> &v)
 {
@@ -145,44 +145,42 @@ void gattstestServerCallback::onServerRegistered (int status, int serverIf) {
 void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int status,
                                                                int newState)
 {
-  bool connected= false;
   string address;
-  GattServer *mServer;
+  GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator ptr;
-  map <string,GattServer*> ::iterator dtr = DeviceMap.find(deviceAddress);
-  map<gattstestServerCallback*,string> ::iterator iter;
-  iter =connectedDeviceMap.find(gattstestServerCb);
+  map <string,vector<GattServer*>> ::iterator dtr = DeviceMap.find(deviceAddress);
   vector <string> ::iterator it;
   it = find(connectedDevices.begin(),connectedDevices.end(),deviceAddress);
   ALOGD(LOGTAG"%s status = %d newState = %d", __FUNCTION__ , status , newState);
   ALOGD(LOGTAG"%s device address: %s",__FUNCTION__, deviceAddress.c_str());
+  gattstestServerCb = this;
+  //Find server associated with this callback
+  for(ptr = servCBInstanceMap.begin(); ptr != servCBInstanceMap.end() ; ++ptr ) {
+    if(ptr->first == gattstestServerCb) {
+      mServer = ptr->second;
+      break;
+    }
+  }
+
   if (newState == GattDevice::STATE_CONNECTED && status == GATT_SUCCESS) {
     fprintf(stdout,"The device %s got connected \n", deviceAddress.c_str());
-    gattstestServerCb = this;
     if(it != connectedDevices.end()) {
       //Device already exists do not insert
     } else {
         connectedDevices.push_back(deviceAddress);
     }
-    for(ptr = servCBInstanceMap.begin(); ptr != servCBInstanceMap.end() ; ++ptr ) {
-      if(ptr->first == gattstestServerCb) {
-        connected = true;
-        break;
-      }
-    }
-    if(connected) {
-      mServer= ptr->second;
-      if(dtr != DeviceMap.end()) {
-      //Device Already exists do not add
-    } else {
-      DeviceMap.insert(pair <string,GattServer*> (deviceAddress,mServer));
-    }
+    //Add server to connected DeviceMap
+    DeviceMap[deviceAddress].push_back(mServer);
+
     mServer->connect(deviceAddress,AUTO_CONNECT);
-    }
+
   } else if(newState == GattDevice::STATE_DISCONNECTED) {
     fprintf(stdout,"The device %s got disconnected \n", deviceAddress.c_str());
     if(dtr != DeviceMap.end()) {
-      DeviceMap.erase(dtr);
+      //Remove server from list of servers connected to deviceAddress
+      vector <GattServer*>& conn_servers = DeviceMap[deviceAddress];
+      conn_servers.erase(std::remove(conn_servers.begin(),conn_servers.end(),mServer),
+                         conn_servers.end());
     }
     for(it = connectedDevices.begin(); it != connectedDevices.end() ; ++it ) {
       if(*it == deviceAddress) {
@@ -211,10 +209,11 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   uint8_t *value = NULL;
   value = characteristic->getValue();
+  string valueString = (char*)characteristic->getValue();
   GattService *mService = characteristic->getService();
   Uuid s_uuid = mService->getUuid();
   Uuid c_uuid = characteristic->getUuid();
-  ALOGD(LOGTAG"%s value = %s", __FUNCTION__, value);
+  ALOGD(LOGTAG"%s value = %s", __FUNCTION__, valueString);
   ALOGD(LOGTAG"%s service Uuid = %s", __FUNCTION__, s_uuid.ToString().c_str());
   ALOGD(LOGTAG"%s characteristic uuid = %s", __FUNCTION__, c_uuid.ToString().c_str());
   GattServer *mServer = NULL;
@@ -227,7 +226,8 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
     }
   }
   mServer= str->second;
-  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value + offset);
+  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value + offset,
+                                      characteristic->getValueLength());
   if(status) {
     ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
   }
@@ -257,7 +257,7 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
     characteristic->setValue(value, length);
   }
   if (responseNeeded) {
-    mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+    mServer->sendResponse(deviceAddress,requestId,0,offset,value, characteristic->getValueLength());
   }
   int d = characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY;
   if((characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY) != 0) {
@@ -274,9 +274,10 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   uint8_t *value = NULL;
+  string valueString = (char*)descriptor->getValue();
   Uuid desc_uuid = descriptor->getUuid();
   value = descriptor->getValue();
-  ALOGD(LOGTAG"%s Descriptor UUID: %s  value = %s", __FUNCTION__, desc_uuid.ToString().c_str(),descriptor->getValue());
+  ALOGD(LOGTAG"%s Descriptor UUID: %s  value = %s", __FUNCTION__, desc_uuid.ToString().c_str(), valueString);
   GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
     gattstestServerCb = this;
@@ -285,7 +286,7 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
         break;
     }
     mServer= str->second;
-    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset, descriptor->getValueLength());
     if(status) {
         ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
     }
@@ -301,9 +302,9 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
   GattCharacteristic *characteristic = descriptor->getCharacteristic();
   Uuid d_uid = descriptor->getUuid();
   Uuid c_uid = characteristic->getUuid();
-  value = descriptor->getValue();
+  string valueString = (char*)descriptor->getValue();
   ALOGD(LOGTAG"%s  descriptor_uuid: %s value = %s", __FUNCTION__, d_uid.ToString().c_str(),
-                                                    descriptor->getValue());
+                                                    valueString);
   GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
   gattstestServerCb = this;
@@ -320,7 +321,7 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
     descriptor->setValue(value, length);
   }
   if (responseNeeded) {
-    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset, length);
     if (status) {
       ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
     }
@@ -346,7 +347,7 @@ void gattstestServerCallback::onExecuteWrite(string deviceAddress, int requestId
   } else {
      receivedData.clear();
   }
-  bool status = mServer->sendResponse(deviceAddress,requestId,GATT_SUCCESS,0,NULL);
+  bool status = mServer->sendResponse(deviceAddress,requestId,GATT_SUCCESS,0,NULL,0);
   if (status) {
     ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
   }
@@ -498,6 +499,16 @@ GattsTest::~GattsTest()
 {
   ALOGD(LOGTAG "(%s) GATTSTEST DeInitialized",__FUNCTION__);
   mlibservice = NULL;
+  if (mAdvertiseSettings) delete mAdvertiseSettings;
+  if (mAdvertisingParameters) delete mAdvertisingParameters;
+  if (mPeriodicParams) delete mPeriodicParams;
+
+  for (auto svc_vec:service_list) {
+    for (auto svc:svc_vec) {
+      delete svc;
+    }
+    svc_vec.clear();
+  }
 }
 
 
@@ -592,6 +603,7 @@ void GattsTest::ParseServiceElement(int instance)
   if(instance >= SERVICE_LINE_MIN && instance <= SERVICE_LINE_MAX) {
       if(service_field[0].empty()) {
         ALOGD(LOGTAG"Service details are empty");
+        delete service_temp;
         service_temp = NULL;
       } else {
         if(len >= 1) {
@@ -615,8 +627,8 @@ void GattsTest::ParseServiceElement(int instance)
           istringstream(service_field[5]) >> permissions;
           service_temp->d_permissions = permissions;
         }
+        service_list[instance].push_back(service_temp);
       }
-      service_list[instance].push_back(service_temp);
   }
 }
 
@@ -836,6 +848,13 @@ bool GattsTest::StartAdvertisement(string        instanceID)
   }
   //fetching advertiser Callback instance for the server/advertiser instance key
   gattstestAdvCb = advCBInstanceMap[instance];
+  if (gattstestAdvCb == NULL)
+  {
+    ALOGD("%s For instance %d, Server is not added ", __FUNCTION__, instance);
+    fprintf(stdout,"For instance %d, Server is not added \n",instance);
+    return false;
+  }
+
   //Finding corresponding Legacy flag details for the corresponding advertiser
   temp = AdvSet_list[instance -1];
   legacyflag = temp->legacyflag;
@@ -845,7 +864,7 @@ bool GattsTest::StartAdvertisement(string        instanceID)
       madvertiser->startAdvertising(mAdvertiseSettings,mAdvertiseData,mScanResponseData,gattstestAdvCb);
     } else {
       madvertiser->startAdvertisingSet(mAdvertisingParameters,
-                         mAdvertiseData,mScanResponseData,mPeriodicParams,mPeriodicData,gattstestAdvCb);
+                          mAdvertiseData,mScanResponseData,mPeriodicParams,mPeriodicData,gattstestAdvCb);
     }
   } catch(const std::exception &ex) {
     ALOGD(LOGTAG"%s start Advertising exception  %s", __FUNCTION__, ex.what());
@@ -883,6 +902,7 @@ bool GattsTest::BuildAdvertisingParameters(int instance)
   try {
     if(setParams->legacyflag) {
       ALOGD(LOGTAG" Legacy Advertising will be used \n");
+      if (mAdvertiseSettings) delete mAdvertiseSettings;
       mAdvertiseSettings = AdvertiseSettings::Builder()
                            .setAdvertiseMode(setParams->advertise_mode)
                            .setTxPowerLevel(setParams->tx_power)
@@ -896,6 +916,7 @@ bool GattsTest::BuildAdvertisingParameters(int instance)
             mAdvertiseSettings->getTxPowerLevel(), mAdvertiseSettings->getMode(),
             mAdvertiseSettings->getTimeout());
     } else {
+      if (mAdvertisingParameters) delete mAdvertisingParameters;
       mAdvertisingParameters = AdvertisingSetParameters::Builder()
                               .setConnectable(setParams->connectableflag)
                               .setScannable(setParams->scannableflag)
@@ -1013,6 +1034,7 @@ bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
   include_txpower = temp->includeTxPowerflag;
 
   if(periodic_flag) {
+     if (mPeriodicParams) delete mPeriodicParams;
     mPeriodicParams = PeriodicAdvertiseParameters::Builder()
                       .setIncludeTxPower(include_txpower)
                       .setInterval(periodic_interval)
@@ -1021,6 +1043,7 @@ bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
     ALOGD(LOGTAG"SetPeriodicAdvertisingParameters:: IncludeTxPower: %d interval %d",
               mPeriodicParams->getIncludeTxPower() ,mPeriodicParams->getInterval());
   } else {
+    if (mPeriodicParams) delete mPeriodicParams;
     mPeriodicParams = NULL;
   }
   return true;
@@ -1039,6 +1062,10 @@ bool GattsTest::SetScanResponseData(int instance)
   scannable_flag = temp->scannableflag;
   if(scannable_flag) {
     mScanResponseData = mAdvertiseData;
+    /* Advertise Data is not allowed for Extended Scannable adv type */
+    if(!temp->legacyflag) {
+      mAdvertiseData = NULL;
+    }
   } else {
     mScanResponseData = NULL;
   }
@@ -1048,6 +1075,8 @@ bool GattsTest::SetScanResponseData(int instance)
 bool GattsTest::UnregisterServer(string instance)
 {
   GattServer *mServer;
+  gattstestServerCallback *mServercallback = NULL;
+  gattstestAdvertiserCallback *mAdvertisercallback = NULL;
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   int instanceId;
   istringstream(instance) >> instanceId;
@@ -1066,12 +1095,25 @@ bool GattsTest::UnregisterServer(string instance)
     unordered_map <gattstestServerCallback*,GattServer*> ::iterator itr;
     for(itr = servCBInstanceMap.begin(); itr!= servCBInstanceMap.end(); ++itr) {
       if(itr->second == mServer ){
+         mServercallback = itr->first;
+         delete(mServercallback);
+         mServercallback = NULL;
+         mServer = itr->second;
+         delete(mServer);
+         mServer = NULL;
          servCBInstanceMap.erase(itr->first);
          break;
        }
     }
+    map <int,gattstestAdvertiserCallback*> ::iterator advcb_itr;
+    for(advcb_itr = advCBInstanceMap.begin(); advcb_itr!= advCBInstanceMap.end(); ++advcb_itr) {
+      ALOGD(LOGTAG"harish - test- adv cb instance mapped");
+      mAdvertisercallback = advcb_itr->second;
+      delete(mAdvertisercallback);
+      mAdvertisercallback = NULL;
+      advCBInstanceMap.erase(advcb_itr->first);
+    }
     servInstanceMap.erase(instanceId);
-    advCBInstanceMap.erase(instanceId);
     return true;
   } else {
     fprintf(stdout,"There are no more servers to unregister \n");
@@ -1203,40 +1245,55 @@ void GattsTest::CancelConnection(string remoteAddress)
 {
   ALOGD(LOGTAG"%s", __FUNCTION__);
   GattServer *mServer = NULL;
-  bool connected = false;
-  map <string,GattServer*> ::iterator dtr = DeviceMap.find(remoteAddress);
-  for(dtr = DeviceMap.begin(); dtr != DeviceMap.end() ; ++dtr) {
-    if(remoteAddress == dtr->first) {
-      mServer = dtr->second;
-      connected = true;
-      break;
-    }
-  }
-  if(connected) {
-    mServer->cancelConnection(remoteAddress);
+  vector<GattServer*>::iterator dtr;
+  if(DeviceMap.find(remoteAddress) != DeviceMap.end()) {
+    ALOGD(LOGTAG" %s No.of servers connected to this addr : %d", __FUNCTION__,
+            DeviceMap[remoteAddress].size());
+    //Send cancel connection on each server connected to this addr
+    for(dtr = DeviceMap[remoteAddress].begin(); dtr !=DeviceMap[remoteAddress].end(); dtr++) {
+        mServer = *dtr;
+        mServer->cancelConnection(remoteAddress);
+     }
   } else {
-    fprintf(stdout,"Device %s is not connected", remoteAddress.c_str());
-    ALOGD(LOGTAG"Device %s is not connected", remoteAddress.c_str());
+    ALOGD(LOGTAG"%s remote Address not connected ", __FUNCTION__);
   }
 }
 
 bool GattsTest::DisableGATTSTEST()
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
+  int instance = SERVICE_LINE_MIN;
   GattServer *mServer = NULL;
   gattstestServerCallback *mServercallback = NULL;
   gattstestAdvertiserCallback *mAdvertisercallback = NULL;
+  vector <Service*> ::iterator serv_itr;
+  vector <AdvertiseSet*> ::iterator advt_itr;
   map <int, GattServer*> ::iterator itr;
   map <int,gattstestAdvertiserCallback*> ::iterator at;
   g_gatt->unregAll();
   servInstanceMap.clear();
+  manufacturerId_list.clear();
+  manufacturerData_list.clear();
+  for (instance=SERVICE_LINE_MIN;instance<=SERVICE_LINE_MAX;instance++) {
+    for(serv_itr = service_list[instance].begin(); serv_itr != service_list[instance].end();
+	    ++serv_itr) {
+      delete(*serv_itr);
+    }
+    service_list[instance].clear();
+  }
+  for(advt_itr = AdvSet_list.begin(); advt_itr != AdvSet_list.end(); ++advt_itr) {
+      delete(*advt_itr);
+  }
+  AdvSet_list.clear();
   unordered_map  <gattstestServerCallback*,GattServer*> ::iterator it;
   for(it = servCBInstanceMap.begin(); it != servCBInstanceMap.end(); ++it) {
     mServercallback = it->first;
     delete(mServercallback);
+    mServercallback = NULL;
     mServer = it->second;
     mServer->close();
     delete(mServer);
+    mServer = NULL;
   }
   servCBInstanceMap.clear();
   for(at = advCBInstanceMap.begin(); at != advCBInstanceMap.end(); ++at) {
@@ -1244,6 +1301,8 @@ bool GattsTest::DisableGATTSTEST()
     delete(mAdvertisercallback);
   }
   advCBInstanceMap.clear();
+  advSetMap.clear();
+  DeviceMap.clear();
   return true;
 }
 

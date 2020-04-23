@@ -328,10 +328,6 @@ void ScanManager::ScanNative::cleanup()
   mFilterIndexStack.clear();
   sManager = NULL;
 
-  if(mGattDevice != NULL) {
-   // delete(mGattDevice);
-  mGattDevice = NULL;
-  }
 }
 
 ScanManager::ScanNative::~ScanNative()
@@ -351,7 +347,6 @@ ScanManager::ScanNative::ScanNative(ScanManager *scanManager)
     sManager->flushBatchScanResults(*it);
   }
 
-  //mGattDevice = new GattDevice();
 }
 
 void ScanManager::ScanNative::configureRegularScanParams()

@@ -178,9 +178,9 @@ static RawAddress str2addr(string address)
   return bd_addr;
 }
 
-static string *addr2Str(RawAddress address)
+static string addr2Str(RawAddress address)
 {
-  return new string(address.ToString());
+  return string(address.ToString());
 }
 
 static btapp::Uuid bluetoothUuid2btAppUuid(bluetooth::Uuid uuid)
@@ -840,16 +840,14 @@ static int btgattc_get_gatt_db_cb(sd_bus_message *m, void *userdata, sd_bus_erro
     return res;
   }
 
-  db = new btgatt_db_element_t[count];
-
   rtn = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "(qsiqqqyq)");
   if (rtn < 0)
   {
     ALOGE(LOGTAG "::%s Failed to open container : %d - %s\n", __func__, -rtn, strerror(-rtn));
-    delete db;
     return res;
   }
 
+  db = new btgatt_db_element_t[count];
   for (int i=0; i<count; i++)
   {
     btgatt_db_element_t *element = (btgatt_db_element_t *)&db[i];
@@ -865,7 +863,7 @@ static int btgattc_get_gatt_db_cb(sd_bus_message *m, void *userdata, sd_bus_erro
                               &element->permissions);
     if (0 == rtn || rtn < 0)  {
       ALOGE(LOGTAG "::%s Array size mismatched. count:%d, size:%d", __func__, count, i);
-      delete db;     
+      delete [] db;     
       return res;
     }
 
@@ -883,7 +881,7 @@ static int btgattc_get_gatt_db_cb(sd_bus_message *m, void *userdata, sd_bus_erro
   if (sGattClientCallbacks)
     sGattClientCallbacks->get_gatt_db_cb(conn_id, (const btgatt_db_element_t *)db, count);
 
-  delete db;
+  delete [] db;
   return res;
 }
 
@@ -959,7 +957,7 @@ static int readClientPhyCb(sd_bus_message *m, void *userdata, sd_bus_error *ret_
   {
     bda = str2addr(string(str_get));
     ALOGD(LOGTAG "(%s) clientIf: %d, bda: %s, tx_phy: %d, rx_phy: %d, status: %d",
-          __func__, clientIf, addr2Str(bda)->c_str(), tx_phy, rx_phy, status);
+          __func__, clientIf, addr2Str(bda).c_str(), tx_phy, rx_phy, status);
     if (sGattClientCallbacks)
       sGattExtCallbacks->readClientPhyCb(clientIf, bda, tx_phy, rx_phy, status);
   }
@@ -1019,7 +1017,7 @@ static int btgatts_connection_cb(sd_bus_message *m, void *userdata, sd_bus_error
   {
     bda = str2addr(string(str_get));
     ALOGD(LOGTAG "(%s) connid : %d server_if : %d status : %d bda (%s)", __func__, conn_id,
-          server_if, connected, addr2Str(bda)->c_str());
+          server_if, connected, addr2Str(bda).c_str());
     if (sGattServerCallbacks)
     {
       sGattServerCallbacks->connection_cb(conn_id, server_if, connected, bda);
@@ -1168,7 +1166,7 @@ static int btgatts_request_read_characteristic_cb(sd_bus_message *m, void *userd
   {
     bda = str2addr(string(str_get));
     ALOGD(LOGTAG "(%s) connid: %d trans_id: %d, bda: %s, attr_handle: %d, offset:%d is_long: %d",
-          __func__, conn_id, trans_id, addr2Str(bda)->c_str(), attr_handle, offset, is_long);
+          __func__, conn_id, trans_id, addr2Str(bda).c_str(), attr_handle, offset, is_long);
     if (sGattServerCallbacks)
     {
       sGattServerCallbacks->request_read_characteristic_cb(conn_id, trans_id, bda, attr_handle, offset, (bool)is_long);
@@ -1199,7 +1197,7 @@ static int btgatts_request_read_descriptor_cb(sd_bus_message *m, void *userdata,
   {
     bda = str2addr(string(str_get));
     ALOGD(LOGTAG "(%s) connid: %d trans_id: %d, bda: %s, attr_handle: %d, offset:%d is_long: %d",
-          __func__, conn_id, trans_id, addr2Str(bda)->c_str(), attr_handle, offset, is_long);
+          __func__, conn_id, trans_id, addr2Str(bda).c_str(), attr_handle, offset, is_long);
 
     if (sGattServerCallbacks)
     {
@@ -1240,7 +1238,7 @@ static int btgatts_request_write_characteristic_cb(sd_bus_message *m, void *user
     bda = str2addr(str_get); 
     ALOGD(LOGTAG "(%s) connid: %d trans_id: %d, bda: %s, attr_handle: %d, offset:%d need_rsp: %d,"
                  " is_prep:%d",
-          __func__, conn_id, trans_id, addr2Str(bda)->c_str(), attr_handle, offset,
+          __func__, conn_id, trans_id, addr2Str(bda).c_str(), attr_handle, offset,
           need_rsp, is_prep);
     if (sGattServerCallbacks)
     {
@@ -1281,7 +1279,7 @@ static int btgatts_request_write_descriptor_cb(sd_bus_message *m, void *userdata
 
     ALOGD(LOGTAG "(%s) connid: %d trans_id: %d, bda: %s, attr_handle: %d, offset:%d need_rsp: %d,"
                  " is_prep:%d",
-          __func__, conn_id, trans_id, addr2Str(bda)->c_str(), attr_handle, offset,
+          __func__, conn_id, trans_id, addr2Str(bda).c_str(), attr_handle, offset,
           need_rsp, is_prep);
 
     if (sGattServerCallbacks)
@@ -1312,7 +1310,7 @@ static int btgatts_request_exec_write_cb(sd_bus_message *m, void *userdata, sd_b
   {
     bda = str2addr(string(str_get));
     ALOGD(LOGTAG "(%s) connid: %d trans_id: %d, bda: %s, exec_write: %d",
-          __func__, conn_id, trans_id, addr2Str(bda)->c_str(), exec_write);
+          __func__, conn_id, trans_id, addr2Str(bda).c_str(), exec_write);
 
     if (sGattServerCallbacks)
     {
@@ -1503,7 +1501,7 @@ static int readServerPhyCb(sd_bus_message *m, void *userdata, sd_bus_error *ret_
   {
     bda = str2addr(string(str_get));
     ALOGD(LOGTAG "(%s) serverIf: %d, bda: %s, tx_phy: %d, rx_phy: %d, status: %d",
-          __func__, serverIf, addr2Str(bda)->c_str(), tx_phy, rx_phy, status);
+          __func__, serverIf, addr2Str(bda).c_str(), tx_phy, rx_phy, status);
 
     if (sGattExtCallbacks)
     {
@@ -1865,7 +1863,7 @@ static int getOwnAddressCb(sd_bus_message *m, void *userdata, sd_bus_error *ret_
   {
     address = str2addr(string(str_get));
     ALOGD(LOGTAG "(%s) advertiser_id: %d address_type: %d, address: %s",
-          __func__, advertiser_id, address_type, addr2Str(address)->c_str());
+          __func__, advertiser_id, address_type, addr2Str(address).c_str());
 
     if (sGattExtCallbacks)
     {

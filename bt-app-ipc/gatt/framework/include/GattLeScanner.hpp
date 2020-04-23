@@ -95,7 +95,6 @@ class GattLeScanner final {
     static const bool VDBG = false;
     static GattLeScanner *sGattLeScanner;
     static std::mutex singletonLock;
-    GattDevice *mGattDevice = NULL;
     GattLibService *mGattLibService = NULL;
     BleScanCallbackWrapper *wrapper = NULL;
 
