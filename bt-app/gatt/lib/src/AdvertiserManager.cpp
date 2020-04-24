@@ -138,6 +138,7 @@ void AdvertiserManager::startAdvertisingSet(AdvertisingSetParameters& parameters
                                                   int maxExtAdvEvents,
                                                   IAdvertisingSetCallback& callback)
 {
+
   GattLibService *mGatt = GattLibService::getGatt();
   if(mGatt == NULL) return;
 
@@ -197,7 +198,7 @@ void AdvertiserManager::stopAdvertisingSet(IAdvertisingSetCallback& callback)
   mNative->stopAdvertisingSetNative(advertiserId);
 
   try {
-          callback.onAdvertisingSetStopped(advertiserId);
+    callback.onAdvertisingSetStopped(advertiserId);
   } catch (std::exception& e ) {
     ALOGE(LOGTAG " error sending onAdvertisingSetStopped callback %s", e.what());
   }

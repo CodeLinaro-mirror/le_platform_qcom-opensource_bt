@@ -190,6 +190,7 @@ void GattLeAdvertiser::startAdvertising(AdvertiseSettings* settings,
 
   startAdvertisingSet(parameters, advertiseData, scanResponse, NULL, NULL,
           duration, 0, callback);
+  delete parameters;
 }
 
 void GattLeAdvertiser::stopAdvertising(AdvertisingSetCallback *callback)
@@ -208,7 +209,6 @@ void GattLeAdvertiser::startAdvertisingSet(AdvertisingSetParameters *parameters,
 {
   startAdvertisingSet(parameters, advertiseData, scanResponse, periodicParameters,
             periodicData, 0, 0, callback);
-  delete parameters;
 }
 
 void GattLeAdvertiser::startAdvertisingSet(AdvertisingSetParameters *parameters,
@@ -314,7 +314,7 @@ void GattLeAdvertiser::startAdvertisingSet(AdvertisingSetParameters *parameters,
     postStartSetFailure(callback,
            AdvertisingSetCallback::ADVERTISE_FAILED_INTERNAL_ERROR);
     return;
-    }
+  }
 }
 
 void GattLeAdvertiser::stopAdvertisingSet(AdvertisingSetCallback *callback)
@@ -325,8 +325,8 @@ void GattLeAdvertiser::stopAdvertisingSet(AdvertisingSetCallback *callback)
 
   auto tCb = mCallback.find(callback);
   if (tCb == mCallback.end()) {
-  ALOGE(LOGTAG " stopAdvertisingSet() No callback ");
-  return;
+    ALOGE(LOGTAG " stopAdvertisingSet() No callback ");
+    return;
   }
 
   mCallback.erase(callback);

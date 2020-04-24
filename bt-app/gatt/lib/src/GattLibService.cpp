@@ -66,6 +66,7 @@ void BtGattMsgHandler (void *context)
         sGattLibService->ProcessEvent(( BtEvent *) context);
       }
       delete event;
+      event = NULL;
       break;
   }
 }
@@ -1135,25 +1136,33 @@ void GattLibService::onServiceAdded(int status, int serverIf,
     if (el->type == GattDbElement::TYPE_PRIMARY_SERVICE) {
       mHandleMap->addService(serverIf, el->attributeHandle, el->uuid,
              GattService::SERVICE_TYPE_PRIMARY, 0, false);
+      if (svc) {
+        delete svc;
+        svc = NULL;
+      }
       svc = new GattService(svcEl->uuid, svcEl->attributeHandle,
              GattService::SERVICE_TYPE_PRIMARY);
     } else if (el->type == GattDbElement::TYPE_SECONDARY_SERVICE) {
-       mHandleMap->addService(serverIf, el->attributeHandle, el->uuid,
-               GattService::SERVICE_TYPE_SECONDARY, 0, false);
-       svc = new GattService(svcEl->uuid, svcEl->attributeHandle,
-               GattService::SERVICE_TYPE_SECONDARY);
+      mHandleMap->addService(serverIf, el->attributeHandle, el->uuid,
+              GattService::SERVICE_TYPE_SECONDARY, 0, false);
+      if (svc) {
+        delete svc;
+        svc = NULL;
+      }
+      svc = new GattService(svcEl->uuid, svcEl->attributeHandle,
+             GattService::SERVICE_TYPE_SECONDARY);
     } else if (el->type == GattDbElement::TYPE_CHARACTERISTIC) {
-       mHandleMap->addCharacteristic(serverIf, el->attributeHandle,
-                        el->uuid, srvcHandle);
-       svc->addCharacteristic(
-               new GattCharacteristic(el->uuid, el->attributeHandle, el->properties,
-                       el->permissions));
+      mHandleMap->addCharacteristic(serverIf, el->attributeHandle,
+                      el->uuid, srvcHandle);
+      svc->addCharacteristic(
+              new GattCharacteristic(el->uuid, el->attributeHandle, el->properties,
+                      el->permissions));
     } else if (el->type == GattDbElement::TYPE_DESCRIPTOR) {
-       mHandleMap->addDescriptor(serverIf, el->attributeHandle, el->uuid, srvcHandle);
-       std::vector<GattCharacteristic*> chars = svc->getCharacteristics();
-       chars.at(chars.size() - 1)
-               ->addDescriptor(new GattDescriptor(el->uuid, el->attributeHandle,
-                       el->permissions));
+      mHandleMap->addDescriptor(serverIf, el->attributeHandle, el->uuid, srvcHandle);
+      std::vector<GattCharacteristic*> chars = svc->getCharacteristics();
+      chars.at(chars.size() - 1)
+              ->addDescriptor(new GattDescriptor(el->uuid, el->attributeHandle,
+                      el->permissions));
     }
   }
   mHandleMap->setStarted(serverIf, srvcHandle, true);
@@ -1164,6 +1173,8 @@ void GattLibService::onServiceAdded(int status, int serverIf,
       delete el;
     app->callback->onServiceAdded(status, svc);
   }
+  delete svc;
+  svc = NULL;
 }
 
 void GattLibService::onServiceStopped(int status, int serverIf, int srvcHandle)
@@ -1383,11 +1394,9 @@ GattLibService* GattLibService::getGatt()
 
 GattLibService* GattLibService::getInstance(const bt_interface_t *bt_interface)
 {
+  std::lock_guard<std::mutex> myLock(singletonLock);
   if(sGattService == NULL) {
-    std::lock_guard<std::mutex> myLock(singletonLock);
-    if(sGattService == NULL) {
-      sGattService = new GattLibService(bt_interface);
-    }
+    sGattService = new GattLibService(bt_interface);
   }
   ALOGE(LOGTAG " getInstance() ");
   return sGattService;
@@ -1395,8 +1404,7 @@ GattLibService* GattLibService::getInstance(const bt_interface_t *bt_interface)
 
 GattLibService::~GattLibService()
 {
-  if(sGattService != NULL)
-    cleanup();
+  cleanup();
 
   ALOGE(LOGTAG " Deinit Done");
 }
@@ -1461,18 +1469,26 @@ void GattLibService::cleanup()
 
   if(mScannerMap != NULL) {
     mScannerMap->clear();
+    delete mScannerMap;
   }
   mScannerMap = NULL;
 
   if(mClientMap != NULL) {
     mClientMap->clear();
+    delete mClientMap;
   }
   mClientMap = NULL;
 
   if(mServerMap != NULL) {
     mServerMap->clear();
+    delete mServerMap;
   }
   mServerMap = NULL;
+
+  if (mHandleMap) {
+    mHandleMap->clear();
+    delete mHandleMap;
+  }
 
   if(sGattService != NULL) {
     sGattService = NULL;
@@ -2055,18 +2071,18 @@ std::vector<gatt_db_element_t> GattLibService::fillGattDbStructureArray(
                                                                 int count)
 {
   std::vector<gatt_db_element_t> db_vec;
+  gatt_db_element_t db_struct;
   for (int i = 0;i < count; i++) {
-    gatt_db_element_t *db_struct = new gatt_db_element_t;
-    db_struct->id = db[i]->id;
-    db_struct->attribute_handle = db[i]->attributeHandle;
-    db_struct->type = static_cast<gatt_db_attribute_type_t>(db[i]->type);
-    db_struct->start_handle = db[i]->startHandle;
-    db_struct->end_handle = db[i]->endHandle;
-    db_struct->properties = db[i]->properties;
-    db_struct->permissions = db[i]->permissions;
-    db_struct->uuid = db[i]->uuid;
+    db_struct.id = db[i]->id;
+    db_struct.attribute_handle = db[i]->attributeHandle;
+    db_struct.type = static_cast<gatt_db_attribute_type_t>(db[i]->type);
+    db_struct.start_handle = db[i]->startHandle;
+    db_struct.end_handle = db[i]->endHandle;
+    db_struct.properties = db[i]->properties;
+    db_struct.permissions = db[i]->permissions;
+    db_struct.uuid = db[i]->uuid;
 
-    db_vec.push_back(*db_struct);
+    db_vec.push_back(db_struct);
   }
   for(GattDbElement *temp_db : db)
     delete temp_db;
@@ -2786,6 +2802,10 @@ void GattLibService::HandleGattsServiceAddedEvent(GattsServiceAddedEvent *event)
                       fillGattDbElementArray(event->service->data(),
                                              static_cast<int>(event->service->size()));
   sGattService->onServiceAdded(event->status, event->server_if, service);
+  delete event->service;
+  for (GattDbElement *el : service)
+    delete el;
+  service.clear();
 }
 
 void GattLibService::HandleGattsServiceStoppedEvent(GattsServiceStoppedEvent *event)

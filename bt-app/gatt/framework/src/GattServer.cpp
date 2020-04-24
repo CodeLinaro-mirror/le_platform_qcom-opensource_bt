@@ -97,7 +97,6 @@ void GattServer::onServiceAdded(int status, GattService *service)
   }
 
   mServices.push_back(tmp);
-  delete service;
   try {
     mCallback->onServiceAdded(status, tmp);
   } catch (std::exception& e) {

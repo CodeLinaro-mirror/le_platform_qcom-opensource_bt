@@ -52,7 +52,7 @@ GattServer *mServer = NULL;
 GattService *mService = NULL;
 GattCharacteristic *mgattCharacteristic = NULL;
 GattDescriptor *mgattDescriptor = NULL;
-AdvertisingSetParameters *mParameters;
+AdvertisingSetParameters *mParameters = NULL;
 AdvertiseData *mAdvData = NULL;
 
 const Uuid SERVICE_UUID = Uuid::FromString("0000AA01-0000-1000-8000-00805f9b34fb");
@@ -192,6 +192,14 @@ Rsp::Rsp(GattLibService* g_gatt) {
 Rsp::~Rsp() {
   fprintf(stdout, "(%s) RSP DeInitialized",__FUNCTION__);
   SetDeviceState(WLAN_INACTIVE);
+  if (mParameters) {
+    delete mParameters;
+    mParameters = NULL;
+  }
+  if (mAdvData) {
+    delete mAdvData;
+    mAdvData = NULL;
+  }
   delete(mServer);
   delete(mRSPAdvCb);
   delete(mRspServerCb);
@@ -214,7 +222,10 @@ bool Rsp::StartAdvertisement() {
   ALOGE(LOGTAG "%s",__FUNCTION__);
   fprintf(stdout,"Rsp::StartAdvertisement \n");
   SetDeviceState(WLAN_INACTIVE);
-  if (mParameters) delete mParameters;
+  if (mParameters) {
+    delete mParameters;
+    mParameters = NULL;
+  }
   mParameters = AdvertisingSetParameters::Builder()
                             .setConnectable(CONNECTABLE)
                             .setScannable(SCANNABLE)
@@ -228,7 +239,10 @@ bool Rsp::StartAdvertisement() {
                                   .setIncludeTxPowerLevel(false);
   builder.addServiceUuid(SERVICE_UUID);
   builder.addServiceData(SERVICE_UUID,vec);
-  if (mAdvData) delete mAdvData;
+  if (mAdvData) {
+    delete mAdvData;
+    mAdvData = NULL;
+  }
   mAdvData = builder.build();
   try {
       mAdvertiser->startAdvertisingSet(mParameters,
@@ -276,6 +290,14 @@ bool Rsp::HandleWlanOn() {
 void Rsp::StopAdvertisement(){
   ALOGE(LOGTAG "%s",__FUNCTION__);
   mAdvertiser->stopAdvertising(mRSPAdvCb);
+  if (mParameters) {
+    delete mParameters;
+    mParameters = NULL;
+  }
+  if (mAdvData) {
+    delete mAdvData;
+    mAdvData = NULL;
+  }
 }
 
 bool Rsp::AddService() {
