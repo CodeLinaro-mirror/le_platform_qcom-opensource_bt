@@ -736,6 +736,13 @@ void ScanManager::ScanNative::stopRegularScan(ScanClient *client)
     sManager->mNative->gattClientScanNative(false);
   }
   removeScanFilters(client->scannerId);
+  // Remove if ALL_PASS filters are used.
+  if (mAllPassRegularClients.count(client->scannerId)) {
+    mAllPassRegularClients.erase(client->scannerId);
+  }
+  removeFilterIfExisits(mAllPassRegularClients, client->scannerId,
+          ALL_PASS_FILTER_INDEX_REGULAR_SCAN);
+
 }
 
 void ScanManager::ScanNative::regularScanTimeout(ScanClient *client)
@@ -779,6 +786,12 @@ void ScanManager::ScanNative::stopBatchScan(ScanClient *client)
 {
   sManager->mBatchClients.erase(client);
   removeScanFilters(client->scannerId);
+  // Remove if ALL_PASS filters are used.
+  if (mAllPassBatchClients.count(client->scannerId)) {
+    mAllPassBatchClients.erase(client->scannerId);
+  }
+  removeFilterIfExisits(mAllPassBatchClients, client->scannerId,
+          ALL_PASS_FILTER_INDEX_BATCH_SCAN);
   if (!isOpportunisticScanClient(client)) {
     resetBatchScan(client);
   }
@@ -975,11 +988,6 @@ void ScanManager::ScanNative::removeScanFilters(int scannerId)
       sManager->waitForCallback();
     }
   }
-  // Remove if ALL_PASS filters are used.
-  removeFilterIfExisits(mAllPassRegularClients, scannerId,
-          ALL_PASS_FILTER_INDEX_REGULAR_SCAN);
-  removeFilterIfExisits(mAllPassBatchClients, scannerId,
-          ALL_PASS_FILTER_INDEX_BATCH_SCAN);
 
   unordered_map<int, std::deque<int>>::iterator it = mClientFilterIndexMap.begin();
   for(; it != mClientFilterIndexMap.end(); ++it) {
@@ -993,10 +1001,6 @@ void ScanManager::ScanNative::removeScanFilters(int scannerId)
 void ScanManager::ScanNative::removeFilterIfExisits(std::unordered_set<int> clients,
                                                           int scannerId, int filterIndex)
 {
-  if (!clients.count(scannerId)) {
-    return;
-  }
-  clients.erase(scannerId);
   // Remove ALL_PASS filter iff no app is using it.
   if (clients.empty()) {
     sManager->resetCountDownLatch();
