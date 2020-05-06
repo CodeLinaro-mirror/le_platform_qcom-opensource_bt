@@ -96,6 +96,8 @@ class ScanResult final {
     int mPeriodicAdvertisingInterval;
 
   public:
+    ~ScanResult ();
+
     /**
      * Constructs a new ScanResult.
      *

@@ -49,6 +49,12 @@ ScanResult::ScanResult(string deviceAddress, ScanRecord *scanRecord, int rssi)
   mPeriodicAdvertisingInterval = 0;
 }
 
+ScanResult::~ScanResult()
+{
+  delete mScanRecord;
+  mScanRecord = NULL;
+}
+
 string ScanResult::getDevice()
 {
   return mDeviceAddress;
