@@ -402,6 +402,7 @@ void ScanManager::ScanNative::configureRegularScanParams()
       scanWindow[phyCnt] = millsToUnit(scanWindowLE1M);
       scanInterval[phyCnt] = millsToUnit(scanIntervalLE1M);
       phyCnt++;
+      delete settings;
     }
   }
   else {
@@ -425,6 +426,7 @@ void ScanManager::ScanNative::configureRegularScanParams()
       // convert scanWindow and scanInterval from ms to LE scan units(0.625ms)
       scanWindow[phyCnt] = millsToUnit(scanWindowLECoded);
       scanInterval[phyCnt] = millsToUnit(scanIntervalLECoded);
+      delete settings;
     }
   }
   else {
