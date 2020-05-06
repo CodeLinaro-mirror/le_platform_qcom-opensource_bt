@@ -40,7 +40,6 @@ AdvertiserManager::AdvertiserManager(GattNativeInterfaceV2 *mGattIf)
 
 void AdvertiserManager::start()
 {
-  mGattDevice = new GattDevice();
 }
 
 void AdvertiserManager::cleanup()
@@ -52,10 +51,6 @@ void AdvertiserManager::cleanup()
   mAdvertisers.clear();
   sTempRegistrationId = -1;
   mNative = NULL;
-  if(mGattDevice) {
-    delete(mGattDevice);
-    mGattDevice = NULL;
-  }
 }
 AdvertiserManager::~AdvertiserManager()
 {

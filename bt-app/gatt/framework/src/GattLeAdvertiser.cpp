@@ -25,7 +25,7 @@
 using namespace std;
 namespace gatt {
 
-GattLeAdvertiser *GattLeAdvertiser::sGattLeAdvertiser = new GattLeAdvertiser();
+GattLeAdvertiser *GattLeAdvertiser::sGattLeAdvertiser = NULL;
 
 GattLeAdvertiser* GattLeAdvertiser::getGattLeAdvertiser()
 {
@@ -38,7 +38,6 @@ GattLeAdvertiser* GattLeAdvertiser::getGattLeAdvertiser()
 
 GattLeAdvertiser::GattLeAdvertiser()
 {
-  mGattDevice = new GattDevice();
 }
 
 GattLeAdvertiser::~GattLeAdvertiser()
@@ -209,6 +208,7 @@ void GattLeAdvertiser::startAdvertisingSet(AdvertisingSetParameters *parameters,
 {
   startAdvertisingSet(parameters, advertiseData, scanResponse, periodicParameters,
             periodicData, 0, 0, callback);
+  delete parameters;
 }
 
 void GattLeAdvertiser::startAdvertisingSet(AdvertisingSetParameters *parameters,
@@ -343,9 +343,10 @@ void GattLeAdvertiser::cleanup()
 {
   mCb = NULL;
   mCallback.clear();
+  for (auto adv_map:mAdvertisingSets) {
+    delete adv_map.second;
+  }
   mAdvertisingSets.clear();
-  delete(mGattDevice);
-  mGattDevice = NULL;
   sGattLeAdvertiser = NULL;
 }
 
@@ -377,6 +378,7 @@ void GattLeAdvertiser::onAdvertisingSetStarted(int advertiserId, int txPower, in
 
   mAdvertisingSets.insert({{advertiserId, advertisingSet}});
   mCb->onAdvertisingSetStarted(advertisingSet, txPower, status);
+  delete advertisingSet;
 }
 
 void GattLeAdvertiser::onOwnAddressRead(int advertiserId, int addressType, string address)

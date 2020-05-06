@@ -142,7 +142,6 @@ class GattLibService           {
 
     AdvertiserManager *mAdvertiserManager = NULL;
     ScanManager *mScanManager = NULL;
-    GattDevice *mGattDevice = NULL;
     PeriodicScanManager *mPeriodicScanManager = NULL;
 
     static GattLibService* volatile sGattService;
