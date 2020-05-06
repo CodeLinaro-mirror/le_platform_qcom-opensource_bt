@@ -62,7 +62,6 @@ class GattLeAdvertiser : public IAdvertisingSetCallback {
     int byteLength(std::vector<uint8_t> array);
 
     AdvertisingSetCallback *mCb = NULL;
-    GattDevice *mGattDevice = NULL;
     GattLibService *mGattLibService = NULL;
 
     std::unordered_map<const AdvertisingSetCallback*, IAdvertisingSetCallback*> mCallback;
