@@ -249,7 +249,7 @@ bool GattCharacteristic::setValue(int value, int formatType, int offset)
 
   if (mValue != NULL) delete [] mValue;
 
-  if (mValue == NULL) mValue = new uint8_t[len];
+  mValue = new uint8_t[len];
   size_t mValueSize = strlen((char*)mValue);
 
   if (len > mValueSize) return false;
@@ -290,7 +290,7 @@ bool GattCharacteristic::setValue(int mantissa, int exponent, int formatType, in
 
   if (mValue != NULL) delete [] mValue;
 
-  if (mValue == NULL) mValue = new uint8_t[len];
+  mValue = new uint8_t[len];
   size_t mValueSize = strlen((char*)(mValue));
 
   if (len > mValueSize) return false;
