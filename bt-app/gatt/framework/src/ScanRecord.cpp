@@ -174,10 +174,10 @@ std::vector<uint8_t> ScanRecord::getBytes()
 
 ScanRecord::ScanRecord(std::vector<Uuid> serviceUuids,
         std::vector<Uuid> serviceSolicitationUuids,
-        std::unordered_map<int, std::vector<uint8_t>> manufacturerData,
-        std::unordered_map<Uuid, std::vector<uint8_t>> serviceData,
+        std::unordered_map<int, std::vector<uint8_t>>& manufacturerData,
+        std::unordered_map<Uuid, std::vector<uint8_t>>& serviceData,
         int advertiseFlags, int txPowerLevel,
-        string localName, std::vector<uint8_t> bytes):
+        string localName, std::vector<uint8_t>& bytes):
   mServiceSolicitationUuids(serviceSolicitationUuids),
   mServiceUuids(serviceUuids),
   mManufacturerSpecificData(manufacturerData),
@@ -316,9 +316,9 @@ ScanRecord* ScanRecord::parseFromBytes(std::vector<uint8_t> scanRecord)
    ALOGE(LOGTAG " unable to parse scan record: %s", str.c_str());
     // As the record is invalid, ignore all the parsed results for this packet
     // and return an empty record with raw scanRecord bytes in results
-    return new ScanRecord(std::vector<Uuid>(), std::vector<Uuid>(),
-                          std::unordered_map<int, std::vector<uint8_t>>(),
-                          std::unordered_map<Uuid, std::vector<uint8_t>>(),
+    std::unordered_map<int, std::vector<uint8_t>> empty1 = std::unordered_map<int, std::vector<uint8_t>>();
+    std::unordered_map<Uuid, std::vector<uint8_t>> empty2 = std::unordered_map<Uuid, std::vector<uint8_t>>();
+    return new ScanRecord(std::vector<Uuid>(), std::vector<Uuid>(),empty1,empty2,
                           -1, INT_MIN, "", scanRecord);
  }
 }
