@@ -65,9 +65,9 @@ class ScanRecord final {
 
     const std::vector<Uuid> mServiceSolicitationUuids;
 
-    const std::unordered_map<int, std::vector<uint8_t> > mManufacturerSpecificData;
+    const std::unordered_map<int, std::vector<uint8_t> >& mManufacturerSpecificData;
 
-    const std::unordered_map<Uuid, std::vector<uint8_t> > mServiceData;
+    const std::unordered_map<Uuid, std::vector<uint8_t> >& mServiceData;
 
     // Transmission power level(in dB).
     const int mTxPowerLevel;
@@ -76,7 +76,7 @@ class ScanRecord final {
     const string mDeviceName;
 
     // Raw bytes of scan record.
-    const std::vector<uint8_t> mBytes;
+    const std::vector<uint8_t>& mBytes;
 
   public:
     /**
@@ -146,10 +146,10 @@ class ScanRecord final {
   private:
     ScanRecord(std::vector<Uuid> serviceUuids,
             std::vector<Uuid> serviceSolicitationUuids,
-            std::unordered_map<int, std::vector<uint8_t> > manufacturerData,
-            std::unordered_map<Uuid, std::vector<uint8_t> > serviceData,
+            std::unordered_map<int, std::vector<uint8_t> >& manufacturerData,
+            std::unordered_map<Uuid, std::vector<uint8_t> >& serviceData,
             int advertiseFlags, int txPowerLevel,
-            string localName, std::vector<uint8_t> bytes);
+            string localName, std::vector<uint8_t>& bytes);
 
   public:
     /**

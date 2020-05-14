@@ -2965,6 +2965,7 @@ void GattLibService::HandleBleScannerScanResultEvent(BleScannerScanResultEvent *
                     event->primary_phy, event->secondary_phy, event->advertising_sid,
                     event->tx_power, event->rssi, event->periodic_adv_int, p_value);
   delete event->bda;
+  delete event->adv_data;
 }
 
 void GattLibService::HandleBleScannerBatchScanReportsEvent(
