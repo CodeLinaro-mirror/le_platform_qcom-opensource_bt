@@ -48,6 +48,8 @@ class PeriodicAdvertisingCallback {
      */
     static const int SYNC_NO_RESOURCES = 2;
 
+    virtual ~PeriodicAdvertisingCallback() = default;
+
 
     /**
      * Callback when synchronization was established.

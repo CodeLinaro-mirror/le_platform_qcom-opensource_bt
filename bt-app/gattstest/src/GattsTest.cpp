@@ -59,7 +59,7 @@ using namespace gatt;
 #define ADV_CFG_FILE_PATH "/data/misc/bluetooth/AdvertiserConfigFile.txt"
 #define GATT_SUCCESS 0
 #define AUTO_CONNECT 0
-#define TRANSPORT 0
+#define TRANSPORT 2
 #define MAX_SERVER_INSTANCE 20
 #define MAX_SERVICE_INSTANCE 5
 #define INVALID_VALUE -1
@@ -67,7 +67,7 @@ using namespace gatt;
 #define PERIODIC_INTERVAL 200
 #define PHY_LE_1M 1
 #define PHY_LE_2M 2
-#define PHY_LE_CODED 3
+#define PHY_LE_CODED 4
 #define PROPERTY_READ 2
 #define SERVICE_LINE_MIN 0
 #define SERVICE_LINE_MAX 4
@@ -93,8 +93,8 @@ map<int, AdvertisingSet*> advSetMap;
 vector <string> connectedDevices;
 unordered_map < gattstestServerCallback*, GattServer*> servCBInstanceMap;
 
-map<gattstestServerCallback*,string> connectedDeviceMap;
-map<string,GattServer*> DeviceMap;
+//DeviceMap to store connected client addr and servers connected to client
+map<string,vector<GattServer*>> DeviceMap;
 
 
 vector <string> service_field;
@@ -142,44 +142,42 @@ bool split (const string &s, char c,vector<string> &v)
 void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int status,
                                                                int newState)
 {
-  bool connected= false;
   string address;
-  GattServer *mServer;
+  GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator ptr;
-  map <string,GattServer*> ::iterator dtr = DeviceMap.find(deviceAddress);
-  map<gattstestServerCallback*,string> ::iterator iter;
-  iter =connectedDeviceMap.find(gattstestServerCb);
+  map <string,vector<GattServer*>> ::iterator dtr = DeviceMap.find(deviceAddress);
   vector <string> ::iterator it;
   it = find(connectedDevices.begin(),connectedDevices.end(),deviceAddress);
   ALOGD(LOGTAG"%s status = %d newState = %d", __FUNCTION__ , status , newState);
   ALOGD(LOGTAG"%s device address: %s",__FUNCTION__, deviceAddress.c_str());
+  gattstestServerCb = this;
+  //Find server associated with this callback
+  for(ptr = servCBInstanceMap.begin(); ptr != servCBInstanceMap.end() ; ++ptr ) {
+    if(ptr->first == gattstestServerCb) {
+      mServer = ptr->second;
+      break;
+    }
+  }
+
   if (newState == GattDevice::STATE_CONNECTED && status == GATT_SUCCESS) {
     fprintf(stdout,"The device %s got connected \n", deviceAddress.c_str());
-    gattstestServerCb = this;
     if(it != connectedDevices.end()) {
       //Device already exists do not insert
     } else {
         connectedDevices.push_back(deviceAddress);
     }
-    for(ptr = servCBInstanceMap.begin(); ptr != servCBInstanceMap.end() ; ++ptr ) {
-      if(ptr->first == gattstestServerCb) {
-        connected = true;
-        break;
-      }
-    }
-    if(connected) {
-      mServer= ptr->second;
-      if(dtr != DeviceMap.end()) {
-      //Device Already exists do not add
-    } else {
-      DeviceMap.insert(pair <string,GattServer*> (deviceAddress,mServer));
-    }
+    //Add server to connected DeviceMap
+    DeviceMap[deviceAddress].push_back(mServer);
+
     mServer->connect(deviceAddress,AUTO_CONNECT);
-    }
+
   } else if(newState == GattDevice::STATE_DISCONNECTED) {
     fprintf(stdout,"The device %s got disconnected \n", deviceAddress.c_str());
     if(dtr != DeviceMap.end()) {
-      DeviceMap.erase(dtr);
+      //Remove server from list of servers connected to deviceAddress
+      vector <GattServer*>& conn_servers = DeviceMap[deviceAddress];
+      conn_servers.erase(std::remove(conn_servers.begin(),conn_servers.end(),mServer),
+                         conn_servers.end());
     }
     for(it = connectedDevices.begin(); it != connectedDevices.end() ; ++it ) {
       if(*it == deviceAddress) {
@@ -208,10 +206,11 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   uint8_t *value = NULL;
   value = characteristic->getValue();
+  string valueString = (char*)characteristic->getValue();
   GattService *mService = characteristic->getService();
   Uuid s_uuid = mService->getUuid();
   Uuid c_uuid = characteristic->getUuid();
-  ALOGD(LOGTAG"%s value = %s", __FUNCTION__, value);
+  ALOGD(LOGTAG"%s value = %s", __FUNCTION__, valueString);
   ALOGD(LOGTAG"%s service Uuid = %s", __FUNCTION__, s_uuid.ToString().c_str());
   ALOGD(LOGTAG"%s characteristic uuid = %s", __FUNCTION__, c_uuid.ToString().c_str());
   GattServer *mServer = NULL;
@@ -224,7 +223,8 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
     }
   }
   mServer= str->second;
-  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value + offset);
+  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value + offset,
+                                      characteristic->getValueLength());
   if(status) {
     ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
   }
@@ -232,7 +232,7 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
 
 void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,int requestId,
                             GattCharacteristic *characteristic,bool preparedWrite,bool responseNeeded,
-                            int offset,uint8_t* value)
+                            int offset,uint8_t* value, int length)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   string temp((char *)value);
@@ -251,10 +251,10 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
      executeWriteChar = characteristic;
      receivedData += temp;
   } else {
-    characteristic->setValue(value);
+    characteristic->setValue(value, length);
   }
   if (responseNeeded) {
-    mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+    mServer->sendResponse(deviceAddress,requestId,0,offset,value, characteristic->getValueLength());
   }
   int d = characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY;
   if((characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY) != 0) {
@@ -271,9 +271,10 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   uint8_t *value = NULL;
+  string valueString = (char*)descriptor->getValue();
   Uuid desc_uuid = descriptor->getUuid();
   value = descriptor->getValue();
-  ALOGD(LOGTAG"%s Descriptor UUID: %s  value = %s", __FUNCTION__, desc_uuid.ToString().c_str(),descriptor->getValue());
+  ALOGD(LOGTAG"%s Descriptor UUID: %s  value = %s", __FUNCTION__, desc_uuid.ToString().c_str(), valueString);
   GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
     gattstestServerCb = this;
@@ -282,7 +283,7 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
         break;
     }
     mServer= str->second;
-    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset, descriptor->getValueLength());
     if(status) {
         ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
     }
@@ -290,16 +291,17 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
 
 void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int requestId,
                                                     GattDescriptor *descriptor,bool preparedWrite,
-                                                    bool responseNeeded, int offset, uint8_t * value)
+                                                    bool responseNeeded, int offset, uint8_t * value,
+                                                    int length)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   string temp((char *)value);
   GattCharacteristic *characteristic = descriptor->getCharacteristic();
   Uuid d_uid = descriptor->getUuid();
   Uuid c_uid = characteristic->getUuid();
-  value = descriptor->getValue();
+  string valueString = (char*)descriptor->getValue();
   ALOGD(LOGTAG"%s  descriptor_uuid: %s value = %s", __FUNCTION__, d_uid.ToString().c_str(),
-                                                    descriptor->getValue());
+                                                    valueString);
   GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
   gattstestServerCb = this;
@@ -313,10 +315,10 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
      executeWriteDesc = descriptor;
      receivedDescValue += temp;
   } else {
-    descriptor->setValue(value);
+    descriptor->setValue(value, length);
   }
   if (responseNeeded) {
-    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset, length);
     if (status) {
       ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
     }
@@ -342,7 +344,7 @@ void gattstestServerCallback::onExecuteWrite(string deviceAddress, int requestId
   } else {
      receivedData.clear();
   }
-  bool status = mServer->sendResponse(deviceAddress,requestId,GATT_SUCCESS,0,NULL);
+  bool status = mServer->sendResponse(deviceAddress,requestId,GATT_SUCCESS,0,NULL,0);
   if (status) {
     ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
   }
@@ -832,6 +834,13 @@ bool GattsTest::StartAdvertisement(string        instanceID)
   }
   //fetching advertiser Callback instance for the server/advertiser instance key
   gattstestAdvCb = advCBInstanceMap[instance];
+  if (gattstestAdvCb == NULL)
+  {
+    ALOGD("%s For instance %d, Server is not added ", __FUNCTION__, instance);
+    fprintf(stdout,"For instance %d, Server is not added \n",instance);
+    return false;
+  }
+
   //Finding corresponding Legacy flag details for the corresponding advertiser
   temp = AdvSet_list[instance -1];
   legacyflag = temp->legacyflag;
@@ -841,7 +850,7 @@ bool GattsTest::StartAdvertisement(string        instanceID)
       madvertiser->startAdvertising(mAdvertiseSettings,mAdvertiseData,mScanResponseData,gattstestAdvCb);
     } else {
       madvertiser->startAdvertisingSet(mAdvertisingParameters,
-                         mAdvertiseData,mScanResponseData,mPeriodicParams,mPeriodicData,gattstestAdvCb);
+                          mAdvertiseData,mScanResponseData,mPeriodicParams,mPeriodicData,gattstestAdvCb);
     }
   } catch(const std::exception &ex) {
     ALOGD(LOGTAG"%s start Advertising exception  %s", __FUNCTION__, ex.what());
@@ -1035,6 +1044,10 @@ bool GattsTest::SetScanResponseData(int instance)
   scannable_flag = temp->scannableflag;
   if(scannable_flag) {
     mScanResponseData = mAdvertiseData;
+    /* Advertise Data is not allowed for Extended Scannable adv type */
+    if(!temp->legacyflag) {
+      mAdvertiseData = NULL;
+    }
   } else {
     mScanResponseData = NULL;
   }
@@ -1096,7 +1109,8 @@ void GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, strin
   mgattCharacteristic = new GattCharacteristic(uid,property,permissions);
   uint8_t char_val[val.length()+1];
   std::copy(val.begin(),val.end(),char_val);
-  mgattCharacteristic->setValue(char_val);
+  char_val[val.length()] = '\0';
+  mgattCharacteristic->setValue(char_val, val.length()+1);
   ALOGD(LOGTAG"CharacteristicUUID: %s  ", uid.ToString().c_str());
   ALOGD(LOGTAG"Characteristic Property: %d ", mgattCharacteristic->getProperties());
   ALOGD(LOGTAG"characteristic Permissions: %d ", mgattCharacteristic->getPermissions());
@@ -1110,7 +1124,8 @@ void GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
   mgattDescriptor = new GattDescriptor(uid,permissions);
   uint8_t dsc_val[value.length()+1];
   std::copy(value.begin(),value.end(),dsc_val);
-  mgattDescriptor->setValue(dsc_val);
+  dsc_val[value.length()] = '\0';
+  mgattDescriptor->setValue(dsc_val, value.length()+1);
   ALOGD(LOGTAG"Descriptor UUID: %s  ", uid.ToString().c_str());
   ALOGD(LOGTAG"Descriptor Permissions: %d ", mgattDescriptor->getPermissions());
 }
@@ -1197,21 +1212,19 @@ void GattsTest::CancelConnection(string remoteAddress)
 {
   ALOGD(LOGTAG"%s", __FUNCTION__);
   GattServer *mServer = NULL;
-  bool connected = false;
-  map <string,GattServer*> ::iterator dtr = DeviceMap.find(remoteAddress);
-  for(dtr = DeviceMap.begin(); dtr != DeviceMap.end() ; ++dtr) {
-    if(remoteAddress == dtr->first) {
-      mServer = dtr->second;
-      connected = true;
-      break;
-    }
-  }
-  if(connected) {
-    mServer->cancelConnection(remoteAddress);
+  vector<GattServer*>::iterator dtr;
+  if(DeviceMap.find(remoteAddress) != DeviceMap.end()) {
+    ALOGD(LOGTAG" %s No.of servers connected to this addr : %d", __FUNCTION__,
+            DeviceMap[remoteAddress].size());
+    //Send cancel connection on each server connected to this addr
+    for(dtr = DeviceMap[remoteAddress].begin(); dtr !=DeviceMap[remoteAddress].end(); dtr++) {
+        mServer = *dtr;
+        mServer->cancelConnection(remoteAddress);
+     }
   } else {
-    fprintf(stdout,"Device %s is not connected", remoteAddress.c_str());
-    ALOGD(LOGTAG"Device %s is not connected", remoteAddress.c_str());
+    ALOGD(LOGTAG"%s remote Address not connected ", __FUNCTION__);
   }
+
 }
 
 bool GattsTest::DisableGATTSTEST()
@@ -1238,6 +1251,8 @@ bool GattsTest::DisableGATTSTEST()
     delete(mAdvertisercallback);
   }
   advCBInstanceMap.clear();
+  advSetMap.clear();
+  DeviceMap.clear();
   return true;
 }
 
