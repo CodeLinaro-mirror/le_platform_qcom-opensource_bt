@@ -965,7 +965,8 @@ bool GattClient::writeCharacteristic(GattCharacteristic &characteristic)
 
   ALOGD(LOGTAG " writeCharacteristic() - uuid: %s ",
                                characteristic.getUuid().ToString().c_str());
-  if (mService == nullptr || mClientIf == 0 || characteristic.getValue() == nullptr) return false;
+  if (mService == nullptr || mClientIf == 0 || characteristic.getValue() == nullptr
+                                                  || !characteristic.getValueLength()) return false;
 
   GattService *service = characteristic.getService();
   if (service == nullptr) return false;
@@ -999,7 +1000,8 @@ bool GattClient::writeCharacteristic(GattCharacteristic &characteristic)
 bool GattClient::writeDescriptor(GattDescriptor &descriptor)
 {
   ALOGD(LOGTAG " writeDescriptor() - uuid: %s ", descriptor.getUuid().ToString().c_str());
-  if (mService == nullptr || mClientIf == 0 || descriptor.getValue() == nullptr) {
+  if (mService == nullptr || mClientIf == 0 || descriptor.getValue() == nullptr
+                                                    ||  !descriptor.getValueLength()) {
     return false;
   }
 
