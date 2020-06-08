@@ -833,14 +833,14 @@ bool GattsTest::StartAdvertisement(string        instanceID)
     return false;
   }
   //fetching advertiser Callback instance for the server/advertiser instance key
-  gattstestAdvCb = advCBInstanceMap[instance];
-  if (gattstestAdvCb == NULL)
-  {
+  auto search = advCBInstanceMap.find(instance);
+  if (search != advCBInstanceMap.end())
+    gattstestAdvCb = search->second;
+  else {
     ALOGD("%s For instance %d, Server is not added ", __FUNCTION__, instance);
     fprintf(stdout,"For instance %d, Server is not added \n",instance);
     return false;
   }
-
   //Finding corresponding Legacy flag details for the corresponding advertiser
   temp = AdvSet_list[instance -1];
   legacyflag = temp->legacyflag;
