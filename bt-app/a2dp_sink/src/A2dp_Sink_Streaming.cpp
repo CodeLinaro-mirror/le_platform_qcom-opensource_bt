@@ -36,6 +36,9 @@
 #include <hardware/bt_av.h>
 #include "Audio_Manager.hpp"
 #include "A2dp_Sink.hpp"
+#include "osi/include/fixed_queue.h"
+#include "osi/include/list.h"
+#include <mutex>
 
 #include "A2dp_Sink_Streaming.hpp"
 #include "Gap.hpp"
@@ -64,10 +67,26 @@ using namespace std;
 using std::list;
 using std::string;
 
+static pthread_mutex_t data_q_lock;
+
+
 extern A2dp_Sink_Streaming *pA2dpSinkStream;
 extern BT_Audio_Manager *pBTAM;
 extern Avrcp *pAvrcp;
 extern Gap *g_gap;
+
+typedef struct
+{
+    uint16_t len;
+    uint16_t offset;
+} tBT_SINK_DQ_DATA_HDR;
+
+tBT_SINK_DQ_DATA_HDR* audioFragment = NULL;
+fixed_queue_t *CompressDataQ = NULL;
+uint64_t buffered_length = 0;
+#define MAX_COMPRESS_BUF_TSHLD  20480
+#define START_COMPRESS_BUF_TSHLD  15360
+bool wait_for_mm_callback = false; // are we waiting for callback from mm
 
 #if (!defined(BT_AUDIO_HAL_INTEGRATION))
 #define DUMP_PCM_DATA TRUE
@@ -446,6 +465,27 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             qahw_out_pause(pA2dpSinkStream->out_stream);
 #endif
             break;
+       case A2DP_SINK_SEND_TO_OUT_WRITE:
+            ALOGD(LOGTAG " A2DP_SINK_SEND_TO_OUT_WRITE %d compress_timer_stoped %d ",
+                wait_for_mm_callback, pA2dpSinkStream->compress_timer_stoped);
+            /* wait_for_mm_callback == false, this must have been triggerd from packet que logic
+             * wait_for_mm_callback == true, this must have been triggered from mm-callback
+             * wait_for_mm_callback : this variable should be changed here only*/
+            if (pA2dpSinkStream == NULL) {
+                wait_for_mm_callback = false;
+                break;
+            }
+            if(pA2dpSinkStream->compress_timer_stoped) {
+                /* if timer is not scheduled, then pause/suspend might have been triggered
+                 *  we are no longer waiting or callback, and lets bail out */
+                wait_for_mm_callback = false;
+                break;
+            }
+            /* lets write to audio hal and wait for callback */
+            if (pA2dpSinkStream)
+                pA2dpSinkStream->send_to_out_write();
+
+            break;
         default:
             break;
     }
@@ -485,8 +525,9 @@ int compressed_callback(qahw_stream_callback_event_t event, void *param,
     BtEvent *pEvent = new BtEvent;
     switch (event) {
     case QAHW_STREAM_CBK_EVENT_WRITE_READY:
-        ALOGD(LOGTAG " EVENT_WRITE_READY");
-        pEvent->a2dpSinkStreamingEvent.event_id = A2DP_SINK_FILL_COMPRESS_BUFFER;
+        ALOGD(LOGTAG " EVENT_WRITE_READY %d ", (pA2dpSinkStream->get_cur_time() - pA2dpSinkStream->out_write_ts));
+        pA2dpSinkStream->out_write_ts = pA2dpSinkStream->get_cur_time(); // update tstamp.
+        pEvent->a2dpSinkStreamingEvent.event_id = A2DP_SINK_SEND_TO_OUT_WRITE;
         if (pA2dpSinkStream) {
             thread_post(pA2dpSinkStream->threadInfo.thread_id,
             pA2dpSinkStream->threadInfo.thread_handler, (void*)pEvent);
@@ -541,13 +582,147 @@ uint64_t A2dp_Sink_Streaming::get_cur_time() {
     return cur_ts;
 }
 
+void start_compress_offload() {
+    ALOGV(LOGTAG "%s  wait_for_mm_callback %d ", __FUNCTION__, wait_for_mm_callback);
+
+    BtEvent *pEvent = new BtEvent;
+    pEvent->a2dpSinkStreamingEvent.event_id = A2DP_SINK_SEND_TO_OUT_WRITE;
+    if (pA2dpSinkStream) {
+        pA2dpSinkStream->out_write_ts = pA2dpSinkStream->get_cur_time(); // update during first time trigger
+        thread_post(pA2dpSinkStream->threadInfo.thread_id,
+        pA2dpSinkStream->threadInfo.thread_handler, (void*)pEvent);
+    }
+}
+
+
+void A2dp_Sink_Streaming::send_to_out_write() {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+    tBT_SINK_DQ_DATA_HDR *p_data_q_buf;
+    uint16_t q_bytes_left = 0; // data left in topmost element in Q
+    uint32_t audio_frag_bytes_left = 0;// bytes left to compete audioFragment
+    qahw_out_buffer_t out_buf;
+    uint32_t data_sent_to_audio = 0;
+    uint32_t timestamp_len = ((pA2dpSinkStream->enable_notification_cb &&
+                          pA2dpSinkStream->enable_timestamp) ? sizeof(uint64_t) : 0);
+    uint8_t* p_src; uint8_t* p_dest;
+
+    if ((pBTAM->GetAudioDevice() == NULL) || (out_stream == NULL)) {
+        ALOGI(LOGTAG " %s Audio HAL not ready", __FUNCTION__);
+        return;
+    }
+    ALOGI(LOGTAG " %s  Initial  audio_frag_len = %d pcm_buf_size = %d offset = %d Q Len = %d, buffered_len = %d",
+            __FUNCTION__, audioFragment->len, pcm_buf_size, audioFragment->offset,
+            fixed_queue_length(CompressDataQ), buffered_length);
+        pthread_mutex_lock(&data_q_lock);
+    do {
+        /* first loop is to write to audio hal, until we hit buffer overflow condition */
+        ALOGI(LOGTAG " %s audio_frag_len = %d pcm_buf_size = %d offset = %d Q Len = %d, buffered_len = %d",
+               __FUNCTION__, audioFragment->len, pcm_buf_size, audioFragment->offset,
+               fixed_queue_length(CompressDataQ), buffered_length);
+        audio_frag_bytes_left = pcm_buf_size - audioFragment->len;
+        while ((audio_frag_bytes_left > 0) && (!fixed_queue_is_empty(CompressDataQ))) {
+            /* audioFragment buffer is not full yet, read data from Q */
+            /* lets peek into first packet, it has packet from front of Q */
+            p_data_q_buf = (tBT_SINK_DQ_DATA_HDR *)fixed_queue_try_peek(CompressDataQ);
+            if(p_data_q_buf == NULL) {
+                break;
+            }
+            q_bytes_left = p_data_q_buf->len ;
+            ALOGI(LOGTAG " %s q_bytes_left = %d audio_frag_bytes_left = %d", __FUNCTION__,
+                                                    q_bytes_left, audio_frag_bytes_left);
+            if (q_bytes_left <= audio_frag_bytes_left) {
+                /* deque whole packet and write to audioFragment buffer */
+                p_data_q_buf = (tBT_SINK_DQ_DATA_HDR *)fixed_queue_try_dequeue(CompressDataQ);
+                p_src = (uint8_t*)(p_data_q_buf + 1) + p_data_q_buf->offset;
+                p_dest = (uint8_t*)(audioFragment + 1) + audioFragment->len;
+                memcpy(p_dest, p_src, q_bytes_left);
+                audioFragment->len += q_bytes_left;
+                osi_free(p_data_q_buf);
+                buffered_length -= q_bytes_left;
+          }
+          else {
+                /* read only audio_frag_bytes_left from Q and don't dequeu packet */
+                p_src = (uint8_t*)(p_data_q_buf + 1) + p_data_q_buf->offset;
+                p_dest = (uint8_t*)(audioFragment + 1) + audioFragment->len;
+                memcpy(p_dest, p_src, audio_frag_bytes_left);
+                audioFragment->len += audio_frag_bytes_left;
+                p_data_q_buf->offset += audio_frag_bytes_left;
+                p_data_q_buf->len -= audio_frag_bytes_left;
+                buffered_length -= audio_frag_bytes_left;
+            }
+            audio_frag_bytes_left = pcm_buf_size - audioFragment->len;
+        }
+        /* copied data from Q */
+        ALOGI(LOGTAG " %s audio_frag_len = %d offset = %d  buffered_length = %d", __FUNCTION__,
+                                    audioFragment->len, audioFragment->offset, buffered_length);
+        if (audio_frag_bytes_left > 0) {
+            ALOGE(LOGTAG " %s not enough data in Q", __FUNCTION__);
+            /*lets call this flow, once data is received in Q */
+            wait_for_mm_callback = false; // make this variable flase and bail out
+            break;
+         }
+        else {
+            /* fragment is full, lets write to audio hal */
+            out_buf.buffer = (audioFragment + 1) + audioFragment->offset;
+            out_buf.bytes = audioFragment->len;
+            data_sent_to_audio = qahw_out_write(out_stream, &out_buf);
+            ALOGI(LOGTAG " %s data_sent_to_audio = %d frag_left = %d time_delta = %d", __FUNCTION__,
+                              data_sent_to_audio, (audioFragment->len - data_sent_to_audio),
+                              (get_cur_time() -  out_write_ts));
+
+#if (defined(DUMP_COMPRESSED_DATA) && (DUMP_COMPRESSED_DATA == TRUE))
+            if((outputPcmSampleFile) && (data_sent_to_audio > 0)) {
+                fwrite ((void*)out_buf.buffer, 1, (size_t)(out_buf.bytes), outputPcmSampleFile);
+            }
+#endif
+            out_write_ts = get_cur_time(); // update tstamp every write.
+            if (data_sent_to_audio == audioFragment->len) { // MM consumed whole packet
+                /* Audio HAL consumed all data
+                 * reset audioFragment len an offset and try next write */
+                audioFragment->len = 0;
+                audioFragment->offset = 0;
+                wait_for_mm_callback = false;
+            }
+            else {
+                if (data_sent_to_audio == 0) {
+                    /* MM did not consume any data, audioFragment is intact
+                     * No need to left shift data */
+                    wait_for_mm_callback = true;
+                }
+                if (data_sent_to_audio > audioFragment->len) {
+                    /* this is an erroneous case, MM was not able to consume even single packet
+                     * Sometimes we are seeing an error -14 from MM
+                     * Lets retry in this case.*/
+                    wait_for_mm_callback = false;
+                }
+                /* in this case we should copy remaining data */
+                if(data_sent_to_audio < audioFragment->len) {
+                    /* hit audio full condition, lets adjust offset and wait for next callback */
+                    audioFragment->len = audioFragment->len - data_sent_to_audio;
+                    audioFragment->offset += data_sent_to_audio;
+                    p_src  = (uint8_t*)(audioFragment + 1) + audioFragment->offset;
+                    p_dest = (uint8_t*)(audioFragment + 1);
+                    // lets left shift data
+                    memcpy(p_dest, p_src, audioFragment->len);
+                    // update offset after left shifting
+                    audioFragment->offset = 0;
+                    wait_for_mm_callback = true;
+                }
+                break;
+            }
+        }
+    }while (1);
+    pthread_mutex_unlock(&data_q_lock);
+#endif
+}
+
 void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
-    qahw_out_buffer_t out_buf;
     uint32_t data_read_from_bt = 0;
-    uint32_t data_sent_to_audio = 0;
     uint8_t rtp_offset = 0;
     uint64_t timestamp;
+    tBT_SINK_DQ_DATA_HDR *p_msg;
+    uint8_t *p_dest, *p_src;
     uint32_t timestamp_len = ((pA2dpSinkStream->enable_notification_cb &&
                               pA2dpSinkStream->enable_timestamp) ? sizeof(uint64_t) : 0);
 #if (!defined (USE_GST))
@@ -583,36 +758,48 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
         }
 #else
         if ((mBtA2dpSinkStreamingVendorInterface != NULL) && ( pcm_buf != NULL)) {
-             // fetch PCM data from fluoride
-            if( residual_compress_data == 0) {
-            data_read_from_bt =  mBtA2dpSinkStreamingVendorInterface->
+             // fetch compressed data from fluoride, if we have not reached THSLD value.
+            if( buffered_length < MAX_COMPRESS_BUF_TSHLD) {
+                data_read_from_bt =  mBtA2dpSinkStreamingVendorInterface->
                  get_a2dp_sink_streaming_data_vendor(codec_type, pcm_buf, pcm_buf_size);
-            // when callback mechanism is used, remove timestamp before sending data to Audio Hal
-            if (pA2dpSinkStream->enable_notification_cb && pA2dpSinkStream->enable_timestamp) {
-                if (data_read_from_bt <= 0) {
-                    ALOGD(LOGTAG" No Data available in Data queue, break");
-                    break;
+                // if callback mechanism is used, remove timestamp before sending data to Audio Hal
+                if (pA2dpSinkStream->enable_notification_cb && pA2dpSinkStream->enable_timestamp) {
+                    if (data_read_from_bt <= 0) {
+                        ALOGD(LOGTAG " %s No Data available in Data queue, break", __FUNCTION__);
+                        StartCompressAudioFeedTimer();
+                        break;
+                    }
+                    uint64_t tStamp = *((uint64_t *)pcm_buf);
+                    data_read_from_bt -= sizeof(uint64_t); // timestamp data read
+                    // fetch current timestamp and check latency
+                    uint64_t cur_time = get_cur_time();
+                    ALOGD(LOGTAG " media packet timestamp = %llu, latency to receive data = %llu"
+                            " micro sec", tStamp, (cur_time - tStamp));
                 }
-                uint64_t tStamp = *((uint64_t *)pcm_buf);
-                data_read_from_bt -= sizeof(uint64_t); // timestamp data read
-                // fetch current timestamp and check latency
-                uint64_t cur_time = get_cur_time();
-                ALOGD(LOGTAG" media packet timestamp = %llu, latency to receive data = %llu"
-                        " micro sec", tStamp, (cur_time - tStamp));
-            }
-            if (fetch_rtp_info && (data_read_from_bt > 12)) {
-                rtp_offset = get_rtp_offset((pcm_buf + timestamp_len), codec_type);
-                data_read_from_bt = data_read_from_bt - rtp_offset;
+                if (fetch_rtp_info && (data_read_from_bt > 12)) {
+                    rtp_offset = get_rtp_offset((pcm_buf + timestamp_len), codec_type);
+                    data_read_from_bt = data_read_from_bt - rtp_offset;
                 }
             }
-            else {
-                data_read_from_bt =  residual_compress_data;
+           else {
+                /* Threshold value reached, start timer again and bail out */
+                ALOGD(LOGTAG " THSLD value reached  buffered_length  = %d wait_for_mm_callback %d ",
+                                                    buffered_length, wait_for_mm_callback);
+                if (!wait_for_mm_callback) {
+                    /* compress_offload_timer is active, thsld reached, but callback will not come
+                     *  nobody is going to deque from Q, trigger out write from here */
+                     start_compress_offload();
+                }
+                StartCompressAudioFeedTimer();
+                break;
             }
         }
 #endif
+        /* we haven't reached threshold, but there is no data in stack */
         if (data_read_from_bt <= 0) {
-           // in this case, we don't have data from bt, but we try after some time
-           ALOGD(LOGTAG " NO Data from BT , try after data is queued in Stack");
+           /* in this case, we don't have data from bt,
+            *and we don't have enough data in Q.  We try after some time */
+           ALOGD(LOGTAG " %s NO Data from BT , try after data is queued in Stack", __FUNCTION__);
            StartCompressAudioFeedTimer();
            break;
         }
@@ -629,50 +816,48 @@ void A2dp_Sink_Streaming::FillCompressBuffertoAudioOutHal() {
 #else
         // if callback mechanism is enabled, relay mechanism will be disabled
         if (pA2dpSinkStream->relay_sink_data && !pA2dpSinkStream->enable_notification_cb) {
-            ALOGD(LOGTAG " Enquee the data codec type = %d size = %d ", codec_type,data_read_from_bt);
+            ALOGD(LOGTAG " %s Enquee the data codec type = %d size = %d ",__FUNCTION__, codec_type ,data_read_from_bt);
             enque_relay_data(pcm_buf,data_read_from_bt, codec_type);
         }
-        if ((pBTAM->GetAudioDevice() != NULL) && (out_stream != NULL)) {
-             if (fetch_rtp_info) {
-                 out_buf.buffer = pcm_buf + rtp_offset + timestamp_len;
-             } else {
-                 out_buf.buffer = pcm_buf + timestamp_len;
-             }
-             out_buf.bytes = data_read_from_bt;
-#if (defined(DUMP_COMPRESSED_DATA) && (DUMP_COMPRESSED_DATA == TRUE))
-             if ((outputPcmSampleFile) && (pcm_buf != NULL))
-             {
-                fwrite ((void*)pcm_buf, 1, (size_t)(data_read_from_bt), outputPcmSampleFile);
-                data_sent_to_audio = data_read_from_bt;
-             }
-#else
-             data_sent_to_audio = qahw_out_write(out_stream, &out_buf);
 
-#endif
-             cuml_data_written_to_audio = cuml_data_written_to_audio + data_sent_to_audio;
+        if ((p_msg = (tBT_SINK_DQ_DATA_HDR *) osi_malloc(sizeof(tBT_SINK_DQ_DATA_HDR) + pcm_buf_size)) != NULL) {
+            pthread_mutex_lock(&data_q_lock);
+            p_dest = (uint8_t*)(p_msg + 1);
+            p_src = pcm_buf + rtp_offset + timestamp_len;
+            memcpy(p_dest, p_src, data_read_from_bt);
+            p_msg->len = data_read_from_bt;
+            p_msg->offset = 0;
+            fixed_queue_enqueue(CompressDataQ, p_msg);
+            buffered_length += data_read_from_bt;
+            pthread_mutex_unlock(&data_q_lock);
+            ALOGD(LOGTAG " %s data_read_from_bt = %d data copied to Q = %d buffered_length %d Qlen %d",__FUNCTION__,
+            data_read_from_bt,data_read_from_bt,buffered_length,fixed_queue_length(CompressDataQ) );
+            /* we should have bufferred enough data
+             * we should not start sending data from here, if we are waiting for callback */
+            if((buffered_length > START_COMPRESS_BUF_TSHLD) && (!wait_for_mm_callback)) {
+                start_compress_offload(); // start trigger to pump to audio hal
+                /* start timer and break from here */
+                StartCompressAudioFeedTimer();
+                break;
+            }
         }
-#endif
-        ALOGD(LOGTAG " data_read_from_bt = %d data_sent_to_audio = %d cuml_data = %d",
-                 data_read_from_bt, data_sent_to_audio, cuml_data_written_to_audio);
-        residual_compress_data = data_read_from_bt - data_sent_to_audio;
-        if (residual_compress_data > 0) {
-           /* This is the case for AUDIO buffers completely filled
-            * We should wait for EVENT_WRITE_READY from AUDIO */
-           ALOGE( LOGTAG " Residual Data, Wait for EVENT_WRITE_READY ");
-           memcpy(pcm_buf, pcm_buf + data_sent_to_audio, data_read_from_bt - data_sent_to_audio);
+        else {
+            ALOGD(LOGTAG " Cannot allocate packet for Q ");
+            /* not have memory now, might have later */
+            StartCompressAudioFeedTimer();
            break;
         }
+#endif
+
         if (enable_notification_cb) {
             /* if callback mechanism is enabled, BTAPP fetches 1 packet at a time. So wait for
              * next callback, break */
             break;
         }
-    }while(1);
-    ALOGD(LOGTAG " FillCompressBuffertoAudioOutHal - cum_data = %d", cuml_data_written_to_audio);
-    if(cuml_data_written_to_audio >= pcm_buf_size)//reset for next iteration.
-        cuml_data_written_to_audio = 0;
-#endif
+    } while(1);
+ #endif
 }
+
 
 void compress_audio_feed_handler(void *context) {
     ALOGV(LOGTAG " compress_audio_feed_handler ");
@@ -697,6 +882,7 @@ void A2dp_Sink_Streaming::StartCompressAudioFeedTimer() {
         return;
     }
     compress_offload_timer = true;
+    compress_timer_stoped = false;
     alarm_set(compress_audio_feed_timer, A2DP_SINK_COMPRESS_FEED_TIMER_DURATION,
             compress_audio_feed_handler, NULL);
 }
@@ -710,6 +896,7 @@ void A2dp_Sink_Streaming::StopCompressAudioFeedTimer() {
     if((compress_audio_feed_timer != NULL) && (compress_offload_timer)) {
         alarm_cancel(compress_audio_feed_timer);
         compress_offload_timer = false;
+        compress_timer_stoped = true;
     }
 }
 
@@ -1106,7 +1293,21 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         if (out_stream != NULL) {
             pcm_buf_size = qahw_out_get_buffer_size(out_stream);
             ALOGD(LOGTAG " pcm buf size %d", pcm_buf_size);
-            pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
+            /* pcm_buf is buffer that we read frm stack */
+            if (pcm_buf == NULL) {
+                pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
+            }
+            /* audioFragment is buffer that we write to audio-hal in out_write */
+            if(audioFragment == NULL) {
+                ALOGD(LOGTAG " %s allocating audioFragment ", __FUNCTION__);
+                audioFragment = (tBT_SINK_DQ_DATA_HDR*)osi_malloc(sizeof(tBT_SINK_DQ_DATA_HDR) + pcm_buf_size);
+                audioFragment->len = 0;
+                audioFragment->offset = 0;
+            }
+            /* CompressDataQ is Queue in btapp, where we buffere data from stack */
+            if (CompressDataQ == NULL) {
+                CompressDataQ = fixed_queue_new(SIZE_MAX);
+            }
             if (codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
             {
                 pcm_timer_duration = (pcm_buf_size*1000)/(sample_rate*channel_count*2);
@@ -1155,6 +1356,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         outputPcmSampleFile = fopen(outputFilename, "ab");
 #endif
 #endif
+
 }
 
 void A2dp_Sink_Streaming::CloseAudioStream() {
@@ -1165,8 +1367,10 @@ void A2dp_Sink_Streaming::CloseAudioStream() {
         if((audio_device != NULL) && (out_stream != NULL)) {
             // 2 refers to speaker
             ALOGD(LOGTAG " closing output stream ");
+            wait_for_mm_callback = false;
             qahw_close_output_stream(out_stream);
             cuml_data_written_to_audio = 0;
+            out_write_ts = 0;
             residual_compress_data = 0;
             out_stream = NULL;
         }
@@ -1194,6 +1398,27 @@ void A2dp_Sink_Streaming::CloseAudioStream() {
     }
     outputPcmSampleFile = NULL;
 #endif
+    /* free streaming buffers */
+    if (pcm_buf != NULL) {
+        osi_free(pcm_buf);
+        pcm_buf = NULL;
+    }
+    if (audioFragment != NULL) {
+        osi_free(audioFragment);
+        audioFragment = NULL;
+    }
+    if (CompressDataQ != NULL) {
+        tBT_SINK_DQ_DATA_HDR *p_data_q_buf;
+        pthread_mutex_lock(&data_q_lock);
+        while(!fixed_queue_is_empty(CompressDataQ)) {
+            p_data_q_buf = (tBT_SINK_DQ_DATA_HDR *)fixed_queue_try_dequeue(CompressDataQ);
+            osi_free(p_data_q_buf);
+        }
+        fixed_queue_free(CompressDataQ,NULL);
+        CompressDataQ = NULL;
+        buffered_length = 0;
+        pthread_mutex_unlock(&data_q_lock);
+    }
 }
 void A2dp_Sink_Streaming::LoadBtA2dpHAL() {
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
@@ -1357,9 +1582,11 @@ A2dp_Sink_Streaming :: A2dp_Sink_Streaming( config_t *config) {
     pcm_buf = NULL;
     pcm_timer = false;
     compress_offload_timer = false;
+    compress_timer_stoped = true;
     residual_compress_data = 0;
     codec_type = A2DP_SINK_AUDIO_CODEC_SBC;//by default make it SBC
     memset(&codec_config, 0, sizeof(btav_codec_config_t));
+    pthread_mutex_init(&data_q_lock, NULL);
 #if (defined BT_AUDIO_HAL_INTEGRATION)
     out_stream =  NULL;
     input_stream = NULL;
@@ -1375,12 +1602,14 @@ A2dp_Sink_Streaming :: A2dp_Sink_Streaming( config_t *config) {
     outputPcmSampleFile =  NULL;
 #endif
 
+
 }
 
 A2dp_Sink_Streaming :: ~A2dp_Sink_Streaming() {
     pthread_mutex_destroy(&lock);
     use_bt_a2dp_hal = false;
     controlStatus = STATUS_LOSS;
+    out_write_ts = 0;
     threadInfo.thread_handler = &BtA2dpSinkStreamingMsgHandler;
     threadInfo.thread_name = "A2dp_Sink_Streaming_Thread";
     memset(&mStreamingDevice, 0, sizeof(bt_bdaddr_t));
@@ -1399,6 +1628,16 @@ A2dp_Sink_Streaming :: ~A2dp_Sink_Streaming() {
         osi_free(pcm_buf);
         pcm_buf = NULL;
     }
+    if (audioFragment != NULL) {
+        osi_free(audioFragment);
+        audioFragment = NULL;
+    }
+
+    if (CompressDataQ != NULL) {
+        fixed_queue_free(CompressDataQ,NULL);
+        CompressDataQ = NULL;
+    }
+    pthread_mutex_destroy(&data_q_lock);
     codec_type = A2DP_SINK_AUDIO_CODEC_SBC;//by default make it SBC
     memset(&codec_config, 0, sizeof(btav_codec_config_t));
 }
