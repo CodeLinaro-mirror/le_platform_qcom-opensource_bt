@@ -55,11 +55,7 @@ extern const char *path;
 #define PRI_DEBUG " D"
 #define PRI_VERB " V"
 
-#ifdef USE_ANDROID_LOGGING
 #define ALOG(pri, tag, fmt, arg...) //syslog (LOG_WARNING, fmt, ##arg)
-#else
-#define ALOG(pri, tag, fmt, arg...) syslog (LOG_WARNING, fmt, ##arg)
-#endif
 #define LOG_DEBUG(fmt, arg...) ALOG(PRI_VERB, LOG_TAG, fmt, ##arg)
 
 
