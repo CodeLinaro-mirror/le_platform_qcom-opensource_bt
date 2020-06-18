@@ -254,7 +254,7 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
     characteristic->setValue(value, length);
   }
   if (responseNeeded) {
-    mServer->sendResponse(deviceAddress,requestId,0,offset,value, characteristic->getValueLength());
+    mServer->sendResponse(deviceAddress,requestId,0,offset,value, length);
   }
   int d = characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY;
   if((characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY) != 0) {
