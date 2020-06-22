@@ -61,7 +61,7 @@ typedef struct {
 
 #define A2DP_SINK_PCM_FETCH_TIMER_DURATION         35
 #define A2DP_SINK_REMOTE_SUSPEND_WAIT_TIMER_DURATION 5000
-#define A2DP_SINK_COMPRESS_FEED_TIMER_DURATION     40
+#define A2DP_SINK_COMPRESS_FEED_TIMER_DURATION     20
 #define A2DP_SINK_GBUF_MAX_SIZE 65535
 
 
@@ -123,9 +123,11 @@ class A2dp_Sink_Streaming {
     size_t cuml_data_written_to_audio;
     size_t residual_compress_data;
     uint8_t* pcm_buf;
+    uint64_t out_write_ts;
     bool pcm_timer;
     bool suspend_wait_timer;
-    bool compress_offload_timer;
+    bool compress_offload_timer;// this is used to handle timer start/stop collision
+    bool compress_timer_stoped;
     void StartPcmTimer();
     void StopDataFetchTimer();
     void StartRemoteSuspendWaitTimer();
@@ -148,6 +150,7 @@ class A2dp_Sink_Streaming {
     void StopCompressAudioFeedTimer();
     void SetStreamVol(int curr_audio_index);
     uint64_t get_cur_time();
+    void send_to_out_write();
     uint16_t peer_mtu;
 };
 
