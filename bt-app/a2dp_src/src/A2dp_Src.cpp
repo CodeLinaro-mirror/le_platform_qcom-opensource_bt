@@ -1059,6 +1059,7 @@ static void BtA2dpSuspendStreaming()
 static void BtA2dpResumeStreaming()
 {
     ALOGD(LOGTAG_A2DP "Resume A2dp Stream");
+    a2dp_playstatus = A2DP_SOURCE_AUDIO_STARTED;
 
     if (is_sink_relay_enabled)
         flush_relay_data();
@@ -1465,6 +1466,12 @@ static void *thread_func(void *in_param)
                 continue;
             }
         }
+        ALOGE(LOGTAG_A2DP" A2DP SRC status:%d", a2dp_playstatus);
+        if ( a2dp_playstatus == A2DP_SOURCE_AUDIO_STOPPED ||
+             a2dp_playstatus == A2DP_SOURCE_AUDIO_SUSPENDED) {
+            usleep(100000);
+            continue;
+        }
         ALOGD(" relay %d",is_sink_relay_enabled);
         if(!is_sink_relay_enabled)
         {
@@ -1537,6 +1544,7 @@ static void BtA2dpStartStreaming()
         pA2dpSource->SendStartStreamReq();
     }
 
+    a2dp_playstatus = A2DP_SOURCE_AUDIO_STARTED;
     media_playing = true;
     if (pthread_create(&playback_thread, NULL, thread_func, in_file) != 0) {
         ALOGD(LOGTAG_A2DP "Cannot create playback thread!\n");
@@ -1647,9 +1655,6 @@ static void btavrcp_target_passthrough_cmd_callback(int id, int key_state, bt_bd
     if (key_state == KEY_PRESSED) {
         BtEvent *event = new BtEvent;
         event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
-        /*As there is no player impl available at this point hence STOP/PAUSE has got same functionality*/
-        if(id == CMD_ID_PAUSE)
-            id = CMD_ID_STOP;
         event->avrcpTargetEvent.key_id = id;
         PostMessage (THREAD_ID_A2DP_SOURCE, event);
     }
