@@ -286,6 +286,11 @@ ScanRecord* ScanRecord::parseFromBytes(std::vector<uint8_t> scanRecord)
         case DATA_TYPE_MANUFACTURER_SPECIFIC_DATA:
           // The first two bytes of the manufacturer specific data are
           // manufacturer ids in little endian.
+          // As spec defined, manufacturer ID must be 2 bytes.
+          if (dataLength < 2) {
+            ALOGE(LOGTAG "manufacturerId field truncated or not present.");
+          }
+          else
           {
             int manufacturerId = ((scanRecord[currentPos + 1] & 0xFF) << 8)
                                   + (scanRecord[currentPos] & 0xFF);
