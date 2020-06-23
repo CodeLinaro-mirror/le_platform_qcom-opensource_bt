@@ -254,7 +254,7 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
     characteristic->setValue(value, length);
   }
   if (responseNeeded) {
-    mServer->sendResponse(deviceAddress,requestId,0,offset,value, characteristic->getValueLength());
+    mServer->sendResponse(deviceAddress,requestId,0,offset,value, length);
   }
   int d = characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY;
   if((characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY) != 0) {
@@ -833,14 +833,14 @@ bool GattsTest::StartAdvertisement(string        instanceID)
     return false;
   }
   //fetching advertiser Callback instance for the server/advertiser instance key
-  gattstestAdvCb = advCBInstanceMap[instance];
-  if (gattstestAdvCb == NULL)
-  {
+  auto search = advCBInstanceMap.find(instance);
+  if (search != advCBInstanceMap.end())
+    gattstestAdvCb = search->second;
+  else {
     ALOGD("%s For instance %d, Server is not added ", __FUNCTION__, instance);
     fprintf(stdout,"For instance %d, Server is not added \n",instance);
     return false;
   }
-
   //Finding corresponding Legacy flag details for the corresponding advertiser
   temp = AdvSet_list[instance -1];
   legacyflag = temp->legacyflag;
