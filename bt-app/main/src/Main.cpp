@@ -3484,7 +3484,10 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                     fprintf(stdout," Inquiry Stopped due to user input\n");
                 }
             }
-            bt_discovery_state = event->discovery_state_event.state;
+            if (event->discovery_state_event.state == BT_DISCOVERY_INQ_COMPLETE)
+                bt_discovery_state = BT_DISCOVERY_STARTED;
+            else
+                bt_discovery_state = event->discovery_state_event.state;
             break;
 
         case MAIN_EVENT_DEVICE_FOUND:
