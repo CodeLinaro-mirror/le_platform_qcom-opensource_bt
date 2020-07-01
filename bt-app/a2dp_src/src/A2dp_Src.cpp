@@ -908,7 +908,7 @@ void BtA2dpSourceMsgHandler(void *msg) {
                 break;
             }
             A2dpCodecList(pEvent->a2dpCodecListEvent.codec_list, &num_codec_cfgs);
-            if (num_codec_cfgs)
+            if (pA2dpSource && num_codec_cfgs)
                 pA2dpSource->UpdateSupportedCodecs(pEvent->a2dpSourceEvent.bd_addr, num_codec_cfgs);
             break;
         case A2DP_SOURCE_CODEC_MODE_CHANGE:
@@ -918,7 +918,8 @@ void BtA2dpSourceMsgHandler(void *msg) {
                 break;
             }
             aptxad_mode_change(pEvent->a2dpCodecListEvent.codec_list, &num_codec_cfgs);
-            pA2dpSource->UpdateSupportedCodecs(pEvent->a2dpCodecListEvent.bd_addr, num_codec_cfgs);
+            if (pA2dpSource)
+                pA2dpSource->UpdateSupportedCodecs(pEvent->a2dpCodecListEvent.bd_addr, num_codec_cfgs);
             break;
         default:
             if(pA2dpSource) {
