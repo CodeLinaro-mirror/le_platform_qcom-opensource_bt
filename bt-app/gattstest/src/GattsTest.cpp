@@ -571,6 +571,9 @@ bool GattsTest::ParseServiceDetails(string temp,int line_num)
           ALOGD(LOGTAG"Invalid service entry");
           return false;
         }
+    } else {
+        ALOGD(LOGTAG"Invalid service entry :");
+        return false;
     }
   }
 }
