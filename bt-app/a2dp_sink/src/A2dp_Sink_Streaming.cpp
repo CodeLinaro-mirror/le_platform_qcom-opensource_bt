@@ -459,11 +459,11 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
                         update_flushing_device_vendor(&pEvent->a2dpSinkStreamingEvent.bd_addr);
                 }
-            }
 #if (defined(BT_AUDIO_HAL_INTEGRATION))
-            qahw_out_flush(pA2dpSinkStream->out_stream);
-            qahw_out_pause(pA2dpSinkStream->out_stream);
+                qahw_out_flush(pA2dpSinkStream->out_stream);
+                qahw_out_pause(pA2dpSinkStream->out_stream);
 #endif
+            }
             break;
        case A2DP_SINK_SEND_TO_OUT_WRITE:
             ALOGD(LOGTAG " A2DP_SINK_SEND_TO_OUT_WRITE %d compress_timer_stoped %d ",
