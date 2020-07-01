@@ -210,8 +210,10 @@ float GattCharacteristic::getFloatValue(int formatType, int offset)
 
 string GattCharacteristic::getStringValue(int offset)
 {
+  if (mValue == NULL) return NULL;
   size_t mValueSize = strlen((char*)mValue);
-  if (mValue == NULL || offset >mValueSize) return NULL;
+
+  if (offset >mValueSize) return NULL;
 
   uint8_t strBytes[mValueSize - offset];
   for (int i = 0; i != (mValueSize - offset); ++i)
