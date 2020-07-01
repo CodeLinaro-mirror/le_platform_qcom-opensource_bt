@@ -347,6 +347,7 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
             }
             RemoveNode(profile_index);
             break;
+
     }
 }
 

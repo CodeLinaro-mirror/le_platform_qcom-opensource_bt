@@ -284,7 +284,6 @@ class gattctestClientCallback:public GattClientCallback
             int i;
             for (i = 0; i < 10; i++)
               tmp_ch[i] = PREPARE_WRITE_NEXT_DATA;
-            tmp_ch[i] = '\0';
             std::string s;
             s.assign(tmp_ch, tmp_ch + sizeof(tmp_ch));
             fprintf(stdout, "string write is %s\n", s.c_str());
@@ -1214,7 +1213,8 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
     int i;
     for (i = 0; i < 10; i++)
       tmp_ch[i] = PREPARE_WRITE_DATA;
-    characteristic->setValue(tmp_ch, sizeof(tmp_ch));
+
+    characteristic->setValue(tmp_ch, sizeof(tmp_ch)/sizeof(tmp_ch[0]));
 
     if (mExecReliableWrite == ReliableWriteState::RELIABLE_WRITE_NONE) {
       mExecReliableWrite =
