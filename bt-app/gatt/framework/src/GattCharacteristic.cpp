@@ -243,8 +243,8 @@ bool GattCharacteristic::setValue(int value, int formatType, int offset)
   int len = offset + getTypeLen(formatType);
 
   if (mValue == NULL) mValue = new uint8_t[len];
-
-  if (len > mValueLength) return false;
+  if (len > sizeof(mValue)/sizeof(mValue[0]))
+    return false;
 
   switch (formatType) {
     case FORMAT_SINT8:
@@ -280,7 +280,8 @@ bool GattCharacteristic::setValue(int mantissa, int exponent, int formatType, in
   int len = offset + getTypeLen(formatType);
 
   if (mValue == NULL) mValue = new uint8_t[len];
-  if (len > mValueLength) return false;
+  if (len > sizeof(mValue)/sizeof(mValue[0]))
+    return false;
 
   switch (formatType) {
     case FORMAT_SFLOAT:
