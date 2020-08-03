@@ -2821,8 +2821,6 @@ void GattLibService::HandleGattsServiceAddedEvent(GattsServiceAddedEvent *event)
                                              static_cast<int>(event->service->size()));
   sGattService->onServiceAdded(event->status, event->server_if, service);
   delete event->service;
-  for (GattDbElement *el : service)
-    delete el;
   service.clear();
 }
 
