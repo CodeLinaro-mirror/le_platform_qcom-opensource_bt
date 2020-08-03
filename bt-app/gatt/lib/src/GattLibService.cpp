@@ -2359,8 +2359,9 @@ void GattLibService::startScan(int scannerId, ScanSettings *settings,
 
   if (!mScanManager) return;
   ScanClient *scanClient = new ScanClient(scannerId, settings, filters, storages);
+  mScanClients.insert(scanClient);
   mScanManager->startScan(scanClient);
-  delete scanClient;
+  //delete scanClient;
 }
 
 void GattLibService::flushPendingBatchResults(int scannerId)
@@ -2370,15 +2371,15 @@ void GattLibService::flushPendingBatchResults(int scannerId)
   }
 
   if (!mScanManager) return;
-  ScanClient *sc = new ScanClient(scannerId);
+  ScanClient *sc = getScanClientbyScanId(scannerId);
   mScanManager->flushBatchScanResults(sc);
-  delete sc;
 }
 
 void GattLibService::stopScan(int scannerId)
 {
-  ScanClient *sc = new ScanClient(scannerId); // not to use stack.
+  ScanClient *sc = getScanClientbyScanId(scannerId); // not to use stack.
   stopScan(sc);
+  mScanClients.erase(sc);
   delete sc;
 }
 
@@ -2442,7 +2443,7 @@ void GattLibService::unregAll()
   for (int appId : mScannerMap->getAllAppsIds()) {
     if (DBG) ALOGD(LOGTAG " unreg:%d", appId);
     if (isScanClient(appId)) {
-      ScanClient *client = new ScanClient(appId);
+      ScanClient *client = getScanClientbyScanId(appId);
       stopScan(client);
       unregisterScanner(appId);
     }
@@ -2618,7 +2619,15 @@ void GattLibService::updateFeatureSupport(void *value, int len)
   delete[] val;
 }
 
-
+ScanClient* GattLibService::getScanClientbyScanId(int scannerId)
+{
+  for (ScanClient *client : mScanClients) {
+    if (client->scannerId == scannerId) {
+      return client;
+    }
+  }
+  return NULL;
+}
 
 /**********************************************************************
  * HANDLE CALLBACK FROM JNI
