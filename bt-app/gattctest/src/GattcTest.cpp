@@ -60,8 +60,6 @@ using namespace btapp;
 #define NO_AUTO_CONNECTION 0
 #define AUTO_CONNECTION 1
 
-#define UUID_FOR_CHARACTERISTIC_WRITE "ffffeeee-0000-1000-8000-00805f9b34fb"
-
 #define PREPARE_WRITE_DATA 0xAA
 #define PREPARE_WRITE_NEXT_DATA 0xBB
 
@@ -274,8 +272,6 @@ class gattctestClientCallback:public GattClientCallback
         {
           mExecReliableWrite =
             ReliableWriteState::RELIABLE_WRITE_WRITE_2ND_DATA;
-          string str = UUID_FOR_CHARACTERISTIC_WRITE;
-          if (uid.ToString().compare(str) == 0) {
             ALOGD(LOGTAG "Sending prepare write after 1st prepare "
               "write successfully finished");
             fprintf(stdout, "Sending prepare write after 1st prepare "
@@ -288,14 +284,13 @@ class gattctestClientCallback:public GattClientCallback
             std::string s;
             s.assign(tmp_ch, tmp_ch + sizeof(tmp_ch));
             fprintf(stdout, "string write is %s\n", s.c_str());
-            characteristic->setValue(tmp_ch);
+            characteristic->setValue(tmp_ch, sizeof(tmp_ch)/sizeof(tmp_ch[0]));
             int status = gattc->writeCharacteristic(*characteristic);
             if (status) {
               fprintf(stdout, "write success\n");
             } else {
               fprintf(stdout, "write failed \n");
             }
-          }
           break;
         }
         case ReliableWriteState::RELIABLE_WRITE_WRITE_2ND_DATA:
@@ -380,10 +375,8 @@ class gattctestClientCallback:public GattClientCallback
       Uuid uid = descriptor->getUuid();
 
       if ((status == GattClient::GATT_SUCCESS)) {
-        ALOGD(LOGTAG "onDescriptorWrite Success Value : %s",
-            descriptor->getValue());
-        fprintf(stdout, "onDescriptorWrite Success Value : %s\n",
-            descriptor->getValue());
+        ALOGD(LOGTAG "onDescriptorWrite Success ");
+        fprintf(stdout, "onDescriptorWrite Success \n");
       } else if (status == GattClient::GATT_WRITE_NOT_PERMITTED) {
         ALOGE(LOGTAG, "Write NOT PERMITTED for the descriptor");
         fprintf(stdout, "Write NOT PERMITTED for the descriptor\n");
@@ -721,13 +714,28 @@ void GattcTest :: getServices(string bdaddr)
       for(tmp_it = tmp_char.begin(); tmp_it != tmp_char.end();
           tmp_it++) {
         Uuid char_uuid = (*tmp_it)->getUuid();
-        fprintf(stdout, "== == == CHAR uuid is %s InstanceId "
+        fprintf(stdout, "== == CHAR uuid is %s InstanceId "
             ": %d\n", char_uuid.ToString().c_str(),
             (*tmp_it)->getInstanceId());
-        fprintf(stdout, "== == == Properties %d ; permissions %d;"
+        fprintf(stdout, "== == Properties %d ; permissions %d;"
             "writeType %d\n", (*tmp_it)->getProperties(),
             (*tmp_it)->getPermissions(),
             (*tmp_it)->getWriteType());
+
+       std::vector<GattDescriptor*> tmp_desc
+                 = (*tmp_it)->getDescriptors();
+        ALOGD(LOGTAG "The no of descriptors for this"
+                   "char: %d", tmp_desc.size());
+        fprintf(stdout, "The no of descriptors for this"
+                   "char %ld\n", tmp_desc.size());
+        std::vector<GattDescriptor*>::iterator desc_it;
+        for (desc_it = tmp_desc.begin(); desc_it != tmp_desc.end(); desc_it++) {
+          Uuid desc_uuid = (*desc_it)->getUuid();
+          fprintf(stdout, "== == == Desc uuid is %s InstanceId : %d\n",
+              desc_uuid.ToString().c_str(), (*desc_it)->getInstanceId());
+          fprintf(stdout, "== == == Permissions %d ; value %s\n\n",
+              (*desc_it)->getPermissions(), (*desc_it)->getValue());
+        }
       }
     }
   }
@@ -837,7 +845,7 @@ GattCharacteristic* GattcTest :: getCharacteristic(Uuid uid, string bdaddr)
 }
 
 bool GattcTest :: writeCharacteristic(string bdaddr, uint8_t *writeValue,
-    int instanceId)
+    int valueLength, int instanceId)
 {
   ALOGD(LOGTAG "writeCharacteristic value is %s", writeValue);
   fprintf(stdout, "writeCharacteristic value %s\n", writeValue);
@@ -854,7 +862,7 @@ bool GattcTest :: writeCharacteristic(string bdaddr, uint8_t *writeValue,
   characteristic = CliDevice->getCharacteristicById(bdaddr, instanceId);
 
   if (characteristic != NULL) {
-    characteristic->setValue(writeValue);
+    characteristic->setValue(writeValue, valueLength);
     ALOGD(LOGTAG "Instance ID   %d", characteristic->getInstanceId());
 
     bool status = CliDevice->writeCharacteristic(*characteristic);
@@ -894,7 +902,7 @@ bool GattcTest:: reqConnPri(string bdaddr, int conn_priority)
 }
 
 void GattcTest :: writeDescriptor(string bdaddr,
-    uint8_t *writeValue, int instanceid)
+    uint8_t *writeValue, int valueLength, int instanceid)
 {
   ALOGD(LOGTAG "writeDescriptor");
 
@@ -908,8 +916,7 @@ void GattcTest :: writeDescriptor(string bdaddr,
   GattDescriptor* descriptor =
     CliDevice->getDescriptorById(bdaddr, instanceid);
   if (descriptor != NULL) {
-    descriptor->setValue(writeValue);
-
+    descriptor->setValue(writeValue, valueLength);
     if (!CliDevice->writeDescriptor(*descriptor)) {
       ALOGE(LOGTAG "WriteDescriptor Failed");
       fprintf(stdout, "Write Descriptor Failed\n");
@@ -1108,7 +1115,7 @@ void GattcTest :: gattrequestMtu(string bdaddr, int mtu_value)
 }
 
 bool GattcTest::prepareWriteCharacteristic(string bdaddr,
-    uint8_t * writeValue, int instanceId)
+    uint8_t * writeValue, int valueLength, int instanceId)
 {
   ALOGD(LOGTAG "prepareWriteCharacteristic");
   fprintf(stdout, "prepareWriteCharacteristic\n");
@@ -1135,7 +1142,7 @@ bool GattcTest::prepareWriteCharacteristic(string bdaddr,
   characteristic = CliDevice->getCharacteristicById(bdaddr, instanceId);
 
   if (characteristic != NULL) {
-    characteristic->setValue(writeValue);
+    characteristic->setValue(writeValue, valueLength);
     bool status = CliDevice->writeCharacteristic(*characteristic);
 
     if (status) {
@@ -1179,23 +1186,6 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
     fprintf(stdout, "beginReliableWrite Failed\n");
     return false;
   }
-  //Abort after 2 seconds
-  std::this_thread::sleep_for (std::chrono::seconds(2));
-  CliDevice->abortReliableWrite();
-  ALOGD(LOGTAG "Reliable write Aborted");
-  fprintf(stdout, "Reliable write Aborted\n");
-
-  // Again Writing the Preparewrites
-  std::this_thread::sleep_for (std::chrono::seconds(1));
-  status = CliDevice->beginReliableWrite();
-  if (status) {
-    ALOGD(LOGTAG "beginReliableWrite initiated");
-  } else {
-    ALOGE(LOGTAG "beginReliableWrite Failed");
-    fprintf(stdout, "beginReliableWrite Failed\n");
-    return false;
-  }
-  std::this_thread::sleep_for (std::chrono::seconds(1));
 
   GattCharacteristic *characteristic = CliDevice->getCharacteristicById
     (bdaddr, instanceid);
@@ -1203,19 +1193,18 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
     mExecReliableWrite = ReliableWriteState::RELIABLE_WRITE_NONE;
     return false;
   }
-  string str = UUID_FOR_CHARACTERISTIC_WRITE;
-  if (characteristic->getUuid().ToString().compare(str) == 0) {
+  {
     fprintf(stdout, "checking reliable writes\n");
     /*
-       Writing some default value to tmp buffer to test the
-       prepare write and execute write scenario.
-       */
+      Writing some default value to tmp buffer to test the
+      prepare write and execute write scenario.
+     */
     uint8_t tmp_ch[10];
     int i;
     for (i = 0; i < 10; i++)
       tmp_ch[i] = PREPARE_WRITE_DATA;
     tmp_ch[i] = '\0';
-    characteristic->setValue(tmp_ch);
+    characteristic->setValue(tmp_ch, sizeof(tmp_ch)/sizeof(tmp_ch[0]));
 
     if (mExecReliableWrite == ReliableWriteState::RELIABLE_WRITE_NONE) {
       mExecReliableWrite =
@@ -1226,10 +1215,6 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
     }
     status = CliDevice->writeCharacteristic(*characteristic);
     fprintf(stdout, "write characteristic executedexecuted\n");
-  } else {
-    ALOGE(LOGTAG "Reliable write failed due to mismatch in UUID");
-    fprintf(stdout, "Reliable write failed due to mismatch in UUID\n");
-    return false;
   }
   return true;
 }

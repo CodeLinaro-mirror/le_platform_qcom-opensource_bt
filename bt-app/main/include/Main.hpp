@@ -204,6 +204,7 @@ typedef enum {
     SET_REPEAT_VAL,
     SET_SHUFFLE_VAL,
     SET_SCAN_VAL,
+    SET_SCMST_CP_FLAG,
     BIGGER_METADATA,
     PAN_OPTION,
     CONNECTED_LIST,
@@ -400,8 +401,8 @@ UserMenuList GapMenu[] = {
     {BT_DISABLE,            "disable",          ZERO_PARAM,    "disable"},
     {START_ENQUIRY,         "inquiry",          ZERO_PARAM,    "inquiry"},
     {CANCEL_ENQUIRY,        "cancel_inquiry",   ZERO_PARAM,    "cancel_inquiry"},
-    {START_PAIR,            "pair",             ONE_PARAM,    "pair<space><bt_address> \
-    eg. pair 00:11:22:33:44:55"},
+    {START_PAIR,            "pair",             TWO_PARAM,    "pair<space><bt_address><space><transport> \
+    eg. pair 00:11:22:33:44:55 0(auto)/1(BREDR)/2(BLE)"},
     {UNPAIR,                "unpair",           ONE_PARAM,    "unpair<space><bt_address> \
     eg. unpair 00:11:22:33:44:55"},
     {INQUIRY_LIST,          "inquiry_list",     ZERO_PARAM,    "inquiry_list"},
@@ -529,8 +530,8 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_RELIABLEWRITE,       "gattctest_reliablewrite",    TWO_PARAM,    "gattctest_reliablewrite<space><bt_address><space><instanceid>"},
     {GATTCTEST_GETDESCID,           "gattctest_getdescid",    TWO_PARAM,    "gattctest_getdescid<space><bt_address><space><instanceid>"},
     {GATTCTEST_GETSRVC,           "gattctest_getsrvc",    THREE_PARAM,    "gattctest_getsrvc<space><bt_address><space><UUID><space><INSTANCEID>"},
-    {GATTCTEST_RDWRDESC,       "gattctest_RdWrDesc",    FOUR_PARAM,    "gattctest_RdWrDesc<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID>"},
-    {GATTCTEST_RDWRCHAR,           "gattctest_RdWrchar",    FOUR_PARAM,    "gattctest_RdWrchar<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID>"},
+    {GATTCTEST_RDWRDESC,       "gattctest_RdWrDesc",    FIVE_PARAM,    "gattctest_RdWrDesc<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID><space><value length>"},
+    {GATTCTEST_RDWRCHAR,           "gattctest_RdWrchar",    FIVE_PARAM,    "gattctest_RdWrchar<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID><space><value length>"},
     {GATTCTEST_CONN_DEVICES,     "gattctest_conn_dev",  ZERO_PARAM,    "gattctest_conn_dev"},
 };
 #endif
@@ -606,6 +607,7 @@ UserMenuList A2dpSourceMenu[] = {
     {SET_REPEAT_VAL,     "setrepeatval",  ONE_PARAM,     "setrepeatval<space><val> (1 to 4)"},
     {SET_SHUFFLE_VAL,     "setshuffleval",  ONE_PARAM,     "setshuffleval<space><val>(1 to 3)"},
     {SET_SCAN_VAL,     "setscanval",  ONE_PARAM,     "setscanval<space><val> (1 to 3)"},
+    {SET_SCMST_CP_FLAG,     "set_scmst_cp_flag",TWO_PARAM,    "set_scmst_cp_flag<space><bd_addr><space><0/2> (0-Copyrighted 2-Content not protected) "},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 

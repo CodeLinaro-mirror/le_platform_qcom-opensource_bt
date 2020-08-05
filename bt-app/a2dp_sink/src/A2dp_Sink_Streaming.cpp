@@ -225,11 +225,18 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                     }
                     else
                     {
+                        uint32_t pcm_buf_size = 0;
+                        if(pA2dpSinkStream->peer_mtu > (pA2dpSinkStream->pcm_buf_size/4)){
+                            pcm_buf_size = pA2dpSinkStream->peer_mtu + 50;
+                            //50 is to make sure that buf_size is more than pack size in stack
+                        } else {
+                            pcm_buf_size = pA2dpSinkStream->pcm_buf_size/4;
+                        }
                         pcm_data_read =  pA2dpSinkStream->mBtA2dpSinkStreamingVendorInterface->
                         get_a2dp_sink_streaming_data_vendor(A2DP_SINK_AUDIO_CODEC_SBC,
                         pA2dpSinkStream->pcm_buf,
                         (pA2dpSinkStream->enable_notification_cb ? pA2dpSinkStream->pcm_buf_size :
-                        (pA2dpSinkStream->pcm_buf_size)/4));
+                        pcm_buf_size));
                     }
                     /* when callback mechanism is used, remove timestamp before sending data
                      * to Audio Hal */
@@ -353,6 +360,11 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                         }
                         pA2dpSinkStream->CloseAudioStream();
                         pA2dpSinkStream->StopDataFetchTimer();
+                        // Notify Audio Stream close
+                        pReleaseControlReq = new BtEvent;
+                        pReleaseControlReq->btamControlRelease.event_id = BT_AM_OUT_CLOSE;
+                        pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_A2DP_SINK;
+                        PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
                         break;
                     case STATUS_GAIN:
                     ALOGD(LOGTAG " BT_AM_CONTROL_STATUS, STATUS_GAIN");

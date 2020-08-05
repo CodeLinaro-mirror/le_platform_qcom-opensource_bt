@@ -36,7 +36,6 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
                -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
-               -I${WORKSPACE}/hardware/libhardware/include \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth_ext/vhal/include \
                -I${WORKSPACE}/mcm-api/api \
@@ -44,6 +43,10 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include
+if RB5_AUDIO_HAL
+else
+AM_CPPFLAGS += -I${WORKSPACE}/hardware/libhardware/include
+endif
 
 if USE_BT_OBEX
 AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
