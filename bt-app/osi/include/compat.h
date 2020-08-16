@@ -28,7 +28,7 @@ extern "C" {
 #if __GLIBC__
 
 /* Get thread identification. */
-pid_t gettid(void);
+pid_t gettid(void) __THROW;
 
 /* Copy src to string dst of size siz. */
 size_t strlcpy(char *dst, const char *src, size_t siz);
