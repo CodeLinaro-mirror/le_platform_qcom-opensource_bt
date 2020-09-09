@@ -437,7 +437,7 @@ UserMenuList MainMenu[] = {
     {GATTCTEST_OPTION,      "gattctest_menu",   ZERO_PARAM,   "gattctest_menu"},
     {GATTSTEST_OPTION,      "gattstest_menu",   ZERO_PARAM,   "gattstest_menu"},
 #endif
-    {HID_HOST,              "hid_menu",         ZERO_PARAM,   "hid_menu"},
+    {HID_HOST,              "hogp_menu",         ZERO_PARAM,   "hogp_menu"},
 #ifdef USE_BT_OBEX
     {PBAP_CLIENT_OPTION,    "pbap_client_menu", ZERO_PARAM,   "pbap_client_menu"},
     {OPP_OPTION,            "opp_menu",         ZERO_PARAM,   "opp_menu"},
@@ -657,7 +657,7 @@ UserMenuList HfpClientMenu[] = {
 UserMenuList HidMenu[] = {
     {CONNECT,         "connect",           ONE_PARAM,    "connect<space><bt_address>"},
     {DISCONNECT,      "disconnect",        ONE_PARAM,    "disconnect<space><bt_address>"},
-    {HID_BONDED_LIST, "hid_list",          ZERO_PARAM,   "hid_list"},
+    {HID_BONDED_LIST, "hogp_list",          ZERO_PARAM,   "hogp_list"},
     {GET_PROTOCOL,    "get_protocol",      TWO_PARAM,    "get_protocol<space><bt_address><protocolMode>"},
     {SET_PROTOCOL,    "set_protocol",      TWO_PARAM,    "set_protocol<space><bt_address><protocolMode> eg:0-REPORTMODE,1-BOOTMODE"},
     {VIRTUAL_UNPLUG,  "virtual_unplug",    ONE_PARAM,    "virtual_unplug<space><bt_address>"},
