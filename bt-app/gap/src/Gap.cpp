@@ -358,8 +358,8 @@ static void VendorA2DPTxCompleteCb(bt_bdaddr_t *bd_addr, bool flush) {
      * calculate the time delta between current time and the timestamp in the dequeued item.
      * This value is the cost of this packet from host to successfully sent out in f/w.
      *
-     * If send_encoded_data_vendor return false, it means MAX_OUTPUT_A2DP_FRAME_QUEUE_SZ packets are discarded in host,
-     * it should remove the LAST MAX_OUTPUT_A2DP_FRAME_QUEUE_SZ items in sent_a2dp_queue.
+     * If send_encoded_data_vendor return zero, it means that the queue is full and the packet
+     * will not be sent, there is no need to queue the stamp time.
      *
      * If flush in this callback function is true, which means the flush occurs in f/w. it should deque one items from
      * the HEAD of sent_a2dp_queue. Customer can calc the time delta of each item or do some other flush event handler
