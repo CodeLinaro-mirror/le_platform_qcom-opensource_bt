@@ -33,6 +33,7 @@
 #include <vector>
 #include <iterator>
 
+#include "osi/include/compat.h"
 #include "osi/include/allocator.h"
 #include "osi/include/config.h"
 #include "osi/include/list.h"
@@ -273,7 +274,7 @@ bool config_save(const config_t *config, const char *filename) {
     return false;
   }
 
-  strcpy(temp_filename, filename);
+  strlcpy(temp_filename, filename, sizeof(temp_filename));
   strcat(temp_filename, ".new");
 
   FILE *fp = fopen(temp_filename, "wt");
@@ -351,7 +352,7 @@ static void config_parse(FILE *fp, config_t *config) {
   int line_num = 0;
   char line[1024];
   char section[1024];
-  strcpy(section, CONFIG_DEFAULT_SECTION);
+  strlcpy(section, CONFIG_DEFAULT_SECTION, sizeof(section));
 
   while (fgets(line, sizeof(line), fp)) {
     char *line_ptr = trim(line);
@@ -367,8 +368,7 @@ static void config_parse(FILE *fp, config_t *config) {
         LOG_DEBUG("%s unterminated section name on line %d.", __func__, line_num);
         continue;
       }
-      strncpy(section, line_ptr + 1, len - 2);
-      section[len - 2] = '\0';
+      strlcpy(section, line_ptr + 1, sizeof(section));
     } else {
       char *split = strchr(line_ptr, '=');
       if (!split) {
