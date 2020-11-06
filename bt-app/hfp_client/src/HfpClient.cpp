@@ -1433,7 +1433,7 @@ void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bo
       else if (vol >=  15)
          qahw_set_parameters(audio_module, "hfp_volume=15");
       else {
-         sprintf(buf, "hfp_volume=%d", vol);
+         snprintf(buf, sizeof(buf), "hfp_volume=%d", vol);
          qahw_set_parameters(audio_module, buf);
       }
    }
