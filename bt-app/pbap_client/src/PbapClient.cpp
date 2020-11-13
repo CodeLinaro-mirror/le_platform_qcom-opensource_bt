@@ -847,7 +847,7 @@ static OI_STATUS pb_open(const OI_OBEX_UNICODE *name, OI_PBAP_OPEN_CFM open_cfm,
         stream = fopen(pbap_client.fileName, "w+b");
         if (stream == NULL) {
             status = OI_STATUS_OUT_OF_MEMORY;
-            delete pbap_client.fileName;
+            delete[] pbap_client.fileName;
             pbap_client.fileName = NULL;
         }
     } else {
