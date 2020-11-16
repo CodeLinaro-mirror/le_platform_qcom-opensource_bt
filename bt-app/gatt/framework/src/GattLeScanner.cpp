@@ -27,7 +27,7 @@ namespace gatt {
 std::mutex mtx;
 std::unique_lock<std::mutex> mLock(mtx, std::defer_lock);
 
-GattLeScanner *GattLeScanner::sGattLeScanner = new GattLeScanner();
+GattLeScanner *GattLeScanner::sGattLeScanner = NULL;
 
 void GattLeScanner::startTruncatedScan(std::vector<TruncatedFilter*> truncatedFilters,
                                              ScanSettings *settings,
@@ -46,13 +46,10 @@ void GattLeScanner::startTruncatedScan(std::vector<TruncatedFilter*> truncatedFi
 void GattLeScanner::cleanup()
 {
   if (sGattLeScanner != NULL) {
+    delete(sGattLeScanner);
     sGattLeScanner = NULL;
   }
 
-  if (mGattDevice!=NULL) {
-    delete(mGattDevice);
-    mGattDevice = NULL;
-  }
 
   if (wrapper!=NULL) {
     delete(wrapper);
@@ -70,12 +67,13 @@ void GattLeScanner::cleanup()
 
 GattLeScanner* GattLeScanner::getGattLeScanner()
 {
+  sGattLeScanner = new GattLeScanner();
+
   return sGattLeScanner;
 }
 
 GattLeScanner::GattLeScanner()
 {
-  mGattDevice = new GattDevice();
 }
 
 GattLeScanner::~GattLeScanner()
@@ -167,8 +165,8 @@ void GattLeScanner::stopScan(ScanCallback *callback)
     if (DBG) ALOGD(LOGTAG " could not find callback wrapper");
     return;
   }
-  mLeScanClients.erase(wrapper);
   wrapper->second->stopLeScan();
+  mLeScanClients.erase(wrapper);
 }
 
 void GattLeScanner::flushPendingScanResults(ScanCallback *callback)

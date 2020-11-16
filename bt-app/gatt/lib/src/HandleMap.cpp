@@ -70,6 +70,8 @@ HandleMap::Entry::Entry(int serverIf, int type, int handle, Uuid uuid, int servi
 
 void  HandleMap::clear()
 {
+  for (auto entry:mEntries)
+    delete entry;
   mEntries.clear();
   mRequestMap.clear();
 }
@@ -136,6 +138,7 @@ void HandleMap::deleteService(int serverIf, int serviceHandle)
 
     if (entry->handle == serviceHandle || entry->serviceHandle == serviceHandle) {
       mEntries.erase(it);
+      delete entry;
       break;
     }
   }

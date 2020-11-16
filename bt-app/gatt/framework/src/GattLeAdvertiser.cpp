@@ -25,7 +25,7 @@
 using namespace std;
 namespace gatt {
 
-GattLeAdvertiser *GattLeAdvertiser::sGattLeAdvertiser = new GattLeAdvertiser();
+GattLeAdvertiser *GattLeAdvertiser::sGattLeAdvertiser = NULL;
 
 GattLeAdvertiser* GattLeAdvertiser::getGattLeAdvertiser()
 {
@@ -38,7 +38,6 @@ GattLeAdvertiser* GattLeAdvertiser::getGattLeAdvertiser()
 
 GattLeAdvertiser::GattLeAdvertiser()
 {
-  mGattDevice = new GattDevice();
 }
 
 GattLeAdvertiser::~GattLeAdvertiser()
@@ -191,6 +190,7 @@ void GattLeAdvertiser::startAdvertising(AdvertiseSettings* settings,
 
   startAdvertisingSet(parameters, advertiseData, scanResponse, NULL, NULL,
           duration, 0, callback);
+  delete parameters;
 }
 
 void GattLeAdvertiser::stopAdvertising(AdvertisingSetCallback *callback)
@@ -314,7 +314,7 @@ void GattLeAdvertiser::startAdvertisingSet(AdvertisingSetParameters *parameters,
     postStartSetFailure(callback,
            AdvertisingSetCallback::ADVERTISE_FAILED_INTERNAL_ERROR);
     return;
-    }
+  }
 }
 
 void GattLeAdvertiser::stopAdvertisingSet(AdvertisingSetCallback *callback)
@@ -325,8 +325,8 @@ void GattLeAdvertiser::stopAdvertisingSet(AdvertisingSetCallback *callback)
 
   auto tCb = mCallback.find(callback);
   if (tCb == mCallback.end()) {
-  ALOGE(LOGTAG " stopAdvertisingSet() No callback ");
-  return;
+    ALOGE(LOGTAG " stopAdvertisingSet() No callback ");
+    return;
   }
 
   mCallback.erase(callback);
@@ -343,9 +343,10 @@ void GattLeAdvertiser::cleanup()
 {
   mCb = NULL;
   mCallback.clear();
+  for (auto adv_map:mAdvertisingSets) {
+    delete adv_map.second;
+  }
   mAdvertisingSets.clear();
-  delete(mGattDevice);
-  mGattDevice = NULL;
   sGattLeAdvertiser = NULL;
 }
 
@@ -377,6 +378,7 @@ void GattLeAdvertiser::onAdvertisingSetStarted(int advertiserId, int txPower, in
 
   mAdvertisingSets.insert({{advertiserId, advertisingSet}});
   mCb->onAdvertisingSetStarted(advertisingSet, txPower, status);
+  delete advertisingSet;
 }
 
 void GattLeAdvertiser::onOwnAddressRead(int advertiserId, int addressType, string address)

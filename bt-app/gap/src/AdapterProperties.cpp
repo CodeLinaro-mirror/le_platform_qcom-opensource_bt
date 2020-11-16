@@ -227,10 +227,9 @@ void AdapterProperties :: OnbondStateChanged( bt_bdaddr_t bd_addr,
 void AdapterProperties :: HandleDiscoveryStateChange(bt_discovery_state_t state) {
     if ((state == BT_DISCOVERY_STOPPED) && discovering_) {
         discovering_ = false;
-    } else if (state == BT_DISCOVERY_STARTED) {
+    } else if ((state == BT_DISCOVERY_STARTED) || (state == BT_DISCOVERY_INQ_COMPLETE)) {
         discovering_ = true;
     }
-
     ALOGI (LOGTAG "discovery state changed state %d", state);
 
     //Sending upadte to the MAIN thread

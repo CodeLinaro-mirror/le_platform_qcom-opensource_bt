@@ -65,6 +65,7 @@ void ContextMap<C>::remove(Uuid uuid) {
     App *entry = *it;
     if (entry->uuid == uuid) {
       mApps.erase(it);
+      delete entry;
       break;
     }
   }
@@ -78,6 +79,7 @@ void ContextMap<C>::remove(int id) {
    if (entry->id == id) {
      removeConnectionsByAppId(id);
      mApps.erase(it);
+     delete entry;
      break;
    }
   }
@@ -108,6 +110,7 @@ void ContextMap<C>::removeConnection(int id, int connId) {
     Connection *connection = *it;
     if (connection->connId == connId) {
       mConnections.erase(it);
+      delete connection;
       break;
     }
   }
@@ -120,6 +123,7 @@ void ContextMap<C>::removeConnectionsByAppId(int appId) {
     Connection *connection = *it;
     if (connection->appId == appId) {
       mConnections.erase(it);
+      delete connection;
       break;
     }
   }

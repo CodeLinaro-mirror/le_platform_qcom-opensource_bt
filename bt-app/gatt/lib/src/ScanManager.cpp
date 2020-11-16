@@ -328,10 +328,6 @@ void ScanManager::ScanNative::cleanup()
   mFilterIndexStack.clear();
   sManager = NULL;
 
-  if(mGattDevice != NULL) {
-    delete(mGattDevice);
-  mGattDevice = NULL;
-  }
 }
 
 ScanManager::ScanNative::~ScanNative()
@@ -351,7 +347,6 @@ ScanManager::ScanNative::ScanNative(ScanManager *scanManager)
     sManager->flushBatchScanResults(*it);
   }
 
-  mGattDevice = new GattDevice();
 }
 
 void ScanManager::ScanNative::configureRegularScanParams()
@@ -407,6 +402,7 @@ void ScanManager::ScanNative::configureRegularScanParams()
       scanWindow[phyCnt] = millsToUnit(scanWindowLE1M);
       scanInterval[phyCnt] = millsToUnit(scanIntervalLE1M);
       phyCnt++;
+      delete settings;
     }
   }
   else {
@@ -430,6 +426,7 @@ void ScanManager::ScanNative::configureRegularScanParams()
       // convert scanWindow and scanInterval from ms to LE scan units(0.625ms)
       scanWindow[phyCnt] = millsToUnit(scanWindowLECoded);
       scanInterval[phyCnt] = millsToUnit(scanIntervalLECoded);
+      delete settings;
     }
   }
   else {

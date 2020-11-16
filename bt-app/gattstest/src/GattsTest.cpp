@@ -109,11 +109,9 @@ string receivedDescValue;
 GattCharacteristic *executeWriteChar;
 GattDescriptor *executeWriteDesc;
 
-
-
-AdvertisingSetParameters *mAdvertisingParameters;
-PeriodicAdvertiseParameters *mPeriodicParams;
-AdvertisingSet *mAdvertisingSet;
+AdvertisingSetParameters *mAdvertisingParameters = NULL;
+PeriodicAdvertiseParameters *mPeriodicParams = NULL;
+AdvertisingSet *mAdvertisingSet = NULL;
 
 bool split (const string &s, char c,vector<string> &v)
 {
@@ -496,6 +494,25 @@ GattsTest::~GattsTest()
 {
   ALOGD(LOGTAG "(%s) GATTSTEST DeInitialized",__FUNCTION__);
   mlibservice = NULL;
+  if (mAdvertiseSettings) {
+    delete mAdvertiseSettings;
+    mAdvertiseSettings = NULL;
+  }
+  if (mAdvertisingParameters) {
+    delete mAdvertisingParameters;
+    mAdvertisingParameters = NULL;
+  }
+  if (mPeriodicParams) {
+    delete mPeriodicParams;
+    mPeriodicParams = NULL;
+  }
+  for (auto svc_vec:service_list) {
+    for (auto svc:svc_vec) {
+      delete svc;
+      svc = NULL;
+    }
+    svc_vec.clear();
+  }
 }
 
 
@@ -569,6 +586,9 @@ bool GattsTest::ParseServiceDetails(string temp,int line_num)
           ALOGD(LOGTAG"Invalid service entry");
           return false;
         }
+    } else {
+        ALOGD(LOGTAG"Invalid service entry :");
+        return false;
     }
   }
 }
@@ -590,6 +610,7 @@ void GattsTest::ParseServiceElement(int instance)
   if(instance >= SERVICE_LINE_MIN && instance <= SERVICE_LINE_MAX) {
       if(service_field[0].empty()) {
         ALOGD(LOGTAG"Service details are empty");
+        delete service_temp;
         service_temp = NULL;
       } else {
         if(len >= 1) {
@@ -613,8 +634,8 @@ void GattsTest::ParseServiceElement(int instance)
           istringstream(service_field[5]) >> permissions;
           service_temp->d_permissions = permissions;
         }
+        service_list[instance].push_back(service_temp);
       }
-      service_list[instance].push_back(service_temp);
   }
 }
 
@@ -638,7 +659,7 @@ void GattsTest::AddServer()
     servCBInstanceMap.insert(pair <gattstestServerCallback*,GattServer*> (gattstestServerCb,mgattServer));
     mgattServer->registerCallback(*gattstestServerCb);
     ALOGD(LOGTAG"Adding Advertiser Callback: %d ", num_of_server);
-    gattstestAdvCb    = new gattstestAdvertiserCallback();
+    gattstestAdvCb = new gattstestAdvertiserCallback();
     advCBInstanceMap.insert(pair <int,gattstestAdvertiserCallback*> (num_of_server,gattstestAdvCb));
   } else {
     fprintf(stdout,"The number of servers that can be created has reached it's limit of 20 \n");
@@ -888,6 +909,10 @@ bool GattsTest::BuildAdvertisingParameters(int instance)
   try {
     if(setParams->legacyflag) {
       ALOGD(LOGTAG" Legacy Advertising will be used \n");
+      if (mAdvertiseSettings) {
+        delete mAdvertiseSettings;
+        mAdvertiseSettings = NULL;
+      }
       mAdvertiseSettings = AdvertiseSettings::Builder()
                            .setAdvertiseMode(setParams->advertise_mode)
                            .setTxPowerLevel(setParams->tx_power)
@@ -901,6 +926,10 @@ bool GattsTest::BuildAdvertisingParameters(int instance)
             mAdvertiseSettings->getTxPowerLevel(), mAdvertiseSettings->getMode(),
             mAdvertiseSettings->getTimeout());
     } else {
+      if (mAdvertisingParameters) {
+        delete mAdvertisingParameters;
+        mAdvertisingParameters = NULL;
+      }
       mAdvertisingParameters = AdvertisingSetParameters::Builder()
                               .setConnectable(setParams->connectableflag)
                               .setScannable(setParams->scannableflag)
@@ -1018,6 +1047,10 @@ bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
   include_txpower = temp->includeTxPowerflag;
 
   if(periodic_flag) {
+    if (mPeriodicParams) {
+      delete mPeriodicParams;
+      mPeriodicParams = NULL;
+    }
     mPeriodicParams = PeriodicAdvertiseParameters::Builder()
                       .setIncludeTxPower(include_txpower)
                       .setInterval(periodic_interval)
@@ -1026,6 +1059,7 @@ bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
     ALOGD(LOGTAG"SetPeriodicAdvertisingParameters:: IncludeTxPower: %d interval %d",
               mPeriodicParams->getIncludeTxPower() ,mPeriodicParams->getInterval());
   } else {
+    if (mPeriodicParams) delete mPeriodicParams;
     mPeriodicParams = NULL;
   }
   return true;
@@ -1057,6 +1091,8 @@ bool GattsTest::SetScanResponseData(int instance)
 bool GattsTest::UnregisterServer(string instance)
 {
   GattServer *mServer;
+  gattstestServerCallback *mServercallback = NULL;
+  gattstestAdvertiserCallback *mAdvertisercallback = NULL;
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   int instanceId;
   istringstream(instance) >> instanceId;
@@ -1075,12 +1111,25 @@ bool GattsTest::UnregisterServer(string instance)
     unordered_map <gattstestServerCallback*,GattServer*> ::iterator itr;
     for(itr = servCBInstanceMap.begin(); itr!= servCBInstanceMap.end(); ++itr) {
       if(itr->second == mServer ){
+         mServercallback = itr->first;
+         delete(mServercallback);
+         mServercallback = NULL;
+         mServer = itr->second;
+         delete(mServer);
+         mServer = NULL;
          servCBInstanceMap.erase(itr->first);
          break;
        }
     }
+    map <int,gattstestAdvertiserCallback*> ::iterator advcb_itr;
+    for(advcb_itr = advCBInstanceMap.begin(); advcb_itr!= advCBInstanceMap.end(); ++advcb_itr) {
+      ALOGD(LOGTAG"harish - test- adv cb instance mapped");
+      mAdvertisercallback = advcb_itr->second;
+      delete(mAdvertisercallback);
+      mAdvertisercallback = NULL;
+      advCBInstanceMap.erase(advcb_itr->first);
+    }
     servInstanceMap.erase(instanceId);
-    advCBInstanceMap.erase(instanceId);
     return true;
   } else {
     fprintf(stdout,"There are no more servers to unregister \n");
@@ -1206,6 +1255,7 @@ bool GattsTest::EnablePeriodicAdvertising(bool enable)
 {
   ALOGD(LOGTAG"%s ", __FUNCTION__);
   mAdvertisingSet->setPeriodicAdvertisingEnabled(enable);
+  return true;
 }
 
 void GattsTest::CancelConnection(string remoteAddress)
@@ -1230,32 +1280,48 @@ void GattsTest::CancelConnection(string remoteAddress)
 bool GattsTest::DisableGATTSTEST()
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
+  int instance = SERVICE_LINE_MIN;
   GattServer *mServer = NULL;
   gattstestServerCallback *mServercallback = NULL;
   gattstestAdvertiserCallback *mAdvertisercallback = NULL;
+  vector <Service*> ::iterator serv_itr;
+  vector <AdvertiseSet*> ::iterator advt_itr;
   map <int, GattServer*> ::iterator itr;
   map <int,gattstestAdvertiserCallback*> ::iterator at;
   g_gatt->unregAll();
   servInstanceMap.clear();
+  manufacturerId_list.clear();
+  manufacturerData_list.clear();
+  for (instance=SERVICE_LINE_MIN;instance<=SERVICE_LINE_MAX;instance++) {
+    for(serv_itr = service_list[instance].begin(); serv_itr != service_list[instance].end();
+        ++serv_itr) {
+      delete(*serv_itr);
+    }
+    service_list[instance].clear();
+  }
+  for(advt_itr = AdvSet_list.begin(); advt_itr != AdvSet_list.end(); ++advt_itr) {
+      delete(*advt_itr);
+  }
+  AdvSet_list.clear();
   unordered_map  <gattstestServerCallback*,GattServer*> ::iterator it;
   for(it = servCBInstanceMap.begin(); it != servCBInstanceMap.end(); ++it) {
     mServercallback = it->first;
     delete(mServercallback);
+    mServercallback = NULL;
     mServer = it->second;
     mServer->close();
     delete(mServer);
+    mServer = NULL;
   }
   servCBInstanceMap.clear();
   for(at = advCBInstanceMap.begin(); at != advCBInstanceMap.end(); ++at) {
     mAdvertisercallback = at->second;
     delete(mAdvertisercallback);
+    mAdvertisercallback = NULL;
+    advCBInstanceMap.erase(at->first);
   }
   advCBInstanceMap.clear();
   advSetMap.clear();
   DeviceMap.clear();
   return true;
 }
-
-
-
-

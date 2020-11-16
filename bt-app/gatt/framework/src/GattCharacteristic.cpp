@@ -210,8 +210,10 @@ float GattCharacteristic::getFloatValue(int formatType, int offset)
 
 string GattCharacteristic::getStringValue(int offset)
 {
+  if (mValue == NULL) return NULL;
   size_t mValueSize = strlen((char*)mValue);
-  if (mValue == NULL || offset >mValueSize) return NULL;
+
+  if (offset >mValueSize) return NULL;
 
   uint8_t strBytes[mValueSize - offset];
   for (int i = 0; i != (mValueSize - offset); ++i)
@@ -247,12 +249,9 @@ bool GattCharacteristic::setValue(int value, int formatType, int offset)
 {
   int len = offset + getTypeLen(formatType);
 
-  if (mValue != NULL) delete [] mValue;
-
   if (mValue == NULL) mValue = new uint8_t[len];
-  size_t mValueSize = strlen((char*)mValue);
-
-  if (len > mValueSize) return false;
+  if (len > sizeof(mValue)/sizeof(mValue[0]))
+    return false;
 
   switch (formatType) {
     case FORMAT_SINT8:
@@ -288,12 +287,9 @@ bool GattCharacteristic::setValue(int mantissa, int exponent, int formatType, in
 {
   int len = offset + getTypeLen(formatType);
 
-  if (mValue != NULL) delete [] mValue;
-
   if (mValue == NULL) mValue = new uint8_t[len];
-  size_t mValueSize = strlen((char*)(mValue));
-
-  if (len > mValueSize) return false;
+  if (len > sizeof(mValue)/sizeof(mValue[0]))
+    return false;
 
   switch (formatType) {
     case FORMAT_SFLOAT:

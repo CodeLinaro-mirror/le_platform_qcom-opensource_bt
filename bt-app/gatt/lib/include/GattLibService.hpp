@@ -55,6 +55,7 @@
 #include <set>
 #include <list>
 #include <unordered_map>
+#include <unordered_set>
 #include <iomanip>
 #include <sstream>
 
@@ -142,7 +143,6 @@ class GattLibService           {
 
     AdvertiserManager *mAdvertiserManager = NULL;
     ScanManager *mScanManager = NULL;
-    GattDevice *mGattDevice = NULL;
     PeriodicScanManager *mPeriodicScanManager = NULL;
 
     static GattLibService* volatile sGattService;
@@ -323,6 +323,9 @@ class GattLibService           {
     void setAddress(void *val, int len);
     void setDeviceName(void *val, int len);
     void updateFeatureSupport(void *value, int len);
+
+    std::unordered_set<ScanClient*> mScanClients;
+    ScanClient* getScanClientbyScanId(int scannerId);
 
   public:
     void onScanResult(int eventType, int addressType, string address, int primaryPhy,

@@ -1089,7 +1089,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                 sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
                                                &pEvent->hfp_ag_event.bd_addr);
             }else {
-              if (sBtHfpAgInterface != NULL)
+              if (sBtHfpAgInterface != NULL) {
                 sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                                                &pEvent->hfp_ag_event.bd_addr);
                 sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
@@ -1097,6 +1097,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                 usleep(20000);
                 sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_ALERTING,"",
                         BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+              }
             }
 #endif
             break;
@@ -1522,7 +1523,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
                 sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
                                           &pEvent->hfp_ag_event.bd_addr);
             }else {
-              if (sBtHfpAgInterface != NULL)
+              if (sBtHfpAgInterface != NULL) {
                 sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                                        &pEvent->hfp_ag_event.bd_addr);
                 sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
@@ -1530,6 +1531,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
                 usleep(20000);
                 sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_ALERTING,"",
                         BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
+              }
             }
 #endif
             break;

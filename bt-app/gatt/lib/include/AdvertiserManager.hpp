@@ -52,7 +52,6 @@ class AdvertiserManager {
     std::unordered_map<int,IAdvertisingSetCallback&> mAdvertisers;
 
     GattNativeInterfaceV2 *mNative = NULL;
-    GattDevice *mGattDevice = NULL;
 
   public:
     /**

@@ -280,7 +280,6 @@ class gattctestClientCallback:public GattClientCallback
             int i;
             for (i = 0; i < 10; i++)
               tmp_ch[i] = PREPARE_WRITE_NEXT_DATA;
-            tmp_ch[i] = '\0';
             std::string s;
             s.assign(tmp_ch, tmp_ch + sizeof(tmp_ch));
             fprintf(stdout, "string write is %s\n", s.c_str());
@@ -526,11 +525,15 @@ GattcTest::~GattcTest()
   if (gattctest != NULL) {
     gattctest->setting = NULL;
     settingMask = 0;
-	if (gattctest->filters.size() > 0)
-	  gattctest->filters.clear();
+    if (gattctest->filters.size() > 0) {
+      for (auto filter:gattctest->filters)
+        delete filter;
+      gattctest->filters.clear();
+    }
     mScanner->stopScan(mscan_callback);
     if (mscan_callback != NULL) {
       delete(mscan_callback);
+      mscan_callback = NULL;
     }
     if (gattCliCallback != NULL) {
       delete(gattCliCallback);
@@ -1203,7 +1206,6 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
     int i;
     for (i = 0; i < 10; i++)
       tmp_ch[i] = PREPARE_WRITE_DATA;
-    tmp_ch[i] = '\0';
     characteristic->setValue(tmp_ch, sizeof(tmp_ch)/sizeof(tmp_ch[0]));
 
     if (mExecReliableWrite == ReliableWriteState::RELIABLE_WRITE_NONE) {
@@ -1666,6 +1668,7 @@ void GattcTest :: startScan()
         }
       }
     }
+    if (gattctest->setting) delete gattctest->setting;
     gattctest->setting = builder.build();
     ALOGD(LOGTAG " ScanSettings matchMode (%d), MatchAdv (%d),\
                   ScanMode (%d) CallbackType (%d) ScanResultType (%d)\
@@ -1689,6 +1692,7 @@ void GattcTest :: stopScan()
 {
   ALOGD(LOGTAG "StopScan");
   fprintf(stdout, "stopping scan results\n");
+  if (gattctest->setting) delete gattctest->setting;
   gattctest->setting = NULL;
   settingMask = 0;
   gattctest->filters.clear();
@@ -1712,4 +1716,5 @@ void GattcTest :: testBatchscan(int value)
   //Test Flush Pending scan results API
   fprintf(stdout, "Flush pending scan results\n");
   mScanner->flushPendingScanResults(mscan_callback);
+  delete batchscansettings;
 }

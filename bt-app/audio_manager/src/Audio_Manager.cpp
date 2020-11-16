@@ -348,7 +348,9 @@ void BT_Audio_Manager::ProcessEvent(BtEvent* pEvent) {
         case BT_AM_OUT_CLOSE:
             // Control to other profile
             top = GetTopIndex();
-            SendControlStatusMessage(STATUS_GAIN_TRANSIENT,audio_control_stack[top].profile_id);
+            if(top >= 0)
+                SendControlStatusMessage(STATUS_GAIN_TRANSIENT,
+                                       audio_control_stack[top].profile_id);
             break;
     }
 }

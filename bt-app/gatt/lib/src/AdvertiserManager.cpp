@@ -40,7 +40,6 @@ AdvertiserManager::AdvertiserManager(GattNativeInterfaceV2 *mGattIf)
 
 void AdvertiserManager::start()
 {
-  mGattDevice = new GattDevice();
 }
 
 void AdvertiserManager::cleanup()
@@ -52,10 +51,6 @@ void AdvertiserManager::cleanup()
   mAdvertisers.clear();
   sTempRegistrationId = -1;
   mNative = NULL;
-  if(mGattDevice) {
-    delete(mGattDevice);
-    mGattDevice = NULL;
-  }
 }
 AdvertiserManager::~AdvertiserManager()
 {
@@ -143,6 +138,7 @@ void AdvertiserManager::startAdvertisingSet(AdvertisingSetParameters& parameters
                                                   int maxExtAdvEvents,
                                                   IAdvertisingSetCallback& callback)
 {
+
   GattLibService *mGatt = GattLibService::getGatt();
   if(mGatt == NULL) return;
 
@@ -202,7 +198,7 @@ void AdvertiserManager::stopAdvertisingSet(IAdvertisingSetCallback& callback)
   mNative->stopAdvertisingSetNative(advertiserId);
 
   try {
-          callback.onAdvertisingSetStopped(advertiserId);
+    callback.onAdvertisingSetStopped(advertiserId);
   } catch (std::exception& e ) {
     ALOGE(LOGTAG " error sending onAdvertisingSetStopped callback %s", e.what());
   }
