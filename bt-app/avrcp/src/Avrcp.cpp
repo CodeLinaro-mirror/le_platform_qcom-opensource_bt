@@ -327,7 +327,6 @@ static bt_status_t btavrcpctrl_notification_rsp_vendor_callback( bt_bdaddr_t *bd
     ALOGD(LOGTAG_CTRL " btavrcpctrl_notification_rsp_vendor_callback event_id = %d  type = %d", event_id, type);
     fprintf(stdout, "<-- notification message received! \n" );
     fprintf(stdout, "     event_id:%d, rsp_type:%d \n", event_id, type);
-    BtEvent *pEvent = new BtEvent;
     switch(event_id)
     {
     case AVRC_EVT_PLAY_STATUS_CHANGE:
@@ -350,6 +349,7 @@ static bt_status_t btavrcpctrl_notification_rsp_vendor_callback( bt_bdaddr_t *bd
         if (!isAvrcpBrConnected(bd_addr))
         {
             // Browsing is not connected
+            BtEvent *pEvent = new BtEvent;
             memset(pEvent, 0, sizeof(BtEvent));
             memcpy(&pEvent->avrcpCtrlEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
             pEvent->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_ELEMENT_ATTR_REQ;
@@ -362,6 +362,10 @@ static bt_status_t btavrcpctrl_notification_rsp_vendor_callback( bt_bdaddr_t *bd
             {
                 // if its interim rsp and track id is not 0xFF.
                 PostMessage(THREAD_ID_AVRCP, pEvent);
+            }
+            if(!(type == BTRC_NOTIFICATION_TYPE_CHANGED) && !((type == BTRC_NOTIFICATION_TYPE_INTERIM) && (*(p_param->track) != 0xff) && (*(p_param->track) != 0x00)))
+            {
+                  delete pEvent;
             }
         }
     break;
