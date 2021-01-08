@@ -887,7 +887,8 @@ static OI_STATUS LowerRegServer(OI_OBEX_LOWER_SERVER serverHandle,
 
     int securityFlags = 0;
     OI_DATAELEM oppUuid = OI_ELEMENT_UUID32(OI_UUID_OBEXObjectPush);
-    if ((NULL != policy) && !OI_DATAELEM_SameUUID(&policy->serviceUuid, &oppUuid)) {
+    if(NULL != policy) {
+    if ( !OI_DATAELEM_SameUUID(&policy->serviceUuid, &oppUuid)) {
         /* Set higher security for non-OPP servers */
         securityFlags = BTSOCK_FLAG_ENCRYPT | BTSOCK_FLAG_AUTH;
     }
@@ -901,6 +902,7 @@ static OI_STATUS LowerRegServer(OI_OBEX_LOWER_SERVER serverHandle,
                 channel,
                 &serverHandle->lowerPrivate->socket,
                 securityFlags, 0);
+    }
     }
 
     if (BT_STATUS_SUCCESS == connectStatus) {
