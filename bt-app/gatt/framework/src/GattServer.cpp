@@ -38,6 +38,11 @@ void GattServer::onServerRegistered(int status, int serverIf)
     ALOGD(LOGTAG " onServerRegistered() - status %d serverIf %d", status, serverIf);
   }
 
+  {
+    std::lock_guard<std::mutex> lock(mServerIfLock);
+  }
+  mServerIfCond.notify_all();
+
   if (mCallback != NULL) {
     mServerIf = serverIf;
   } else {
@@ -355,7 +360,8 @@ bool GattServer::registerCallback(GattServerCallback& callback)
   }
 
   try {
-      std::this_thread::sleep_for(std::chrono::milliseconds(CALLBACK_REG_TIMEOUT));
+      std::unique_lock<std::mutex> lock(mServerIfLock);
+      mServerIfCond.wait_for(lock, std::chrono::milliseconds(CALLBACK_REG_TIMEOUT));
   } catch (std::exception &e) {
       ALOGE(LOGTAG " %s", e.what());
       mCallback = NULL;

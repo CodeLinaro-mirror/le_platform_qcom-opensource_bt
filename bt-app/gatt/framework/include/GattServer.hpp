@@ -59,6 +59,8 @@ class GattServer : public IServerCallback, public GattServerCallback {
     IServerCallback *mServerCallback = NULL;
 
     std::mutex mServerIfLock;
+    std::condition_variable mServerIfCond;
+
     int mServerIf;
     int mTransport;
     GattService *mPendingService = NULL;
