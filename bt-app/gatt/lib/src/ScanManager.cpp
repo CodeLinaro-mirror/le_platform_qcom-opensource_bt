@@ -447,7 +447,9 @@ void ScanManager::ScanNative::configureRegularScanParams()
     }
     std::vector<uint32_t> v1(std::begin(scanInterval), std::end(scanInterval));
     std::vector<uint32_t> v2(std::begin(scanWindow), std::end(scanWindow));
-    sManager->mNative->gattSetScanParametersNative(client->scannerId, scanPhy, v1, v2);
+    if(client != NULL) {
+        sManager->mNative->gattSetScanParametersNative(client->scannerId, scanPhy, v1, v2);
+    }
     sManager->mNative->gattClientScanNative(true);
     sManager->mLastConfiguredScanSettingLE1M = curScanSettingLE1M;
     sManager->mLastConfiguredScanSettingLECoded = curScanSettingLECoded;
