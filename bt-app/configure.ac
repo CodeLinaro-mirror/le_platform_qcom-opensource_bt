@@ -46,6 +46,28 @@ if (test "x${with_glib}" = "xyes"); then
        if test "x$with_gstreamer" = "xyes"; then
            PKG_CHECK_MODULES(GSTREAMER, [gstreamer-1.0 gstreamer-tag-1.0], USE_GST=yes, USE_GST=no)
        fi
+       AC_ARG_WITH([pulseaudio],
+         AC_HELP_STRING([--with-pulseaudio],
+         [enable pulseaudio, building BT-APP which uses PulseAudio]))
+       if test "x$with_pulseaudio" = "xyes"; then
+           PKG_CHECK_MODULES(GSTREAMER, [gstreamer-1.0 gstreamer-tag-1.0], USE_PULSEAUDIO=yes, USE_PULSEAUDIO=no)
+
+           # Checks SYSTEMD module
+           PKG_CHECK_MODULES(SYSTEMD, libsystemdq, dummy=yes, AC_MSG_ERROR(libsystemdq is required))
+           SYSTEMD_CFLAGS="$SYSTEMD_CFLAGS"
+           SYSTEMD_LIBS="$SYSTEMD_LIBS"
+           AC_SUBST(SYSTEMD_CFLAGS)
+           AC_SUBST(SYSTEMD_LIBS)
+
+           # Checks DBUSCPP
+           PKG_CHECK_MODULES(DBUSCPP, dbus-cpp >= 5.0, dummy=yes, AC_MSG_ERROR(dbus-cpp is required))
+           DBUSCPP_CFLAGS="$DBUSCPP_CFLAGS"
+           DBUSCPP_LIBS="$DBUSCPP_LIBS"
+           AC_SUBST(DBUSCPP_CFLAGS)
+           AC_SUBST(DBUSCPP_LIBS)
+       fi
+
+       AM_CONDITIONAL(USE_PULSEAUDIO, test "x${with_pulseaudio}" = "xyes")
        AC_SUBST(GSTREAMER_LIBS)
        AC_SUBST(GSTREAMER_CFLAGS)
        AC_SUBST(USE_GST)
