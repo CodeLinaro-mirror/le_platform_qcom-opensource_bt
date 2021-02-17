@@ -42,7 +42,8 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/ble_sock_manager/include
 if RB5_AUDIO_HAL
 else
 AM_CPPFLAGS += -I${WORKSPACE}/hardware/libhardware/include
@@ -86,6 +87,11 @@ cpp_sources = ../utils/src/utils.cc \
 
 if USE_GEN_GATT
 cpp_sources += ../rsp/src/Rsp.cpp
+if USE_BLE_SOCKET_MANAGER
+cpp_sources += ../ble_sock_manager/src/BleSocketManager.cpp
+cpp_sources += ../ble_sock_manager/src/BleWlanDppBootstrap.cpp
+AM_CPPFLAGS += -DUSE_BLE_SOCKET_MANAGER
+endif
 endif
 
 

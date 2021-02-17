@@ -43,6 +43,9 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     { NULL ,    THREAD_ID_A2DP_SOURCE, &BtA2dpSourceMsgHandler,  "A2dp_Source_Thread" } ,
     { NULL ,    THREAD_ID_AVRCP,       &BtAvrcpMsgHandler,       "Avrcp_Thread" } ,
     { NULL ,    THREAD_ID_HID,         &BtHidMsgHandler,         "HID_Thread" } ,
+#ifdef USE_BLE_SOCKET_MANAGER
+    { NULL ,    THREAD_ID_BLE_SM,      &BtLeSocketMsgHandler,    "Ble_SM_Thread" } ,
+#endif
 };
 
 void PostMessage(ThreadIdType thread_type, void *msg) {

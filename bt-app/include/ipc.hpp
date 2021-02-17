@@ -102,6 +102,9 @@ typedef enum {
     THREAD_ID_A2DP_SOURCE,
     THREAD_ID_AVRCP,
     THREAD_ID_HID,
+#ifdef USE_BLE_SOCKET_MANAGER
+    THREAD_ID_BLE_SM,
+#endif
     THREAD_ID_MAX,
 } ThreadIdType;
 
@@ -123,6 +126,9 @@ typedef enum {
     PROFILE_ID_A2DP_SOURCE,
     PROFILE_ID_AVRCP,
     PROFILE_ID_HID,
+#ifdef USE_BLE_SOCKET_MANAGER
+    PROFILE_ID_BLE_SM,
+#endif
     PROFILE_ID_MAX
 } ProfileIdType;
 
@@ -1890,6 +1896,9 @@ void BtA2dpSinkSplitMsgHandler(void *msg);
 void BtPanMsgHandler(void *context);
 #ifdef USE_GEN_GATT
 void BtGattMsgHandler(void *context);
+#ifdef USE_BLE_SOCKET_MANAGER
+void BtLeSocketMsgHandler(void *context);
+#endif
 #endif
 void BtHfpClientMsgHandler (void *context);
 void BtHfpAgMsgHandler (void *context);

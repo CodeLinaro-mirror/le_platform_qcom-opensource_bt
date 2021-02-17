@@ -917,6 +917,9 @@ class BluetoothApp {
     bool is_hfp_ag_enabled_;
     bool is_pan_enable_default_;
     bool is_gatt_enable_default_;
+#ifdef USE_BLE_SOCKET_MANAGER
+    bool is_ble_sm_enable_default_;
+#endif
 #ifdef USE_BT_OBEX
     bool is_obex_enabled_;
     bool is_pbap_client_enabled_;
