@@ -378,6 +378,7 @@ typedef enum {
     GAP_API_STOP_INQUIRY,
     GAP_API_GET_REMOTE_DI_INFO,
     GAP_API_GET_ROLE_REQ,
+    GAP_API_SWITCH_ROLE_REQ,
     GAP_API_CREATE_BOND,
     GAP_API_SSP_REPLY,
     GAP_API_PIN_REPLY,
@@ -683,6 +684,7 @@ typedef struct {
 typedef struct {
     BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
+    uint8_t             transport;
 } DeviceBondRequest;
 
 /**
@@ -700,6 +702,15 @@ typedef struct {
     BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
 } DeviceRoleRequest;
+
+/**
+ * Event for notifying Device to switch role
+ */
+typedef struct {
+    BluetoothEventId    event_id;
+    bt_bdaddr_t         bd_addr;
+    uint8_t             new_role;
+} DeviceRoleSwitch;
 
 /**
  * Event for notifying Device connect
@@ -952,8 +963,10 @@ typedef struct{
 typedef struct{
     BluetoothEventId event_id;
     bt_bdaddr_t bda;
+    uint8_t addr_type;
     int rssi;
     uint8_t adv_data;
+    uint16_t adv_data_len;
 } GattcScanResultEvent;
 
 typedef struct{
@@ -1450,6 +1463,7 @@ typedef union {
     DeviceBondRequest                       bond_device;
     DeviceDiInfoRequest                     di_device;
     DeviceRoleRequest                       role_request;
+    DeviceRoleSwitch                        role_switch;
     ProfileStartRequest                     profile_start_request;
     ProfileStopRequest                      profile_stop_request;
     ProfileStartEvent                       profile_start_event;
