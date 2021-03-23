@@ -29,6 +29,7 @@
 
 #include "BleSockIf.hpp"
 #include "BleWlanDppBootstrap.hpp"
+#include "BleWifiControlService.hpp"
 #include "BleSocketManager.hpp"
 #include "ipc.hpp"
 #include <sys/socket.h>
@@ -38,6 +39,8 @@
 
 BleSocketManager *g_ble_socket_manager;
 BleWlanDppBootstrap *g_ble_wlan_dpp_bootstrap;
+BleWifiControlService *g_ble_wifi_control_service;
+
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 
 #ifdef __cplusplus
@@ -127,6 +130,7 @@ int BleSocketManager :: init()
       if (wbds_listen_reactor_ != NULL) {
         status = 0;
         g_ble_wlan_dpp_bootstrap = new BleWlanDppBootstrap();
+        g_ble_wifi_control_service = new BleWifiControlService();
       }
     }
   }
@@ -181,15 +185,46 @@ void BleSocketManager :: deinit()
     delete g_ble_wlan_dpp_bootstrap;
     g_ble_wlan_dpp_bootstrap = NULL;
   }
+
+  if (g_ble_wifi_control_service) {
+    delete g_ble_wifi_control_service;
+    g_ble_wifi_control_service = NULL;
+  }
 }
 
 void BleSocketManager :: cleanup()
 {
-
   ALOGD(LOGTAG "%s ", __FUNCTION__);
 
   if (g_ble_wlan_dpp_bootstrap->isBootstrapModeEnabled()) {
     g_ble_wlan_dpp_bootstrap->WlanDppBootstrapModeDisableReq();
+  }
+
+  if (g_ble_wifi_control_service->isPeerDiscoveryEnabled()) {
+    g_ble_wifi_control_service->PeerDiscoveryDisableReq();
+  }
+
+  if (g_ble_wifi_control_service->isPeerDeviceConnectedOrConnecting()) {
+    WCSDisconnectPeerReqEvent evt;
+    string peerDeviceAddr = g_ble_wifi_control_service->peer_device_addr_;
+    strlcpy(evt.bd_addr, peerDeviceAddr.c_str(), BD_ADDR_STR_LEN);
+
+    if (cleanup_due_to_deinit_) {
+      std::unique_lock<std::mutex> lck(socket_manager_cleanup_lock_);
+
+      g_ble_wifi_control_service->DisconnectPeerReq(&evt);
+
+      if (socket_manager_cleanup_.wait_for(lck,
+        std::chrono::milliseconds(SOCKET_MANAGER_CLEANUP_TIMEOUT_MS)) == std::cv_status::timeout) {
+        ALOGE (LOGTAG "%s : peer disconnect timeout", __FUNCTION__);
+      }
+    } else {
+      g_ble_wifi_control_service->DisconnectPeerReq(&evt);
+    }
+  }
+
+  if (g_ble_wifi_control_service->isWCSRegistered()) {
+    g_ble_wifi_control_service->RemoveWCS();
   }
 }
 
@@ -249,7 +284,8 @@ void WBDSSocketListenHandler (void *context) {
   struct sockaddr_un cliaddr;
   int length;
 
-  ALOGI (LOGTAG "%s", __FUNCTION__);
+  ALOGD (LOGTAG "%s: wbds_client_socket_ = %d",
+      __FUNCTION__, g_ble_socket_manager->wbds_client_socket_);
 
   if (g_ble_socket_manager->wbds_client_socket_ == -1) {
       g_ble_socket_manager->wbds_client_socket_ =
@@ -302,6 +338,59 @@ void WBDSSocketDataHandler (void *context) {
         case BLE_IPC_MSG_WLAN_DPP_BOOTSTRAP_MODE_DISABLE_REQ:
           ALOGI (LOGTAG "%s: BLE_IPC_MSG_WLAN_DPP_BOOTSTRAP_MODE_DISABLE_REQ", __FUNCTION__);
           g_ble_wlan_dpp_bootstrap->WlanDppBootstrapModeDisableReq();
+          break;
+
+        case BLE_IPC_MSG_WCS_PEER_DISCOVERY_ENABLE_REQ:
+          ALOGI (LOGTAG "%s: BLE_IPC_MSG_WCS_PEER_DISCOVERY_ENABLE_REQ", __FUNCTION__);
+          g_ble_wifi_control_service->PeerDiscoveryEnableReq(
+              &(ipc_msg.wcsPeerDiscoveryEnableReqEvent));
+          break;
+
+        case BLE_IPC_MSG_WCS_PEER_DISCOVERY_DISABLE_REQ:
+          ALOGI (LOGTAG "%s: BLE_IPC_MSG_WCS_PEER_DISCOVERY_DISABLE_REQ", __FUNCTION__);
+          g_ble_wifi_control_service->PeerDiscoveryDisableReq();
+          break;
+
+        case BLE_IPC_MSG_WCS_CONNECT_PEER_REQ:
+          ALOGI (LOGTAG "%s: BLE_IPC_MSG_WCS_CONNECT_PEER_REQ", __FUNCTION__);
+          g_ble_wifi_control_service->ConnectPeerReq(
+              &(ipc_msg.wcsConnectPeerReqEvent));
+          break;
+
+        case BLE_IPC_MSG_WCS_DISCONNECT_PEER_REQ:
+          ALOGI (LOGTAG "%s: BLE_IPC_MSG_WCS_DISCONNECT_PEER_REQ", __FUNCTION__);
+          g_ble_wifi_control_service->DisconnectPeerReq(
+              &(ipc_msg.wcsDisconnectPeerReqEvent));
+          break;
+
+        case BLE_IPC_MSG_WCS_SEND_NOTIFICATION_REQ:
+          ALOGI (LOGTAG "%s: BLE_IPC_MSG_WCS_SEND_NOTIFICATION_REQ", __FUNCTION__);
+          g_ble_wifi_control_service->SendNotificationReq(
+              &(ipc_msg.wcsSendNotificationReqEvent));
+          break;
+
+        case BLE_IPC_MSG_WCS_CHARACTERISTIC_READ_RSP:
+          ALOGI (LOGTAG "%s: BLE_IPC_MSG_WCS_CHARACTERISTIC_READ_RSP", __FUNCTION__);
+          g_ble_wifi_control_service->CharacteristicReadRsp(
+              &(ipc_msg.wcsCharacteristicReadRspEvent));
+          break;
+
+        case BLE_IPC_MSG_WCS_CHARACTERISTIC_WRITE_RSP:
+          ALOGI (LOGTAG "%s: BLE_IPC_MSG_WCS_CHARACTERISTIC_WRITE_RSP", __FUNCTION__);
+          g_ble_wifi_control_service->CharacteristicWriteRsp(
+              &(ipc_msg.wcsCharacteristicWriteRspEvent));
+          break;
+
+        case BLE_IPC_MSG_WCS_CCCD_READ_RSP:
+          ALOGI (LOGTAG "%s: BLE_IPC_MSG_WCS_CCCD_READ_RSP", __FUNCTION__);
+          g_ble_wifi_control_service->CCCDReadRsp(
+              &(ipc_msg.wcsCCCDReadRspEvent));
+          break;
+
+        case BLE_IPC_MSG_WCS_CCCD_WRITE_RSP:
+          ALOGI (LOGTAG "%s: BLE_IPC_MSG_WCS_CCCD_WRITE_RSP", __FUNCTION__);
+          g_ble_wifi_control_service->CCCDWriteRsp(
+              &(ipc_msg.wcsCCCDWriteRspEvent));
           break;
 
         default:

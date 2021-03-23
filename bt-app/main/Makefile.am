@@ -90,6 +90,7 @@ cpp_sources += ../rsp/src/Rsp.cpp
 if USE_BLE_SOCKET_MANAGER
 cpp_sources += ../ble_sock_manager/src/BleSocketManager.cpp
 cpp_sources += ../ble_sock_manager/src/BleWlanDppBootstrap.cpp
+cpp_sources += ../ble_sock_manager/src/BleWifiControlService.cpp
 AM_CPPFLAGS += -DUSE_BLE_SOCKET_MANAGER
 endif
 endif
