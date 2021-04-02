@@ -56,7 +56,7 @@ class gattstestClientCallback : public BluetoothGattClientCallback
         ALOGD(LOGTAG, "isAdvertising %d",gattstest->getIsAdvertising() );
    }
 
-   void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data) {
+   void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data, uint16_t adv_data_len) {
         UNUSED
    }
 

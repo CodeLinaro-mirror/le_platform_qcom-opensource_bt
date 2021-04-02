@@ -6,6 +6,11 @@ AM_CFLAGS = -Wall \
             -Wstrict-prototypes \
             -Wno-trigraphs \
             -std=c99
+if GAIA_SUPPORT
+AM_CFLAGS += -DGAIA_TEST_ENABLED=TRUE
+AM_CPPFLAGS += -DGAIA_TEST_ENABLED=TRUE
+endif
+
 
 if USE_BT_OBEX
 AM_CFLAGS += -DOI_CPU_TYPE=19
@@ -36,6 +41,9 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
                -I${WORKSPACE}/mcm-api/api
+if GAIA_SUPPORT
+AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app/gaia/include
+endif
 
 if USE_BT_OBEX
 AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
@@ -73,6 +81,10 @@ c_sources = ../utils/src/utils.c \
             ../gattctest/src/GattcTest.cpp \
             ../gattstest/src/GattsTest.cpp
 
+if GAIA_SUPPORT
+c_sources += ../gaia/src/GaiaTest.cpp
+endif
+
 if USE_BT_OBEX
 c_sources +=  ../pbap_client/src/PbapClient.cpp \
               ../opp/src/Opp.cpp
@@ -82,6 +94,10 @@ if USE_GST
 requiredlibs = ../osi/libgstbtapposi.la -lpthread -lm -ldl -lrt -lhardware
 else
 requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal
+endif
+
+if GAIA_SUPPORT
+requiredlibs += -lbtvendorgaia
 endif
 
 requiredlibs += -lgengatt -lcutils

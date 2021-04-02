@@ -68,7 +68,7 @@ void btgattc_register_app_cb(int status, int clientIf, bt_uuid_t *app_uuid)
     PostMessage(THREAD_ID_GATT, event);
 }
 
-void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data)
+void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data, uint16_t adv_data_len)
 {
     char c_address[32];
     snprintf(c_address,sizeof(c_address), "%02X:%02X:%02X:%02X:%02X:%02X",
@@ -76,6 +76,7 @@ void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data)
             bda->address[3], bda->address[4], bda->address[5]);
 
     ALOGD(LOGTAG "(%s) rssi (%d) bda (%s)\n",__FUNCTION__, rssi,c_address);
+    fprintf(stdout, "GaiaTest Gatt.cpp (%s) rssi (%d) bda (%s)\n",__FUNCTION__, rssi,c_address);
 
     BtEvent *event = new BtEvent;
     CHECK_PARAM_VOID(event)
@@ -83,7 +84,8 @@ void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data)
     event->event_id = BTGATTC_SCAN_RESULT_EVENT;
     memcpy(&event->gattc_scan_result_event.bda, bda,sizeof(bt_bdaddr_t));
     event->gattc_scan_result_event.rssi= rssi;
-    memcpy(&event->gattc_scan_result_event.adv_data, adv_data,sizeof(uint8_t));
+    memcpy(event->gattc_scan_result_event.adv_data, adv_data, adv_data_len);
+    event->gattc_scan_result_event.adv_data_len = adv_data_len;
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -971,12 +973,12 @@ void Gatt::HandleGattsRegisterAppEvent(GattsRegisterAppEvent *event)
         if (it->first &&  event->uuid.uu) {
            ALOGD(LOGTAG "checking \n");
            for (itr = 0; itr < 16; itr++) {
-             ALOGD(LOGTAG " saved uuid is %d \n",it->first[itr]);  
+             ALOGD(LOGTAG " saved uuid is %d \n",it->first[itr]);
            }
 
            for (itr = 0; itr < 16; itr++) {
              ALOGD(LOGTAG " received uuid is %d \n",event->uuid.uu[itr]);
-           } 
+           }
            itr = 0;
            for (itr = 0; itr < 16; itr++) {
                ALOGD(LOGTAG " it->first is %d, uuid is %d \n",it->first[itr], event->uuid.uu[itr]);
@@ -1298,7 +1300,7 @@ void Gatt::HandleGattcScanResultEvent (GattcScanResultEvent *event)
                  if(it2 != clientCbCifMap.end()) {
                    ALOGD(LOGTAG "found \n");
                     if ( it2->second) {
-                        it2->second->btgattc_scan_result_cb(&event->bda,event->rssi,&event->adv_data);
+                        it2->second->btgattc_scan_result_cb(&event->bda,event->rssi,event->adv_data, event->adv_data_len);
                     } else {
                         ALOGD(LOGTAG "Not found \n");
                     }
@@ -1995,7 +1997,8 @@ bool Gatt::HandleDisableGatt()
 
 bt_status_t Gatt::register_client( bt_uuid_t *client_uuid ) {
 
-            ALOGD(LOGTAG"gatt register_client \n");
+            ALOGD(LOGTAG"GAIA gatt register_client \n");
+            fprintf(stdout, "GAIA gatt register_client \n");
             if (gatt_interface) {
                 return gatt_interface->client->register_client(client_uuid);
             }

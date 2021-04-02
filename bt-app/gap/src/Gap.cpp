@@ -912,7 +912,7 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_API_CREATE_BOND:
             // Calling the cancel_discovery before create_bond
             bluetooth_interface_->cancel_discovery();
-            bluetooth_interface_->create_bond(&event->bond_device.bd_addr, 1);
+            bluetooth_interface_->create_bond(&event->bond_device.bd_addr, event->bond_device.transport);
             break;
 
         case GAP_API_SSP_REPLY:

@@ -237,6 +237,11 @@ typedef enum {
     GATTSTEST_OPTION,
     GATTSTEST_INIT,
     GATTSTEST_START,
+#ifdef GAIA_TEST_ENABLED
+    GAIATEST_OPTION,
+    GAIATEST_INIT,
+    GAIATEST_START,
+#endif
     HFP_CLIENT,
     CREATE_SCO_CONN,
     DESTROY_SCO_CONN,
@@ -305,6 +310,9 @@ typedef enum {
     HIDH_MENU,
     GATTCTEST_MENU,
     GATTSTEST_MENU,
+#ifdef GAIA_TEST_ENABLED
+    GAIATEST_MENU,
+#endif
 #ifdef USE_BT_OBEX
     PBAP_CLIENT_MENU,
     OPP_MENU,
@@ -338,8 +346,8 @@ UserMenuList GapMenu[] = {
     {CANCEL_ENQUIRY,        "cancel_inquiry",   ZERO_PARAM,    "cancel_inquiry"},
     {GET_REMOTE_DI,     "get_remote_di_info",   ONE_PARAM,    "get_remote_di_info<space><bt_address> \
     eg. get_remote_di_info 00:11:22:33:44:55"},
-    {START_PAIR,            "pair",             ONE_PARAM,    "pair<space><bt_address> \
-    eg. pair 00:11:22:33:44:55"},
+    {START_PAIR,            "pair",             TWO_PARAM,    "pair<space><bt_address><space><transport> \
+    eg. pair 00:11:22:33:44:55 1 or 2"},
     {UNPAIR,                "unpair",           ONE_PARAM,    "unpair<space><bt_address> \
     eg. unpair 00:11:22:33:44:55"},
     {INQUIRY_LIST,          "inquiry_list",     ZERO_PARAM,    "inquiry_list"},
@@ -373,6 +381,9 @@ UserMenuList MainMenu[] = {
 #endif
     {HFP_AG,                "hfp_ag_menu",      ZERO_PARAM,   "hfp_ag_menu"},
     {A2DP_SOURCE,           "a2dp_source_menu", ZERO_PARAM,   "a2dp_source_menu"},
+#ifdef GAIA_TEST_ENABLED
+    {GAIATEST_OPTION,           "gaiatest_menu", ZERO_PARAM,   "gaiatest_menu"},
+#endif
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
 
@@ -434,6 +445,17 @@ UserMenuList GattsTestMenu[] = {
     {BACK_TO_MAIN,          "main_menu",  ZERO_PARAM, "main_menu"},
 };
 
+
+#ifdef GAIA_TEST_ENABLED
+/**
+ * list of supported commands for GAIATEST Menu
+ */
+UserMenuList GaiaTestMenu[] = {
+    {GAIATEST_INIT,              "gaiatest_init",   ONE_PARAM,    "gaiatest_init /data/misc/bluetooth/xxxxxx"},
+    {GAIATEST_START,             "gaiatest_start",  ONE_PARAM,   "gaiatest_start 00:11:22:33:44:55"},
+    {BACK_TO_MAIN,          "main_menu",  ZERO_PARAM, "main_menu"},
+};
+#endif
 
 
 /**
@@ -726,6 +748,18 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
  */
 static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
 
+#ifdef GAIA_TEST_ENABLED
+/**
+ * @brief HandleGaiaTestCommand
+ *
+ *  This function will handle all the commands in @ref GaiaMenu
+ *
+ * @param[in] cmd_id It has command id from @ref CommandList
+ * @param[in] user_cmd It has parsed commands with arguments passed by user
+ * @return none
+ */
+static void HandleGaiaTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+#endif
 
 /**
  * @brief HandleGapCommand

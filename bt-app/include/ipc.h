@@ -77,6 +77,8 @@ extern thread_t *g_pbapc_thread;
 #define KEY_PRESSED             0
 #define KEY_RELEASED            1
 
+#define BTGATT_MAX_ATTR_LEN 600
+
 /**
  *   Threads info
  */
@@ -473,6 +475,11 @@ typedef enum {
     BTGATTC_TRACK_ADV_EVENT_EVENT,
     BTGATTC_SCAN_PARAMETER_SETUP_COMPLETED_EVENT,
     BTGATTC_GET_GATT_DB_EVENT,
+#ifdef GAIA_TEST_ENABLED
+    BTGAIA_REGISTER_APP_EVENT,
+    BTGAIA_SCAN_RESULT_EVENT,
+    BTGAIA_OPEN_EVENT,
+#endif
 
     RSP_ENABLE_EVENT = RSP_MSG_BASE,
     RSP_DISABLE_EVENT,
@@ -697,6 +704,7 @@ typedef struct {
 typedef struct {
     BluetoothEventId    event_id;
     bt_bdaddr_t         bd_addr;
+    int                 transport;
 } DeviceBondRequest;
 
 /**
@@ -929,6 +937,18 @@ typedef struct {
     BluetoothEventId event_id;
 } PanDeviceConnectedListEvent;
 
+#ifdef GAIA_TEST_ENABLED
+/**
+ * Gaia structures
+ */
+typedef struct{
+    BluetoothEventId event_id;
+    int status;
+    int clientIf;
+    bt_uuid_t app_uuid;
+} GaiaRegisterAppEvent;
+
+#endif
 /**
  * GATT client  Structures
  */
@@ -943,7 +963,8 @@ typedef struct{
     BluetoothEventId event_id;
     bt_bdaddr_t bda;
     int rssi;
-    uint8_t adv_data;
+    uint8_t adv_data[BTGATT_MAX_ATTR_LEN];
+    uint16_t adv_data_len;
 } GattcScanResultEvent;
 
 typedef struct{

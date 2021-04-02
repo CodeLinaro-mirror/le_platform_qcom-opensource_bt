@@ -54,6 +54,9 @@
 #include "Avrcp.hpp"
 
 #include "utils.h"
+#ifdef GAIA_TEST_ENABLED
+#include "GaiaTest.hpp"
+#endif
 
 #define LOGTAG  "MAIN "
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
@@ -78,6 +81,9 @@ extern PbapClient *g_pbapClient;
 extern Opp *g_opp;
 extern const char *BT_OBEX_ENABLED;
 #endif
+#ifdef GAIA_TEST_ENABLED
+extern GaiaTest *gaiatest;
+#endif
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 extern Hfp_Client *pHfpClient;
@@ -96,6 +102,7 @@ extern "C"
 #define ON_OFF_TEST_INTERVAL                (2 * 1000)
 #define ON_OFF_TEST_TIMEOUT         (30 * 1000)
 #define ON_OFF_TEST_POLL_INTERVAL       80
+#define BT_TRANSPORT_LE        2
 
 thread_t *test_thread_id = NULL;
 static void SendDisableCmdToGap();
@@ -252,6 +259,12 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &GattsTestMenu[0];
             num_cmds  = NO_OF_COMMANDS(GattsTestMenu);
             break;
+#ifdef GAIA_TEST_ENABLED
+        case GAIATEST_MENU:
+            menu = &GaiaTestMenu[0];
+            num_cmds  = NO_OF_COMMANDS(GaiaTestMenu);
+            break;
+#endif
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
             num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
@@ -364,6 +377,12 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &GattsTestMenu[0];
             num_cmds  = NO_OF_COMMANDS(GattsTestMenu);
             break;
+#ifdef GAIA_TEST_ENABLED
+        case GAIATEST_MENU:
+            menu = &GaiaTestMenu[0];
+            num_cmds = NO_OF_COMMANDS(GaiaTestMenu);
+            break;
+#endif
         case MAIN_MENU:
             menu = &MainMenu[0];
             num_cmds  = NO_OF_COMMANDS(MainMenu);
@@ -1253,6 +1272,12 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = GATTSTEST_MENU;
             DisplayMenu(menu_type);
             break;
+#ifdef GAIA_TEST_ENABLED
+        case GAIATEST_OPTION:
+            menu_type = GAIATEST_MENU;
+            DisplayMenu(menu_type);
+            break;
+#endif
         case A2DP_SINK:
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);
@@ -1655,6 +1680,86 @@ static void HandleHIDCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
     }
 }
+#ifdef GAIA_TEST_ENABLED
+static void HandleGaiaTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+    BtEvent *event = NULL;
+    long num;
+    char *end;
+    char fw_path[COMMAND_ARG_SIZE];
+    FILE *pfile = NULL;
+    uint32_t fw_size = 0;
+     switch (cmd_id) {
+
+        case GAIATEST_INIT:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                fprintf( stdout, "ENABLE GaiaTest\n");
+                ALOGV(LOGTAG " ENABLE GaiaTest");
+                if (gaiatest) {
+                   fprintf(stdout,"gaiatest already initialized \n");
+                   ALOGV(LOGTAG "gaiatest already initialized");
+                   return;
+                } else {
+                     strlcpy(fw_path, user_cmd[ONE_PARAM],COMMAND_SIZE);
+                     pfile = fopen(fw_path, "rb");
+                     if (pfile == NULL ) {
+                        ALOGE (LOGTAG " fw not exist, please check:%s",fw_path);
+                        fprintf(stdout, "fw not exist, please check:%s\n",fw_path);
+                        return;
+                     }
+                     fseek(pfile, 0, SEEK_END);
+                     fw_size = ftell(pfile);
+                     if(fw_size) {
+                         fprintf(stdout, "fw_size is %d\n",fw_size);
+                         ALOGV(LOGTAG " fw_size is %d", fw_size);
+                     } else {
+                         fprintf(stdout, "fw_size is %d, please check the fw\n",fw_size);
+                         ALOGV(LOGTAG " fw_size is %d, please check the fw", fw_size);
+                         return;
+                     }
+                        if (g_gatt) {
+                           gaiatest = new GaiaTest(g_gatt);
+                           if (gaiatest) {
+                              gaiatest->EnableGaiaTest(fw_path);
+                              fprintf(stdout, " EnableGaiaTest done \n");
+                              ALOGV(LOGTAG " EnableGaiaTest done");
+                           }
+                           else {
+                              fprintf(stdout, " GaiaTEST Alloc failed return failure \n");
+                              ALOGE(LOGTAG " GaiaTEST Alloc failed return failure");
+                           }
+                        } else {
+                           fprintf(stdout," gatt interface us null \n");
+                           ALOGE(LOGTAG " gatt interface us null");
+                        }
+                }
+             }
+             else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+            break;
+        case GAIATEST_START:
+            if (gaiatest) {
+                fprintf(stdout,"Main.cpp GAIATEST_START\n");
+                ALOGE(LOGTAG "Main.cpp GAIATEST_START\n");
+                bt_bdaddr_t bd_addr;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &bd_addr);
+                gaiatest->Start(bd_addr);
+            } else {
+                fprintf(stdout,"Do the GaiaTest Init first\n");
+                ALOGE(LOGTAG "Do the GaiaTest Init first\n");
+            }
+            break;
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+
+        default:
+            fprintf(stdout, " Command not handled");
+            break;
+    }   int index = 0;
+}
+#endif
 
 static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
@@ -1866,6 +1971,17 @@ static void SendDisableCmdToGap() {
              ALOGV (LOGTAG " gattctest interface is null");
         }
 
+#ifdef GAIA_TEST_ENABLED
+        if (gaiatest) {
+            fprintf(stdout, " DisableGaiaTest\n");
+            ALOGV(LOGTAG " DisableGaiaTest");
+            gaiatest->DisableGaiaTest();
+        } else {
+            ALOGV(LOGTAG " gaiatest interface is null");
+        }
+#endif
+
+
         g_bt_app->status.disable_cmd = COMMAND_INPROGRESS;
 
         BtEvent *event = new BtEvent;
@@ -1968,6 +2084,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     event = new BtEvent;
                     event->event_id = GAP_API_CREATE_BOND;
                     string_to_bdaddr(user_cmd[ONE_PARAM], &event->bond_device.bd_addr);
+                    event->bond_device.transport = atoi(user_cmd[TWO_PARAM]);
                     PostMessage (THREAD_ID_GAP, event);
                 } else {
                  fprintf( stdout, " BD address is NULL/Invalid \n");
@@ -2517,6 +2634,11 @@ static void BtCmdHandler (void *context) {
             case GATTSTEST_MENU:
                 HandleGattsTestCommand(cmd_id, user_cmd);
                 break;
+#ifdef GAIA_TEST_ENABLED
+            case GAIATEST_MENU:
+                HandleGaiaTestCommand(cmd_id, user_cmd);
+                break;
+#endif
             case MAIN_MENU:
                 HandleMainCommand(cmd_id,user_cmd );
                 break;
