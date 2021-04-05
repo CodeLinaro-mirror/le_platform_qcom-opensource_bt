@@ -106,6 +106,13 @@ class GattCharacteristic{
     uint8_t *mValue = NULL;
 
     /**
+     * The cached value of this characteristic.
+     *
+     * @hide
+     */
+    int mValueLength = 0;
+
+    /**
      * List of descriptors included in this characteristic.
      */
     std::vector<GattDescriptor*> mDescriptors;
@@ -393,6 +400,15 @@ class GattCharacteristic{
     uint8_t* getValue();
 
     /**
+     * Get the stored value len for this characteristic.
+     *
+     * <p>This function returns the stored value length for this characteristic.
+     *
+     * @return Cached value len of the characteristic
+     */
+    int getValueLength();
+
+    /**
      * Return the stored value of this characteristic.
      *
      * <p>The formatType parameter determines how the characteristic value
@@ -434,10 +450,11 @@ class GattCharacteristic{
      * remote device.
      *
      * @param value New value for this characteristic
+     * @param length length of New value for this characteristic
      * @return true if the locally stored value has been set, false if the requested value could not
      * be stored locally.
      */
-    bool setValue(uint8_t *value);
+    bool setValue(uint8_t *value, int length);
 
     /**
      * Set the locally stored value of this characteristic.

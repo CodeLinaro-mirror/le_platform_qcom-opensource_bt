@@ -208,6 +208,7 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   uint8_t *value = NULL;
   value = characteristic->getValue();
+  int valueLength = characteristic->getValueLength();
   GattService *mService = characteristic->getService();
   Uuid s_uuid = mService->getUuid();
   Uuid c_uuid = characteristic->getUuid();
@@ -224,7 +225,7 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
     }
   }
   mServer= str->second;
-  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value + offset);
+  bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value + offset,valueLength);
   if(status) {
     ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
   }
@@ -232,7 +233,7 @@ void gattstestServerCallback::onCharacteristicReadRequest(string deviceAddress, 
 
 void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,int requestId,
                             GattCharacteristic *characteristic,bool preparedWrite,bool responseNeeded,
-                            int offset,uint8_t* value)
+                            int offset,uint8_t* value,int length)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   string temp((char *)value);
@@ -251,10 +252,10 @@ void gattstestServerCallback::onCharacteristicWriteRequest(string deviceAddress,
      executeWriteChar = characteristic;
      receivedData += temp;
   } else {
-    characteristic->setValue(value);
+    characteristic->setValue(value, length);
   }
   if (responseNeeded) {
-    mServer->sendResponse(deviceAddress,requestId,0,offset,value);
+    mServer->sendResponse(deviceAddress, requestId, 0, offset, value, length);
   }
   int d = characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY;
   if((characteristic->getProperties() & GattCharacteristic::PROPERTY_NOTIFY) != 0) {
@@ -273,6 +274,7 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
   uint8_t *value = NULL;
   Uuid desc_uuid = descriptor->getUuid();
   value = descriptor->getValue();
+  int valueLength = descriptor->getValueLength();
   ALOGD(LOGTAG"%s Descriptor UUID: %s  value = %s", __FUNCTION__, desc_uuid.ToString().c_str(),descriptor->getValue());
   GattServer *mServer = NULL;
   unordered_map <gattstestServerCallback*,GattServer*> ::iterator str;
@@ -282,7 +284,7 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
         break;
     }
     mServer= str->second;
-    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset,valueLength);
     if(status) {
         ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
     }
@@ -290,7 +292,8 @@ void gattstestServerCallback::onDescriptorReadRequest(string deviceAddress, int 
 
 void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int requestId,
                                                     GattDescriptor *descriptor,bool preparedWrite,
-                                                    bool responseNeeded, int offset, uint8_t * value)
+                                                    bool responseNeeded, int offset,
+                                                    uint8_t * value, int length)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   string temp((char *)value);
@@ -298,6 +301,7 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
   Uuid d_uid = descriptor->getUuid();
   Uuid c_uid = characteristic->getUuid();
   value = descriptor->getValue();
+  int valueLength = descriptor->getValueLength();
   ALOGD(LOGTAG"%s  descriptor_uuid: %s value = %s", __FUNCTION__, d_uid.ToString().c_str(),
                                                     descriptor->getValue());
   GattServer *mServer = NULL;
@@ -313,10 +317,10 @@ void gattstestServerCallback::onDescriptorWriteRequest(string deviceAddress, int
      executeWriteDesc = descriptor;
      receivedDescValue += temp;
   } else {
-    descriptor->setValue(value);
+    descriptor->setValue(value, valueLength);
   }
   if (responseNeeded) {
-    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset);
+    bool status = mServer->sendResponse(deviceAddress,requestId,0,offset,value+offset,valueLength);
     if (status) {
       ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
     }
@@ -342,7 +346,7 @@ void gattstestServerCallback::onExecuteWrite(string deviceAddress, int requestId
   } else {
      receivedData.clear();
   }
-  bool status = mServer->sendResponse(deviceAddress,requestId,GATT_SUCCESS,0,NULL);
+  bool status = mServer->sendResponse(deviceAddress,requestId,GATT_SUCCESS,0,NULL,0);
   if (status) {
     ALOGD(LOGTAG"%s response sent ", __FUNCTION__);
   }
@@ -1094,9 +1098,9 @@ void GattsTest::AddCharacteristics(Uuid uid,int property, int permissions, strin
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   mgattCharacteristic = new GattCharacteristic(uid,property,permissions);
-  uint8_t char_val[val.length()+1];
+  uint8_t char_val[val.length()];
   std::copy(val.begin(),val.end(),char_val);
-  mgattCharacteristic->setValue(char_val);
+  mgattCharacteristic->setValue(char_val, val.length());
   ALOGD(LOGTAG"CharacteristicUUID: %s  ", uid.ToString().c_str());
   ALOGD(LOGTAG"Characteristic Property: %d ", mgattCharacteristic->getProperties());
   ALOGD(LOGTAG"characteristic Permissions: %d ", mgattCharacteristic->getPermissions());
@@ -1108,9 +1112,9 @@ void GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
   ALOGD(LOGTAG"%s",__FUNCTION__);
   ALOGD(LOGTAG"string value =  %s", value.c_str());
   mgattDescriptor = new GattDescriptor(uid,permissions);
-  uint8_t dsc_val[value.length()+1];
+  uint8_t dsc_val[value.length()];
   std::copy(value.begin(),value.end(),dsc_val);
-  mgattDescriptor->setValue(dsc_val);
+  mgattDescriptor->setValue(dsc_val,value.length());
   ALOGD(LOGTAG"Descriptor UUID: %s  ", uid.ToString().c_str());
   ALOGD(LOGTAG"Descriptor Permissions: %d ", mgattDescriptor->getPermissions());
 }

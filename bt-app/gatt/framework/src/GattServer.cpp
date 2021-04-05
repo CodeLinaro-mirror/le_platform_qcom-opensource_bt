@@ -145,7 +145,7 @@ void GattServer::onDescriptorReadRequest(string address, int transId,
 
 void GattServer::onCharacteristicWriteRequest(string address, int transId, int offset,
                                   int length, bool isPrep, bool needRsp,
-                                  int handle, uint8_t *value)
+                                  int handle,  uint8_t *value)
 {
   if (VDBG) ALOGD(LOGTAG " onCharacteristicWriteRequest() - handle %d", handle);
 
@@ -157,7 +157,7 @@ void GattServer::onCharacteristicWriteRequest(string address, int transId, int o
 
   try {
     mCallback->onCharacteristicWriteRequest(address, transId, characteristic,
-            isPrep, needRsp, offset, value);
+            isPrep, needRsp, offset, value, length);
   } catch (std::exception& e) {
     ALOGE(LOGTAG " Unhandled exception in callback: %s", e.what());
   }
@@ -178,7 +178,7 @@ void GattServer::onDescriptorWriteRequest(string address, int transId, int offse
 
   try {
     mCallback->onDescriptorWriteRequest(address, transId, descriptor,
-            isPrep, needRsp, offset, value);
+            isPrep, needRsp, offset, value, length);
   } catch (std::exception& e) {
     ALOGE(LOGTAG " Unhandled exception in callback: %s", e.what());
   }
@@ -447,14 +447,14 @@ void GattServer::readPhy(string deviceAddress)
 }
 
 bool GattServer::sendResponse(string deviceAddress, int requestId,
-          int status, int offset, uint8_t *value)
+          int status, int offset, uint8_t *value, int length)
 {
   if (VDBG) ALOGD(LOGTAG " sendResponse() - device: %s", deviceAddress.c_str());
   if (mService == NULL || mServerIf == 0) return false;
 
   try {
     mService->sendResponse(mServerIf, deviceAddress, requestId,
-            status, offset, value);
+            status, offset, value, length);
   } catch (std::exception& e) {
       ALOGE(LOGTAG " %s", e.what());
       return false;
@@ -480,7 +480,7 @@ bool GattServer::notifyCharacteristicChanged(string deviceAddress,
   try {
     mService->sendNotification(mServerIf, deviceAddress,
             characteristic.getInstanceId(), confirm,
-            characteristic.getValue());
+            characteristic.getValue(), characteristic.getValueLength());
   } catch (std::exception& e) {
       ALOGE(LOGTAG " %s", e.what());
       return false;

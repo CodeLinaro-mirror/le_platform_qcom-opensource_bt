@@ -529,8 +529,8 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_RELIABLEWRITE,       "gattctest_reliablewrite",    TWO_PARAM,    "gattctest_reliablewrite<space><bt_address><space><instanceid>"},
     {GATTCTEST_GETDESCID,           "gattctest_getdescid",    TWO_PARAM,    "gattctest_getdescid<space><bt_address><space><instanceid>"},
     {GATTCTEST_GETSRVC,           "gattctest_getsrvc",    THREE_PARAM,    "gattctest_getsrvc<space><bt_address><space><UUID><space><INSTANCEID>"},
-    {GATTCTEST_RDWRDESC,       "gattctest_RdWrDesc",    FOUR_PARAM,    "gattctest_RdWrDesc<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID>"},
-    {GATTCTEST_RDWRCHAR,           "gattctest_RdWrchar",    FOUR_PARAM,    "gattctest_RdWrchar<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID>"},
+    {GATTCTEST_RDWRDESC,       "gattctest_RdWrDesc",    FIVE_PARAM,    "gattctest_RdWrDesc<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID><space><value length>"},
+    {GATTCTEST_RDWRCHAR,       "gattctest_RdWrchar",    FIVE_PARAM,    "gattctest_RdWrchar<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID><space><value length>"},
     {GATTCTEST_CONN_DEVICES,     "gattctest_conn_dev",  ZERO_PARAM,    "gattctest_conn_dev"},
 };
 #endif

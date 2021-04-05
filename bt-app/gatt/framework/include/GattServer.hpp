@@ -170,9 +170,10 @@ class GattServer : public IServerCallback, public GattServerCallback {
      * @param status The status of the request to be sent to the remote devices
      * @param offset Value offset for partial read/write response
      * @param value The value of the attribute that was read/written (optional)
+     * @param length The value length of the attribute that was read/written (optional)
      */
     bool sendResponse(string deviceAddress, int requestId,
-                          int status, int offset, uint8_t *value);
+                          int status, int offset, uint8_t *value, int length);
 
     /**
      * Send a notification or indication that a local characteristic has been
