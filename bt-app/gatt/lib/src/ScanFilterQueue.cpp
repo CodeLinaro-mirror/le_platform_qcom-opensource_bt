@@ -192,7 +192,7 @@ void ScanFilterQueue::addScanFilter(ScanFilter* filter)
     std::vector<uint8_t> serviceDataMask = (filter->getServiceDataMask());
 
     if (serviceDataMask.empty()) {
-      serviceDataMask.assign('F',serviceData.size());
+      serviceDataMask.assign(serviceData.size(), 0xFF);
     }
 
     serviceData = concate(serviceDataUuid, serviceData);
@@ -210,6 +210,9 @@ std::vector<uint8_t> ScanFilterQueue::concate(Uuid serviceDataUuid,
   int uuidLen =  uu.size();
   int serviceLen = serviceData.size();
   int dataLen = uuidLen + (serviceData.empty() ? 0 : serviceLen);
+
+  ALOGI("ScanFilterQueue:: concate: dataLen = %d", dataLen);
+
   // If data is too long, don't add it to hardware scan filter.
   if (dataLen > MAX_LEN_PER_FIELD) {
     return {};
