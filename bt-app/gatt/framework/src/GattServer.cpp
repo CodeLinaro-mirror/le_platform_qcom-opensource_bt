@@ -38,8 +38,11 @@ void GattServer::onServerRegistered(int status, int serverIf)
     ALOGD(LOGTAG " onServerRegistered() - status %d serverIf %d", status, serverIf);
   }
 
+  std::unique_lock<std::mutex> lck(mServerIfLock);
+
   if (mCallback != NULL) {
     mServerIf = serverIf;
+    mServerCV.notify_all();
   } else {
     // registration timeout
     ALOGE(LOGTAG " onServerRegistered() : mCallback is null");
@@ -345,6 +348,8 @@ bool GattServer::registerCallback(GattServerCallback& callback)
     return false;
   }
 
+  std::unique_lock<std::mutex> lck(mServerIfLock);
+
   mCallback = &callback;
   mServerCallback = this;
   try {
@@ -352,13 +357,13 @@ bool GattServer::registerCallback(GattServerCallback& callback)
   } catch (std::exception& e) {
       ALOGE(LOGTAG " %s", e.what());
       mCallback = NULL;
+      lck.release()->unlock();
       return false;
   }
 
-  try {
-      std::this_thread::sleep_for(std::chrono::milliseconds(CALLBACK_REG_TIMEOUT));
-  } catch (std::exception &e) {
-      ALOGE(LOGTAG " %s", e.what());
+  if (mServerCV.wait_for(lck,
+      std::chrono::milliseconds(CALLBACK_REG_TIMEOUT_MS)) == std::cv_status::timeout) {
+      ALOGE(LOGTAG " timeout");
       mCallback = NULL;
   }
 

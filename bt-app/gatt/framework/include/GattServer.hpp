@@ -33,6 +33,7 @@
 #include <mutex>
 #include <string>
 #include <algorithm>
+#include <condition_variable>
 #include "utils/Log.h"
 #include "utils/include/uuid.h"
 
@@ -58,13 +59,14 @@ class GattServer : public IServerCallback, public GattServerCallback {
     GattServerCallback *mCallback = NULL;
     IServerCallback *mServerCallback = NULL;
 
+    std::condition_variable mServerCV;
     std::mutex mServerIfLock;
     int mServerIf;
     int mTransport;
     GattService *mPendingService = NULL;
     std::vector<GattService*> mServices;
 
-    static const int CALLBACK_REG_TIMEOUT = 10000;
+    static const int CALLBACK_REG_TIMEOUT_MS = 10000;
 
     /**
      * Unregister the current application and callbacks.
