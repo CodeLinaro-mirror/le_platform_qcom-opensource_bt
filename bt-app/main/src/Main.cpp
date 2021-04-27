@@ -47,6 +47,9 @@
 #include "GattcTest.hpp"
 #include "GattsTest.hpp"
 #include "Rsp.hpp"
+#ifdef USE_BLE_SOCKET_MANAGER
+#include "BleSocketManager.hpp"
+#endif
 #endif
 #include "HfpAG.hpp"
 #include "Audio_Manager.hpp"
@@ -109,6 +112,9 @@ extern const char *BT_GATT_ENABLED;
 extern GattcTest *gattctest;
 extern GattsTest *gattstest;
 extern Rsp *rsp;
+#ifdef USE_BLE_SOCKET_MANAGER
+extern BleSocketManager *g_ble_socket_manager;
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -2000,7 +2006,7 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    if (i == 1) {
                        gattctest->writeDescriptor(user_cmd[ONE_PARAM],
                          (uint8_t *)&(user_cmd[THREE_PARAM]),
-                           j);
+                         atoi(user_cmd[FIVE_PARAM]), j);
                    } else if (i == 2) {
                        gattctest->readDescriptor(user_cmd[ONE_PARAM],
                          atoi(user_cmd[FOUR_PARAM]));
@@ -2037,13 +2043,14 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                    if (i == 1) {
                        gattctest->writeCharacteristic(user_cmd[ONE_PARAM],
                          (uint8_t *)&(user_cmd[THREE_PARAM]),
-                           j);
+                           atoi(user_cmd[FIVE_PARAM]), j);
                    } else if (i == 2) {
                        gattctest->readCharacteristic(user_cmd[ONE_PARAM],
                          atoi(user_cmd[FOUR_PARAM]));
                    } else if (i == 3) {
                        gattctest->prepareWriteCharacteristic(user_cmd[ONE_PARAM],
-                           (uint8_t *)&(user_cmd[THREE_PARAM]), j);
+                           (uint8_t *)&(user_cmd[THREE_PARAM]),
+                           atoi(user_cmd[FIVE_PARAM]), j);
                    }else {
                        fprintf(stdout, "Enter the correct 2nd parameter.."
                          "1 -write , 2 -read\n");
@@ -3905,6 +3912,17 @@ void BluetoothApp :: InitHandler (void) {
           if (threadInfo[THREAD_ID_GATT].thread_id)
               g_gatt = GattLibService::getInstance(bt_interface);
       }
+
+#ifdef USE_BLE_SOCKET_MANAGER
+      if (is_ble_sm_enable_default_) {
+          threadInfo[THREAD_ID_BLE_SM].thread_id = thread_new (
+              threadInfo[THREAD_ID_BLE_SM].thread_name);
+
+          if (threadInfo[THREAD_ID_BLE_SM].thread_id)
+              g_ble_socket_manager = new BleSocketManager(bt_interface, config);
+      }
+#endif
+
 #endif
 
 #ifdef USE_BT_OBEX
@@ -4058,12 +4076,24 @@ void BluetoothApp :: DeInitHandler (void) {
     }
 #ifdef USE_GEN_GATT
       if (is_gatt_enable_default_) {
-          if (threadInfo[THREAD_ID_GATT].thread_id != NULL){
+          if (threadInfo[THREAD_ID_GATT].thread_id != NULL) {
               thread_free(threadInfo[THREAD_ID_GATT].thread_id);
               if (g_gatt != NULL)
                   delete g_gatt;
           }
       }
+
+#ifdef USE_BLE_SOCKET_MANAGER
+      if (is_ble_sm_enable_default_) {
+          if (threadInfo[THREAD_ID_BLE_SM].thread_id != NULL) {
+              thread_free(threadInfo[THREAD_ID_BLE_SM].thread_id);
+              if (g_ble_socket_manager != NULL) {
+                  delete g_ble_socket_manager;
+              }
+          }
+      }
+#endif
+
 #endif
 
 #ifdef USE_BT_OBEX
@@ -4248,6 +4278,12 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for Gatt handler
     is_gatt_enable_default_= config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_GATT_ENABLED, false);
+
+#ifdef USE_BLE_SOCKET_MANAGER
+    //checking for socket handler
+    is_ble_sm_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                BT_LE_SOCKET_MANAGER_ENABLED, false);
+#endif
 #endif
 
 #ifdef USE_BT_OBEX

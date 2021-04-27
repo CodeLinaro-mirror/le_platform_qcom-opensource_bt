@@ -99,7 +99,7 @@ class Rsp {
                    ,__FUNCTION__, wlan_state, currentstate);
             wlan_state = currentstate;
         }
-        void SendResponse(string,int,int,int,uint8_t *);
+        void SendResponse(string,int,int,int,uint8_t *,int);
         bool StartAdvertisement(void);
         void StopAdvertisement(void);
         bool AddService(void);

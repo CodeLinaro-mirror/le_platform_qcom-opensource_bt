@@ -79,9 +79,9 @@ class RspServerCallback  :public GattServerCallback{
 
   void onCharacteristicWriteRequest(string deviceAddress,int requestId,
         GattCharacteristic *characteristic,bool preparedWrite,bool responseNeeded,
-                                                     int offset,uint8_t* value) {
+        int offset, uint8_t* value, int length) {
     ALOGD(LOGTAG"%s",__FUNCTION__);
-    rsp->SendResponse(deviceAddress,requestId,0,offset,value);
+    rsp->SendResponse(deviceAddress,requestId,0,offset, value, length);
   }
 
   void onDescriptorReadRequest(string deviceAddress, int requestId,
@@ -91,9 +91,9 @@ class RspServerCallback  :public GattServerCallback{
 
   void onDescriptorWriteRequest(string deviceAddress, int requestId,
                            GattDescriptor *descriptor,bool preparedWrite,
-                           bool responseNeeded, int offset, uint8_t * value) {
+                           bool responseNeeded, int offset, uint8_t * value, int length) {
     ALOGD(LOGTAG"%s",__FUNCTION__);
-    rsp->SendResponse(deviceAddress,requestId,0,offset,value);
+    rsp->SendResponse(deviceAddress,requestId,0,offset, value, length);
   }
 
   void onExecuteWrite(string deviceAddress, int requestId, bool execute) {
@@ -239,7 +239,7 @@ bool Rsp::StartAdvertisement() {
 }
 
 void Rsp::SendResponse(string deviceAddress, int requestId, int status,
-                                              int offset, uint8_t * value) {
+                                              int offset, uint8_t * value, int length) {
   ALOGE(LOGTAG "%s",__FUNCTION__);
   if(value != NULL && !strncasecmp((const char *)(value), "on", 2)) {
     if (GetDeviceState() == WLAN_INACTIVE) {
@@ -256,7 +256,7 @@ void Rsp::SendResponse(string deviceAddress, int requestId, int status,
       "State (%d)",__FUNCTION__, value,GetDeviceState());
   }
   rsp->SetDeviceState(WLAN_ACTIVE);
-  mServer->sendResponse(deviceAddress,requestId,status,offset,value);
+  mServer->sendResponse(deviceAddress,requestId,status,offset,value,length);
 }
 
 bool Rsp::HandleWlanOn() {

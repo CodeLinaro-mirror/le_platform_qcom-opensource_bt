@@ -33,6 +33,7 @@
 #include <mutex>
 #include <string>
 #include <algorithm>
+#include <condition_variable>
 #include "utils/Log.h"
 #include "utils/include/uuid.h"
 
@@ -58,13 +59,14 @@ class GattServer : public IServerCallback, public GattServerCallback {
     GattServerCallback *mCallback = NULL;
     IServerCallback *mServerCallback = NULL;
 
+    std::condition_variable mServerCV;
     std::mutex mServerIfLock;
     int mServerIf;
     int mTransport;
     GattService *mPendingService = NULL;
     std::vector<GattService*> mServices;
 
-    static const int CALLBACK_REG_TIMEOUT = 10000;
+    static const int CALLBACK_REG_TIMEOUT_MS = 10000;
 
     /**
      * Unregister the current application and callbacks.
@@ -170,9 +172,10 @@ class GattServer : public IServerCallback, public GattServerCallback {
      * @param status The status of the request to be sent to the remote devices
      * @param offset Value offset for partial read/write response
      * @param value The value of the attribute that was read/written (optional)
+     * @param length The value length of the attribute that was read/written (optional)
      */
     bool sendResponse(string deviceAddress, int requestId,
-                          int status, int offset, uint8_t *value);
+                          int status, int offset, uint8_t *value, int length);
 
     /**
      * Send a notification or indication that a local characteristic has been

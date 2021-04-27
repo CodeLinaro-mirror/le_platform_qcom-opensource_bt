@@ -130,12 +130,12 @@ class gattstestServerCallback :public GattServerCallback
                                       GattCharacteristic *characteristic);
   void onCharacteristicWriteRequest(string deviceAddress,int requestId,
                                       GattCharacteristic *characteristic,bool preparedWrite,
-                                      bool responseNeeded,int offset,uint8_t* value);
+                                      bool responseNeeded,int offset,uint8_t* value,int length);
   void onDescriptorReadRequest(string deviceAddress, int requestId, int offset,
                                       GattDescriptor *descriptor);
   void onDescriptorWriteRequest(string deviceAddress, int requestId,
                                       GattDescriptor *descriptor,bool preparedWrite,
-                                      bool responseNeeded, int offset, uint8_t * value);
+                                      bool responseNeeded, int offset,uint8_t * value,int length);
   void onExecuteWrite(string deviceAddress, int requestId, bool execute);
   void onNotificationSent(string deviceAddress, int status);
   void onMtuChanged(string deviceAddress, int mtu);

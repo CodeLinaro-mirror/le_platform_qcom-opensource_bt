@@ -45,17 +45,19 @@ class IClientCallback {
 
     virtual void onSearchComplete(string address, std::vector<GattService*> services, int status){}
 
-    virtual void onCharacteristicRead(string address, int status, int handle, uint8_t *value){}
+    virtual void onCharacteristicRead(string address, int status, int handle, uint8_t *value,
+                                  int length){}
 
     virtual void onCharacteristicWrite(string address, int status, int handle){}
 
     virtual void onExecuteWrite(string address, int status){}
 
-    virtual void onDescriptorRead(string address, int status, int handle, uint8_t *value){}
+    virtual void onDescriptorRead(string address, int status, int handle, uint8_t *value,
+                                  int length){}
 
     virtual void onDescriptorWrite(string address, int status, int handle){}
 
-    virtual void onNotify(string address, int handle, uint8_t *value){}
+    virtual void onNotify(string address, int handle, uint8_t *value, int length){}
 
     virtual void onReadRemoteRssi(string address, int rssi, int status){}
 

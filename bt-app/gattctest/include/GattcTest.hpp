@@ -87,12 +87,12 @@ class GattcTest {
         bool getService(string bdaddr, Uuid serviceUid,int instanceid);
         GattService getService(Uuid uuid);
         bool readUsingCharacteristicUuid(string bdaddr, Uuid uuid, int startHandle, int endHandle);
-        bool writeCharacteristic(string bdaddr, uint8_t *writeValue,
+        bool writeCharacteristic(string bdaddr, uint8_t *writeValue, int length,
             int instanceId);
-        bool prepareWriteCharacteristic(string bdaddr, uint8_t *writeValue,
+        bool prepareWriteCharacteristic(string bdaddr, uint8_t *writeValue, int length,
             int instanceId);
         bool readCharacteristicUUID(string bdaddr, Uuid uuid);
-        void writeDescriptor(string bdaddr, uint8_t *writeValue, int instanceid);
+        void writeDescriptor(string bdaddr, uint8_t *writeValue, int length, int instanceid);
         void readCharacteristic(string bdaddr, int instanceid);
         //bool readCharacteristicUUID(string bdaddr, Uuid uuid);
         void readDescriptor(string bdaddr, int instanceid);
