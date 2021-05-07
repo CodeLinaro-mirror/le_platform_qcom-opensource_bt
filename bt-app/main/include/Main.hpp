@@ -340,6 +340,7 @@ typedef enum {
     CONN_PARAMS,
     SET_AFH_CHANNELS,
     SEND_HCI_COMMAND,
+    SET_TTP_RANGE,
     BACK_TO_MAIN,
     END,
 } CommandList;
@@ -576,6 +577,7 @@ UserMenuList A2dpSinkMenu[] = {
     {PLAYITEM,  "playitem",  FOUR_PARAM,  "playitem<space><bt_address><space><scopeID><space><uID><space><uID_Counter>"},
     {ADDTONOWPLAYING,  "addtonowplaying",  FOUR_PARAM,  "addtonowplaying<space><bt_address><space><scopeID><space><uID><space><uID_Counter>"},
     {SEARCH,  "search",  THREE_PARAM,  "search<space><bt_address><space><length><space><string>"},
+    {SET_TTP_RANGE, "set_ttp_range", TWO_PARAM, "set_ttp_range<space><min_value><space><max_value> note:This command is for only aptx ad codec."},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 

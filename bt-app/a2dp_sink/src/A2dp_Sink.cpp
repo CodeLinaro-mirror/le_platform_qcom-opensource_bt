@@ -508,6 +508,9 @@ void BtA2dpSinkMsgHandler(void *msg) {
             if (num_codec_configs)
                 pA2dpSink->UpdateSupportedCodecs(num_codec_configs);
             break;
+        case A2DP_SINK_SPLIT_SET_TTP_RANGE:
+            ALOGE(LOGTAG " command works in split usecase only");
+            break;
         default:
             if(pA2dpSink) {
                pA2dpSink->EventManager(( BtEvent *) msg, pEvent->a2dpSinkEvent.bd_addr);

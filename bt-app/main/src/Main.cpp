@@ -804,6 +804,14 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event->avrcpCtrlEvent.arg1 = atoi(user_cmd[TWO_PARAM]);
             PostMessage (THREAD_ID_AVRCP, event);
             break;
+        case SET_TTP_RANGE:
+            event = new BtEvent;
+            memset(event, 0, sizeof(BtEvent));
+            event->a2dpSinkEvent.event_id = A2DP_SINK_SPLIT_SET_TTP_RANGE;
+            event->a2dpSinkEvent.arg1 = atoi(user_cmd[ONE_PARAM]);
+            event->a2dpSinkEvent.arg2 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (thread_id, event);
+            break;
         case CODEC_LIST:
             event = new BtEvent;
             event->a2dpCodecListEvent.event_id = A2DP_SINK_CODEC_LIST;
