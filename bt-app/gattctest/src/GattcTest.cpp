@@ -288,7 +288,7 @@ class gattctestClientCallback:public GattClientCallback
             std::string s;
             s.assign(tmp_ch, tmp_ch + sizeof(tmp_ch));
             fprintf(stdout, "string write is %s\n", s.c_str());
-            characteristic->setValue(tmp_ch);
+            characteristic->setValue(tmp_ch, sizeof(tmp_ch));
             int status = gattc->writeCharacteristic(*characteristic);
             if (status) {
               fprintf(stdout, "write success\n");
@@ -836,7 +836,7 @@ GattCharacteristic* GattcTest :: getCharacteristic(Uuid uid, string bdaddr)
   return characteristic;
 }
 
-bool GattcTest :: writeCharacteristic(string bdaddr, uint8_t *writeValue,
+bool GattcTest :: writeCharacteristic(string bdaddr, uint8_t *writeValue, int length,
     int instanceId)
 {
   ALOGD(LOGTAG "writeCharacteristic value is %s", writeValue);
@@ -854,7 +854,7 @@ bool GattcTest :: writeCharacteristic(string bdaddr, uint8_t *writeValue,
   characteristic = CliDevice->getCharacteristicById(bdaddr, instanceId);
 
   if (characteristic != NULL) {
-    characteristic->setValue(writeValue);
+    characteristic->setValue(writeValue, length);
     ALOGD(LOGTAG "Instance ID   %d", characteristic->getInstanceId());
 
     bool status = CliDevice->writeCharacteristic(*characteristic);
@@ -894,7 +894,7 @@ bool GattcTest:: reqConnPri(string bdaddr, int conn_priority)
 }
 
 void GattcTest :: writeDescriptor(string bdaddr,
-    uint8_t *writeValue, int instanceid)
+    uint8_t *writeValue,  int length, int instanceid)
 {
   ALOGD(LOGTAG "writeDescriptor");
 
@@ -908,7 +908,7 @@ void GattcTest :: writeDescriptor(string bdaddr,
   GattDescriptor* descriptor =
     CliDevice->getDescriptorById(bdaddr, instanceid);
   if (descriptor != NULL) {
-    descriptor->setValue(writeValue);
+    descriptor->setValue(writeValue, length);
 
     if (!CliDevice->writeDescriptor(*descriptor)) {
       ALOGE(LOGTAG "WriteDescriptor Failed");
@@ -1108,7 +1108,7 @@ void GattcTest :: gattrequestMtu(string bdaddr, int mtu_value)
 }
 
 bool GattcTest::prepareWriteCharacteristic(string bdaddr,
-    uint8_t * writeValue, int instanceId)
+    uint8_t * writeValue, int length, int instanceId)
 {
   ALOGD(LOGTAG "prepareWriteCharacteristic");
   fprintf(stdout, "prepareWriteCharacteristic\n");
@@ -1135,7 +1135,7 @@ bool GattcTest::prepareWriteCharacteristic(string bdaddr,
   characteristic = CliDevice->getCharacteristicById(bdaddr, instanceId);
 
   if (characteristic != NULL) {
-    characteristic->setValue(writeValue);
+    characteristic->setValue(writeValue, length);
     bool status = CliDevice->writeCharacteristic(*characteristic);
 
     if (status) {
@@ -1214,8 +1214,7 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
     int i;
     for (i = 0; i < 10; i++)
       tmp_ch[i] = PREPARE_WRITE_DATA;
-    tmp_ch[i] = '\0';
-    characteristic->setValue(tmp_ch);
+    characteristic->setValue(tmp_ch, sizeof(tmp_ch));
 
     if (mExecReliableWrite == ReliableWriteState::RELIABLE_WRITE_NONE) {
       mExecReliableWrite =

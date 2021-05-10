@@ -38,8 +38,11 @@ void GattServer::onServerRegistered(int status, int serverIf)
     ALOGD(LOGTAG " onServerRegistered() - status %d serverIf %d", status, serverIf);
   }
 
+  std::unique_lock<std::mutex> lck(mServerIfLock);
+
   if (mCallback != NULL) {
     mServerIf = serverIf;
+    mServerCV.notify_all();
   } else {
     // registration timeout
     ALOGE(LOGTAG " onServerRegistered() : mCallback is null");
@@ -145,7 +148,7 @@ void GattServer::onDescriptorReadRequest(string address, int transId,
 
 void GattServer::onCharacteristicWriteRequest(string address, int transId, int offset,
                                   int length, bool isPrep, bool needRsp,
-                                  int handle, uint8_t *value)
+                                  int handle,  uint8_t *value)
 {
   if (VDBG) ALOGD(LOGTAG " onCharacteristicWriteRequest() - handle %d", handle);
 
@@ -157,7 +160,7 @@ void GattServer::onCharacteristicWriteRequest(string address, int transId, int o
 
   try {
     mCallback->onCharacteristicWriteRequest(address, transId, characteristic,
-            isPrep, needRsp, offset, value);
+            isPrep, needRsp, offset, value, length);
   } catch (std::exception& e) {
     ALOGE(LOGTAG " Unhandled exception in callback: %s", e.what());
   }
@@ -178,7 +181,7 @@ void GattServer::onDescriptorWriteRequest(string address, int transId, int offse
 
   try {
     mCallback->onDescriptorWriteRequest(address, transId, descriptor,
-            isPrep, needRsp, offset, value);
+            isPrep, needRsp, offset, value, length);
   } catch (std::exception& e) {
     ALOGE(LOGTAG " Unhandled exception in callback: %s", e.what());
   }
@@ -345,6 +348,8 @@ bool GattServer::registerCallback(GattServerCallback& callback)
     return false;
   }
 
+  std::unique_lock<std::mutex> lck(mServerIfLock);
+
   mCallback = &callback;
   mServerCallback = this;
   try {
@@ -352,13 +357,13 @@ bool GattServer::registerCallback(GattServerCallback& callback)
   } catch (std::exception& e) {
       ALOGE(LOGTAG " %s", e.what());
       mCallback = NULL;
+      lck.release()->unlock();
       return false;
   }
 
-  try {
-      std::this_thread::sleep_for(std::chrono::milliseconds(CALLBACK_REG_TIMEOUT));
-  } catch (std::exception &e) {
-      ALOGE(LOGTAG " %s", e.what());
+  if (mServerCV.wait_for(lck,
+      std::chrono::milliseconds(CALLBACK_REG_TIMEOUT_MS)) == std::cv_status::timeout) {
+      ALOGE(LOGTAG " timeout");
       mCallback = NULL;
   }
 
@@ -447,14 +452,14 @@ void GattServer::readPhy(string deviceAddress)
 }
 
 bool GattServer::sendResponse(string deviceAddress, int requestId,
-          int status, int offset, uint8_t *value)
+          int status, int offset, uint8_t *value, int length)
 {
   if (VDBG) ALOGD(LOGTAG " sendResponse() - device: %s", deviceAddress.c_str());
   if (mService == NULL || mServerIf == 0) return false;
 
   try {
     mService->sendResponse(mServerIf, deviceAddress, requestId,
-            status, offset, value);
+            status, offset, value, length);
   } catch (std::exception& e) {
       ALOGE(LOGTAG " %s", e.what());
       return false;
@@ -480,7 +485,7 @@ bool GattServer::notifyCharacteristicChanged(string deviceAddress,
   try {
     mService->sendNotification(mServerIf, deviceAddress,
             characteristic.getInstanceId(), confirm,
-            characteristic.getValue());
+            characteristic.getValue(), characteristic.getValueLength());
   } catch (std::exception& e) {
       ALOGE(LOGTAG " %s", e.what());
       return false;

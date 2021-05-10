@@ -201,14 +201,14 @@ bool ScanFilter::matchesPartialData(const std::vector<uint8_t> data,
   }
   if (dataMask.empty()) {
     for (int i = 0; i < data.size(); ++i) {
-      if (!caseInsCharCompareN(parsedData[i],data[i])) {
+      if (parsedData[i] != data[i]) {
         return false;
       }
     }
     return true;
   }
   for (int i = 0; i < data.size(); ++i) {
-    if (!caseInsCharCompareN((dataMask[i] & parsedData[i]), (dataMask[i] & data[i]))) {
+    if ((dataMask[i] & parsedData[i]) != (dataMask[i] & data[i])) {
       return false;
     }
   }

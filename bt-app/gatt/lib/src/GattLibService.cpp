@@ -582,14 +582,12 @@ void GattLibService::onRegisterForNotifications(int connId, int status,
 }
 
 void GattLibService::onNotify(int connId, string address, int handle, bool isNotify,
-                                uint8_t *data)
+                                uint8_t *data, int length)
 {
   if (DBG) {
     if (data != NULL) {
-      size_t size= strlen((char*)data);
-      int len = static_cast<int>(size);
       ALOGD(LOGTAG " onNotify() - address=%s, handle=%d, length=%d",
-                address.c_str(), handle, len);
+                address.c_str(), handle, length);
     }
   }
 
@@ -600,27 +598,25 @@ void GattLibService::onNotify(int connId, string address, int handle, bool isNot
 
   ClientMap::App *app = mClientMap->getByConnId(connId);
   if (app != NULL) {
-    app->callback->onNotify(address, handle, data);
+    app->callback->onNotify(address, handle, data, length);
   }
 }
 
 void GattLibService::onReadCharacteristic(int connId, int status, int handle,
-                                                  uint8_t *data)
+                                                  uint8_t *data, int length)
 {
   string address = mClientMap->addressByConnId(connId);
 
   if (DBG) {
     if (data != NULL) {
-      size_t size= strlen((char*)data);
-      int len = static_cast<int>(size);
       ALOGD(LOGTAG " onReadCharacteristic() - address=%s, status=%d, length=%d",
-                    address.c_str(), status, len);
+                    address.c_str(), status, length);
     }
   }
 
   ClientMap::App *app = mClientMap->getByConnId(connId);
   if (app != NULL) {
-    app->callback->onCharacteristicRead(address, status, handle, data);
+    app->callback->onCharacteristicRead(address, status, handle, data, length);
   }
 }
 
@@ -661,22 +657,20 @@ void GattLibService::onExecuteCompleted(int connId, int status)
   }
 }
 
-void GattLibService::onReadDescriptor(int connId, int status, int handle, uint8_t *data)
+void GattLibService::onReadDescriptor(int connId, int status, int handle, uint8_t *data, int length)
 {
   string address = mClientMap->addressByConnId(connId);
 
   if (DBG) {
     if (data != NULL) {
-      size_t size= strlen((char*)data);
-      int len = static_cast<int>(size);
       ALOGD(LOGTAG " onReadDescriptor() - address=%s, status=%d, length=%d",
-                            address.c_str(), status, len);
+                            address.c_str(), status, length);
     }
   }
 
   ClientMap::App *app = mClientMap->getByConnId(connId);
   if (app != NULL) {
-    app->callback->onDescriptorRead(address, status, handle, data);
+    app->callback->onDescriptorRead(address, status, handle, data, length);
   }
 }
 
@@ -1786,7 +1780,7 @@ void GattLibService::readUsingCharacteristicUuid(int clientIf, string address, U
 }
 
 void GattLibService::writeCharacteristic(int clientIf, string address, int handle,
-                                                int writeType, int authReq, uint8_t *value)
+                              int writeType, int authReq, uint8_t *value, int length)
 {
   if (VDBG) {
     ALOGD(LOGTAG " writeCharacteristic() - address %s", address.c_str());
@@ -1806,9 +1800,13 @@ void GattLibService::writeCharacteristic(int clientIf, string address, int handl
     ALOGW(LOGTAG "writeCharacteristic() - permission check failed!");
     return;
   }
-  size_t len = strlen((char*)value);
-  std::vector<uint8_t> vect_val(&value[0],&value[len]);
-  mNative->gattClientWriteCharacteristicNative(connId, handle, writeType, authReq, vect_val);
+
+  std::vector<uint8_t> val_vec;
+  if (value != NULL) {
+    val_vec.assign(&value[0], &value[length]);
+  }
+
+  mNative->gattClientWriteCharacteristicNative(connId, handle, writeType, authReq, val_vec);
 }
 
 void GattLibService::readDescriptor(int clientIf, string address, int handle, int authReq)
@@ -1832,7 +1830,7 @@ void GattLibService::readDescriptor(int clientIf, string address, int handle, in
 }
 
 void GattLibService::writeDescriptor(int clientIf, string address, int handle, int authReq,
-       uint8_t *value)
+       uint8_t *value, int length)
 {
 
   if (VDBG) {
@@ -1850,10 +1848,12 @@ void GattLibService::writeDescriptor(int clientIf, string address, int handle, i
     return;
   }
 
-  size_t len = strlen((char*)value);
-  std::vector<uint8_t> vect_val (&value[0], &value[len]);
+  std::vector<uint8_t> val_vec;
+  if (value != NULL) {
+    val_vec.assign(&value[0], &value[length]);
+  }
 
-  mNative->gattClientWriteDescriptorNative(connId, handle, authReq, vect_val);
+  mNative->gattClientWriteDescriptorNative(connId, handle, authReq, val_vec);
 }
 
 void GattLibService::beginReliableWrite(int clientIf, string address)
@@ -2139,7 +2139,7 @@ void GattLibService::clearServices(int serverIf)
 }
 
 void GattLibService::sendResponse(int serverIf, string address, int requestId, int status,
-        int offset, uint8_t *value)
+        int offset, uint8_t *value, int length)
 {
   if (VDBG) {
     ALOGD(LOGTAG " sendResponse() - address %s", address.c_str());
@@ -2154,9 +2154,8 @@ void GattLibService::sendResponse(int serverIf, string address, int requestId, i
   if (connId < 0)
     connId = 0;
   std::vector<uint8_t> val_vec;
-  if(value != NULL) {
-    size_t len = strlen((char*)value);
-    val_vec.assign(&value[0], &value[len]);
+  if (value != NULL) {
+    val_vec.assign(&value[0], &value[length]);
   }
   mNative->gattServerSendResponseNative(serverIf, connId , requestId,
           (uint8_t) status, handle, offset, val_vec, (uint8_t) 0);
@@ -2164,7 +2163,7 @@ void GattLibService::sendResponse(int serverIf, string address, int requestId, i
 }
 
 void GattLibService::sendNotification(int serverIf, string address, int handle, bool confirm,
-        uint8_t *value)
+        uint8_t *value, int length)
 {
   if (VDBG) {
     ALOGD(LOGTAG " sendNotification() - address %s  handle %d", address.c_str(), handle);
@@ -2176,9 +2175,8 @@ void GattLibService::sendNotification(int serverIf, string address, int handle, 
   }
 
   std::vector<uint8_t> val_vec;
-  if(value != NULL) {
-    size_t len = strlen((char*)value);
-    val_vec.assign(&value[0], &value[len]);
+  if (value != NULL) {
+    val_vec.assign(&value[0], &value[length]);
   }
 
   if (confirm) {
@@ -2615,7 +2613,7 @@ void GattLibService::HandleGattcNotifyEvent(GattcNotifyEvent *event)
   uint8_t *value = new uint8_t[event->p_data.len];
   std::memcpy(value, &event->p_data.value, event->p_data.len);
   sGattService->onNotify(event->conn_id, *(event->p_data.bda), event->p_data.handle,
-                                event->p_data.is_notify, value);
+                                event->p_data.is_notify, value, event->p_data.len);
 }
 
 void GattLibService::HandleGattcReadCharacteristicEvent(
@@ -2624,12 +2622,11 @@ void GattLibService::HandleGattcReadCharacteristicEvent(
   if (!sGattService) return;
   uint8_t *value = NULL;
   if (event->status == 0) {
-    value = new uint8_t[event->p_data.value.len+1];
+    value = new uint8_t[event->p_data.value.len];
     std::memcpy(value, &event->p_data.value.value, event->p_data.value.len);
-    value[event->p_data.value.len] = '\0';
   }
   sGattService->onReadCharacteristic(event->conn_id, event->status, event->p_data.handle,
-                                                value);
+                                                value, event->p_data.value.len);
 }
 
 void GattLibService::HandleGattcWriteCharacterisitcEvent(
@@ -2650,13 +2647,12 @@ void GattLibService::HandleGattcReadDescriptorEvent(GattcReadDescriptorEvent *ev
   if (!sGattService) return;
   uint8_t *value = NULL;
   if (event->p_data.value.len != 0) {
-    value = new uint8_t[event->p_data.value.len+1];
+    value = new uint8_t[event->p_data.value.len];
     std::memcpy(value, &event->p_data.value.value, event->p_data.value.len);
-    value[event->p_data.value.len] = '\0';
   }
 
   sGattService->onReadDescriptor(event->conn_id, event->status, event->p_data.handle,
-                                  value);
+                                  value, event->p_data.value.len);
 }
 
 void GattLibService::HandleGattcWriteDescriptorEvent(GattcWriteDescriptorEvent *event)
@@ -2795,13 +2791,12 @@ void GattLibService::HandleGattsRequestWriteCharacteristicEvent(
 {
   if (!sGattService) return;
   uint8_t len = event->value->size();
-  uint8_t *p_value = new uint8_t[len+1];
+  uint8_t *p_value = new uint8_t[len];
   if (len == 0) {
     ALOGE(LOGTAG "HandleGattsRequestWriteCharacteristicEvent () - Data is NULL");
   }
   else {
     std::memcpy(p_value, event->value->data(), len);
-    p_value[len] = '\0';
   }
   sGattService->onServerWriteCharacteristic(*(event->bda), event->conn_id, event->trans_id,
                                         event->attr_handle, event->offset, event->value->size(),
@@ -2813,13 +2808,12 @@ void GattLibService::HandleGattsRequestWriteDescriptorEvent(
 {
   if (!sGattService) return;
   uint8_t len = event->value->size();
-  uint8_t *p_value = new uint8_t[len+1];
+  uint8_t *p_value = new uint8_t[len];
   if (len == 0) {
     ALOGE(LOGTAG "HandleGattsRequestWriteDescriptorEvent () - Data is NULL");
   }
   else {
     std::memcpy(p_value, event->value->data(), len);
-    p_value[len] = '\0';
   }
   sGattService->onServerWriteDescriptor(*(event->bda), event->conn_id, event->trans_id,
                                            event->attr_handle, event->offset, event->value->size(),

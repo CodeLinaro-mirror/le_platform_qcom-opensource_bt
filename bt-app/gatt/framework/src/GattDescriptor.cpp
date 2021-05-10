@@ -91,19 +91,23 @@ uint8_t* GattDescriptor::getValue()
   return mValue;
 }
 
-bool GattDescriptor::setValue(uint8_t *value)
+int GattDescriptor::getValueLength()
 {
-  if (value == NULL) {
+  return mValueLength;
+}
+
+bool GattDescriptor::setValue(uint8_t *value, int length)
+{
+  if (value == NULL || length == 0) {
     return false;
   }
 
-  int len = static_cast<int>(strlen((char*)value));
   if(mValue != NULL)
     delete [] mValue;
 
-  mValue = new uint8_t[len+1];
-  std::memcpy(mValue, value, len);
-  mValue[len] = '\0';
+  mValueLength = length;
+  mValue = new uint8_t[mValueLength];
+  std::memcpy(mValue, value, mValueLength);
 
   return true;
 }

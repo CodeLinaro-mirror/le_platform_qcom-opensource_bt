@@ -161,10 +161,14 @@ uint8_t* GattCharacteristic::getValue()
   return mValue;
 }
 
+int GattCharacteristic::getValueLength()
+{
+  return mValueLength;
+}
+
 int GattCharacteristic::getIntValue(int formatType, int offset)
 {
-  size_t mValueSize = strlen((char*)mValue);
-  if ((offset + getTypeLen(formatType)) > mValueSize) return INVALID_INT;
+  if ((offset + getTypeLen(formatType)) > mValueLength) return INVALID_INT;
 
   switch (formatType) {
     case FORMAT_UINT8:
@@ -193,8 +197,7 @@ int GattCharacteristic::getIntValue(int formatType, int offset)
 
 float GattCharacteristic::getFloatValue(int formatType, int offset)
 {
-  size_t mValueSize = strlen((char*)mValue);
-  if ((offset + getTypeLen(formatType)) > mValueSize) return INVALID_FLOAT;
+  if ((offset + getTypeLen(formatType)) > mValueLength) return INVALID_FLOAT;
 
   switch (formatType) {
     case FORMAT_SFLOAT:
@@ -210,26 +213,27 @@ float GattCharacteristic::getFloatValue(int formatType, int offset)
 
 string GattCharacteristic::getStringValue(int offset)
 {
-  size_t mValueSize = strlen((char*)mValue);
-  if (mValue == NULL || offset >mValueSize) return NULL;
+  if (mValue == NULL || offset > mValueLength) return NULL;
 
-  uint8_t strBytes[mValueSize - offset];
-  for (int i = 0; i != (mValueSize - offset); ++i)
+  uint8_t strBytes[mValueLength - offset];
+  for (int i = 0; i != (mValueLength - offset); ++i)
     strBytes[i] = mValue[offset + i];
 
-  return std::string(strBytes, strBytes+mValueSize);
+  return std::string(strBytes, strBytes + mValueLength);
 }
 
-bool GattCharacteristic::setValue(uint8_t *value)
+bool GattCharacteristic::setValue(uint8_t *value, int length)
 {
-  int len = static_cast<int>(strlen((char*)value));
+  if (value == NULL || length == 0) {
+    return false;
+  }
 
-  if (mValue != NULL)
+  if(mValue != NULL)
     delete [] mValue;
 
-  mValue = new uint8_t[len+1];
-  std::memcpy(mValue, value, len);
-  mValue[len] = '\0';
+  mValueLength = length;
+  mValue = new uint8_t[mValueLength];
+  std::memcpy(mValue, value, mValueLength);
 
   return true;
 }
@@ -238,12 +242,9 @@ bool GattCharacteristic::setValue(int value, int formatType, int offset)
 {
   int len = offset + getTypeLen(formatType);
 
-  if (mValue != NULL) delete [] mValue;
-
   if (mValue == NULL) mValue = new uint8_t[len];
-  size_t mValueSize = strlen((char*)mValue);
 
-  if (len > mValueSize) return false;
+  if (len > mValueLength) return false;
 
   switch (formatType) {
     case FORMAT_SINT8:
@@ -278,12 +279,8 @@ bool GattCharacteristic::setValue(int mantissa, int exponent, int formatType, in
 {
   int len = offset + getTypeLen(formatType);
 
-  if (mValue != NULL) delete [] mValue;
-
   if (mValue == NULL) mValue = new uint8_t[len];
-  size_t mValueSize = strlen((char*)(mValue));
-
-  if (len > mValueSize) return false;
+  if (len > mValueLength) return false;
 
   switch (formatType) {
     case FORMAT_SFLOAT:
