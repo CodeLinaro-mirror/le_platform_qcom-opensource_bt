@@ -96,6 +96,8 @@ static OI_BOOL StrRealloc(OI_VARSTRING *VStr)
     OI_UINT16 i;
 
     OI_ASSERT(VStr->Buffer != NULL);
+    if (VStr->Buffer == NULL)
+        return FALSE;
     OI_ASSERT(VStr->Managed);
 
     buffer = OI_Malloc(VStr->MaxLen + VSTRING_INCREMENT_SIZE);
@@ -1029,6 +1031,8 @@ OI_STATUS OI_FormatStr(OI_VARSTRING *VStr,
 OI_CHAR* OI_VStrGetString(OI_VARSTRING *VStr)
 {
     OI_ASSERT(VStr != NULL);
+    if (VStr == NULL)
+        return NULL;
     if (VStr->Buffer == NULL) {
         return NULL;
     } else {
