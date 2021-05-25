@@ -951,13 +951,18 @@ void Gap::ProcessEvent(BtEvent* event) {
             break;
 
         case GAP_API_GET_ROLE_REQ:
-            sBtVendorInterface->get_role_req(&event->di_device.bd_addr);
+            sBtVendorInterface->get_role_req(&event->role_request.bd_addr);
+            break;
+
+        case GAP_API_SWITCH_ROLE_REQ:
+            sBtVendorInterface->switch_role_req(&event->role_switch.bd_addr,
+                event->role_switch.new_role);
             break;
 
         case GAP_API_CREATE_BOND:
             // Calling the cancel_discovery before create_bond
             bluetooth_interface_->cancel_discovery();
-            bluetooth_interface_->create_bond(&event->bond_device.bd_addr, 1);
+            bluetooth_interface_->create_bond(&event->bond_device.bd_addr, event->bond_device.transport);
             break;
 
         case GAP_API_SSP_REPLY:

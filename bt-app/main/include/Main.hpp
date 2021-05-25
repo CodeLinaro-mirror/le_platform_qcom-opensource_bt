@@ -135,6 +135,7 @@ typedef enum {
     MAIN_EXIT,
     GET_REMOTE_DI,
     GET_ROLE,
+    SWITCH_ROLE,
     START_PAIR,
     INQUIRY_LIST,
     BONDED_LIST,
@@ -332,8 +333,8 @@ UserMenuList GapMenu[] = {
     eg. get_remote_di_info 00:11:22:33:44:55"},
     {GET_ROLE,              "get_role_req",     ONE_PARAM,    "get_role_req<space><bt_address> \
     eg. get_role_req 00:11:22:33:44:55"},
-    {START_PAIR,            "pair",             ONE_PARAM,    "pair<space><bt_address> \
-    eg. pair 00:11:22:33:44:55"},
+    {START_PAIR,            "pair",             TWO_PARAM,    "pair<space><bt_address><space><transport> \
+    eg. pair 00:11:22:33:44:55 1 or pair 00:11:22:33:44:55 2"},
     {UNPAIR,                "unpair",           ONE_PARAM,    "unpair<space><bt_address> \
     eg. unpair 00:11:22:33:44:55"},
     {INQUIRY_LIST,          "inquiry_list",     ZERO_PARAM,    "inquiry_list"},
@@ -349,6 +350,8 @@ UserMenuList GapMenu[] = {
     <ignoreLeScanMode> mode_options:(0 ,1, 2) ignoreLeScanMode_options : (0,1) eg. set_scan_mode 0 1 "},
     {READ_CLOCK,      "read_clock",             TWO_PARAM,    "read_clock which_clock bt_address"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
+    {SWITCH_ROLE,           "switch_role_req",  TWO_PARAM,    "switch_role_req<bt_address><space><new_role> \
+    eg. switch_role_req 00:11:22:33:44:55 0 or get_role_req 00:11:22:33:44:55 1 "},
 };
 
 /**

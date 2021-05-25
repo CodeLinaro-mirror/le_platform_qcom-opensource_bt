@@ -201,10 +201,13 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         gattctest->SetGATTCTESTClientAppData(&event);
     }
 
-    void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data) {
+    void btgattc_scan_result_cb(bt_bdaddr_t* bda, uint8_t addr_type, int rssi, uint8_t* adv_data,
+                                uint16_t adv_data_len)
+    {
          bdstr_t bd_str;
          bdaddr_to_string(bda, &bd_str[0], sizeof(bd_str));
-         fprintf(stdout,"btgattc_scan_result_cb %s \n ", bd_str);
+         fprintf(stdout,"btgattc_scan_result_cb address:%s,addr_type:0x%02x,adv_data:%p,adv_data_len:%d \n ",
+                         bd_str,addr_type,adv_data,adv_data_len);
     }
 
     void btgattc_open_cb(int conn_id, int status, int clientIf, bt_bdaddr_t* bda)

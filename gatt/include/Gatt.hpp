@@ -84,7 +84,8 @@ class BluetoothGattClientCallback {
       virtual void btgattc_client_register_app_cb(int status,int client_if,bt_uuid_t *uuid)
       {
       }
-      virtual void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data)
+      virtual void btgattc_scan_result_cb(bt_bdaddr_t* bda, uint8_t addr_type, int rssi,
+                                           uint8_t* adv_data, uint16_t adv_data_len)
       {
       }
 

@@ -68,7 +68,8 @@ void btgattc_register_app_cb(int status, int clientIf, bt_uuid_t *app_uuid)
     PostMessage(THREAD_ID_GATT, event);
 }
 
-void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data)
+void btgattc_scan_result_cb(bt_bdaddr_t* bda, uint8_t addr_type, int rssi, uint8_t* adv_data,
+                             uint16_t adv_data_len)
 {
     char c_address[32];
     snprintf(c_address,sizeof(c_address), "%02X:%02X:%02X:%02X:%02X:%02X",
@@ -83,7 +84,9 @@ void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data)
     event->event_id = BTGATTC_SCAN_RESULT_EVENT;
     memcpy(&event->gattc_scan_result_event.bda, bda,sizeof(bt_bdaddr_t));
     event->gattc_scan_result_event.rssi= rssi;
+    event->gattc_scan_result_event.addr_type= addr_type;
     memcpy(&event->gattc_scan_result_event.adv_data, adv_data,sizeof(uint8_t));
+    event->gattc_scan_result_event.adv_data_len= adv_data_len;
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -1298,7 +1301,7 @@ void Gatt::HandleGattcScanResultEvent (GattcScanResultEvent *event)
                  if(it2 != clientCbCifMap.end()) {
                    ALOGD(LOGTAG "found \n");
                     if ( it2->second) {
-                        it2->second->btgattc_scan_result_cb(&event->bda,event->rssi,&event->adv_data);
+                        it2->second->btgattc_scan_result_cb(&event->bda,event->addr_type,event->rssi,&event->adv_data,event->adv_data_len);
                     } else {
                         ALOGD(LOGTAG "Not found \n");
                     }
