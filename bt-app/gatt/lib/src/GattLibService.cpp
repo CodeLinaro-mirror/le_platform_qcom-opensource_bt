@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <list>
 #include <mutex>
+#include <thread>
 #include <chrono>
 
 #define LOGTAG "GattLibService"
@@ -302,6 +303,20 @@ void GattLibService::onScanResult(int eventType, int addressType,
   }
 }
 
+void GattLibService::onScannerRegisteredCbApp(ScannerMap::App *cbApp, int status, int scannerId)
+{
+  if (DBG) {
+    ALOGD(LOGTAG " onScannerRegisteredCbApp()-> entered");
+  }
+
+  if (cbApp->callback != NULL)
+    cbApp->callback->onScannerRegistered(status, scannerId);
+
+  if (DBG) {
+    ALOGD(LOGTAG " onScannerRegisteredCbApp()-> exited");
+  }
+
+}
 void GattLibService::onScannerRegistered(int status, int scannerId, Uuid app_uuid)
 {
   Uuid uuid = app_uuid;
@@ -328,7 +343,10 @@ void GattLibService::onScannerRegistered(int status, int scannerId, Uuid app_uui
         mScannerMap->remove(scannerId);
     }
     if (cbApp->callback != NULL) {
-        cbApp->callback->onScannerRegistered(status, scannerId);
+        /* onScannerRegistered app callback should be given in different thread context.
+         * So it will not block gatt thread while starting the scan
+         * from onScannerRegistered app callback. */
+        std::thread (onScannerRegisteredCbApp, cbApp, status, scannerId).detach();
     }
   }
 }
