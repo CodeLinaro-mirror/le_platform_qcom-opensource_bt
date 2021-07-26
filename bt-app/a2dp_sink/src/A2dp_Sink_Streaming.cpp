@@ -475,7 +475,8 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 wait_for_mm_callback = false;
                 break;
             }
-            if(pA2dpSinkStream->compress_timer_stoped) {
+            /* Verify compress_timer_stoped state, when callback mechanism is disabled */
+            if(pA2dpSinkStream->compress_timer_stoped && !pA2dpSinkStream->enable_notification_cb) {
                 /* if timer is not scheduled, then pause/suspend might have been triggered
                  *  we are no longer waiting or callback, and lets bail out */
                 wait_for_mm_callback = false;
