@@ -55,6 +55,7 @@ extern thread_t *g_pbapc_thread;
 #define SDP_CLIENT_MSG_BASE     (5000)
 #define PBAP_CLIENT_MSG_BASE    (6000)
 #define OPP_MSG_BASE            (7000)
+#define SPP_MSG_BASE            (8000)
 #define HID_API_MSG_BASE        (9000)
 
 #define AUDIO_MANAGER_MSG_BASE  (250)
@@ -106,6 +107,8 @@ typedef enum {
     THREAD_ID_A2DP_SOURCE,
     THREAD_ID_AVRCP,
     THREAD_ID_HID,
+    THREAD_ID_SPP_CLIENT,
+    THREAD_ID_SPP_SERVER,
     THREAD_ID_MAX,
 } ThreadIdType;
 
@@ -127,6 +130,8 @@ typedef enum {
     PROFILE_ID_A2DP_SOURCE,
     PROFILE_ID_AVRCP,
     PROFILE_ID_HID,
+    PROFILE_ID_SPP_SERVER,
+    PROFILE_ID_SPP_CLIENT,
     PROFILE_ID_MAX
 } ProfileIdType;
 
@@ -603,7 +608,19 @@ typedef enum {
     HID_API_BONDED_LIST_REQ,
     HID_API_CONFIGURE_MTU_EVENT,
     HID_API_CONN_UPDATED_EVENT,
-    HID_API_DISABLE
+    HID_API_DISABLE,
+
+    SPP_SRV_START = SPP_MSG_BASE,
+    SPP_SRV_DISCONNECT,
+    SPP_SRV_RECV_FILE,
+    SPP_SRV_SEND_FILE,
+
+    SPP_CLI_CONNECT,
+    SPP_CLI_DISCONNECT,
+    SPP_CLI_SEND_FILE,
+    SPP_CLI_RECV_FILE,
+    SPP_CLI_START_THREADS
+
 } BluetoothEventId;
 
 typedef struct {
@@ -1646,6 +1663,20 @@ typedef struct {
 } OppEvent;
 #endif
 
+typedef struct {
+    BluetoothEventId    event_id;
+    bt_bdaddr_t         bd_addr;
+    char                value[256];
+    bool                accept;
+} SppClientEvent;
+
+typedef struct {
+    BluetoothEventId    event_id;
+    bt_bdaddr_t         bd_addr;
+    char                value[256];
+    bool                accept;
+} SppServerEvent;
+
 /**
   * @brief BT IPC message between qcbtdaemon & btapp
   */
@@ -1840,6 +1871,8 @@ typedef union {
     PbapClientEvent                         pbap_client_event;
     OppEvent                                opp_event;
 #endif
+    SppClientEvent                          spp_cli_event;
+    SppServerEvent                          spp_srv_event;
     HIDProfileEvent                         hid_profile_event;
     HOGPConfigureMtuEvent                   hogp_cfg_mtu_event;
     HOGPConnUpdateEvent                     hogp_conn_params_event;
@@ -1908,6 +1941,8 @@ void BtAvrcpMsgHandler(void *msg);
 void BtPbapClientMsgHandler(void *context);
 void BtOppMsgHandler(void *context);
 #endif
+void BtSppClientMsgHandler(void *msg);
+void BtSppServerMsgHandler(void *msg);
 void BtA2dpSourceMsgHandler(void *msg);
 void BtHidMsgHandler(void *msg);
 #ifdef __cplusplus

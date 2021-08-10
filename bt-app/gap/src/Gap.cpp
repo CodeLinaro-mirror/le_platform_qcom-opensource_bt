@@ -21,6 +21,7 @@
 #include <string.h>
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
@@ -50,6 +51,8 @@ const char *BT_OBEX_LOG_LEVEL    = "BtObexLogLevel";
 const char *BT_PBAP_CLIENT_ENABLED   = "BtPbapClientEnable";
 const char *BT_OPP_ENABLED   = "BtOppEnable";
 #endif
+const char *BT_SPP_SERVER_ENABLED = "BtSppServerEnable";
+const char *BT_SPP_CLIENT_ENABLED = "BtSppClientEnable";
 const char *BT_HFP_AG_ENABLED_STRING  = "BtHfpAGEnable";
 const char *BT_AVRCP_ENABLED_STRING  = "BtAvrcpEnable";
 
@@ -662,6 +665,14 @@ void Gap::ProcessEvent(BtEvent* event) {
                   PostMessage(profile_config[profile_id].thread_id, bt_event);
                 }
               }
+                  bt_event = new BtEvent;
+                  bt_event->event_id = PROFILE_API_START;
+                  ALOGD(LOGTAG " sending start to Profile SPP CLIENT");
+                  PostMessage(THREAD_ID_SPP_CLIENT, bt_event);
+
+                  ALOGD(LOGTAG " sending start to Profile SPP SERVER");
+                  PostMessage(THREAD_ID_SPP_SERVER, bt_event);
+
             }
             break;
         case PROFILE_EVENT_START_DONE:

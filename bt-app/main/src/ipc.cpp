@@ -43,6 +43,8 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     { NULL ,    THREAD_ID_A2DP_SOURCE, &BtA2dpSourceMsgHandler,  "A2dp_Source_Thread" } ,
     { NULL ,    THREAD_ID_AVRCP,       &BtAvrcpMsgHandler,       "Avrcp_Thread" } ,
     { NULL ,    THREAD_ID_HID,         &BtHidMsgHandler,         "HID_Thread" } ,
+    { NULL ,    THREAD_ID_SPP_CLIENT,  &BtSppClientMsgHandler,   "Spp_Client_Thread" } ,
+    { NULL ,    THREAD_ID_SPP_SERVER,  &BtSppServerMsgHandler,   "Spp_Server_Thread" } ,
 };
 
 void PostMessage(ThreadIdType thread_type, void *msg) {

@@ -47,6 +47,8 @@
 #include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include "spp_server.hpp"
+#include "spp_client.hpp"
 
 #ifdef USE_GLIB
 #include <glib.h>
@@ -244,6 +246,18 @@ typedef enum {
     OPP_SEND,
     OPP_ABORT,
 #endif
+
+    SPP_CLIENT_OPTION,
+    SPP_SERVER_OPTION,
+    SPPCLIENT_CONNECT,
+    SPPCLIENT_DISCONNECT,
+    SPPCLIENT_SEND_FILE,
+    SPPCLIENT_RECV_FILE,
+    SPPSERVER_START,
+    SPPSERVER_DISCONNECT,
+    SPPSERVER_RECV_FILE,
+    SPPSERVER_SEND_FILE,
+
 #ifdef USE_GEN_GATT
     GATTCTEST_OPTION,
     GATTCTEST_INIT,
@@ -374,6 +388,8 @@ typedef enum {
     PBAP_CLIENT_MENU,
     OPP_MENU,
 #endif
+    SPP_SERVER_MENU,
+    SPP_CLIENT_MENU,
     HFP_AG_MENU,
     A2DP_SOURCE_MENU
 } MenuType;
@@ -444,6 +460,8 @@ UserMenuList MainMenu[] = {
 #endif
     {HFP_AG,                "hfp_ag_menu",      ZERO_PARAM,   "hfp_ag_menu"},
     {A2DP_SOURCE,           "a2dp_source_menu", ZERO_PARAM,   "a2dp_source_menu"},
+    {SPP_CLIENT_OPTION,     "spp_client_menu",  ZERO_PARAM,   "spp_client_menu"},
+    {SPP_SERVER_OPTION,     "spp_server_menu",  ZERO_PARAM,   "spp_server_menu"},
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
 
@@ -712,6 +730,21 @@ UserMenuList OppMenu[] = {
 };
 #endif
 
+UserMenuList SppClientMenu[] = {
+    {SPPCLIENT_CONNECT,              "connect",             ONE_PARAM,  "connect <bt_addr>"},
+    {SPPCLIENT_DISCONNECT,           "disconnect",          ZERO_PARAM, "disconnect"},
+    {SPPCLIENT_SEND_FILE,            "send_file",           ONE_PARAM,  "send_file<space><file_name>"},
+    {SPPCLIENT_RECV_FILE,            "recv_file",           ONE_PARAM,  "recv_file<space><file_name>"},
+    {BACK_TO_MAIN,                   "main_menu",           ZERO_PARAM, "main_menu"},
+};
+
+UserMenuList SppServerMenu[] = {
+    {SPPSERVER_START,              "start_server",         ZERO_PARAM, "start_server"},
+    {SPPSERVER_DISCONNECT,         "stop_server",          ZERO_PARAM, "stop_server"},
+    {SPPSERVER_SEND_FILE,          "send_file",            ONE_PARAM, "send_file<space><file_name>"},
+    {SPPSERVER_RECV_FILE,          "recv_file",            ONE_PARAM, "recv_file<space><file_name>"},
+    {BACK_TO_MAIN,                 "main_menu",            ZERO_PARAM, "main_menu"},
+};
 
 /**
  * list of supported commands for HFP_AG Menu
@@ -924,6 +957,8 @@ class BluetoothApp {
     bool is_pbap_client_enabled_;
     bool is_opp_enabled_;
 #endif
+    bool is_spp_client_enabled_;
+    bool is_spp_server_enabled_;
     bool is_hid_enable_default_;
     reactor_object_t *cmd_reactor_;
     struct hw_device_t *device_;

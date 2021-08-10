@@ -96,6 +96,9 @@ extern PbapClient *g_pbapClient;
 extern Opp *g_opp;
 extern const char *BT_OBEX_ENABLED;
 #endif
+extern Spp_Server *pSppServer;
+extern Spp_Client *pSppClient;
+
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 
@@ -111,6 +114,9 @@ extern GattcTest *gattctest;
 extern GattsTest *gattstest;
 extern Rsp *rsp;
 #endif
+
+extern const char *BT_SPP_SERVER_ENABLED;
+extern const char *BT_SPP_CLIENT_ENABLED;
 
 #ifdef __cplusplus
 extern "C"
@@ -228,6 +234,14 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             num_cmds  = NO_OF_COMMANDS(OppMenu);
             break;
 #endif
+        case SPP_SERVER_MENU:
+            menu = &SppServerMenu[0];
+            num_cmds = NO_OF_COMMANDS(SppServerMenu);
+            break;
+        case SPP_CLIENT_MENU:
+            menu = &SppClientMenu[0];
+            num_cmds = NO_OF_COMMANDS(SppClientMenu);
+            break;
         case HFP_AG_MENU:
             menu = &HfpAGMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
@@ -346,6 +360,14 @@ static void DisplayMenu(MenuType menu_type) {
             num_cmds  = NO_OF_COMMANDS(OppMenu);
             break;
 #endif
+        case SPP_SERVER_MENU:
+            menu = &SppServerMenu[0];
+            num_cmds = NO_OF_COMMANDS(SppServerMenu);
+            break;
+        case SPP_CLIENT_MENU:
+            menu = &SppClientMenu[0];
+            num_cmds = NO_OF_COMMANDS(SppClientMenu);
+            break;
         case HFP_AG_MENU:
             menu = &HfpAGMenu[0];
             num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
@@ -1381,6 +1403,14 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             DisplayMenu(menu_type);
             break;
 #endif
+        case SPP_SERVER_OPTION:
+            menu_type = SPP_SERVER_MENU;
+            DisplayMenu(menu_type);
+            break;
+        case SPP_CLIENT_OPTION:
+            menu_type = SPP_CLIENT_MENU;
+            DisplayMenu(menu_type);
+            break;
         case HFP_AG:
             menu_type = HFP_AG_MENU;
             DisplayMenu(menu_type);
@@ -3069,7 +3099,115 @@ static void HandleOppCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 #endif
+static void HandleSppClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
+    BtEvent *event = NULL;
+
+    if ((cmd_id != BACK_TO_MAIN) && g_bt_app && g_bt_app->bt_state != BT_STATE_ON) {
+        ALOGE(LOGTAG "BT not switched on, can't handle SPP commands");
+        return;
+    }
+
+    switch(cmd_id) {
+        case SPPCLIENT_CONNECT:
+            event = new BtEvent;
+            event->spp_cli_event.event_id = SPP_CLI_CONNECT;
+            if(string_to_bdaddr(user_cmd[ONE_PARAM],
+                &event->spp_cli_event.bd_addr)) {
+                PostMessage (THREAD_ID_SPP_CLIENT, event);
+            } else {
+                ALOGV (LOGTAG " Please enter valid BD Address %s",
+                    user_cmd[ONE_PARAM]);
+            }
+            break;
+
+        case SPPCLIENT_DISCONNECT:
+            event = new BtEvent;
+            event->spp_cli_event.event_id = SPP_CLI_DISCONNECT;
+            PostMessage(THREAD_ID_SPP_CLIENT, event);
+            break;
+
+        case SPPCLIENT_SEND_FILE:
+            event = new BtEvent;
+            event->spp_cli_event.event_id = SPP_CLI_SEND_FILE;
+            memset( (void *) event->spp_cli_event.value, 0,
+                sizeof(event->spp_cli_event.value));
+            strlcpy(event->spp_cli_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_CLIENT, event);
+            break;
+
+        case SPPCLIENT_RECV_FILE:
+            event = new BtEvent;
+            event->spp_cli_event.event_id = SPP_CLI_RECV_FILE;
+            memset( (void *) event->spp_cli_event.value, 0,
+                sizeof(event->spp_cli_event.value));
+            strlcpy(event->spp_cli_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_CLIENT, event);
+            break;
+
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+
+        default:
+            ALOGV(LOGTAG " %s Command not handled: %d", __func__, cmd_id);
+            break;
+
+    }
+}
+
+
+static void HandleSppServerCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+    BtEvent *event = NULL;
+
+    if ((cmd_id != BACK_TO_MAIN) && g_bt_app && g_bt_app->bt_state != BT_STATE_ON) {
+        ALOGE(LOGTAG "BT not switched on, can't handle SPP Server commands");
+        return;
+    }
+
+    switch(cmd_id) {
+        case SPPSERVER_START:
+            event = new BtEvent;
+            event->spp_srv_event.event_id = SPP_SRV_START;
+            PostMessage(THREAD_ID_SPP_SERVER, event);
+            break;
+        case SPPSERVER_DISCONNECT:
+            event = new BtEvent;
+            event->spp_srv_event.event_id = SPP_SRV_DISCONNECT;
+            PostMessage(THREAD_ID_SPP_SERVER, event);
+            break;
+        case SPPSERVER_SEND_FILE:
+            event = new BtEvent;
+            event->spp_srv_event.event_id = SPP_SRV_SEND_FILE;
+            memset( (void *) event->spp_srv_event.value, 0,
+                sizeof(event->spp_srv_event.value));
+            strlcpy(event->spp_srv_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_SERVER, event);
+            break;
+        case SPPSERVER_RECV_FILE:
+            event = new BtEvent;
+            event->spp_srv_event.event_id = SPP_SRV_RECV_FILE;
+            memset( (void *) event->spp_srv_event.value, 0,
+                sizeof(event->spp_srv_event.value));
+            strlcpy(event->spp_srv_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_SERVER, event);
+            break;
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+        default:
+            ALOGV(LOGTAG " %s Command not handled: %d", __func__, cmd_id);
+            break;
+    }
+
+
+}
 void BtSocketDataHandler (void *context) {
     char ipc_msg[BT_IPC_MSG_LEN]  = {0};
     int len;
@@ -3184,6 +3322,12 @@ static void BtCmdHandler (void *context) {
                 HandleOppCommand(cmd_id,user_cmd );
                 break;
 #endif
+            case SPP_SERVER_MENU:
+                HandleSppServerCommand(cmd_id, user_cmd);
+                break;
+            case SPP_CLIENT_MENU:
+                HandleSppClientCommand(cmd_id, user_cmd);
+                break;
             case HFP_AG_MENU:
                 HandleHfpAGCommand(cmd_id, user_cmd );
                 break;
@@ -3994,6 +4138,22 @@ void BluetoothApp :: InitHandler (void) {
     }
 #endif
 
+    if(is_spp_client_enabled_) {
+        threadInfo[THREAD_ID_SPP_CLIENT].thread_id = thread_new (
+            threadInfo[THREAD_ID_SPP_CLIENT].thread_name);
+       
+        if (threadInfo[THREAD_ID_SPP_CLIENT].thread_id)
+            pSppClient = new Spp_Client(bt_interface, config);
+    }
+
+    if(is_spp_server_enabled_) {
+        threadInfo[THREAD_ID_SPP_SERVER].thread_id = thread_new (
+            threadInfo[THREAD_ID_SPP_SERVER].thread_name);
+       
+        if (threadInfo[THREAD_ID_SPP_SERVER].thread_id)
+            pSppServer = new Spp_Server(bt_interface, config);
+    }
+
     // Enable Command line input
     if (is_user_input_enabled_) {
         cmd_reactor_ = reactor_register (thread_get_reactor
@@ -4121,6 +4281,24 @@ void BluetoothApp :: DeInitHandler (void) {
                 delete g_pan;
         }
     }
+
+    if(is_spp_client_enabled_) {
+        if (threadInfo[THREAD_ID_SPP_CLIENT].thread_id !=NULL) {
+                        thread_free (threadInfo[THREAD_ID_SPP_CLIENT].thread_id);
+            if (pSppClient != NULL)
+                delete pSppClient;
+        }
+    }
+
+    if(is_spp_server_enabled_) {
+        if (threadInfo[THREAD_ID_SPP_SERVER].thread_id !=NULL) {
+                        thread_free (threadInfo[THREAD_ID_SPP_SERVER].thread_id);
+            if (pSppServer != NULL)
+                delete pSppServer;
+        }
+    }
+
+
 #ifdef USE_GEN_GATT
       if (is_gatt_enable_default_) {
           if (threadInfo[THREAD_ID_GATT].thread_id != NULL){
@@ -4328,5 +4506,13 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_opp_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_OPP_ENABLED, false);
 #endif
+
+    //Check for SPP Server
+    is_spp_server_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_SPP_SERVER_ENABLED, false);
+    //Check for SPP client
+    is_spp_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_SPP_CLIENT_ENABLED, false);
+
     return true;
 }
