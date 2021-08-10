@@ -34,6 +34,8 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/hfp_ag/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/spp_client/include \
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/spp_server/include \
                -I${WORKSPACE}/system/media/audio/include \
                -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
                -I${WORKSPACE}/hardware/libhardware/include \
@@ -79,6 +81,8 @@ cpp_sources = ../utils/src/utils.cc \
             ../hfp_ag/src/HfpAG.cpp \
             ../gattctest/src/GattcTest.cpp \
             ../pan/src/Pan.cpp \
+            ../spp_server/src/spp_server.cpp \
+            ../spp_client/src/spp_client.cpp \
             ../gattstest/src/GattsTest.cpp
 
 if USE_GEN_GATT
