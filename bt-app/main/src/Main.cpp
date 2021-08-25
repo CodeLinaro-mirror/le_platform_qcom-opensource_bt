@@ -3387,6 +3387,7 @@ int BluetoothApp:: LocalSocketCreate(void) {
 bool BluetoothApp::LoadConfigParameters (const char *configpath) {
 
     bool is_bt_ext_ldo, fw_snoop_enable,soc_log_enable;
+    bool bt_enable_trigger_ssr, bt_force_special_byte;
     config = config_new (configpath);
     if (!config) {
         ALOGE (LOGTAG " Unable to open config file");
@@ -3415,6 +3416,22 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
         property_set_bt("persist.service.bdroid.soclog", "true");
     }else{
         property_set_bt("persist.service.bdroid.soclog", "false");
+    }
+
+    bt_enable_trigger_ssr = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_ENABLE_TRIGGER_SSR, false);
+    if(bt_enable_trigger_ssr){
+        property_set_bt("bluetooth.enable.trigger.ssr", "true");
+    }else{
+        property_set_bt("bluetooth.enable.trigger.ssr", "false");
+    }
+
+    bt_force_special_byte = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                    BT_FORCE_SPECIAL_BYTE, false);
+    if(bt_force_special_byte){
+        property_set_bt("wc_transport.force_special_byte", "true");
+    }else{
+        property_set_bt("wc_transport.force_special_byte", "false");
     }
 
     closesocket();
