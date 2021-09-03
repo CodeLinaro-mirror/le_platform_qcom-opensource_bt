@@ -2548,6 +2548,23 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             }
             break;
 
+         case SWITCH_ROLE:
+            if (g_bt_app->bt_state == BT_STATE_ON) {
+                if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                            event = new BtEvent;
+                            event->event_id = GAP_API_SWITCH_ROLE_REQ;
+                            string_to_bdaddr(user_cmd[ONE_PARAM], &event->role_switch.bd_addr);
+                            uint8_t new_role = atoi(user_cmd[TWO_PARAM]);
+                            event->role_switch.new_role = new_role;
+                            PostMessage (THREAD_ID_GAP, event);
+                } else {
+                 fprintf( stdout, " BD address is NULL/Invalid \n");
+                }
+            } else {
+                fprintf( stdout, " Currently BT is OFF\n");
+            }
+            break;
+
         case START_PAIR:
             if ((g_bt_app->status.pairing_cmd != COMMAND_INPROGRESS) &&
                 (g_bt_app->bt_state == BT_STATE_ON)) {

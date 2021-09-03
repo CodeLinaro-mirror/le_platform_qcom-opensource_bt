@@ -147,6 +147,7 @@ typedef enum {
     CANCEL_ENQUIRY,
     MAIN_EXIT,
     GET_ROLE,
+    SWITCH_ROLE,
     START_PAIR,
     INQUIRY_LIST,
     BONDED_LIST,
@@ -438,6 +439,8 @@ UserMenuList GapMenu[] = {
     {SEND_HCI_COMMAND,      "send_hci_cmd", ONE_PARAM,    "send_hci_cmd<space><hci_cmd> \
     eg. send_hci_cmd 01,04,05,33,8b,9e,0a,00 - For Inquiry"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
+    {SWITCH_ROLE,           "switch_role_req",  TWO_PARAM,    "switch_role_req<bt_address><space><new_role> \
+    eg. switch_role_req 00:11:22:33:44:55 0 or get_role_req 00:11:22:33:44:55 1 "},
 };
 
 /**

@@ -970,6 +970,11 @@ void Gap::ProcessEvent(BtEvent* event) {
             kill(getpid(), SIGKILL);
             break;
 
+        case GAP_API_SWITCH_ROLE_REQ:
+            sBtVendorInterface->switch_role_req(&event->role_switch.bd_addr,
+                event->role_switch.new_role);
+            break;
+
         default:
             ALOGD(LOGTAG " Unhandled event %d", event->event_id);
             break;

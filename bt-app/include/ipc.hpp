@@ -453,6 +453,7 @@ typedef enum {
     GAP_EVENT_ENABLE_TIMEOUT,
     GAP_EVENT_DISABLE_TIMEOUT,
     GAP_EVENT_SSR_CLEANUP,
+    GAP_API_SWITCH_ROLE_REQ,
     SKT_API_START_LISTENER,
     SKT_API_IPC_MSG_WRITE,
     SKT_API_IPC_MSG_READ,
@@ -835,6 +836,14 @@ typedef struct {
     bool             status;
 } ProfileStartEvent;
 
+/**
+ * Event for notifying Device to switch role
+ */
+typedef struct {
+    BluetoothEventId    event_id;
+    bt_bdaddr_t         bd_addr;
+    uint8_t             new_role;
+} DeviceRoleSwitch;
 
 /**
  * API to stop Profile
@@ -1773,6 +1782,7 @@ typedef union {
     ProfileStartRequest                     profile_start_request;
     ProfileStopRequest                      profile_stop_request;
     ProfileStartEvent                       profile_start_event;
+    DeviceRoleSwitch                        role_switch;
     ProfileStopEvent                        profile_stop_event;
     A2dpSinkEvent                           a2dpSinkEvent;
     A2dpSinkStreamingEvent                  a2dpSinkStreamingEvent;
