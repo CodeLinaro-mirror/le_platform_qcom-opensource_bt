@@ -148,7 +148,13 @@ const UUID128Bit& Uuid::To128BitBE() const { return uu; }
 
 Uuid Uuid::GetRandom() {
   Uuid uuid;
-  base::RandBytes(uuid.uu.data(), uuid.uu.size());
+  //srandom() function of libchrome will fail when second called.
+  uint8_t* p = uuid.uu.data();
+  uint8_t i;
+  for (i=0; i<uuid.uu.size(); i++) {
+    *p = rand() % 0xFF;
+    p++;
+  }
   return uuid;
 }
 
