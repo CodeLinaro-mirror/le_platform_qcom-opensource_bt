@@ -250,6 +250,16 @@ static void EnergyInfoRecvCb(bt_activity_energy_info *p_energy_info) {
     ALOGV (LOGTAG " EnergyInfoRecvCb: ");
 }
 
+static void ReadClockCb(bt_clock_info * p_clock_info) {
+    if(p_clock_info->status == BT_STATUS_SUCCESS) {
+        fprintf(stdout, "Bluetooth read clock success:0x%.8x\n",p_clock_info->clock);
+        ALOGV(LOGTAG "Bluetooth read clock success:0x%.8x",p_clock_info->clock);
+    } else {
+        fprintf(stdout, "Bluetooth read clock failed\n");
+        ALOGV(LOGTAG "Bluetooth read clock failed");
+    }
+}
+
 //TODO: update the callbacks, made NULL to compile
 static bt_callbacks_t sBluetoothCallbacks = {
     sizeof(sBluetoothCallbacks),
@@ -266,6 +276,7 @@ static bt_callbacks_t sBluetoothCallbacks = {
     DutModeRecvCb,
     LeTestModeRecvCb,
     NULL,
+    ReadClockCb,
 };
 
 static void SsrCleanupCb() {
@@ -572,6 +583,17 @@ void Gap::SendHCICommand(uint8_t *cmd_ptr) {
     sBtVendorInterface->hci_cmd_send(*(uint16_t *)cmd, &cmd[3], cmd[2]);
     free(cmd_ptr);
     return;
+}
+
+void Gap::ReadClock(int whichClock, bt_bdaddr_t bd_addr) {
+    int status;
+    if ((adapter_properties_obj_->GetState() == BT_ADAPTER_STATE_ON) &&
+       ((status = bluetooth_interface_->read_clock(&bd_addr, whichClock)) == BT_STATUS_SUCCESS)) {
+       fprintf( stdout, " Bluetooth read clock command is sent\n");
+    }
+    else {
+       fprintf( stdout, " Bluetooth read clock command failed:%d\n", status);
+    }
 }
 
 void Gap::ProcessEvent(BtEvent* event) {
@@ -938,6 +960,12 @@ void Gap::ProcessEvent(BtEvent* event) {
             adapter_properties_obj_->HandleDiscoveryStateChange(
                                             event->discovery_state_event.state);
             break;
+
+        case GAP_API_READ_CLOCK:
+            ALOGD(LOGTAG " ReadClock whichClock %d", event->read_clock_event.which_clock);
+            ReadClock(event->read_clock_event.which_clock, event->read_clock_event.bd_addr);
+            break;
+
         case GAP_API_START_INQUIRY:
             HandleStartDiscovery();
             break;

@@ -448,6 +448,7 @@ typedef enum {
     GAP_EVENT_ADAPTER_PROPERTIES,
     GAP_EVENT_BOND_STATE_INT,
     GAP_EVENT_BOND_STATE,
+    GAP_API_READ_CLOCK,
     GAP_EVENT_PROFILE_START_TIMEOUT,
     GAP_EVENT_PROFILE_STOP_TIMEOUT,
     GAP_EVENT_ENABLE_TIMEOUT,
@@ -877,6 +878,12 @@ typedef struct {
     BluetoothEventId event_id;
     uint8_t *cmd;
 }SendHCICommand;
+
+typedef struct {
+    BluetoothEventId event_id;
+    bt_bdaddr_t bd_addr;
+    int which_clock;
+} ReadClock;
 
 /**
  * Event for notifying Profile stop status
@@ -1774,6 +1781,7 @@ typedef union {
     SetScanMode                             set_scan_mode_event;
     SetAFHChannels                          set_afh_channels_event;
     SendHCICommand                          send_hci_command_event;
+    ReadClock                               read_clock_event;
     RemotePropertiesEvent                   remote_properties_event;
     AdapterPropertiesEvent                  adapater_properties_event;
     DeviceDiscoverRequest                   discover_request;

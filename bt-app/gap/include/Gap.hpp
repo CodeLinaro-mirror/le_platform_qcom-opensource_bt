@@ -344,6 +344,7 @@ class Gap {
      * @return none
      */
     void SendHCICommand(uint8_t *cmd_ptr);
+    void ReadClock(int whichClock, bt_bdaddr_t bd_addr);
 };
 
 #endif

@@ -156,6 +156,7 @@ typedef enum {
     SET_BT_NAME,
     SET_SCAN_MODE,
     UNPAIR,
+    READ_CLOCK,
     GET_BT_STATE,
     TEST_MODE,
     GAP_OPTION,
@@ -438,6 +439,8 @@ UserMenuList GapMenu[] = {
     eg. set_afh 112233445566778899f0"},
     {SEND_HCI_COMMAND,      "send_hci_cmd", ONE_PARAM,    "send_hci_cmd<space><hci_cmd> \
     eg. send_hci_cmd 01,04,05,33,8b,9e,0a,00 - For Inquiry"},
+    {READ_CLOCK,      "read_clock",             TWO_PARAM,    "read_clock<space><which_clock range(0-1)><space><bt_address> \
+    eg. read_clock 0(local)/1(acl connection) 00:11:22:33:44:55"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
     {SWITCH_ROLE,           "switch_role_req",  TWO_PARAM,    "switch_role_req<bt_address><space><new_role> \
     eg. switch_role_req 00:11:22:33:44:55 0 or get_role_req 00:11:22:33:44:55 1 "},
