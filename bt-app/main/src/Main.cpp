@@ -76,6 +76,8 @@ bool init_advertiser_file = 0;
 long onoff_count = 0;
 long onoff_index = 0;
 bool exithandler_waitbtoff = FALSE;
+bt_bdname_t bd_name;
+bt_scan_mode_t scan_mode;
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
@@ -2608,7 +2610,6 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             if ( g_bt_app->GetState() == BT_STATE_ON ) {
                 if (strlen(user_cmd[ONE_PARAM]) < BTM_MAX_LOC_BD_NAME_LEN &&
                     (user_cmd[ONE_PARAM] != NULL) ) {
-                    bt_bdname_t bd_name;
                     event = new BtEvent;
                     event->event_id = GAP_API_SET_BDNAME;
                     event->set_device_name_event.prop.type = BT_PROPERTY_BDNAME;
@@ -2627,7 +2628,6 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case SET_SCAN_MODE:
             if ( g_bt_app->GetState() == BT_STATE_ON ) {
                 if (user_cmd[ONE_PARAM] !=NULL)  {
-                    bt_scan_mode_t scan_mode;
                     event = new BtEvent;
                     switch (atoi(user_cmd[ONE_PARAM])){
                     case 0:
