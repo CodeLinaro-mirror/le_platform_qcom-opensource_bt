@@ -220,7 +220,8 @@ void RemoteDevices::RemoteDeviceProperties(RemotePropertiesEvent *event) {
 
     GetValueFromPropertyList(event->num_properties, event->properties,
             BT_PROPERTY_CLASS_OF_DEVICE, &rem_dev_prop->bluetooth_class);
-
+    ALOGI (LOGTAG " updated COD :%d", rem_dev_prop->bluetooth_class);
+	
     GetValueFromPropertyList(event->num_properties, event->properties,
             BT_PROPERTY_REMOTE_RSSI, &rem_dev_prop->rssi);
 
