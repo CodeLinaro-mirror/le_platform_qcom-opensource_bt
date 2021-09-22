@@ -551,6 +551,13 @@ static bt_status_t btavrcpctrl_search_rsp_vendor_callback(bt_bdaddr_t *bd_addr, 
     return BT_STATUS_SUCCESS;
 }
 
+/** btavrctg_passthrough_cmd_vendor_callback(when sink is TG) is needed to handle
+    category-2 passthrough command(volup and voldown). */
+static void btavrctg_passthrough_cmd_vendor_callback(int id, int key_state, bt_bdaddr_t* bd_addr)
+{
+    ALOGD(LOGTAG " btavrcptg_passthrough_cmd_callback id = %d key_state = %d", id, key_state);
+}
+
 static void btavrcpctrl_setabsvol_cmd_callback(bt_bdaddr_t *bd_addr, uint8_t abs_vol, uint8_t label) {
     ALOGD(LOGTAG_CTRL " btavrcpctrl_setabsvol_cmd_vendor_callback");
     BtEvent *pEvent = new BtEvent;
@@ -609,6 +616,7 @@ static btrc_ctrl_vendor_callbacks_t sBluetoothAvrcpCtrlVendorCallbacks = {
    btavrcpctrl_playitem_rsp_vendor_callback,
    btavrcpctrl_addtonowplaying_rsp_vendor_callback,
    btavrcpctrl_search_rsp_vendor_callback,
+   btavrctg_passthrough_cmd_vendor_callback, // needed to handle TG cat-2 volup&voldown passthrugh cmd
 };
 
 void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t direct) {
