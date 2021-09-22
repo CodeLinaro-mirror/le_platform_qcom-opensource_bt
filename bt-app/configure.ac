@@ -15,16 +15,22 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 PKG_PROG_PKG_CONFIG
 
-AC_ARG_WITH([chrome_includes],
-      AC_HELP_STRING([--with-chrome-includes=@<:@dir@:>@],
-         [Specify the location of the common headers]),
-      [chrome_incdir=$withval],
-      with_chrome_includes=no)
+PKG_CHECK_MODULES([SYSTEM_BT], [system_bt])
+AC_SUBST([SYSTEM_BT_CFLAGS])
+AC_SUBST([SYSTEM_BT_LIBS])
 
-if test "x$with_chrome_includes" != "xno"; then
-   CPPFLAGS="${CPPFLAGS} -I${chrome_incdir}"
-   CFLAGS="${CFLAGS} -I${chrome_incdir}"
-fi
+PKG_CHECK_MODULES([BLUETOOTHEXT], [bluetoothExt])
+AC_SUBST([BLUETOOTHEXT_CFLAGS])
+AC_SUBST([BLUETOOTHEXT_LIBS])
+
+PKG_CHECK_MODULES([LIBCHROME], [libchrome])
+AC_SUBST([LIBCHROME_CFLAGS])
+AC_SUBST([LIBCHROME_LIBS])
+
+PKG_CHECK_MODULES([OBEX], [obex])
+AC_SUBST([OBEX_CFLAGS])
+AC_SUBST([OBEX_LIBS])
+
 AC_ARG_WITH([glib],
      AC_HELP_STRING([--with-glib],
         [enable glib, building HLOS systems which use glib]))
@@ -56,27 +62,6 @@ if (test "x${with_glib}" = "xyes"); then
 fi
 
 AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
-
-# Library configs
-AC_ARG_WITH([common_includes],
-      AC_HELP_STRING([--with-common-includes=@<:@dir@:>@],
-         [Specify the location of the common headers]),
-      [common_incdir=$withval],
-      with_common_includes=no)
-
-if test "x$with_common_includes" != "xno"; then
-   CFLAGS="${CFLAGS} -I${common_incdir}"
-fi
-
-AC_ARG_WITH([lib_path],
-      AC_HELP_STRING([--with-lib-path=@<:@dir@:>@],
-         [Specify the location of the libraries]),
-      [std_libdir=$withval],
-      with_lib_path=no)
-
-if test "x$with_lib_path" != "xno"; then
-   SYS_LIB=${std_libdir}
-fi
 
 AC_ARG_WITH([btobex],
      AC_HELP_STRING([--with-btobex],

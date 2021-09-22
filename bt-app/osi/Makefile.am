@@ -9,13 +9,11 @@ AM_CFLAGS = -Wall \
             -DHAS_NO_BDROID_BUILDCFG \
             -D__GLIBC__
 
-AM_CPPFLAGS = -I${WORKSPACE}/qcom-opensource/bt/bt-app \
-              -I${WORKSPACE}/qcom-opensource/bt/bt-app/osi/include \
-              -I${WORKSPACE}/vendor/qcom/opensource/system/bt \
-              -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
-              -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
-              -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include/
+AM_CPPFLAGS = -I$(top_srcdir) \
+              -I$(top_srcdir)/osi/include
 
+AM_CPPFLAGS  += @SYSTEM_BT_CFLAGS@ @LIBCHROME_CFLAGS@
+AM_CPPFLAGS  += -DUSE_ANDROID_LOGGING -DUSE_BT_OBEX -DUSE_LIBHW_AOSP -DUSE_GEN_GATT
 c_sources = \
     src/alarm.cc \
     src/allocator.cc \

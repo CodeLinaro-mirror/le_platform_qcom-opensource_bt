@@ -1,21 +1,22 @@
+
+AM_CPPFLAGS = -DUSE_ANDROID_LOGGING -DUSE_BT_OBEX -DUSE_LIBHW_AOSP -DUSE_GEN_GATT
+
+common_LDFLAGS = -llog
+
 if USE_GEN_GATT
-AM_CPPFLAGS = -O2 \
+AM_CPPFLAGS += -O2 \
               -D_GNU_SOURCE \
               -std=c++11 \
-              -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include \
-              -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/native/include \
-              -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/lib/include \
-              -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/framework/include \
-              -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
-              -I${WORKSPACE}/qcom-opensource/bt/bt-app/ \
-              -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include/ \
-              -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
-              -I${WORKSPACE}/vendor/qcom/opensource/system/bt \
-              -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
-              -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
-              -I${WORKSPACE}/system/core/include
+              -I$(top_srcdir)/utils/include \
+              -I$(top_srcdir)/gatt/native/include \
+              -I$(top_srcdir)/gatt/lib/include \
+              -I$(top_srcdir)/gatt/framework/include \
+              -I$(top_srcdir)/include \
+              -I$(top_srcdir)/
 
 ACLOCAL_AMFLAGS = -I m4
+
+AM_CPPFLAGS += @LIBCHROME_CFLAGS@
 
 cpp_sources = native/src/GattNativeInterfaceV2.cpp \
               framework/src/AdvertiseData.cpp \
@@ -53,7 +54,7 @@ cpp_sources = native/src/GattNativeInterfaceV2.cpp \
               lib/src/ScanFilterQueue.cpp \
               lib/src/ScanManager.cpp
 
-AM_LDFLAGS := -lbttypes -lchrome ../utils/libbtappuuid.la
+AM_LDFLAGS := -lbttypes -lchrome ../utils/libbtappuuid.la -llog
 
 library_includedir = $(pkgincludedir)
 lib_LTLIBRARIES = libgengatt.la
