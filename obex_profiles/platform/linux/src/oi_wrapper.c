@@ -396,6 +396,8 @@ OI_STATUS OI_Wrapper_WaitForEvent(OI_BOOL *pEventFlag,
     OI_TIME endTime ;
     OI_TIME timeNow ;
 
+    memset(&endTime, 0x00, sizeof(endTime));
+    memset(&timeNow, 0x00, sizeof(timeNow));
     /*
      * Set up end time.
      */
