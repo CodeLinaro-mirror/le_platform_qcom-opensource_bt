@@ -1663,7 +1663,7 @@ static btav_vendor_callbacks_t sBluetoothA2dpSourceVendorCallbacks = {
     bta2dp_delay_report_vendor_callback,
     NULL,
     mtu_packettype_vendor_callback,
-    NULL,
+    bta2dp_audio_registration_callback,
     scmst_capabalities_vendor_callback,
 };
 
