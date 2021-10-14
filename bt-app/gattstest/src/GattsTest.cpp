@@ -738,7 +738,7 @@ bool GattsTest::ReadAdvertiserConfigFile()
   string ch;
   int pos=0;
   int line_num = 0;
-  int desired_line = 12;
+  int desired_line = 13;
   std::ifstream infile(ADV_CFG_FILE_PATH,std::ios::binary);
   if(!infile) {
     ALOGD(LOGTAG"File doesn't exist \n");
@@ -760,6 +760,7 @@ bool GattsTest::ReadAdvertiserConfigFile()
       set_temp->interval = INVALID_VALUE;
       set_temp->timeout_legacy= INVALID_VALUE;
       set_temp->advertise_mode= INVALID_VALUE;
+      set_temp->ble_bt_name= INVALID_VALUE;
       while(line_num < desired_line) {
         ALOGD(LOGTAG"line_num < desired_line  %d < %d", line_num, desired_line);
         getline(infile,ch,'\n');
@@ -812,6 +813,8 @@ void GattsTest::ParseAdvertiserDetails(string temp)
     set_temp->timeout_legacy= parameter;
   } else if(regex_search(temp,regex("\\bAdvertiseMode\\b"))) {
     set_temp->advertise_mode= parameter;
+  } else if(regex_search(temp,regex("\\bBLEBtName\\b"))) {
+    set_temp->ble_bt_name= data;
   }
 }
 
@@ -975,9 +978,16 @@ bool GattsTest::BuildAdvertisingData(int instance) {
     ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
     return false;
   }
+  AdvertiseData::Builder builder = AdvertiseData::Builder()
+                                .setIncludeTxPowerLevel(set->includeTxPowerflag)
+                                .setIncludeDeviceName(true);
   ALOGD(LOGTAG"%s",__FUNCTION__);
-  AdvertiseData::Builder builder = AdvertiseData::Builder().setIncludeDeviceName(true)
-                                  .setIncludeTxPowerLevel(set->includeTxPowerflag);
+
+  if(!set->ble_bt_name.empty()) {
+    ALOGD(LOGTAG"%s, %s\n",__FUNCTION__, set->ble_bt_name.c_str());
+    builder.setBleName(set->ble_bt_name);
+  }
+  ALOGD(LOGTAG"%s true\n",__FUNCTION__);
   mManufacturerID = manufacturerId_list[instance-1];
   mManufacturerData = manufacturerData_list[instance-1];
   int legacyflag =  set->legacyflag;
