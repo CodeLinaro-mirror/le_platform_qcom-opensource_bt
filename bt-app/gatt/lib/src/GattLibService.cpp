@@ -2372,15 +2372,23 @@ void GattLibService::flushPendingBatchResults(int scannerId)
 
   if (!mScanManager) return;
   ScanClient *sc = getScanClientbyScanId(scannerId);
-  mScanManager->flushBatchScanResults(sc);
+  if (sc == NULL) {
+    ALOGD(LOGTAG "flushPendingBatchResults() - No Client with id %d", scannerId);
+  } else {
+    mScanManager->flushBatchScanResults(sc);
+  }
 }
 
 void GattLibService::stopScan(int scannerId)
 {
   ScanClient *sc = getScanClientbyScanId(scannerId); // not to use stack.
-  stopScan(sc);
-  mScanClients.erase(sc);
-  delete sc;
+  if (sc == NULL) {
+    ALOGD(LOGTAG "stopScan() - No Client with id %d", scannerId);
+  } else {
+    stopScan(sc);
+    mScanClients.erase(sc);
+    delete sc;
+  }
 }
 
 void GattLibService::stopScan(ScanClient *client)
