@@ -634,6 +634,9 @@ void A2dp_Sink_Streaming::send_to_out_write() {
             if (q_bytes_left <= audio_frag_bytes_left) {
                 /* deque whole packet and write to audioFragment buffer */
                 p_data_q_buf = (tBT_SINK_DQ_DATA_HDR *)fixed_queue_try_dequeue(CompressDataQ);
+                if(p_data_q_buf == NULL) {
+                    break;
+                }
                 p_src = (uint8_t*)(p_data_q_buf + 1) + p_data_q_buf->offset;
                 p_dest = (uint8_t*)(audioFragment + 1) + audioFragment->len;
                 memcpy(p_dest, p_src, q_bytes_left);
