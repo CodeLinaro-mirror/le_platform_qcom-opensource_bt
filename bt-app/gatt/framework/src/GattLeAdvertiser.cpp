@@ -108,8 +108,14 @@ int GattLeAdvertiser::totalBytes(AdvertiseData *data, bool isFlagsIncluded)
     size += OVERHEAD_BYTES_PER_FIELD + 1; // tx power level value is one byte.
   }
 
-  if (data->getIncludeDeviceName() && !mGattLibService->getDeviceName().empty()) {
-    size += OVERHEAD_BYTES_PER_FIELD + mGattLibService->getDeviceName().length();
+  if (data->getIncludeDeviceName()) {
+    //calculate the length of ble name given by user
+    if(!data->getBleDeviceName().empty()) {
+      size += OVERHEAD_BYTES_PER_FIELD + data->getBleDeviceName().length();
+    } else {
+      //if the name is not given take the length of adapter's name
+      size += OVERHEAD_BYTES_PER_FIELD + mGattLibService->getDeviceName().length();
+    }
   }
 
   ALOGE(LOGTAG "totalBytes() total_size (%d)", size);

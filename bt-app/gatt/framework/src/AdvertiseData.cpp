@@ -26,12 +26,13 @@ AdvertiseData::AdvertiseData(std::vector<Uuid> serviceUuids,
                                 std::map<int, std::vector<uint8_t>> manufacturerData,
                                 std::map<Uuid, std::vector<uint8_t>> serviceData,
                                 bool includeTxPowerLevel,
-                                bool includeDeviceName) :
+                                bool includeDeviceName, std::string deviceName) :
   mServiceUuids(serviceUuids),
   mManufacturerSpecificData(manufacturerData),
   mServiceData(serviceData),
   mIncludeTxPowerLevel(includeTxPowerLevel),
-  mIncludeDeviceName(includeDeviceName)
+  mIncludeDeviceName(includeDeviceName),
+  mDeviceName(deviceName)
 {}
 
 AdvertiseData::~AdvertiseData()
@@ -64,6 +65,11 @@ bool AdvertiseData::getIncludeTxPowerLevel()
 bool AdvertiseData::getIncludeDeviceName()
 {
   return mIncludeDeviceName;
+}
+
+std::string AdvertiseData::getBleDeviceName()
+{
+  return mDeviceName;
 }
 
 AdvertiseData::Builder AdvertiseData::Builder::addServiceUuid(Uuid serviceUuid)
@@ -118,9 +124,15 @@ AdvertiseData::Builder AdvertiseData::Builder::setIncludeDeviceName(bool include
   return *this;
 }
 
+AdvertiseData::Builder AdvertiseData::Builder::setBleName(std::string DeviceName)
+{
+  mDeviceName = DeviceName;
+  return *this;
+}
+
 AdvertiseData* AdvertiseData::Builder::build()
 {
   return new AdvertiseData(mServiceUuids, mManufacturerSpecificData, mServiceData,
-         mIncludeTxPowerLevel, mIncludeDeviceName);
+         mIncludeTxPowerLevel, mIncludeDeviceName, mDeviceName);
 }
 }//namespace gatt

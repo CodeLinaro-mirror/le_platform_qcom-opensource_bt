@@ -47,12 +47,13 @@ class AdvertiseData final {
     std::map<Uuid, std::vector<uint8_t>> mServiceData;
     const bool mIncludeTxPowerLevel;
     const bool mIncludeDeviceName;
+    const std::string mDeviceName;
 
     AdvertiseData(std::vector<Uuid> serviceUuids,
            std::map<int, std::vector<uint8_t>> manufacturerData,
            std::map<Uuid, std::vector<uint8_t>> serviceData,
            bool includeTxPowerLevel,
-           bool includeDeviceName);
+           bool includeDeviceName, std::string deviceName);
 
   public:
     /**
@@ -88,6 +89,11 @@ class AdvertiseData final {
     bool getIncludeDeviceName();
 
     /**
+    * Returns the BLE name set by the user as part of adv data
+    */
+    std::string getBleDeviceName();
+
+    /**
     * Builder for  AdvertiseData.
     */
     class Builder final{
@@ -97,6 +103,7 @@ class AdvertiseData final {
         std::map<Uuid, std::vector<uint8_t>> mServiceData;
         bool mIncludeTxPowerLevel = false;
         bool mIncludeDeviceName = false;
+        std::string mDeviceName;
 
       public:
         /**
@@ -138,6 +145,11 @@ class AdvertiseData final {
         * Set whether the device name should be included in advertise packet.
         */
         Builder setIncludeDeviceName(bool includeDeviceName);
+
+        /**
+        * Set the BLE device name that should be included in advertise packet.
+        */
+        Builder setBleName(std::string DeviceName);
 
         /**
         * Build the AdvertiseData.
