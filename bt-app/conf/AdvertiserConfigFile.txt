@@ -11,6 +11,7 @@ SecondaryPhy:1
 Interval:320
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:Adv1
 *******************AdvertisingSet2***************
 TxPower:1
 LegacyFlag:1
@@ -24,6 +25,7 @@ SecondaryPhy:1
 Interval:160
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet3***************
 TxPower:1
 LegacyFlag:0
@@ -37,6 +39,7 @@ SecondaryPhy:1
 Interval:160
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:Adv3
 *******************AdvertisingSet4***************
 TxPower:1
 LegacyFlag:1
@@ -50,6 +53,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:Adv4
 *******************AdvertisingSet5***************
 TxPower:1
 LegacyFlag:1
@@ -63,6 +67,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet6***************
 TxPower:1
 LegacyFlag:1
@@ -76,6 +81,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet7***************
 TxPower:1
 LegacyFlag:1
@@ -89,6 +95,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet8***************
 TxPower:1
 LegacyFlag:1
@@ -102,6 +109,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet9***************
 TxPower:1
 LegacyFlag:1
@@ -115,6 +123,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet10***************
 TxPower:1
 LegacyFlag:1
@@ -128,6 +137,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet11***************
 TxPower:1
 LegacyFlag:1
@@ -141,6 +151,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet12***************
 TxPower:1
 LegacyFlag:1
@@ -154,6 +165,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet13***************
 TxPower:1
 LegacyFlag:1
@@ -167,6 +179,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet14***************
 TxPower:1
 LegacyFlag:1
@@ -180,6 +193,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet15***************
 TxPower:1
 LegacyFlag:1
@@ -193,6 +207,7 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:
 *******************AdvertisingSet16***************
 TxPower:1
 LegacyFlag:1
@@ -206,3 +221,4 @@ SecondaryPhy:1
 Interval:400
 TimeOutLegacy:0
 AdvertiseMode:1
+BLEBtName:Adv16
