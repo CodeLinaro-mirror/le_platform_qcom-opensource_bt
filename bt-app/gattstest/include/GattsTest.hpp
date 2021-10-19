@@ -79,6 +79,7 @@ class GattsTest {
       int interval;
       int timeout_legacy;
       int advertise_mode;
+      string ble_bt_name;
     };
 
     vector <AdvertiseSet*> AdvSet_list;
