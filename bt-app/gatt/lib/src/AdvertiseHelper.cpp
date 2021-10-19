@@ -40,6 +40,10 @@ std::vector<uint8_t> AdvertiseHelper::advertiseDataToBytes(AdvertiseData *data, 
   std::vector<uint8_t> vec;
 
   if (data->getIncludeDeviceName()) {
+    // If Ble device name is given by user, use that in adv data
+    if(!data->getBleDeviceName().empty()) {
+      name = data->getBleDeviceName();
+    }
     try {
       const uint8_t *nameBytes = reinterpret_cast<const uint8_t*>(name.c_str());
 
