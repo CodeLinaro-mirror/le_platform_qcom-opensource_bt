@@ -35,6 +35,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <string>
+#include <condition_variable>
 
 using namespace std;
 using std::string;
@@ -61,6 +62,8 @@ class GattLeScanner final {
         ScanSettings *mSettings = NULL;
         GattLibService *mGatt = NULL;
         GattLeScanner *mOuterScanner = NULL;
+        std::condition_variable mScannerRegCV;
+        std::mutex mScannerRegLock;
 
         std::vector<std::vector<ResultStorageDescriptor*>> mResultStorages;
 

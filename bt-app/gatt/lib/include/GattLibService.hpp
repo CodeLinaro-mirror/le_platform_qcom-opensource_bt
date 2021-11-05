@@ -327,6 +327,7 @@ class GattLibService           {
             int secondaryPhy, int advertisingSid, int txPower, int rssi, int periodicAdvInt,
             std::vector<uint8_t> advData);
     void onScannerRegistered(int status, int scannerId, Uuid uuid);
+    static void onScannerRegisteredCbApp(ScannerMap::App *cbApp, int status, int scannerId);
     void onClientRegistered(int status, int clientIf, Uuid uuid);
     void onConnected(int clientIf, int connId, int status, string address);
     void onDisconnected(int clientIf, int connId, int status, string address);

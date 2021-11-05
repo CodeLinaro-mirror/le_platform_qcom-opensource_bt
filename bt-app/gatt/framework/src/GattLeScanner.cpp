@@ -219,13 +219,20 @@ void GattLeScanner::BleScanCallbackWrapper::startRegistration()
 {
   // Scan stopped.
   if (mScannerId == -1 || mScannerId == -2) return;
+
+  std::unique_lock<std::mutex> lck(mScannerRegLock);
   try {
     mGatt->registerScanner(this);
-    std::this_thread::sleep_for(std::chrono::milliseconds(REGISTRATION_CALLBACK_TIMEOUT_MILLIS));
+    if (mScannerRegCV.wait_for(lck,
+      std::chrono::milliseconds(REGISTRATION_CALLBACK_TIMEOUT_MILLIS)) == std::cv_status::timeout)
+    {
+      ALOGE(LOGTAG "startRegistration: timeout");
+    }
   } catch (std::exception& e) {
     ALOGE(LOGTAG " application registeration exception %s", e.what());
     mOuterScanner->postCallbackError(const_cast<ScanCallback *>(mScanCallback),
                                                         ScanCallback::SCAN_FAILED_INTERNAL_ERROR);
+    lck.release()->unlock();
   }
   if (mScannerId > 0) {
     mOuterScanner->mLeScanClients.insert({{mScanCallback, this}});
@@ -282,6 +289,7 @@ void GattLeScanner::BleScanCallbackWrapper::flushPendingBatchResults()
      if (mScannerId == -1) {
        // Registration succeeds after timeout, unregister client.
        mGatt->unregisterClient(scannerId);
+       return;
      } else {
        mScannerId = scannerId;
        mGatt->startScan(mScannerId, mSettings, mFilters,
@@ -298,6 +306,9 @@ void GattLeScanner::BleScanCallbackWrapper::flushPendingBatchResults()
      // registration failed
      mScannerId = -1;
   }
+
+  std::unique_lock<std::mutex> lck(mScannerRegLock);
+  mScannerRegCV.notify_all();
 
 }
 
