@@ -57,6 +57,9 @@ class GattLibService;
 
 class ScanManager {
   public:
+    std::mutex lock;
+    std::condition_variable cv;
+    bool countDown = false;
     /**
      * Parameters for batch scans.
      */

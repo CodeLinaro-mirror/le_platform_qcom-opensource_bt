@@ -8,8 +8,10 @@ AM_CFLAGS = -Wall \
             -fpermissive \
             -D__GLIBC__
 
-AM_CPPFLAGS = -I${WORKSPACE}/qcom-opensource/bt/bt-app \
-              -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include
+AM_CPPFLAGS = -I$(top_srcdir)  \
+              -I$(top_srcdir)/utils/include
+
+AM_CPPFLAGS += @LIBCHROME_CFLAGS@
 
 cpp_sources = src/uuid.cc
 

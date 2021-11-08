@@ -42,7 +42,14 @@ const char *BT_A2DP_SINK_ENABLED_STRING  = "BtA2dpSinkEnable";
 const char *BT_A2DP_SOURCE_ENABLED_STRING  = "BtA2dpSourceEnable";
 const char *BT_HFP_CLIENT_ENABLED_STRING  = "BtHfClientEnable";
 const char *BT_PAN_ENABLED    = "BtPanEnable";
+
+#ifdef USE_GEN_GATT
 const char *BT_GATT_ENABLED   = "BtGattEnable";
+#ifdef USE_BLE_SOCKET_MANAGER
+const char *BT_LE_SOCKET_MANAGER_ENABLED   = "BtLeSocketManagerEnable";
+#endif
+#endif
+
 const char *BT_HID_ENABLED_STRING    = "BtHidEnable";
 #ifdef USE_BT_OBEX
 const char *BT_OBEX_ENABLED    = "BtObexEnable";
@@ -991,8 +998,14 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_CLIENT;
         else if (profile_id == PROFILE_ID_PAN)
             this->profile_config[profile_id].thread_id = THREAD_ID_PAN;
+#ifdef USE_GEN_GATT
         else if (profile_id == PROFILE_ID_GATT)
             this->profile_config[profile_id].thread_id = THREAD_ID_GATT;
+#ifdef USE_BLE_SOCKET_MANAGER
+        else if(profile_id == PROFILE_ID_BLE_SM)
+            this->profile_config[profile_id].thread_id = THREAD_ID_BLE_SM;
+#endif
+#endif
         else if (profile_id == PROFILE_ID_SDP_CLIENT)
             this->profile_config[profile_id].thread_id = THREAD_ID_SDP_CLIENT;
 #ifdef USE_BT_OBEX
@@ -1031,10 +1044,18 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
     this->profile_config[PROFILE_ID_PAN].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_PAN_ENABLED, false);
+
+#ifdef USE_GEN_GATT
 /*
     this->profile_config[PROFILE_ID_GATT].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_GATT_ENABLED, false);
 */
+#ifdef USE_BLE_SOCKET_MANAGER
+    this->profile_config[PROFILE_ID_BLE_SM].is_enabled = config_get_bool (config,
+                   CONFIG_DEFAULT_SECTION, BT_LE_SOCKET_MANAGER_ENABLED, false);
+#endif
+#endif
+
     // SDP Client should be enabled and is not configurable to be disabled
     this->profile_config[PROFILE_ID_SDP_CLIENT].is_enabled = true;
 

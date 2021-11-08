@@ -41,7 +41,6 @@
 #include "hardware/bt_rc.h"
 #include "hardware/bt_rc_vendor.h"
 #include "hardware/bt_hh_vendor.h"
-#include "types/raw_address.h"
 using namespace std;
 using std::list;
 using std::string;

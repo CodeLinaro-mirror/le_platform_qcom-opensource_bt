@@ -32,7 +32,6 @@
 #include "osi/include/log.h"
 #include "Pan.hpp"
 #include "utils.h"
-#include "types/raw_address.h"
 #define LOGTAG "PAN "
 
 #define PAN_APP_UI_PRINT printf

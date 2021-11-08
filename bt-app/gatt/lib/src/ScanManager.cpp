@@ -32,9 +32,6 @@
 using namespace std;
 namespace gatt{
 
-std::mutex lock;
-std::condition_variable cv;
-bool countDown = false;
 ScanManager::ScanManager(GattNativeInterfaceV2 *mGattIf)
 {
   mNative = mGattIf;
@@ -133,8 +130,11 @@ void ScanManager::callbackDone(int scannerId, int status)
   if (DBG) {
     ALOGD(LOGTAG " callback done for scannerId %d status %d ", scannerId, status);
   }
-  if( status == 0)
+  if (status == 0) {
+    std::unique_lock<std::mutex> lk(lock);
     countDown = true;
+  }
+  cv.notify_all();
 }
 
 void ScanManager::resetCountDownLatch()
@@ -146,15 +146,11 @@ void ScanManager::resetCountDownLatch()
 void ScanManager::waitForCallback()
 {
   std::unique_lock<std::mutex> lk(lock);
-  if (cv.wait_for(lk,std::chrono::milliseconds(OPERATION_TIME_OUT_MILLIS), [] {return countDown;})) {
-    ALOGE(LOGTAG "waitForCallback() : LatchDown Timeout");
-    lk.unlock();
-    cv.notify_all();
+  if (cv.wait_for(lk,std::chrono::milliseconds(OPERATION_TIME_OUT_MILLIS), [this] {return countDown;})) {
+    ALOGI(LOGTAG "waitForCallback() : LatchDown countDown is true");
   } else {
-    ALOGE(LOGTAG "waitForCallback() : LatchDown countDown is false");
-    lk.unlock();
-    cv.notify_all();
- }
+    ALOGE(LOGTAG "waitForCallback() : LatchDown countDown is false(timeout)");
+  }
 }
 
 int ScanManager::millsToUnit(int milliseconds)
