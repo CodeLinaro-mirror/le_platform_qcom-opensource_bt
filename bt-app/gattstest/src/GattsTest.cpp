@@ -531,10 +531,10 @@ void GattsTest::ReadServerConfigurationFile()
   }
 
   while(!infile.eof()) {
-    getline(infile,ch,'\r');
+    getline(infile,ch,'\n');
     if(std::regex_search(ch,std::regex("\\bServer[1-9]|Server[1-9][0-9]\\b"))) {
       while(line_num < desired_line) {
-        getline(infile,ch,'\r');
+        getline(infile,ch,'\n');
         status = ParseServiceDetails(ch,line_num);
         if(!status) {
           fprintf(stdout,"Service Records are not consistent \n");
