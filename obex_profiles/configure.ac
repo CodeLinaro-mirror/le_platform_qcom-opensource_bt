@@ -15,17 +15,6 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 PKG_PROG_PKG_CONFIG
 
-# Library configs
-AC_ARG_WITH([common_includes],
-      AC_HELP_STRING([--with-common-includes=@<:@dir@:>@],
-         [Specify the location of the common headers]),
-      [common_incdir=$withval],
-      with_common_includes=no)
-
-if test "x$with_common_includes" != "xno"; then
-   CFLAGS="${CFLAGS} -I${common_incdir}"
-fi
-
 AC_ARG_WITH([glib],
      AC_HELP_STRING([--with-glib],
         [enable glib, building HLOS systems which use glib]))
@@ -46,5 +35,6 @@ AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
 
 AC_SUBST([CFLAGS])
 AC_SUBST([CC])
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile \
+                 obex.pc])
 AC_OUTPUT
