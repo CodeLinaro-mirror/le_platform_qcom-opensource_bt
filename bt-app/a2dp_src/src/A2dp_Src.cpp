@@ -1647,11 +1647,16 @@ static void scmst_capabalities_vendor_callback(bt_bdaddr_t *bd_addr, bool scmst_
     }
 }
 
+static void bta2dp_avdt_cap_callback(const RawAddress& bd_addr, uint8_t seid, uint16_t psc_mask) {
+    ALOGD(LOGTAG_A2DP " bta2dp_avdt_cap_callback seid:%d", seid);
+}
+
 static btav_source_callbacks_t sBluetoothA2dpSourceCallbacks = {
     sizeof(sBluetoothA2dpSourceCallbacks),
     bta2dp_connection_state_callback,
     bta2dp_audio_state_callback,
     bta2dp_audio_config_callback,
+    bta2dp_avdt_cap_callback,
 };
 
 static btav_vendor_callbacks_t sBluetoothA2dpSourceVendorCallbacks = {
