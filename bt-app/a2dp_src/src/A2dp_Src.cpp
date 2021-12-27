@@ -1345,12 +1345,20 @@ void update_src_codec_config(btav_codec_config_t *src_codec_cnfg, btav_a2dp_code
       src_codec_cnfg->sbc_config.samp_freq = SBC_SAMP_FREQ_NONE;
       break;
     }
+    ALOGD(LOGTAG_A2DP "channel_mode : ",codec_cfg.channel_mode);
+
     switch(codec_cfg.channel_mode){
       case BTAV_A2DP_CODEC_CHANNEL_MODE_MONO:
       src_codec_cnfg->sbc_config.ch_mode = SBC_CH_MONO;
       break;
       case BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO:
+      src_codec_cnfg->sbc_config.ch_mode = SBC_CH_STEREO;
+      break;
+      case BTAV_A2DP_CODEC_CHANNEL_MODE_JOINT:
       src_codec_cnfg->sbc_config.ch_mode = SBC_CH_JOINT;
+      break;
+      case BTAV_A2DP_CODEC_CHANNEL_MODE_DUAL:
+      src_codec_cnfg->sbc_config.ch_mode = SBC_CH_DUAL;
       break;
       default:
       src_codec_cnfg->sbc_config.ch_mode = SBC_CH_NONE;
@@ -3927,6 +3935,10 @@ char * A2dp_Source::get_a2dp_channel_mode(uint8_t channeltype) {
             return "mono";
         case BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO:
             return "stereo";
+        case BTAV_A2DP_CODEC_CHANNEL_MODE_JOINT:
+            return "joint";
+        case BTAV_A2DP_CODEC_CHANNEL_MODE_DUAL:
+            return "dual";
     }
     return "NULL";
 }
