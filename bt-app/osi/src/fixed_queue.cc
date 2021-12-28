@@ -88,6 +88,7 @@ void fixed_queue_free(fixed_queue_t *queue, fixed_queue_free_cb free_cb) {
       free_cb(list_node(node));
 
   list_free(queue->list);
+  queue->list = NULL;
   semaphore_free(queue->enqueue_sem);
   semaphore_free(queue->dequeue_sem);
   pthread_mutex_destroy(&queue->lock);
@@ -114,6 +115,10 @@ void fixed_queue_enqueue(fixed_queue_t *queue, void *data) {
   assert(queue != NULL);
   assert(data != NULL);
 
+  if (NULL == queue->list) {
+    LOG_ERROR("%s:list already freed", __func__);
+    return;
+  }
   semaphore_wait(queue->enqueue_sem);
 
   pthread_mutex_lock(&queue->lock);
