@@ -755,13 +755,14 @@ void Gap::ProcessEvent(BtEvent* event) {
                   PostMessage(profile_config[profile_id].thread_id, bt_event);
                 }
               }
-                  bt_event = new BtEvent;
-                  bt_event->event_id = PROFILE_API_START;
-                  ALOGD(LOGTAG " sending start to Profile SPP CLIENT");
-                  PostMessage(THREAD_ID_SPP_CLIENT, bt_event);
-
-                  ALOGD(LOGTAG " sending start to Profile SPP SERVER");
-                  PostMessage(THREAD_ID_SPP_SERVER, bt_event);
+              bt_event = new BtEvent;
+              bt_event->event_id = PROFILE_API_START;
+              ALOGD(LOGTAG " sending start to Profile SPP CLIENT");
+              PostMessage(THREAD_ID_SPP_CLIENT, bt_event);
+              bt_event = new BtEvent;
+              bt_event->event_id = PROFILE_API_START;
+              ALOGD(LOGTAG " sending start to Profile SPP SERVER");
+              PostMessage(THREAD_ID_SPP_SERVER, bt_event);
 
             }
             break;
