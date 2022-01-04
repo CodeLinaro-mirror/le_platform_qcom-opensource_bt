@@ -1295,6 +1295,17 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         }
         if (out_stream != NULL) {
             pcm_buf_size = qahw_out_get_buffer_size(out_stream);
+
+            /* In case of callback mechanism, PCM Packet size is some times
+             * more then the qahw_out buffer size(3584).
+             * Intialize the pcm buffer size to 5120 so that once read callback is received
+             * whole decoded packet can be read from BT Stack at once.
+             */
+
+            if (pA2dpSinkStream->enable_notification_cb) {
+                pcm_buf_size = 5120;
+            }
+
             ALOGD(LOGTAG " pcm buf size %d", pcm_buf_size);
             /* pcm_buf is buffer that we read frm stack */
             if (pcm_buf == NULL) {
