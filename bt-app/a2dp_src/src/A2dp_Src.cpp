@@ -201,6 +201,8 @@ static std::vector<btav_a2dp_codec_config_t> a2dpSrcCodecList;
 #define SBC_PARAM_LEN 8
 #define NON_SBC_PARAM_LEN 3
 
+#define A2DP_AAC_MIN_BITRATE 64000       // 64 kbps
+
 static const char * valid_codecs[] = {
     "sbc",
     "aac",
@@ -301,6 +303,11 @@ static const char * valid_sbc_bitpool[] = {
 };
 
 
+static const char * valid_vbrSupported[] = {
+    "0",
+    "128",
+};
+
 /******************************************************************************
  * This structure defines the A2DP Sink variable.
  */
@@ -331,6 +338,8 @@ const A2DP_SRC_VARIABLE variable_list[] = {
       valid_sbc_allocation, _ARRAYSIZE(valid_sbc_allocation) },
     { "sbc bitpool", "Valid SBC Bitpool to Use",
       valid_sbc_bitpool, _ARRAYSIZE(valid_sbc_bitpool) },
+    { "aac vbr support", "Valid vbr support to Use",
+      valid_vbrSupported, _ARRAYSIZE(valid_vbrSupported) },
 };
 
 /******************************************************************************
@@ -571,6 +580,55 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs){
                 }
                 break;
             case BTAV_A2DP_CODEC_INDEX_SOURCE_AAC:
+                /* check number of parameters passed are ok or not */
+                if (j + NON_SBC_PARAM_LEN > codec_params_list_size + 1) {
+                    fprintf(stdout, "Invalid Codec Parameters passed\n");
+                    return false;
+                }
+                i = find_str_in_list(output_list[j], valid_freq,
+                    _ARRAYSIZE(valid_freq));
+                if (i >= _ARRAYSIZE(valid_freq)) {
+                    fprintf(stdout, "Invalid %s codec Sampling Freq: %s\n", valid_codecs[codec_config.codec_type], output_list[j]);
+                    print_help(&variable_list[1]);
+                    return false;
+                }
+                codec_config.sample_rate = static_cast<btav_a2dp_codec_sample_rate_t>(valid_freq_values[i]);
+                j++;
+                i = find_str_in_list(output_list[j], valid_bits_per_sample,
+                    _ARRAYSIZE(valid_bits_per_sample));
+                if (i >= _ARRAYSIZE(valid_bits_per_sample)) {
+                    fprintf(stdout, "Invalid %s Bits per sample: %s\n", valid_codecs[codec_config.codec_type], output_list[j]);
+                    print_help(&variable_list[2]);
+                    return false;
+                }
+                codec_config.bits_per_sample = static_cast<btav_a2dp_codec_bits_per_sample_t>(valid_bits_per_sample_values[i]);
+                j++;
+                i = find_str_in_list(output_list[j], valid_channel,
+                    _ARRAYSIZE(valid_channel));
+                if (i >= _ARRAYSIZE(valid_channel)) {
+                    fprintf(stdout, "Invalid %s codec Channel Mode: %s\n", valid_codecs[codec_config.codec_type], output_list[j]);
+                    print_help(&variable_list[3]);
+                    return false;
+                }
+                codec_config.channel_mode = static_cast<btav_a2dp_codec_channel_mode_t>(valid_channel_values[i]);
+                j++;
+                i = find_str_in_list(output_list[j], valid_vbrSupported,
+                    _ARRAYSIZE(valid_vbrSupported));
+                if (i >= _ARRAYSIZE(valid_vbrSupported)) {
+                    fprintf(stdout, "Invalid %s vbrSupported Mode: %s\n", valid_codecs[codec_config.codec_type], output_list[j]);
+                    print_help(&variable_list[8]);
+                    return false;
+                }
+                codec_config.variableBitRateSupport = atoi(output_list[j]);
+                j++;
+                i = atoi(output_list[j]);
+                if (i < A2DP_AAC_MIN_BITRATE) {
+                    fprintf(stdout, "Invalid %s bit rate : %s try above 64 kbps \n", valid_codecs[codec_config.codec_type], output_list[j]);
+                    return false;
+                }
+                codec_config.bitRate = i;
+                j++;
+                break;
             case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX:
             case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_HD:
             case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE:
