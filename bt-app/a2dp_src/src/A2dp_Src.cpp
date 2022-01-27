@@ -259,9 +259,9 @@ static const char * valid_channel[] = {
 
 static uint8_t valid_channel_values[] = {
   BTAV_A2DP_CODEC_CHANNEL_MODE_MONO,
+  BTAV_A2DP_CODEC_CHANNEL_MODE_DUAL,
   BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO,
-  BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO,
-  BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO,
+  BTAV_A2DP_CODEC_CHANNEL_MODE_JOINT,
 };
 
 static const char * valid_sbc_blocks[] = {
