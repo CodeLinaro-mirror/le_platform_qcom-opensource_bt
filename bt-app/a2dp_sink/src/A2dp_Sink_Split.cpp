@@ -820,6 +820,16 @@ void BtA2dpSinkSplitMsgHandler(void *msg) {
                 }
             }
             break;
+        case A2DP_SINK_SPLIT_SET_TTP_RANGE:
+            if(pA2dpSinkSplit) {
+                if (pA2dpSinkSplit->sBtA2dpSinkVendorInterface != NULL) {
+                    ALOGD(LOGTAG " set ttp range for aptx ad in stack");
+                    ALOGD(LOGTAG " min %d max %d",pEvent->a2dpSinkEvent.arg1,pEvent->a2dpSinkEvent.arg2);
+                    pA2dpSinkSplit->sBtA2dpSinkVendorInterface->set_ttp_range_for_aptx_ad(pEvent->
+                            a2dpSinkEvent.arg1, pEvent->a2dpSinkEvent.arg2);
+                }
+            }
+            break;
         default:
             if(pA2dpSinkSplit) {
                pA2dpSinkSplit->EventManager(( BtEvent *) msg, pEvent->a2dpSinkEvent.bd_addr);

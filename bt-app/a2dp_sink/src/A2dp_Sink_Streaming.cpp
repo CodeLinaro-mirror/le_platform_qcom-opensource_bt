@@ -634,6 +634,9 @@ void A2dp_Sink_Streaming::send_to_out_write() {
             if (q_bytes_left <= audio_frag_bytes_left) {
                 /* deque whole packet and write to audioFragment buffer */
                 p_data_q_buf = (tBT_SINK_DQ_DATA_HDR *)fixed_queue_try_dequeue(CompressDataQ);
+                if(p_data_q_buf == NULL) {
+                    break;
+                }
                 p_src = (uint8_t*)(p_data_q_buf + 1) + p_data_q_buf->offset;
                 p_dest = (uint8_t*)(audioFragment + 1) + audioFragment->len;
                 memcpy(p_dest, p_src, q_bytes_left);
@@ -1293,6 +1296,17 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         }
         if (out_stream != NULL) {
             pcm_buf_size = qahw_out_get_buffer_size(out_stream);
+
+            /* In case of callback mechanism, PCM Packet size is some times
+             * more then the qahw_out buffer size(3584).
+             * Intialize the pcm buffer size to 5120 so that once read callback is received
+             * whole decoded packet can be read from BT Stack at once.
+             */
+
+            if (pA2dpSinkStream->enable_notification_cb) {
+                pcm_buf_size = 5120;
+            }
+
             ALOGD(LOGTAG " pcm buf size %d", pcm_buf_size);
             /* pcm_buf is buffer that we read frm stack */
             if (pcm_buf == NULL) {

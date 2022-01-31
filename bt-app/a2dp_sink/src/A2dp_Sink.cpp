@@ -508,6 +508,9 @@ void BtA2dpSinkMsgHandler(void *msg) {
             if (num_codec_configs)
                 pA2dpSink->UpdateSupportedCodecs(num_codec_configs);
             break;
+        case A2DP_SINK_SPLIT_SET_TTP_RANGE:
+            ALOGE(LOGTAG " command works in split usecase only");
+            break;
         default:
             if(pA2dpSink) {
                pA2dpSink->EventManager(( BtEvent *) msg, pEvent->a2dpSinkEvent.bd_addr);
@@ -1234,7 +1237,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
                     memcmp(&pA2dpSinkStream->mStreamingDevice, &iter->mDevice, sizeof(bt_bdaddr_t)))
             {
                 ALOGD(LOGTAG " another dev started streaming, pause previous one");
-                if (pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
+                if (pA2dpSinkStream && pA2dpSinkStream->codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
                     pA2dpSinkStream->StopDataFetchTimer();
                     sBtA2dpSinkVendorInterface->update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
                     ALOGI(LOGTAG "in %s : StopDataFetchTimer() for dualsink SBC codec", __func__);
