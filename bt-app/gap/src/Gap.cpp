@@ -366,6 +366,7 @@ static void DidInfoCb(tSDP_DI_GET_RECORD di_rec) {
      ALOGV (LOGTAG " client_executable_url:%s :", di_rec.rec.client_executable_url);
      ALOGV (LOGTAG " primary_record:%s :", di_rec.rec.service_description);
      ALOGV (LOGTAG " primary_record:%s :", di_rec.rec.documentation_url);
+     ALOGV (LOGTAG " DID info result :%d :", di_rec.status);
      ALOGV (LOGTAG "----------------FINISH--------------");
      fprintf(stdout, "\n*****************DidInfoCb*******************\n");
      fprintf(stdout, " spec_id:0x%x :\n", di_rec.spec_id);
@@ -377,6 +378,7 @@ static void DidInfoCb(tSDP_DI_GET_RECORD di_rec) {
      fprintf(stdout, " client_executable_url:%s :\n", di_rec.rec.client_executable_url);
      fprintf(stdout, " service_description:%s :\n", di_rec.rec.service_description);
      fprintf(stdout, " documentation_url:%s :\n", di_rec.rec.documentation_url);
+     fprintf(stdout, " DID info result :%d :\n", di_rec.status);
      fprintf(stdout, "\n*****************FINISH*******************\n");
 
 }
