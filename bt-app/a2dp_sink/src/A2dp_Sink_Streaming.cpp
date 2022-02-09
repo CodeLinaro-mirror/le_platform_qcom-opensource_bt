@@ -475,7 +475,8 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 wait_for_mm_callback = false;
                 break;
             }
-            if(pA2dpSinkStream->compress_timer_stoped) {
+            /* Verify compress_timer_stoped state, when callback mechanism is disabled */
+            if(pA2dpSinkStream->compress_timer_stoped && !pA2dpSinkStream->enable_notification_cb) {
                 /* if timer is not scheduled, then pause/suspend might have been triggered
                  *  we are no longer waiting or callback, and lets bail out */
                 wait_for_mm_callback = false;
@@ -1295,6 +1296,17 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         }
         if (out_stream != NULL) {
             pcm_buf_size = qahw_out_get_buffer_size(out_stream);
+
+            /* In case of callback mechanism, PCM Packet size is some times
+             * more then the qahw_out buffer size(3584).
+             * Intialize the pcm buffer size to 5120 so that once read callback is received
+             * whole decoded packet can be read from BT Stack at once.
+             */
+
+            if (pA2dpSinkStream->enable_notification_cb) {
+                pcm_buf_size = 5120;
+            }
+
             ALOGD(LOGTAG " pcm buf size %d", pcm_buf_size);
             /* pcm_buf is buffer that we read frm stack */
             if (pcm_buf == NULL) {
