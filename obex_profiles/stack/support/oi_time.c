@@ -132,6 +132,7 @@ OI_BOOL  OI_Time_NowReachedTime(OI_TIME *pTargetTime)
 {
     OI_TIME now;
 
+    memset(&now, 0x00, sizeof(now));
     OI_Time_Now(&now);
     return(OI_Time_Compare(&now, pTargetTime) >= 0);
 }
