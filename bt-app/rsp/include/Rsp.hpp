@@ -39,6 +39,7 @@
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "osi/include/allocator.h"
+#include "osi/include/alarm.h"
 #include "ipc.h"
 #include "Rsp.hpp"
 #include "Gatt.hpp"
@@ -78,6 +79,7 @@ class Rsp {
         Gatt *app_gatt;
 
     public:
+        alarm_t *generic_timer;
         Rsp(btgatt_interface_t *, Gatt *);
         ~Rsp();
 
@@ -162,6 +164,15 @@ class Rsp {
         {
             return &conn_data;
         }
+
+	inline void update_conn_parameters(int min_interval, int max_interval, int latency, int timeout)
+	{
+	    if(app_gatt && conn_data.connected) {
+	        fprintf(stdout, "%s: 0x%x 0x%x 0x%x 0x%x\n", __func__, min_interval, max_interval, latency, timeout);
+		app_gatt->conn_parameter_update(&conn_data.bda, min_interval, max_interval, latency, timeout);
+	    }
+	}
+
         bool SendResponse(GattsRequestWriteEvent *);
         bool CopyUUID(bt_uuid_t *);
         bool CopyCharacteristicsUUID(bt_uuid_t *);
