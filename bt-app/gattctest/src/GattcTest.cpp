@@ -280,7 +280,7 @@ class gattctestClientCallback:public GattClientCallback
               "write successfully finished");
             fprintf(stdout, "Sending prepare write after 1st prepare "
               "write successfully finished\n");
-            uint8_t tmp_ch[10] = {0};
+            uint8_t tmp_ch[11] = {0};
             int i;
             for (i = 0; i < 10; i++)
               tmp_ch[i] = PREPARE_WRITE_NEXT_DATA;

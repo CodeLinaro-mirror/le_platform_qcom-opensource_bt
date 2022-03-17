@@ -1195,6 +1195,7 @@ bool GattsTest::EnablePeriodicAdvertising(bool enable)
 {
   ALOGD(LOGTAG"%s ", __FUNCTION__);
   mAdvertisingSet->setPeriodicAdvertisingEnabled(enable);
+  return true;
 }
 
 void GattsTest::CancelConnection(string remoteAddress)

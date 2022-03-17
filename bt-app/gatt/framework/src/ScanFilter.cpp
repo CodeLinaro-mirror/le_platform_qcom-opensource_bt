@@ -29,7 +29,7 @@ static bool maskedEquals128Bit(Uuid uuid, Uuid mask)
 {
   Uuid::UUID128Bit uuid128Bit = uuid.To128BitBE();
   Uuid::UUID128Bit mask128Bit = mask.To128BitBE();
-  bool res;
+  bool res = true;
   for (int i = 0; i < Uuid::kNumBytes128; i++)
     res &= uuid128Bit[i] & mask128Bit[i];
 
@@ -42,7 +42,7 @@ static bool maskedEquals32Bit(Uuid uuid, Uuid mask)
   std::array<uint8_t,Uuid::kNumBytes32> uuid32Bit = uuid.As32BitBE();
   // this returns big endian representation
   std::array<uint8_t,Uuid::kNumBytes32> mask32Bit = mask.As32BitBE();
-  bool res;
+  bool res  = true;
   for (int i = 0; i < Uuid::kNumBytes32; i++)
     res &= uuid32Bit[i] & mask32Bit[i];
 
@@ -55,7 +55,7 @@ static bool maskedEquals16Bit(Uuid uuid, Uuid mask)
   std::array<uint8_t,Uuid::kNumBytes16> uuid16Bit= uuid.As16BitBE();
   // this returns big endian representation
   std::array<uint8_t,Uuid::kNumBytes16> mask16Bit = mask.As16BitBE();
-  bool res;
+  bool res = true;
   for (int i = 0; i < Uuid::kNumBytes16; i++)
     res &= uuid16Bit[i] & mask16Bit[i];
 

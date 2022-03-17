@@ -1292,6 +1292,9 @@ uint32_t A2dp_Sink_Streaming::ReadInputStream(uint8_t* data, uint32_t size)
     data_read = qahw_in_read(input_stream, &in_buf);;
     ALOGD(LOGTAG " A2dp Input Stream bytes read = %d", data_read);
     return data_read;
+#else
+    ALOGE(LOGTAG "%s: ERROR: BT_AUDIO_HAL_INTEGRATION is not defined", __func__);
+    return 0;
 #endif
 }
 
@@ -1306,6 +1309,9 @@ uint32_t A2dp_Sink_Streaming::GetInputStreamBufferSize()
     }
     return qahw_in_get_buffer_size(input_stream);
     ALOGD(LOGTAG " GetInputStreamBufferSize %d ");
+#else
+   ALOGE(LOGTAG "%s: ERROR: BT_AUDIO_HAL_INTEGRATION is not defined", __func__);
+   return 0;
 #endif
 }
 
