@@ -1245,7 +1245,7 @@ void Opp :: AddSdpRecord()
     memset(sdp_search_event->sdp_client_event.record.ops.supported_formats_list,
         0, sizeof(OPP_FORMAT_ALL));
     memcpy(sdp_search_event->sdp_client_event.record.ops.supported_formats_list,
-        OPP_FORMAT_ALL, 7 * sizeof(OPP_FORMAT_ALL));
+        OPP_FORMAT_ALL,  sizeof(OPP_FORMAT_ALL));
     sdp_search_event->sdp_client_event.record.ops.supported_formats_list_len =
         sizeof(OPP_FORMAT_ALL);
     sdp_search_event->sdp_client_event.addRecordCb = &sdp_add_record_callback;

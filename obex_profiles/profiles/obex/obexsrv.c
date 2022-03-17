@@ -2638,7 +2638,8 @@ static OI_STATUS ConnectCommand(OBEXSRV_CONNECTION *connection,
                 status = OI_OBEXSRV_AcceptConnect(connection->common.connectionHandle, TRUE, OI_OK, NULL);
             }
             if (OI_SUCCESS(status)) {
-                return status;
+              connection->common.pRawHeaders = NULL;
+              return status;
             } else {
                 OI_SLOG_ERROR(status, ("OBEX server could not accept connection"));
                 goto ConnectError;
