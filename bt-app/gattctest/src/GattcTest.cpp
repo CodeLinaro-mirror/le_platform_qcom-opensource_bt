@@ -248,10 +248,6 @@ class gattctestClientCallback : public BluetoothGattClientCallback
                 osi_free (gattctestAlertData->char_id);
                 gattctestAlertData->char_id = NULL;
             }
-            if (gattctestAlertData->descr_id != NULL) {
-                osi_free (gattctestAlertData->descr_id);
-                gattctestAlertData->descr_id = NULL;
-            }
             osi_free(gattctestAlertData);
             gattctestAlertData = NULL;
         }

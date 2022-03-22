@@ -36,6 +36,12 @@
 Rsp *rsp = NULL;
 int serverif, clientif;
 
+static void rsp_update_con_par_handler(void *context)
+{
+	if(rsp)
+	    rsp->update_conn_parameters(36, 40, 0, 2000);
+}
+
 class clientCallback : public BluetoothGattClientCallback
 {
    public:
@@ -269,6 +275,7 @@ class serverCallback :public BluetoothGattServerCallback
                if (connected)
                {
                    rsp->StopAdvertisement();
+		   alarm_set(rsp->generic_timer, 2500, rsp_update_con_par_handler, NULL);
                }
            }
       }
@@ -429,6 +436,7 @@ Rsp::Rsp(btgatt_interface_t *gatt_itf, Gatt* gatt)
     fprintf(stdout,"rsp instantiated ");
     gatt_interface = gatt_itf;
     app_gatt = gatt;
+    generic_timer = NULL;
 
     GattsRegisterAppEvent* p_app_if = GetRSPAppData();
     memset(p_app_if, 0, sizeof(GattsRegisterAppEvent));
@@ -438,6 +446,8 @@ Rsp::Rsp(btgatt_interface_t *gatt_itf, Gatt* gatt)
 
     GattsDescriptorAddedEvent* p_desc_data = GetRSPDescriptorData();
     memset(p_desc_data, 0, sizeof(GattsDescriptorAddedEvent));
+
+    generic_timer = alarm_new();
 }
 
 
@@ -452,6 +462,10 @@ Rsp::~Rsp()
 
     GattsDescriptorAddedEvent* p_desc_data = GetRSPDescriptorData();
 
+    if (generic_timer) {
+        alarm_free(generic_timer);
+        generic_timer = NULL;
+    }
 }
 
 bool Rsp::CopyUUID(bt_uuid_t *uuid)
@@ -627,6 +641,7 @@ bool Rsp::DisableRSP()
 {
     fprintf(stdout, "(%s) Disable RSP Initiated",__FUNCTION__);
     StopService();
+    alarm_cancel(generic_timer);
     return true;
 }
 
