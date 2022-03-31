@@ -356,7 +356,10 @@ static void VendorA2DPTxCompleteCb(bt_bdaddr_t *bd_addr, bool flush) {
      * ************************************************************************************/
 }
 static void DidInfoCb(tSDP_DI_GET_RECORD di_rec) {
+     char str[18];
+     bdaddr_to_string(&di_rec.bd_addr,str,18);
      ALOGV (LOGTAG " DidInfoCb :");
+     ALOGV (LOGTAG " MAC addreess:%s",str);
      ALOGV (LOGTAG " spec_id:0x%x :", di_rec.spec_id);
      ALOGV (LOGTAG " vendor:0x%x :", di_rec.rec.vendor);
      ALOGV (LOGTAG " vendor_id_source:0x%x :", di_rec.rec.vendor_id_source);
@@ -369,6 +372,7 @@ static void DidInfoCb(tSDP_DI_GET_RECORD di_rec) {
      ALOGV (LOGTAG " DID info result :%d :", di_rec.status);
      ALOGV (LOGTAG "----------------FINISH--------------");
      fprintf(stdout, "\n*****************DidInfoCb*******************\n");
+     fprintf(stdout, " MAC address:%s\n",str);
      fprintf(stdout, " spec_id:0x%x :\n", di_rec.spec_id);
      fprintf(stdout, " vendor:0x%x :\n", di_rec.rec.vendor);
      fprintf(stdout, " vendor_id_source:0x%x :\n", di_rec.rec.vendor_id_source);
