@@ -757,15 +757,6 @@ void Gap::ProcessEvent(BtEvent* event) {
                   PostMessage(profile_config[profile_id].thread_id, bt_event);
                 }
               }
-              bt_event = new BtEvent;
-              bt_event->event_id = PROFILE_API_START;
-              ALOGD(LOGTAG " sending start to Profile SPP CLIENT");
-              PostMessage(THREAD_ID_SPP_CLIENT, bt_event);
-              bt_event = new BtEvent;
-              bt_event->event_id = PROFILE_API_START;
-              ALOGD(LOGTAG " sending start to Profile SPP SERVER");
-              PostMessage(THREAD_ID_SPP_SERVER, bt_event);
-
             }
             break;
         case PROFILE_EVENT_START_DONE:
@@ -1132,6 +1123,10 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
             this->profile_config[profile_id].thread_id = THREAD_ID_AVRCP;
         else if(profile_id == PROFILE_ID_HID)
             this->profile_config[profile_id].thread_id = THREAD_ID_HID;
+        else if(profile_id == PROFILE_ID_SPP_SERVER)
+            this->profile_config[profile_id].thread_id = THREAD_ID_SPP_SERVER;
+        else if(profile_id == PROFILE_ID_SPP_CLIENT)
+            this->profile_config[profile_id].thread_id = THREAD_ID_SPP_CLIENT;
     }
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED_STRING, false);
@@ -1173,7 +1168,10 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
     this->profile_config[PROFILE_ID_OPP].is_enabled = config_get_bool (config,
                  CONFIG_DEFAULT_SECTION, BT_OPP_ENABLED, false);
 #endif
-
+    this->profile_config[PROFILE_ID_SPP_SERVER].is_enabled = config_get_bool (config,
+                 CONFIG_DEFAULT_SECTION, BT_SPP_SERVER_ENABLED, false);
+    this->profile_config[PROFILE_ID_SPP_CLIENT].is_enabled = config_get_bool (config,
+                 CONFIG_DEFAULT_SECTION, BT_SPP_CLIENT_ENABLED, false);
     for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
                                                             profile_id++) {
         if(this->profile_config[profile_id].is_enabled) {

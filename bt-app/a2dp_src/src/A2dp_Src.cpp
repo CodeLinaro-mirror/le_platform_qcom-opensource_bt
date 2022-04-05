@@ -221,6 +221,8 @@ static uint8_t valid_codec_values[] = {
 };
 
 static const char * valid_freq[] = {
+    "16",
+    "32",
     "44.1",
     "48",
     "88.2",
@@ -229,7 +231,9 @@ static const char * valid_freq[] = {
     "192",
 };
 
-static uint8_t valid_freq_values[] = {
+static uint16_t valid_freq_values[] = {
+  BTAV_A2DP_CODEC_SAMPLE_RATE_16000,
+  BTAV_A2DP_CODEC_SAMPLE_RATE_32000,
   BTAV_A2DP_CODEC_SAMPLE_RATE_44100,
   BTAV_A2DP_CODEC_SAMPLE_RATE_48000,
   BTAV_A2DP_CODEC_SAMPLE_RATE_88200,
@@ -1393,6 +1397,12 @@ void update_src_codec_type(uint16_t *src_codec_tp, btav_a2dp_codec_index_t codec
 
 void update_src_codec_config(btav_codec_config_t *src_codec_cnfg, btav_a2dp_codec_config_t codec_cfg){
     switch(codec_cfg.sample_rate){
+      case BTAV_A2DP_CODEC_SAMPLE_RATE_16000:
+      src_codec_cnfg->sbc_config.samp_freq = SBC_SAMP_FREQ_16;
+      break;
+      case BTAV_A2DP_CODEC_SAMPLE_RATE_32000:
+      src_codec_cnfg->sbc_config.samp_freq = SBC_SAMP_FREQ_32;
+      break;
       case BTAV_A2DP_CODEC_SAMPLE_RATE_44100:
       src_codec_cnfg->sbc_config.samp_freq = SBC_SAMP_FREQ_44;
       break;
@@ -3949,6 +3959,12 @@ char * A2dp_Source::get_a2dp_codec_type(uint8_t codectype) {
 uint32_t A2dp_Source::get_a2dp_sampling_rate(uint8_t frequency) {
     uint32_t freq = 999;
     switch (frequency) {
+        case BTAV_A2DP_CODEC_SAMPLE_RATE_16000:
+            freq = 16000;
+            break;
+        case BTAV_A2DP_CODEC_SAMPLE_RATE_32000:
+            freq = 32000;
+            break;
         case BTAV_A2DP_CODEC_SAMPLE_RATE_44100:
             freq = 44100;
             break;

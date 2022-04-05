@@ -732,10 +732,6 @@ void Spp_Client::HandleEnableClient(void) {
     pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
     pEvent->profile_start_event.profile_id = PROFILE_ID_SPP_CLIENT;
     PostMessage(THREAD_ID_GAP, pEvent);
-
-    BtEvent *pStartThrdsEvent = new BtEvent;
-    pStartThrdsEvent->spp_cli_event.event_id = SPP_CLI_START_THREADS;
-    PostMessage (THREAD_ID_SPP_CLIENT, pStartThrdsEvent);
 }
 
 
@@ -831,12 +827,14 @@ void Spp_Client::state_active_handler(BtEvent* pEvent) {
 
         case SPP_CLI_START_THREADS:
             {
-                start_send_recv_threads();
+                //donothing
             }
             break;
 
         case SPP_CLI_CONNECT:
             {
+                //start the threads
+                start_send_recv_threads();
                 connect(pEvent->spp_cli_event.bd_addr);
             }
             break;
@@ -1108,6 +1106,7 @@ Spp_Client :: Spp_Client(const bt_interface_t *bt_interface, config_t *config) {
 }
 
 Spp_Client :: ~Spp_Client() {
+    ALOGD(LOGTAG_SPP_CLIENT " Spp_Client destructor");
     change_state(STATE_SPP_CLIENT_INACTIVE);
     pthread_mutex_destroy(&lock);
 }

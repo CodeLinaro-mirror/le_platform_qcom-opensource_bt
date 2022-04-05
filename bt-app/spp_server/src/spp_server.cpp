@@ -105,8 +105,9 @@ void BtSppServerMsgHandler(void *msg) {
 
         case PROFILE_API_START:
             {
+                ALOGD(LOGTAG_SPP_SERVER "Enable spp server");
                 BtEvent *pEvent = new BtEvent;
-
+                pEvent->profile_start_event.status = true;
                 pEvent->profile_start_event.event_id = PROFILE_EVENT_START_DONE;
                 pEvent->profile_start_event.profile_id = PROFILE_ID_SPP_SERVER;
                 PostMessage(THREAD_ID_GAP, pEvent);
