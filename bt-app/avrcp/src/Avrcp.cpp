@@ -43,6 +43,7 @@
 #include "A2dp_Sink_Split.hpp"
 #include <math.h>
 #include <algorithm>
+#include <cutils/properties.h>
 
 #define LOGTAG "AVRCP"
 #define LOGTAG_CTRL "AVRCP_CTRL"
@@ -57,6 +58,8 @@ extern A2dp_Sink *pA2dpSink;
 extern A2dp_Sink_Split *pA2dpSinkSplit;
 
 static bool is_a2dp_sink_split_enabled;
+static bool whitelist_device = false;
+static bool guard_pause = false;
 
 #define PLAY_STATUS_TIMER_DURATION 3000
 
@@ -184,7 +187,8 @@ static void btavrcpctrl_passthru_rsp_vendor_callback(int id, int key_state, bt_b
     ALOGD(LOGTAG_CTRL " btavrcpctrl_passthru_rsp_vendor_callback id = %d key_state = %d",
             id, key_state);
     if ((!is_a2dp_sink_split_enabled) && id == CMD_ID_PAUSE && key_state == 1 &&
-            !memcmp(&pA2dpSinkStream->mStreamingDevice, bd_addr, sizeof(bt_bdaddr_t)))
+         !memcmp(&pA2dpSinkStream->mStreamingDevice, bd_addr, sizeof(bt_bdaddr_t)) &&
+             !whitelist_device)
     {
         ALOGD(LOGTAG_CTRL " need to flush both stack queue and audio queue ");
         BtEvent *pFlushAudioPackets = new BtEvent;
@@ -892,10 +896,17 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
             if (!is_a2dp_sink_split_enabled && pA2dpSinkStream) {
                 if (!memcmp(&pA2dpSinkStream->mStreamingDevice, &pEvent->avrcpCtrlPassThruEvent.bd_addr, sizeof(bt_bdaddr_t))) {
                     if (pEvent->avrcpCtrlPassThruEvent.key_id == CMD_ID_PAUSE) {
-                        pA2dpSinkStream->StopDataFetchTimer();
-                        ALOGD("AVRCP_PAUSE, starting suspend_wait_timer");
+                      // Few devices will send smaller size packets after pause.
+                      // These packets may lead to audio gap in the actual music
+                      // after play. so ignore pause command for those devices
+                      // and don't stop compress audio timer.
+                      guard_pause = true;
+                      if (!whitelist_device) {
+                          pA2dpSinkStream->StopDataFetchTimer();
+                          guard_pause = false;
+                        }
                         pA2dpSinkStream->StartRemoteSuspendWaitTimer();
-                        ALOGD(LOGTAG_CTRL "in %s : pA2dpSinkStream->StopDataFetchTimer()", __func__);
+                        ALOGD(LOGTAG_CTRL "in %s : pA2dpSinkStream->StopDataFetchTimer() guard_pause:%d", __func__, guard_pause);
                         fprintf(stdout, LOGTAG_CTRL "in %s : pA2dpSinkStream->StopDataFetchTimer()\n", __func__);
                     }
                     else if (pEvent->avrcpCtrlPassThruEvent.key_id == CMD_ID_PLAY) {
@@ -909,7 +920,8 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
                                pA2dpSinkStream->StartCompressAudioFeedTimer();
                            }
 #if defined(BT_AUDIO_HAL_INTEGRATION)
-                           qahw_out_resume(pA2dpSinkStream->out_stream);
+                           if (!guard_pause)
+                              qahw_out_resume(pA2dpSinkStream->out_stream);
 #endif
                         }
                     }
@@ -1266,6 +1278,7 @@ void Avrcp::StopGetPlayStatusTimer() {
 }
 
 void Avrcp::HandleEnableAvrcp(void) {
+    char value[PROPERTY_VALUE_MAX] = {'\0'};
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG_CTRL " HandleEnableAvrcp ");
 
@@ -1277,6 +1290,12 @@ void Avrcp::HandleEnableAvrcp(void) {
                                     "BtA2dpSinkSplitEnable", false);
     get_play_status = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                        "BtAvrcpCTGetPlayStatus", true);
+    //Enable below property for devices, which send smaller size packets
+    //after the pause command is sent.
+    property_get("vendor.bt.a2dp.whitelist.device", value, "false");
+    ALOGD(LOGTAG_CTRL " HandleEnableAvrcp  whitelist Enabled: %s", value);
+    if (strcmp(value, "false") != 0)
+       whitelist_device = true;
 
     if (bluetooth_interface != NULL)
     {
