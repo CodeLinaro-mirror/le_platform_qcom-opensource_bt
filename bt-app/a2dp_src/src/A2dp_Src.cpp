@@ -3246,12 +3246,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     break;
                 case CMD_ID_STOP:
                     /*Pause and Stop passthrough commands are handled here*/
-                    media_playing = false;
-                    if (playback_thread != NULL) {
-                        pthread_join(playback_thread, NULL);
-                        playback_thread = NULL;
-                    }
-                    BtA2dpStopStreaming();
+                    BtA2dpSuspendStreaming();
                     pA2dpSource->StopPlayPostionTimer();
                     if (playStatus != BTRC_PLAYSTATE_STOPPED)
                     {
