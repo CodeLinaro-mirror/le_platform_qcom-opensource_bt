@@ -48,6 +48,8 @@
 #include "osi/include/list.h"
 #include "osi/include/allocator.h"
 #include "A2dp_Sink_Streaming.hpp"
+#include "audio_a2dp_hw/include/audio_a2dp_hw.h"
+#include <mutex>
 
 #define LOGTAG_A2DP "A2DP_SRC "
 #define LOGTAG_AVRCP "AVRCP_TG "
@@ -130,6 +132,26 @@ bool bt_a2dp_split_enabled = false;
 audio_hw_device_t *a2dp_device = NULL;
 struct audio_stream_out *output_stream = NULL;
 static pthread_mutex_t a2dp_hal_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+struct a2dp_stream_out;
+
+struct a2dp_stream_common {
+  std::recursive_mutex* mutex;  // See note below on mutex acquisition order.
+  int ctrl_fd;
+  int audio_fd;
+  size_t buffer_sz;
+  struct a2dp_config cfg;
+  a2dp_state_t state;
+  tA2DP_LATENCY sink_latency;
+  uint8_t codec_cfg[MAX_CODEC_CFG_SIZE];
+};
+
+struct a2dp_stream_out {
+  struct audio_stream_out stream;
+  struct a2dp_stream_common common;
+  uint64_t frames_presented;  // frames written, never reset
+  uint64_t frames_rendered;   // frames written, reset on standby
+};
 
 typedef enum
 {
@@ -1452,6 +1474,7 @@ static void *thread_func(void *in_param)
     btav_codec_config_t snk_codec_cfg;
     uint16_t snk_codec_type;
     uint8_t tmpval;
+    struct a2dp_stream_out* out;
     ALOGD(LOGTAG_A2DP "Streaming thread started");
     if(!bt_a2dp_split_enabled) {
         pthread_mutex_lock(&a2dp_hal_mutex);
@@ -1460,6 +1483,7 @@ static void *thread_func(void *in_param)
             pthread_mutex_unlock(&a2dp_hal_mutex);
             return NULL;
         }
+        out = (struct a2dp_stream_out*)output_stream;
         out_buffer_size = output_stream->common.get_buffer_size(&output_stream->common);
         pthread_mutex_unlock(&a2dp_hal_mutex);
         if (out_buffer_size <= 0 || out_buffer_size > AUDIO_STREAM_OUTPUT_BUFFER_SZ) {
@@ -1557,6 +1581,13 @@ static void *thread_func(void *in_param)
                 continue;
             }
         }
+
+        if (out->common.state == AUDIO_A2DP_STATE_SUSPENDED || out->common.state == AUDIO_A2DP_STATE_STOPPING)
+        {
+           ALOGD(LOGTAG_A2DP"A2DP suspended no need to read/write");
+           continue;
+        }
+
         ALOGD(" relay %d",is_sink_relay_enabled);
         if(!is_sink_relay_enabled)
         {
@@ -1566,6 +1597,7 @@ static void *thread_func(void *in_param)
                  ALOGE(LOGTAG_A2DP "File stream is NULL!! ");
                  break;
              }
+             memset(buffer, 0, AUDIO_STREAM_OUTPUT_BUFFER_SZ);
              len = fread(buffer, out_buffer_size, 1, in_file);
              if (len == 0) {
                  ALOGD(LOGTAG_A2DP "Read %d bytes from file", len);
