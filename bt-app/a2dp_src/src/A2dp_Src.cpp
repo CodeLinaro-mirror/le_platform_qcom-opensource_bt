@@ -617,7 +617,8 @@ char* A2dp_Source::dump_message(BluetoothEventId event_id) {
 }
 
 void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG_A2DP "state_disconnected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SOURCE_API_CONNECT_REQ:
@@ -658,7 +659,8 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
     }
 }
 void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG_A2DP "state_pending_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SOURCE_CONNECTED_CB:
@@ -697,7 +699,8 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
 }
 
 void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     BtEvent *pControlRequest, *pReleaseControlReq;
     ALOGD(LOGTAG_A2DP "state_connected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {

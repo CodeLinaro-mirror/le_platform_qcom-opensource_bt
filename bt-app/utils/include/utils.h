@@ -15,6 +15,8 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+#ifndef BT_APP_UTILS_H
+#define BT_APP_UTILS_H
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -23,6 +25,10 @@
 #include <stdbool.h>
 
 #include "hash_map.h"
+
+#define MAX_BD_STR_LEN (18)
+
+extern const char bdaddr_empty[MAX_BD_STR_LEN];
 
 #ifdef __cplusplus
 extern "C"
@@ -44,4 +50,5 @@ bool string_to_bdaddr(const char *string, bt_bdaddr_t *addr);
 hash_index_t hash_function_bdaddr(const void *key);
 #ifdef __cplusplus
 }
+#endif
 #endif
