@@ -368,7 +368,7 @@ void gattstestServerCallback::onPhyUpdate(string deviceAddress,int txPhy, int rx
 
 void gattstestServerCallback::onPhyRead(string deviceAddress,int txPhy,int rxPhy,int status)
 {
-  fprintf(stdout,"%s deviceAddress: %s, txPhy: %d rxPhy: %d status: %d", __FUNCTION__,
+  fprintf(stdout,"%s - deviceAddress: %s, txPhy: %d rxPhy: %d status: %d \n", __FUNCTION__,
                                                     deviceAddress.c_str(), txPhy, rxPhy, status);
   ALOGD(LOGTAG"%s deviceAddress: %s, txPhy: %d rxPhy: %d status: %d",__FUNCTION__,
                                                     deviceAddress.c_str(), txPhy, rxPhy, status);
