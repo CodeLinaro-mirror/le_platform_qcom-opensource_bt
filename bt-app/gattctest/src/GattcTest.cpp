@@ -209,10 +209,19 @@ class gattctestClientCallback:public GattClientCallback
 
       if (status == GattClient::GATT_SUCCESS) {
         uint8_t *value = characteristic->getValue();
+        int valueLength =  characteristic->getValueLength();
+        uint8_t *strBytes = new uint8_t[valueLength+1];
+
+        std::memcpy(strBytes, value, valueLength);
+        strBytes[valueLength] = '\0';
+
         ALOGD(LOGTAG "onCharacteristicRead UUID %s, value is %s",
-            characteristic->getUuid().ToString().c_str(), value);
+            characteristic->getUuid().ToString().c_str(), strBytes);
         fprintf(stdout,"onCharacteristicRead UUID %s, value is %s\n",
-            characteristic->getUuid().ToString().c_str(), value);
+            characteristic->getUuid().ToString().c_str(), strBytes);
+
+        delete[] strBytes;
+
       } else if (status == GattClient::GATT_READ_NOT_PERMITTED) {
         ALOGE(LOGTAG "onCharacteristicRead error");
         fprintf(stdout, "onCharacteristicRead"
@@ -231,16 +240,22 @@ class gattctestClientCallback:public GattClientCallback
         GattCharacteristic *characteristic, int status)
     {
       ALOGD(LOGTAG "onCharacteristicWrite: characteristic.val %d", status);
-
       uint8_t *value = characteristic->getValue();
       Uuid uid = characteristic->getUuid();
 
       /* MTU change notification */
       if (status == GattClient::GATT_SUCCESS) {
+        int valueLength =  characteristic->getValueLength();
+        uint8_t *strBytes = new uint8_t[valueLength+1];
+        std::memcpy(strBytes, value, valueLength);
+        strBytes[valueLength] = '\0';
+
         ALOGE(LOGTAG "write characteristic uid %s, value:%s success",
-            uid.ToString().c_str(), value);
-        fprintf(stdout, "write characteristic uid %s, value:%s"
-            "==success\n", uid.ToString().c_str(), value);
+            uid.ToString().c_str(), strBytes);
+        fprintf(stdout, "write characteristic uid %s, value:%s\n"
+            "==success\n", uid.ToString().c_str(), strBytes);
+
+        delete[] strBytes;
       } else {
         ALOGE(LOGTAG "Failed to write characteristic: %d", status);
         fprintf(stdout,"Failed to write characteristic: %d\n", status);
