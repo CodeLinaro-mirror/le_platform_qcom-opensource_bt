@@ -347,6 +347,7 @@ void A2dp_Sink::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
         case A2DP_SINK_CONNECTED_CB:
             iter = FindDeviceByAddr(pA2dpDeviceList, dev);
             bdstr_t bd_str;
+            strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
             if (iter != pA2dpDeviceList.end())
             {
                 ALOGD(LOGTAG " found a match, donot alloc new");
@@ -471,8 +472,9 @@ char* A2dp_Sink::dump_message(BluetoothEventId event_id) {
 }
 
 void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
-    char str[18];
+    bdstr_t str;
     BtEvent *pOpenInputStream = NULL;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG "state_disconnected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SINK_API_CONNECT_REQ:
@@ -508,8 +510,9 @@ void A2dp_Sink::state_disconnected_handler(BtEvent* pEvent, list<A2dp_Device>::i
     }
 }
 void A2dp_Sink::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
-    char str[18];
+    bdstr_t str;
     BtEvent *pOpenInputStream = NULL;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG " state_pending_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SINK_CONNECTING_CB:
@@ -558,9 +561,10 @@ void A2dp_Sink::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::iterat
 }
 
 void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
-    char str[18];
+    bdstr_t str;
     uint32_t pcm_data_read = 0;
     BtEvent *pAMReleaseControl = NULL, *pCloseAudioStream = NULL, *pAMRequestControl = NULL;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG " state_connected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SINK_API_CONNECT_REQ:

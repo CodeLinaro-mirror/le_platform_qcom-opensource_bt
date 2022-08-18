@@ -18,6 +18,8 @@
 
 #include "utils.h"
 
+const char bdaddr_empty[MAX_BD_STR_LEN] = "00:00:00:00:00:00";
+
 bool bdaddr_is_empty(const bt_bdaddr_t *addr) {
   assert(addr != NULL);
 

@@ -27,6 +27,11 @@
 #include "Audio_Manager.hpp"
 #include "HfpAG.hpp"
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
+
 #define LOGTAG "HFP_AG "
 
 using namespace std;
@@ -462,7 +467,8 @@ void Hfp_Ag::ProcessEvent(BtEvent* pEvent) {
 }
 
 void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG "state_disconnected_handler Processing event %d", pEvent->event_id);
     fprintf(stdout, "state_disconnected_handler Processing event %d\n", pEvent->event_id);
     switch(pEvent->event_id) {
@@ -496,7 +502,8 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
     }
 }
 void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG "state_pending_handler Processing event %d", pEvent->event_id);
     fprintf(stdout, "state_pending_handler Processing event %d\n", pEvent->event_id);
     switch(pEvent->event_id) {
@@ -529,8 +536,9 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
 void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
     ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
     fprintf(stdout, "state_connected_handler Processing event = %d", pEvent->event_id);
-    char str[18];
+    bdstr_t str;
     BtEvent *pControlRequest, *pReleaseControlReq;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     switch(pEvent->event_id) {
         case HFP_AG_API_CONNECT_REQ: // TODO: handle connections to another device
             break;
@@ -812,8 +820,9 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 }
 
 void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
-    char str[18];
+    bdstr_t str;
     BtEvent *pControlRequest, *pReleaseControlReq;
+    strlcpy(str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG "state_audio_on_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_AG_API_DISCONNECT_REQ:

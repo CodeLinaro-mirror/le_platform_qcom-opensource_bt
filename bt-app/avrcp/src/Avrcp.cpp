@@ -265,6 +265,7 @@ void Avrcp::HandleAvrcpEvents(BtEvent* pEvent) {
     list<A2dp_Device>::iterator iter;
     bdstr_t bd_str;
     std::list<std::string>::iterator bdstring;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     ALOGD(LOGTAG_CTRL " HandleAvrcpEvents event = %s",
             dump_message(pEvent->avrcpCtrlEvent.event_id));
     switch(pEvent->avrcpCtrlEvent.event_id) {
