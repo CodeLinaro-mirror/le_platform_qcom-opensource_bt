@@ -369,8 +369,15 @@ class gattctestClientCallback:public GattClientCallback
         }
         uint8_t *des = descriptor->getValue();
         if(des != NULL) {
-          ALOGD(LOGTAG "(%s) DESCRIPTOR VALUE is %s", __FUNCTION__, des);
-          fprintf(stdout, " DESCRIPTOR VALUE is %s\n", des);
+          int valueLength =  descriptor->getValueLength();
+          uint8_t *strBytes = new uint8_t[valueLength+1];
+          std::memcpy(strBytes, des, valueLength);
+          strBytes[valueLength] = '\0';
+
+          ALOGD(LOGTAG "(%s) DESCRIPTOR VALUE is %s", __FUNCTION__, strBytes);
+          fprintf(stdout, " DESCRIPTOR VALUE is %s\n", strBytes);
+
+          delete[] strBytes;
         }
       } else if (status == GattClient::GATT_READ_NOT_PERMITTED) {
         ALOGE(LOGTAG "(%s) UUID READ NOT PERMITTED\n", __FUNCTION__);
