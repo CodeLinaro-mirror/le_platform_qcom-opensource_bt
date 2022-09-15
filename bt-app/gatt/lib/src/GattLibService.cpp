@@ -2822,7 +2822,7 @@ void GattLibService::HandleGattsRequestWriteCharacteristicEvent(
                                                        GattsRequestWriteCharacteristicEvent *event)
 {
   if (!sGattService) return;
-  uint8_t len = event->value->size();
+  size_t len = event->value->size();
   uint8_t *p_value = new uint8_t[len+1];
   if (len == 0) {
     ALOGE(LOGTAG "HandleGattsRequestWriteCharacteristicEvent () - Data is NULL");
@@ -2840,7 +2840,7 @@ void GattLibService::HandleGattsRequestWriteDescriptorEvent(
                                                       GattsRequestWriteDescriptorEvent *event)
 {
   if (!sGattService) return;
-  uint8_t len = event->value->size();
+  size_t len = event->value->size();
   uint8_t *p_value = new uint8_t[len+1];
   if (len == 0) {
     ALOGE(LOGTAG "HandleGattsRequestWriteDescriptorEvent () - Data is NULL");
