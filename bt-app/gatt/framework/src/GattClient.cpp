@@ -177,7 +177,7 @@ void GattClient::onSearchComplete(string address, std::vector<GattService*> serv
   }
 }
 
-void GattClient::onCharacteristicRead(string address, int status, int handle, uint8_t *value)
+void GattClient::onCharacteristicRead(string address, int status, int handle, uint8_t *value, int length)
 {
   ALOGD(LOGTAG " onCharacteristicRead() - Device %s handle %d status %d",
                       address.c_str(), handle, status);
@@ -227,7 +227,7 @@ void GattClient::onCharacteristicRead(string address, int status, int handle, ui
   }
 
   if (mCallback != NULL) {
-    if (status == 0) characteristic->setValue(value);
+    if (status == 0) characteristic->setValue(value, length);
     mCallback->onCharacteristicRead(this, characteristic, status);
   }
 }
@@ -263,7 +263,7 @@ void GattClient::onCharacteristicWrite(string address, int status, int handle)
       if(!mService)
         mService->writeCharacteristic(mClientIf, address, handle,
               characteristic->getWriteType(), authReq,
-              characteristic->getValue());
+              characteristic->getValue(), characteristic->getValueLength());
       mAuthRetryState++;
       return;
     } catch (std::exception& e) {
@@ -302,7 +302,7 @@ void GattClient::onExecuteWrite(string address, int status)
   }
 }
 
-void GattClient::onDescriptorRead(string address, int status, int handle, uint8_t *value)
+void GattClient::onDescriptorRead(string address, int status, int handle, uint8_t *value, int length)
 {
   ALOGD(LOGTAG " onDescriptorRead() - Device= %s handle %d",
           address.c_str(), handle);
@@ -348,7 +348,7 @@ void GattClient::onDescriptorRead(string address, int status, int handle, uint8_
   mAuthRetryState = AUTH_RETRY_STATE_IDLE;
 
   if (mCallback != NULL) {
-    if (status == 0) descriptor->setValue(value);
+    if (status == 0) descriptor->setValue(value, length);
     mCallback->onDescriptorRead(this, descriptor, status);
   }
 }
@@ -384,7 +384,7 @@ void GattClient::onDescriptorWrite(string address, int status, int handle)
 
       if(!mService)
         mService->writeDescriptor(mClientIf, address, handle,
-              authReq, descriptor->getValue());
+              authReq, descriptor->getValue(), descriptor->getValueLength());
       mAuthRetryState++;
       return;
     } catch (std::exception& e) {
@@ -403,7 +403,7 @@ void GattClient::onDescriptorWrite(string address, int status, int handle)
   }
 }
 
-void GattClient::onNotify(string address, int handle, uint8_t *value)
+void GattClient::onNotify(string address, int handle, uint8_t *value, int length)
 {
   ALOGD(LOGTAG " onNotify() - Device %s handle %d", address.c_str(), handle);
 
@@ -416,7 +416,7 @@ void GattClient::onNotify(string address, int handle, uint8_t *value)
   if (characteristic == NULL) return;
 
   if (mCallback != NULL) {
-    characteristic->setValue(value);
+    characteristic->setValue(value, length);
     mCallback->onCharacteristicChanged(this, characteristic);
   }
 }
@@ -971,7 +971,7 @@ bool GattClient::writeCharacteristic(GattCharacteristic &characteristic)
   try {
     mService->writeCharacteristic(mClientIf, mDevice,
             characteristic.getInstanceId(), characteristic.getWriteType(),
-            AUTHENTICATION_NONE, characteristic.getValue());
+            AUTHENTICATION_NONE, characteristic.getValue(), characteristic.getValueLength());
   } catch (std::exception& e) {
     ALOGE(LOGTAG " %s", e.what());
   {
@@ -1016,7 +1016,7 @@ bool GattClient::writeDescriptor(GattDescriptor &descriptor)
 
   try {
     mService->writeDescriptor(mClientIf, mDevice, descriptor.getInstanceId(),
-            AUTHENTICATION_NONE, descriptor.getValue());
+            AUTHENTICATION_NONE, descriptor.getValue(), descriptor.getValueLength());
   } catch (std::exception& e) {
     ALOGE(LOGTAG " %s", e.what());
   {

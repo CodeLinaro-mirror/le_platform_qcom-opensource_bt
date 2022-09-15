@@ -214,10 +214,10 @@ class GattLibService           {
     void readUsingCharacteristicUuid(int clientIf, string address, Uuid uuid,
                                               int startHandle, int endHandle, int authReq);
     void writeCharacteristic(int clientIf, string address, int handle, int writeType,
-                                   int authReq, uint8_t *value);
+                                   int authReq, uint8_t *value, int valueLength);
     void readDescriptor(int clientIf, string address, int handle, int authReq);
     void writeDescriptor(int clientIf, string address, int handle, int authReq,
-                             uint8_t *value);
+                             uint8_t *value, int valueLength);
     void beginReliableWrite(int clientIf, string address);
     void endReliableWrite(int clientIf, string address, bool execute);
     void registerForNotification(int clientIf, string address, int handle,
@@ -342,11 +342,11 @@ class GattLibService           {
     GattDbElement* getSampleGattDbElement();
     void onGetGattDb(int connId, std::vector<GattDbElement*> db);
     void onRegisterForNotifications(int connId, int status, int registered, int handle);
-    void onNotify(int connId, string address, int handle, bool isNotify, uint8_t *data);
-    void onReadCharacteristic(int connId, int status, int handle, uint8_t *data);
+    void onNotify(int connId, string address, int handle, bool isNotify, uint8_t *data, int length);
+    void onReadCharacteristic(int connId, int status, int handle, uint8_t *data, int length);
     void onWriteCharacteristic(int connId, int status, int handle);
     void onExecuteCompleted(int connId, int status);
-    void onReadDescriptor(int connId, int status, int handle, uint8_t *data);
+    void onReadDescriptor(int connId, int status, int handle, uint8_t *data, int length);
     void onWriteDescriptor(int connId, int status, int handle);
     void onReadRemoteRssi(int clientIf, string address, int rssi, int status);
     void onScanFilterEnableDisabled(int action, int status, int clientIf);

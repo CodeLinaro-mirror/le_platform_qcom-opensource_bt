@@ -83,7 +83,7 @@ class GattServerCallback {
     virtual void onCharacteristicWriteRequest(string deviceAddress, int requestId,
                                               GattCharacteristic *characteristic,
                                               bool preparedWrite, bool responseNeeded,
-                                              int offset, uint8_t *value){}
+                                              int offset, uint8_t *value, int length){}
 
     /**
      * A remote client has requested to read a local descriptor.
@@ -116,7 +116,7 @@ class GattServerCallback {
     virtual void onDescriptorWriteRequest(string deviceAddress, int requestId,
                                         GattDescriptor *descriptor,
                                         bool preparedWrite, bool responseNeeded,
-                                        int offset, uint8_t *value){}
+                                        int offset, uint8_t *value, int length){}
     /**
      * Execute all pending write operations for this device.
      *

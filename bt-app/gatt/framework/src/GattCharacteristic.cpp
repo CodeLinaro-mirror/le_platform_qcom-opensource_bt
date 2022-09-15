@@ -220,18 +220,27 @@ string GattCharacteristic::getStringValue(int offset)
   return std::string(strBytes, strBytes+mValueSize);
 }
 
-bool GattCharacteristic::setValue(uint8_t *value)
+int GattCharacteristic::getValueLength()
 {
-  int len = static_cast<int>(strlen((char*)value));
+  return mValueLength;
+}
 
+
+bool GattCharacteristic::setValue(uint8_t *value, int length)
+{
   if (mValue != NULL)
     delete [] mValue;
 
-  mValue = new uint8_t[len+1];
-  std::memcpy(mValue, value, len);
-  mValue[len] = '\0';
+  if ((value == NULL) || (length < 0)) {
+    return false;
+  }
+
+  mValue = new uint8_t[length];
+  mValueLength = length;
+  std::memcpy(mValue, value, length);
 
   return true;
+
 }
 
 bool GattCharacteristic::setValue(int value, int formatType, int offset)
@@ -271,6 +280,7 @@ bool GattCharacteristic::setValue(int value, int formatType, int offset)
     default:
       return false;
   }
+  mValueLength = len;
   return true;
 }
 
@@ -304,6 +314,7 @@ bool GattCharacteristic::setValue(int mantissa, int exponent, int formatType, in
     default:
       return false;
   }
+  mValueLength = len;
   return true;
 }
 
@@ -314,7 +325,7 @@ bool GattCharacteristic::setValue(string value)
   mValue = new uint8_t[value.length() + 1];
   std::memcpy (mValue, value.data(), value.length());
   mValue[value.length()] = '\0';
-
+  mValueLength = value.length()+1;
   return true;
 }
 
