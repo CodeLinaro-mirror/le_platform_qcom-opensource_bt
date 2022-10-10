@@ -1347,6 +1347,13 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
             break;
+        case CONFIGURE_WBS:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_CONFIGURE_WBS;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            event->hfp_ag_event.arg1 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
     }
 }
 
