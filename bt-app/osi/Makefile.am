@@ -36,7 +36,9 @@ lib_LTLIBRARIES = libgstbtapposi.la
 libgstbtapposi_la_CC = @CC@
 libgstbtapposi_la_SOURCES = $(c_sources)
 libgstbtapposi_la_CPPFLAGS =$(AM_CPPFLAGS) -std=c++11 -fpermissive -DHAS_NO_BDROID_BUILDCFG -D__GLIBC__
+libgstbtapposi_la_CPPFLAGS +=$(GLIB_CFLAGS) -Dstrlcat=g_strlcat -include glib.h
 libgstbtapposi_la_LIBADD = $(requiredlibs)
+libgstbtapposi_la_LIBADD += $(GLIB_LIBS) -llog -lcutils
 libgstbtapposi_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB
 libgstbtapposi_la_LDFLAGS = -static
 else
@@ -47,4 +49,6 @@ libbtapposi_la_CPPFLAGS =$(AM_CPPFLAGS) -std=c++11 -fpermissive
 libbtapposi_la_LIBADD = $(requiredlibs)
 libbtapposi_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB -DHAS_NO_BDROID_BUILDCFG -D__GLIBC__
 libbtapposi_la_LDFLAGS = -static
+libbtapposi_la_CPPFLAGS +=$(GLIB_CFLAGS) -Dstrlcat=g_strlcat -include glib.h
+libbtapposi_la_LIBADD += $(GLIB_LIBS) -llog -lcutils
 endif

@@ -652,6 +652,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             event = new BtEvent;
             memset(event, 0, sizeof(BtEvent));
             pAttr = new uint8_t[MAX_SUB_ARGUMENTS];
+            if(!pAttr) break;
             event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_PALYER_APP_SETTING_REQ;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
             num_Attr = GetArgsFromString(user_cmd[TWO_PARAM],pAttr);
@@ -667,7 +668,9 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                 event = new BtEvent;
                 memset(event, 0, sizeof(BtEvent));
                 pAttr = new uint8_t[MAX_SUB_ARGUMENTS];
+                if(!pAttr) break;
                 uint8_t* pValue = new uint8_t[MAX_SUB_ARGUMENTS];
+                if(!pValue) break;
                 event->avrcpCtrlEvent.event_id = AVRCP_CTRL_SET_PALYER_APP_SETTING_VALUE_REQ;
                 string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
                 num_Attr = GetArgsFromString(user_cmd[TWO_PARAM],pAttr);
@@ -686,6 +689,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
                 event = new BtEvent;
                 memset(event, 0, sizeof(BtEvent));
                 pAttr32 = new uint32_t[MAX_SUB_ARGUMENTS];
+                if(!pAttr32) break;
                 event->avrcpCtrlEvent.event_id = AVRCP_CTRL_GET_ELEMENT_ATTR_REQ;
                 string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlEvent.bd_addr);
                 int nCount = atoi(user_cmd[TWO_PARAM]);
@@ -1223,7 +1227,7 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_INCOMING_INDICATION;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
-            strncpy(event->hfp_ag_event.str, user_cmd[TWO_PARAM], 20);
+            strlcpy(event->hfp_ag_event.str, user_cmd[TWO_PARAM], 20);
             event->hfp_ag_event.arg1 = atoi(user_cmd[THREE_PARAM]);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
@@ -1248,7 +1252,7 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case ADD_NUMBER:
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_ADD_NUMBER;
-            strncpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
+            strlcpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
         case DELETE_NUMBER:
@@ -1298,7 +1302,7 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case DIAL:
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_API_DIAL_REQ;
-            strncpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
+            strlcpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
         case START_VR:

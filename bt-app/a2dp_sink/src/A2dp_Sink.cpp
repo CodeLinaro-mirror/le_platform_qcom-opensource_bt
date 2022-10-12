@@ -1250,10 +1250,12 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
                 }
             }
             ALOGE(LOGTAG " updating avconfig parameters for this device");
+            if(!pA2dpSinkStream) break;
             if (iter->dev_codec_type == A2DP_SINK_AUDIO_CODEC_SBC) {
                 pA2dpSinkStream->sample_rate = iter->av_config.sample_rate;
                 pA2dpSinkStream->channel_count = iter->av_config.channel_count;
             }
+
             pA2dpSinkStream->codec_type = iter->dev_codec_type;
             memcpy(&pA2dpSinkStream->codec_config, &iter->dev_codec_config,
                     sizeof(btav_codec_config_t));
