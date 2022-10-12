@@ -114,14 +114,17 @@ static void AdapterPropertiesCb(bt_status_t status, int num_properties,
     ALOGV (LOGTAG " adapter_properties_callback:");
 
     props = new bt_property_t[num_properties];
-    memcpy(props, properties, num_properties * sizeof(bt_property_t));
-    for (index = 0; index < num_properties; index++) {
+    if (props) {
+      memcpy(props, properties, num_properties * sizeof(bt_property_t));
+      for (index = 0; index < num_properties; index++) {
         props[index].val = new char[properties[index].len];
         memcpy(props[index].val, properties[index].val, properties[index].len);
+      }
     }
     event->adapater_properties_event.num_properties = num_properties;
-    event->adapater_properties_event.properties = props;
-
+    if (props) {
+      event->adapater_properties_event.properties = props;
+    }
     event->event_id = GAP_EVENT_ADAPTER_PROPERTIES;
     PostMessage(THREAD_ID_GAP, event);
 }
@@ -134,15 +137,18 @@ static void RemoteDevicePropertiesCb(bt_status_t status, bt_bdaddr_t *bd_addr,
 
     ALOGV (LOGTAG " RemoteDevicePropertiesCb:");
     props = new bt_property_t[num_properties];
-    memcpy(props, properties, num_properties * sizeof(bt_property_t));
-    for (index = 0; index < num_properties; index++) {
+    if (props) {
+      memcpy(props, properties, num_properties * sizeof(bt_property_t));
+      for (index = 0; index < num_properties; index++) {
         props[index].val = new char[properties[index].len];
         memcpy(props[index].val, properties[index].val, properties[index].len);
+      }
     }
     memcpy(&event->remote_properties_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     event->remote_properties_event.num_properties = num_properties;
-    event->remote_properties_event.properties = props;
-
+    if (props) {
+      event->remote_properties_event.properties = props;
+    }
     event->event_id = GAP_EVENT_REMOTE_DEVICE_PROPERTIES;
     PostMessage(THREAD_ID_GAP, event);
 }
@@ -156,13 +162,17 @@ static void DeviceFoundCb(int num_properties, bt_property_t *properties) {
 
     ALOGV (LOGTAG " DeviceFoundCb:");
     props = new bt_property_t[num_properties];
-    memcpy(props, properties, num_properties * sizeof(bt_property_t));
-    for (index = 0; index < num_properties; index++) {
+    if (props) {
+      memcpy(props, properties, num_properties * sizeof(bt_property_t));
+      for (index = 0; index < num_properties; index++) {
         props[index].val = new char[properties[index].len];
         memcpy(props[index].val, properties[index].val, properties[index].len);
+      }
     }
     event->device_found_event_int.num_properties = num_properties;
-    event->device_found_event_int.properties = props;
+    if (props) {
+      event->device_found_event_int.properties = props;
+    }
     event->event_id = GAP_EVENT_DEVICE_FOUND_INT;
     PostMessage(THREAD_ID_GAP, event);
 }

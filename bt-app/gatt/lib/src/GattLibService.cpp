@@ -2537,6 +2537,7 @@ void GattLibService::setDeviceName(void *val, int len)
 void GattLibService::updateFeatureSupport(void *value, int len)
 {
   uint8_t *val = new uint8_t[len];
+  if(!val) return;
   std::memcpy(val, static_cast<uint8_t*>(value), len);
   mVersSupported = ((0xFF & ((int) val[1])) << 8) + (0xFF & ((int) val[0]));
   mNumOfAdvertisementInstancesSupported = (0xFF & ((int) val[3]));
@@ -2631,6 +2632,7 @@ void GattLibService::HandleGattcNotifyEvent(GattcNotifyEvent *event)
 {
   if (!sGattService) return;
   uint8_t *value = new uint8_t[event->p_data.len];
+  if(!value) return;
   std::memcpy(value, &event->p_data.value, event->p_data.len);
   sGattService->onNotify(event->conn_id, *(event->p_data.bda), event->p_data.handle,
                                 event->p_data.is_notify, value, event->p_data.len);
@@ -2643,6 +2645,7 @@ void GattLibService::HandleGattcReadCharacteristicEvent(
   uint8_t *value = NULL;
   if (event->status == 0) {
     value = new uint8_t[event->p_data.value.len];
+    if(!value) return;
     std::memcpy(value, &event->p_data.value.value, event->p_data.value.len);
   }
   sGattService->onReadCharacteristic(event->conn_id, event->status, event->p_data.handle,
@@ -2668,6 +2671,7 @@ void GattLibService::HandleGattcReadDescriptorEvent(GattcReadDescriptorEvent *ev
   uint8_t *value = NULL;
   if (event->p_data.value.len != 0) {
     value = new uint8_t[event->p_data.value.len];
+    if(!value) return;
     std::memcpy(value, &event->p_data.value.value, event->p_data.value.len);
   }
 
@@ -2812,6 +2816,7 @@ void GattLibService::HandleGattsRequestWriteCharacteristicEvent(
   if (!sGattService) return;
   uint8_t len = event->value->size();
   uint8_t *p_value = new uint8_t[len];
+  if(!p_value) return;
   if (len == 0) {
     ALOGE(LOGTAG "HandleGattsRequestWriteCharacteristicEvent () - Data is NULL");
   }
@@ -2829,6 +2834,7 @@ void GattLibService::HandleGattsRequestWriteDescriptorEvent(
   if (!sGattService) return;
   uint8_t len = event->value->size();
   uint8_t *p_value = new uint8_t[len];
+  if(!p_value) return;
   if (len == 0) {
     ALOGE(LOGTAG "HandleGattsRequestWriteDescriptorEvent () - Data is NULL");
   }
