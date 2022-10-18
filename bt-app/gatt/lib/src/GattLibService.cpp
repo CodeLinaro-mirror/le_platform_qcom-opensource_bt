@@ -2431,6 +2431,8 @@ int GattLibService::numHwTrackFiltersAvailable()
   if (mScanManager != NULL)
     return (getTotalNumOfTrackableAdvertisements()
                  - mScanManager->getCurrentUsedTrackingAdvertisement());
+  else
+    return getTotalNumOfTrackableAdvertisements();
 }
 
 string GattLibService::getAddress()
