@@ -1375,6 +1375,7 @@ void Hfp_Client::ConfigureAudio(bool enable) {
          fprintf(stdout, "setting hfp_enable to true\n");
          ALOGD(LOGTAG " setting hfp_enable to true");
          qahw_set_parameters(audio_module, "hfp_volume=15");
+         qahw_set_parameters(audio_module, "hfp_route_spkr=2");
          qahw_set_parameters(audio_module, "hfp_enable=true");
       }
       else
