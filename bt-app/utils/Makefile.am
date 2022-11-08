@@ -9,9 +9,13 @@ AM_CFLAGS = -Wall \
             -D__GLIBC__
 
 AM_CPPFLAGS = -I${WORKSPACE}/qcom-opensource/bt/bt-app \
+              -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include/ \
+              -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
+              -I${WORKSPACE}/qcom-opensource/bt/bt-app/osi/include \
               -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include
 
-cpp_sources = src/uuid.cc
+cpp_sources = src/uuid.cc \
+              src/utils.cc
 
 requiredlibs = -lchrome
 
