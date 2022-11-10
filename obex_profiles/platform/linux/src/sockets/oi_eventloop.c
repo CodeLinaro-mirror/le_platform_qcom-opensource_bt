@@ -26,6 +26,10 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  */
 
 #define __OI_MODULE__ OI_MODULE_SOCKETS
@@ -180,11 +184,13 @@ static void* eventThread(void* arg)
         OI_ASSERT(head == &marker.links);
 
 #ifndef ANDROID
+#ifndef OWRT_BUILD
         OI_DBGPRINT(("Waiting on %d FDs: read=%08x, write=%08x, except=%08x",
                       numFds,
                       __FDS_BITS(&readFds)[0],
                       __FDS_BITS(&writeFds)[0],
                       __FDS_BITS(&exceptFds)[0]));
+#endif
 #endif
         OI_DBGPRINTSTR(("Event loop about to call select()"));
         OI_Wrapper_ReleaseToken();
@@ -205,11 +211,13 @@ static void* eventThread(void* arg)
         OI_Wrapper_GetToken();
         OI_DBGPRINTSTR(("Event loop running."));
 #ifndef ANDROID
+#ifndef OWRT_BUILD
         OI_DBGPRINT(("Got %d events: read=%08x, write=%08x, except=%08x",
                       numSet,
                       __FDS_BITS(&readFds)[0],
                       __FDS_BITS(&writeFds)[0],
                       __FDS_BITS(&exceptFds)[0]));
+#endif
 #endif
 
         if (-1 == numSet) {
