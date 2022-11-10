@@ -135,24 +135,24 @@ periodic_advertising_parameters_t AdvertiserManager::
   return p;
 }
 
-void AdvertiserManager::startAdvertisingSet(AdvertisingSetParameters& parameters,
-                                                  AdvertiseData& advertiseData,
-                                                  AdvertiseData& scanResponse,
-                                                  PeriodicAdvertiseParameters& periodicParameters,
-                                                  AdvertiseData& periodicData, int duration,
+void AdvertiserManager::startAdvertisingSet(AdvertisingSetParameters *parameters,
+                                                  AdvertiseData *advertiseData,
+                                                  AdvertiseData *scanResponse,
+                                                  PeriodicAdvertiseParameters *periodicParameters,
+                                                  AdvertiseData *periodicData, int duration,
                                                   int maxExtAdvEvents,
-                                                  IAdvertisingSetCallback& callback)
+                                                  IAdvertisingSetCallback *callback)
 {
   GattLibService *mGatt = GattLibService::getGatt();
   if(mGatt == NULL) return;
 
   string deviceName = mGatt->getDeviceName();
   std::vector<uint8_t> advDataBytes =
-            (AdvertiseHelper::advertiseDataToBytes(&advertiseData, deviceName));
+            (AdvertiseHelper::advertiseDataToBytes(advertiseData, deviceName));
   std::vector<uint8_t> scanResponseBytes =
-            (AdvertiseHelper::advertiseDataToBytes(&scanResponse, deviceName));
+            (AdvertiseHelper::advertiseDataToBytes(scanResponse, deviceName));
   std::vector<uint8_t> periodicDataBytes =
-            (AdvertiseHelper::advertiseDataToBytes(&periodicData, deviceName));
+            (AdvertiseHelper::advertiseDataToBytes(periodicData, deviceName));
 
   int cbId = --sTempRegistrationId;
   mAdvertisers.insert({{cbId, callback}});
@@ -161,9 +161,9 @@ void AdvertiserManager::startAdvertisingSet(AdvertisingSetParameters& parameters
     ALOGD(LOGTAG " startAdvertisingSet() - reg_id= %d ", cbId);
   }
 
-  advertise_parameters_t advParameter = parseParams(&parameters);
-  periodic_advertising_parameters_t periodicAdvParameter = parsePeriodicParams(&periodicParameters);
-  mNative->startAdvertisingSetNative(advParameter,advDataBytes,
+  advertise_parameters_t advParameter = parseParams(parameters);
+  periodic_advertising_parameters_t periodicAdvParameter = parsePeriodicParams(periodicParameters);
+  mNative->startAdvertisingSetNative(advParameter, advDataBytes,
                                     scanResponseBytes, periodicAdvParameter,
                                     periodicDataBytes, duration,
                                     maxExtAdvEvents, cbId);
@@ -174,15 +174,15 @@ void AdvertiserManager::getOwnAddress(int advertiserId)
   mNative->getOwnAddressNative(advertiserId);
 }
 
-void AdvertiserManager::stopAdvertisingSet(IAdvertisingSetCallback& callback)
+void AdvertiserManager::stopAdvertisingSet(IAdvertisingSetCallback *callback)
 {
   if (DBG) {
     ALOGD(LOGTAG " stopAdvertisingSet() ");
   }
 
-  std::unordered_map<int,IAdvertisingSetCallback&>::iterator it = mAdvertisers.begin();
+  std::unordered_map<int,IAdvertisingSetCallback *>::iterator it = mAdvertisers.begin();
   for(; it != mAdvertisers.end(); ++it) {
-    if (&(it->second) == &callback) {
+    if (it->second == callback) {
       break;
     }
   }
@@ -202,7 +202,7 @@ void AdvertiserManager::stopAdvertisingSet(IAdvertisingSetCallback& callback)
   mNative->stopAdvertisingSetNative(advertiserId);
 
   try {
-          callback.onAdvertisingSetStopped(advertiserId);
+          callback->onAdvertisingSetStopped(advertiserId);
   } catch (std::exception& e ) {
     ALOGE(LOGTAG " error sending onAdvertisingSetStopped callback %s", e.what());
   }
@@ -214,44 +214,44 @@ void AdvertiserManager::enableAdvertisingSet(int advertiserId, bool enable, int 
   mNative->enableAdvertisingSetNative(advertiserId, enable, duration, maxExtAdvEvents);
 }
 
-void AdvertiserManager::setAdvertisingData(int advertiserId, AdvertiseData& data) {
+void AdvertiserManager::setAdvertisingData(int advertiserId, AdvertiseData *data) {
   GattLibService *mGatt = GattLibService::getGatt();
   if(mGatt == NULL) return;
   string deviceName = mGatt->getDeviceName();
   mNative->setAdvertisingDataNative(advertiserId,
-                (AdvertiseHelper::advertiseDataToBytes(&data, deviceName)));
+                (AdvertiseHelper::advertiseDataToBytes(data, deviceName)));
 }
 
-void AdvertiserManager::setScanResponseData(int advertiserId, AdvertiseData& data)
+void AdvertiserManager::setScanResponseData(int advertiserId, AdvertiseData *data)
 {
   GattLibService *mGatt = GattLibService::getGatt();
   if(mGatt == NULL) return;
   string deviceName = mGatt->getDeviceName();
   mNative->setScanResponseDataNative(advertiserId,
-          (AdvertiseHelper::advertiseDataToBytes(&data, deviceName)));
+          (AdvertiseHelper::advertiseDataToBytes(data, deviceName)));
 }
 
 void AdvertiserManager::setAdvertisingParameters(int advertiserId,
-                                                         AdvertisingSetParameters& parameters)
+                                                         AdvertisingSetParameters *parameters)
 {
-  advertise_parameters_t advParameter = parseParams(&parameters);
+  advertise_parameters_t advParameter = parseParams(parameters);
   mNative->setAdvertisingParametersNative(advertiserId, advParameter);
 }
 
 void AdvertiserManager::setPeriodicAdvertisingParameters(int advertiserId,
-                                                       PeriodicAdvertiseParameters& parameters)
+                                                       PeriodicAdvertiseParameters *parameters)
 {
-  periodic_advertising_parameters_t periodicAdvParameter = parsePeriodicParams(&parameters);
+  periodic_advertising_parameters_t periodicAdvParameter = parsePeriodicParams(parameters);
   mNative->setPeriodicAdvertisingParametersNative(advertiserId, periodicAdvParameter);
 }
 
-void AdvertiserManager::setPeriodicAdvertisingData(int advertiserId, AdvertiseData& data)
+void AdvertiserManager::setPeriodicAdvertisingData(int advertiserId, AdvertiseData *data)
 {
   GattLibService *mGatt = GattLibService::getGatt();
   if(mGatt == NULL) return;
   string deviceName = mGatt->getDeviceName();
   mNative->setPeriodicAdvertisingDataNative(advertiserId,
-          (AdvertiseHelper::advertiseDataToBytes(&data, deviceName)));
+          (AdvertiseHelper::advertiseDataToBytes(data, deviceName)));
 }
 
 void AdvertiserManager::setPeriodicAdvertisingEnable(int advertiserId, bool enable)
@@ -262,10 +262,10 @@ void AdvertiserManager::setPeriodicAdvertisingEnable(int advertiserId, bool enab
 void AdvertiserManager::stopAdvertisingSets()
 {
   ALOGD(LOGTAG " stopAdvertisingSets()");
-  for(std::unordered_map<int,IAdvertisingSetCallback&>::iterator it = mAdvertisers.begin();
+  for(std::unordered_map<int,IAdvertisingSetCallback *>::iterator it = mAdvertisers.begin();
                           it != mAdvertisers.end(); ++it) {
     int advertiser_id = it->first;
-    IAdvertisingSetCallback& callback = it->second;
+    IAdvertisingSetCallback *callback = it->second;
 
     if (advertiser_id < 0) {
       ALOGI(LOGTAG " stopAdvertisingSets() - advertiser not finished registration yet");
@@ -275,7 +275,7 @@ void AdvertiserManager::stopAdvertisingSets()
     mNative->stopAdvertisingSetNative(advertiser_id);
 
     try {
-        callback.onAdvertisingSetStopped(advertiser_id);
+        callback->onAdvertisingSetStopped(advertiser_id);
     } catch (std::exception& e) {
       ALOGI( LOGTAG " error sending onAdvertisingSetStopped callback %s", e.what());
     }
@@ -298,7 +298,7 @@ void AdvertiserManager::onAdvertisingSetStarted(int regId, int advertiserId, int
     return;
   }
 
-  IAdvertisingSetCallback& callback = entry->second;
+  IAdvertisingSetCallback *callback = entry->second;
   if (status == 0) {
     mAdvertisers.insert({{advertiserId,callback}});
     mAdvertisers.erase(regId);
@@ -306,7 +306,7 @@ void AdvertiserManager::onAdvertisingSetStarted(int regId, int advertiserId, int
     mAdvertisers.erase(advertiserId);
   }
 
-  callback.onAdvertisingSetStarted(advertiserId, txPower, status);
+  callback->onAdvertisingSetStarted(advertiserId, txPower, status);
 }
 
 void AdvertiserManager::onAdvertisingEnabled(int advertiserId, bool enable, int status)
@@ -323,8 +323,8 @@ void AdvertiserManager::onAdvertisingEnabled(int advertiserId, bool enable, int 
     return;
   }
 
-  IAdvertisingSetCallback& callback = entry->second;
-  callback.onAdvertisingEnabled(advertiserId, enable, status);
+  IAdvertisingSetCallback *callback = entry->second;
+  callback->onAdvertisingEnabled(advertiserId, enable, status);
 }
 
 
@@ -340,8 +340,8 @@ void AdvertiserManager::onOwnAddressRead(int advertiserId, int addressType, stri
     return;
   }
 
-  IAdvertisingSetCallback& callback = entry->second;
-  callback.onOwnAddressRead(advertiserId, addressType, *address);
+  IAdvertisingSetCallback *callback = entry->second;
+  callback->onOwnAddressRead(advertiserId, addressType, *address);
 }
 
 void AdvertiserManager::onAdvertisingDataSet(int advertiserId, int status)
@@ -357,8 +357,8 @@ void AdvertiserManager::onAdvertisingDataSet(int advertiserId, int status)
     return;
   }
 
-  IAdvertisingSetCallback& callback = entry->second;
-  callback.onAdvertisingDataSet(advertiserId, status);
+  IAdvertisingSetCallback *callback = entry->second;
+  callback->onAdvertisingDataSet(advertiserId, status);
 }
 
 void AdvertiserManager::onScanResponseDataSet(int advertiserId, int status)
@@ -374,8 +374,8 @@ void AdvertiserManager::onScanResponseDataSet(int advertiserId, int status)
     return;
   }
 
-  IAdvertisingSetCallback& callback = entry->second;
-  callback.onScanResponseDataSet(advertiserId, status);
+  IAdvertisingSetCallback *callback = entry->second;
+  callback->onScanResponseDataSet(advertiserId, status);
 }
 
 void AdvertiserManager::onAdvertisingParametersUpdated(int advertiserId, int txPower, int status)
@@ -391,8 +391,8 @@ void AdvertiserManager::onAdvertisingParametersUpdated(int advertiserId, int txP
     return;
   }
 
-  IAdvertisingSetCallback& callback = entry->second;
-  callback.onAdvertisingParametersUpdated(advertiserId, txPower, status);
+  IAdvertisingSetCallback *callback = entry->second;
+  callback->onAdvertisingParametersUpdated(advertiserId, txPower, status);
 }
 
 void AdvertiserManager::onPeriodicAdvertisingParametersUpdated(int advertiserId, int status)
@@ -408,8 +408,8 @@ void AdvertiserManager::onPeriodicAdvertisingParametersUpdated(int advertiserId,
     return;
   }
 
-  IAdvertisingSetCallback& callback = entry->second;
-  callback.onPeriodicAdvertisingParametersUpdated(advertiserId, status);
+  IAdvertisingSetCallback *callback = entry->second;
+  callback->onPeriodicAdvertisingParametersUpdated(advertiserId, status);
 }
 
 void AdvertiserManager::onPeriodicAdvertisingDataSet(int advertiserId, int status)
@@ -425,8 +425,8 @@ void AdvertiserManager::onPeriodicAdvertisingDataSet(int advertiserId, int statu
     return;
   }
 
-  IAdvertisingSetCallback& callback = entry->second;
-  callback.onPeriodicAdvertisingDataSet(advertiserId, status);
+  IAdvertisingSetCallback *callback = entry->second;
+  callback->onPeriodicAdvertisingDataSet(advertiserId, status);
 }
 
 void AdvertiserManager::onPeriodicAdvertisingEnabled(int advertiserId, bool enable, int status)
@@ -442,7 +442,7 @@ void AdvertiserManager::onPeriodicAdvertisingEnabled(int advertiserId, bool enab
     return;
   }
 
-  IAdvertisingSetCallback& callback = entry->second;
-  callback.onPeriodicAdvertisingEnabled(advertiserId, enable, status);
+  IAdvertisingSetCallback *callback = entry->second;
+  callback->onPeriodicAdvertisingEnabled(advertiserId, enable, status);
 }
 }
