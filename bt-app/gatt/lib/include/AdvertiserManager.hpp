@@ -49,7 +49,7 @@ class AdvertiserManager {
   private:
     static const bool DBG = true;
     static int sTempRegistrationId;
-    std::unordered_map<int,IAdvertisingSetCallback&> mAdvertisers;
+    std::unordered_map<int,IAdvertisingSetCallback*> mAdvertisers;
 
     GattNativeInterfaceV2 *mNative = NULL;
     GattDevice *mGattDevice = NULL;
@@ -64,20 +64,20 @@ class AdvertiserManager {
     void cleanup();
     advertise_parameters_t parseParams(AdvertisingSetParameters *parameters);
     periodic_advertising_parameters_t parsePeriodicParams(PeriodicAdvertiseParameters *parameter);
-    void startAdvertisingSet(AdvertisingSetParameters& parameters, AdvertiseData& advertiseData,
-                                   AdvertiseData& scanResponse,
-                                   PeriodicAdvertiseParameters& periodicParameters,
-                                   AdvertiseData& periodicData, int duration, int maxExtAdvEvents,
-                                   IAdvertisingSetCallback& callback);
+    void startAdvertisingSet(AdvertisingSetParameters *parameters, AdvertiseData *advertiseData,
+                                   AdvertiseData *scanResponse,
+                                   PeriodicAdvertiseParameters *periodicParameters,
+                                   AdvertiseData *periodicData, int duration, int maxExtAdvEvents,
+                                   IAdvertisingSetCallback *callback);
     void getOwnAddress(int advertiserId);
-    void stopAdvertisingSet(IAdvertisingSetCallback& callback);
+    void stopAdvertisingSet(IAdvertisingSetCallback *callback);
     void enableAdvertisingSet(int advertiserId, bool enable, int duration, int maxExtAdvEvents);
-    void setAdvertisingData(int advertiserId, AdvertiseData& data);
-    void setScanResponseData(int advertiserId, AdvertiseData& data);
-    void setAdvertisingParameters(int advertiserId, AdvertisingSetParameters& parameters);
+    void setAdvertisingData(int advertiserId, AdvertiseData *data);
+    void setScanResponseData(int advertiserId, AdvertiseData *data);
+    void setAdvertisingParameters(int advertiserId, AdvertisingSetParameters *parameters);
     void setPeriodicAdvertisingParameters(int advertiserId,
-                                                     PeriodicAdvertiseParameters& parameters);
-    void setPeriodicAdvertisingData(int advertiserId, AdvertiseData& data);
+                                                     PeriodicAdvertiseParameters *parameters);
+    void setPeriodicAdvertisingData(int advertiserId, AdvertiseData *data);
     void setPeriodicAdvertisingEnable(int advertiserId, bool enable);
     void stopAdvertisingSets();
     void onAdvertisingSetStarted(int regId, int advertiserId, int txPower, int status);
