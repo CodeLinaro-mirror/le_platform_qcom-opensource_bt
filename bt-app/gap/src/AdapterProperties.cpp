@@ -79,6 +79,7 @@ int AdapterProperties:: SetBtName(bt_property_t *prop) {
 
 bool AdapterProperties::IsDeviceBonded(bt_bdaddr_t bd_addr) {
     bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
     std::list<std::string>::iterator bdstring;
@@ -138,6 +139,7 @@ void AdapterProperties::GetCorePropertyList(int num_properties,
 void AdapterProperties :: OnbondStateChanged( bt_bdaddr_t bd_addr,
         bt_bond_state_t new_state, bool notify) {
     bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
     DeviceProperties *remote_device_prop = NULL;

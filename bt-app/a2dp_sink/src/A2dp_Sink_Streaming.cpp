@@ -696,6 +696,7 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
     bdstr_t bd_str;
     int rc = 0;
 
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     memset(&config, 0, sizeof(audio_config_t));
     config.offload_info.size = sizeof(audio_offload_info_t);
     ALOGD(LOGTAG " ConfigureAudioHal codec_type = %d", codec_type);

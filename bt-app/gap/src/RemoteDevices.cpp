@@ -32,6 +32,7 @@
 
 DeviceProperties *RemoteDevices :: AddDeviceProperties(bt_bdaddr_t bd_addr) {
     bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
     DeviceProperties *rem_dev_prop;
@@ -56,6 +57,7 @@ DeviceProperties *RemoteDevices :: AddDeviceProperties(bt_bdaddr_t bd_addr) {
 
 DeviceProperties *RemoteDevices:: GetDeviceProperties(bt_bdaddr_t bd_addr) {
     bdstr_t bd_str;
+    strlcpy(bd_str, bdaddr_empty, MAX_BD_STR_LEN);
     bdaddr_to_string(&bd_addr, &bd_str[0], sizeof(bd_str));
     std::string deviceAddress(bd_str);
     DeviceProperties *rem_dev_prop;
