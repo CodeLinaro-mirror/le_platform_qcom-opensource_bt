@@ -1,3 +1,4 @@
+# sources and intermediate files are separated
 AM_CPPFLAGS = -O2 \
             -D_GNU_SOURCE \
             -std=c++11
@@ -6,7 +7,9 @@ AM_CFLAGS = -Wall \
             -Wundef \
             -Wstrict-prototypes \
             -Wno-trigraphs \
-            -std=c++11
+            -std=c++11 \
+            -fpermissive \
+            -D__GLIBC__
 
 if USE_BT_OBEX
 AM_CFLAGS += -DOI_CPU_TYPE=19
@@ -38,11 +41,11 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth_ext/vhal/include \
-               -I${WORKSPACE}/mcm-api/api \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include
+
 if RB5_AUDIO_HAL
 else
 AM_CPPFLAGS += -I${WORKSPACE}/hardware/libhardware/include
@@ -64,89 +67,27 @@ if AUDIO_HAL_SUPPORTED
 AM_CPPFLAGS += -DBT_AUDIO_HAL_INTEGRATION
 endif
 
-cpp_sources = src/ipc.cpp \
-            src/Main.cpp \
-            ../hid/src/Hid.cpp \
-            ../sdp_client/src/SdpClient.cpp\
-            ../a2dp_sink/src/A2dp_Sink.cpp \
-            ../a2dp_sink/src/A2dp_Sink_Split.cpp \
-            ../a2dp_src/src/A2dp_Src.cpp \
-            ../a2dp_sink/src/A2dp_Sink_Streaming.cpp \
-            ../avrcp/src/Avrcp.cpp \
-            ../audio_manager/src/Audio_Manager.cpp \
-            ../hfp_client/src/HfpClient.cpp \
-            ../hfp_ag/src/HfpAG.cpp \
-            ../gattctest/src/GattcTest.cpp \
-            ../pan/src/Pan.cpp \
-            ../gattstest/src/GattsTest.cpp
 
-if USE_GEN_GATT
-cpp_sources += ../rsp/src/Rsp.cpp
-endif
+cpp_sources = src/Gap.cpp \
+              src/AdapterProperties.cpp \
+              src/RemoteDevices.cpp
 
+requiredlibs = -lchrome
 
-if USE_BT_OBEX
-cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
-              ../opp/src/Opp.cpp
-endif
-
+library_includedir = $(pkgincludedir)
+library_include_HEADERS = $(h_sources)
 if USE_GST
-requiredlibs = ../osi/libgstbtapposi.la ../utils/libgstbtappuuid.la ../gap/libgstbtappgap.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
+lib_LTLIBRARIES = libgstbtappgap.la
+libgstbtappgap_la_CC = @CC@
+libgstbtappgap_la_SOURCES = $(cpp_sources)
+libgstbtappgap_la_CPPFLAGS =$(AM_CPPFLAGS) -std=c++11 -fpermissive -D__GLIBC__ -DUSE_GLIB @GLIB_CFLAGS@
+libgstbtappgap_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB @GLIB_CFLAGS@
+libgstbtappgap_la_LDFLAGS = -static $(requiredlibs)
 else
-requiredlibs = ../osi/libbtapposi.la ../utils/libbtappuuid.la ../gap/libbtappgap.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
+lib_LTLIBRARIES = libbtappgap.la
+libbtappgap_la_CC = @CC@
+libbtappgap_la_SOURCES = $(cpp_sources)
+libbtappgap_la_CPPFLAGS =$(AM_CPPFLAGS) -std=c++11 -fpermissive -D__GLIBC__ -DUSE_GLIB @GLIB_CFLAGS@
+libbtappgap_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB @GLIB_CFLAGS@
+libbtappgap_la_LDFLAGS = -static $(requiredlibs)
 endif
-
-if USE_GEN_GATT
-requiredlibs += ../gatt/libgengatt.la
-endif
-
-if AUDIO_HAL_SUPPORTED
-requiredlibs += -lqahw
-endif
-
-if USE_BT_OBEX
-requiredlibs += -lbtobex
-endif
-
-if USE_GLIB
-
-if USE_GST
- gstbtapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
- gstbtapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
- gstbtapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
- gstbtapp_CPPFLAGS += $(GSTREAMER_CFLAGS) -DUSE_GST
-else
- btapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
- btapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
- btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
-endif
-
-else
-
-if USE_GST
- gstbtapp_CFLAGS = $(AM_CFLAGS)
- gstbtapp_LDFLAGS = $(requiredlibs)
-else
- btapp_CFLAGS = $(AM_CFLAGS)
- btapp_LDFLAGS = $(requiredlibs)
-endif
-
-endif
-
-if USE_GST
-gstbtapp_CFLAGS += $(GSTREAMER_CFLAGS)
-gstbtapp_LDFLAGS += $(GSTREAMER_LIBS) -lgstaudio-1.0 -lgstapp-1.0 -lgstbthelper
-endif
-
-AM_LDFLAGS = $(LDFLAFGS)
-
-if USE_GST
-bin_PROGRAMS = gstbtapp
-gstbtapp_CC = @CC@
-gstbtapp_SOURCES = $(cpp_sources)
-else
-bin_PROGRAMS = btapp
-btapp_CC = @CC@
-btapp_SOURCES = $(cpp_sources)
-endif
-pkgconfigdir = $(libdir)/pkgconfig

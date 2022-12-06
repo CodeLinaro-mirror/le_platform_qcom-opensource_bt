@@ -104,6 +104,7 @@ AC_SUBST([CC])
 AC_CONFIG_FILES([Makefile\
     osi/Makefile\
     utils/Makefile\
+    gap/Makefile\
     main/Makefile\
     gatt/Makefile])
 AC_OUTPUT

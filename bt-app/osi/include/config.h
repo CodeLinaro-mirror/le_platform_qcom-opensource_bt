@@ -18,6 +18,11 @@
 
 #include <stdbool.h>
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
