@@ -583,7 +583,7 @@ void BleWifiControlService :: CharacteristicReadRsp(WCSCharacteristicReadRspEven
 
     memcpy(value, evt->value, evt->len);
     mServer->sendResponse(bdaddr, evt->request_id, status, evt->offset, value, evt->len);
-    delete value;
+    delete[] value;
   }
 }
 
@@ -647,7 +647,7 @@ void BleWifiControlService :: CharacteristicWriteRsp(WCSCharacteristicWriteRspEv
               : (GattClient::GATT_FAILURE));
       memcpy(value, evt->value, evt->len);
       mServer->sendResponse(bdaddr, evt->request_id, status, evt->offset, value, evt->len);
-      delete value;
+      delete[] value;
     }
   }
 }
