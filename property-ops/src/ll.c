@@ -27,6 +27,10 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
  *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  *****************************************************************************/
 
 #include "../include/ll.h"
@@ -165,7 +169,7 @@ bool __remove_node_from_list(unsigned char* property_name)
 //to be called on deinit
 bool __free_list()
 {
-    bool retval;
+    bool retval = false;
     property_db *ln = glisthead;
     if (__list_is_empty())
     {
@@ -178,6 +182,7 @@ bool __free_list()
             ln = ln->next;
             free(temp);
         }
+        retval = true;
     }
     return retval;
 }

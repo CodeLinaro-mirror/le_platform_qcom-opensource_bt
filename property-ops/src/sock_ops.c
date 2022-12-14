@@ -27,6 +27,10 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
  *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  *****************************************************************************/
 
 #include <stdio.h>
@@ -467,7 +471,7 @@ bool start_listeners() {
 
 int main()
 {
-    void **retval;
+    void *retval = NULL;
     bool result = false;
 
     /* Database Initializer */
@@ -492,9 +496,9 @@ int main()
         } else {
             LOG_DEBUG("%s Listeners Started\n ", __func__);
         }
-        pthread_join(conn_listener, retval);
+        pthread_join(conn_listener, &retval);
         LOG_DEBUG("%s conn_listener closed\n ", __func__);
-        pthread_join(io_listener, retval);
+        pthread_join(io_listener, &retval);
         LOG_DEBUG("%s io_listener closed\n ", __func__);
     }
     closelog ();
