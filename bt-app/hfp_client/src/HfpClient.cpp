@@ -1375,6 +1375,8 @@ void Hfp_Client::ConfigureAudio(bool enable) {
          fprintf(stdout, "setting hfp_enable to true\n");
          ALOGD(LOGTAG " setting hfp_enable to true");
          qahw_set_parameters(audio_module, "hfp_volume=15");
+         if(audio_out_device == 2)
+            qahw_set_parameters(audio_module, "hfp_route_spkr=2");
          qahw_set_parameters(audio_module, "hfp_enable=true");
       }
       else
@@ -1433,7 +1435,7 @@ void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bo
       else if (vol >=  15)
          qahw_set_parameters(audio_module, "hfp_volume=15");
       else {
-         sprintf(buf, "hfp_volume=%d", vol);
+         snprintf(buf, sizeof(buf), "hfp_volume=%d", vol);
          qahw_set_parameters(audio_module, buf);
       }
    }

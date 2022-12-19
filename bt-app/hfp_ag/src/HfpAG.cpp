@@ -20,6 +20,7 @@
 #include <iostream>
 #include <vector>
 #include <string.h>
+#include "osi/include/compat.h"
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
 #include <hardware/bt_hf.h>
@@ -519,7 +520,7 @@ void bind_callback(char *at_string, bt_bdaddr_t* bd_addr) {
     fprintf(stdout, " bind_cmd_vendor_cb\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-    strncpy(pEvent->hfp_ag_event.str, at_string, strlen(at_string));
+    strlcpy(pEvent->hfp_ag_event.str, at_string, strlen(at_string));
     pEvent->hfp_ag_event.event_id = HFP_AG_BIND_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
 }
