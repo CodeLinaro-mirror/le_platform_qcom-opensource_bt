@@ -1053,7 +1053,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG "VR start/stop req from device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                                                &pEvent->hfp_ag_event.bd_addr);
             }
             break;
@@ -1492,7 +1492,8 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             // send error for VR start/stop request
 
             if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                     &pEvent->hfp_ag_event.bd_addr);
             }
             break;
         case HFP_AG_WBS_CB:
