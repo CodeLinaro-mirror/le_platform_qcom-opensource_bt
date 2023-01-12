@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "osi/include/properties.h"
 
 #include <list>
 #include <map>
@@ -2544,9 +2545,13 @@ void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
 
 void Hfp_Ag::process_at_biev(BtEvent* pEvent) {
     // TODO: just send OK for now
-    if (sBtHfpAgInterface != NULL) {
-        sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
-                    &pEvent->hfp_ag_event.bd_addr);
+    char value[PROPERTY_VALUE_MAX] = {'\0'};
+    property_get("vendor.bt.pts.certification.hfp.hfi", value, "false");
+    if ((strcmp(value,"true"))) {
+        if (sBtHfpAgInterface != NULL) {
+            sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                            &pEvent->hfp_ag_event.bd_addr);
+        }
     }
 }
 
