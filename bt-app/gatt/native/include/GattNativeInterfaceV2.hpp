@@ -28,8 +28,8 @@ namespace gatt {
 
 class GattNativeInterfaceV2{
   private:
-    const bt_interface_t * bluetooth_interface;
-    btgatt_interface_t *sGattIf;
+    const bt_interface_t * bluetooth_interface = NULL;
+    btgatt_interface_t *sGattIf = NULL;
   public:
      GattNativeInterfaceV2(const bt_interface_t *bt_interface);
     ~GattNativeInterfaceV2();
