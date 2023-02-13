@@ -94,7 +94,7 @@ int GattLeAdvertiser::totalBytes(AdvertiseData *data, bool isFlagsIncluded)
       ALOGE(LOGTAG " No Service Data");
       continue;
     }
-    auto m = data->getServiceData().find(uuid);
+    auto m = map_ptr.find(uuid);
     size += OVERHEAD_BYTES_PER_FIELD + uuidLen + byteLength(m->second);
   }
 
