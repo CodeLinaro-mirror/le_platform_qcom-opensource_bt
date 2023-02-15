@@ -962,7 +962,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                 break;
             }
 #if defined(BT_MODEM_INTEGRATION)
-            processSlcConnected();
+            processSlcConnected(&pEvent->hfp_ag_event.bd_addr);
 #endif
             break;
         case HFP_AG_DISCONNECTED_CB:
@@ -1887,14 +1887,14 @@ void Hfp_Ag::update_heldcall_num(int held) {
 
 #if defined(BT_MODEM_INTEGRATION)
 
-void Hfp_Ag::processSlcConnected() {
+void Hfp_Ag::processSlcConnected(bt_bdaddr_t *bd_addr) {
   //  update the calls info to stack once done with SLC
   // TODO: should we add any delay here?
    sBtHfpAgInterface->phone_state_change(mNumActiveCalls,
                                mNumHeldCalls,
                                mCallSetupState,
                                mRingingAddress == NULL ? "" : mRingingAddress,
-                               BTHF_CALL_ADDRTYPE_INTERNATIONAL);
+                               BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
 }
 
 void Hfp_Ag::get_and_send_operator_name(bt_bdaddr_t *bd_addr) {

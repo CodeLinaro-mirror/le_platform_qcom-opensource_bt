@@ -231,7 +231,7 @@ class Hfp_Ag {
     uint32 process_chld(int chld);
     void process_ril_ind(BtEvent* pEvent);
     void process_ril_resp(BtEvent* pEvent);
-    void processSlcConnected();
+    void processSlcConnected(bt_bdaddr_t *bd_addr);
 #endif
 
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
