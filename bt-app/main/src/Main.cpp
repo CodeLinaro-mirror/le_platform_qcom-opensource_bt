@@ -2453,6 +2453,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
 
         case START_ENQUIRY:
+        case START_ENQUIRY_BDA:
 
             if ((g_bt_app->status.enquiry_cmd != COMMAND_INPROGRESS) &&
                                 (g_bt_app->bt_state == BT_STATE_ON)) {
@@ -2461,7 +2462,11 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 g_bt_app->inq_db_count = 0;
                 g_bt_app->status.enquiry_cmd = COMMAND_INPROGRESS;
                 event = new BtEvent;
+                memset(&event->bond_device.bd_addr, 0x00, sizeof(event->bond_device.bd_addr));
                 event->event_id = GAP_API_START_INQUIRY;
+                if(cmd_id == START_ENQUIRY_BDA)
+                    string_to_bdaddr(user_cmd[ONE_PARAM], &event->bond_device.bd_addr);
+
                 ALOGV (LOGTAG " Posting inquiry to GAP thread");
                 PostMessage (THREAD_ID_GAP, event);
 
