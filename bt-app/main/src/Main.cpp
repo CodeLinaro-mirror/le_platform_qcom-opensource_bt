@@ -3525,6 +3525,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
            {
              //fprintf(stdout, "Test_menu BT enabled for Iteration: %d\n",onoff_count);
              if(onoff_count > 0) {
+               sleep(2);
                BtEvent *event_off = new BtEvent;
                event_off->event_id = MAIN_API_DISABLE;
                fprintf( stdout, "Iteration: %d Posting disable\n",onoff_index);
@@ -3549,6 +3550,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             {
               //fprintf(stdout, "Test_menu BT disabled for Iteration: %d\n",onoff_count);
               if(onoff_count > 0) {
+                sleep(2);
                 BtEvent *event_off = new BtEvent;
                 event_off->event_id = MAIN_API_ENABLE;
                 fprintf( stdout, "Iteration: %d Posting enable\n",onoff_index);
