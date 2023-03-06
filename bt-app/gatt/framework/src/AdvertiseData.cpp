@@ -18,7 +18,7 @@
 
 #include "AdvertiseData.hpp"
 #include <cstring>
-#define LOGTAG "AdvertiseData"
+#define LOGTAG "AdvertiseData "
 using namespace std;
 namespace gatt {
 

@@ -2216,8 +2216,6 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     list<MediaPlayerInfo>::iterator p = pMediaPlayerList.begin();
                     while (p != pMediaPlayerList.end()) {
                         //if (start == 0) {
-                            playerEntry = (char*)osi_malloc(p->RetrievePlayerEntryLength()*
-                                                               sizeof(char));
                             playerEntry = p->RetrievePlayerItemEntry();
                             int length = p->RetrievePlayerEntryLength();
                             folderItemLengths[availableMediaPlayers ++] = length;

@@ -80,8 +80,13 @@ class RspServerCallback  :public GattServerCallback{
   void onCharacteristicWriteRequest(string deviceAddress,int requestId,
         GattCharacteristic *characteristic,bool preparedWrite,bool responseNeeded,
         int offset, uint8_t* value, int length) {
-    ALOGD(LOGTAG"%s",__FUNCTION__);
-    rsp->SendResponse(deviceAddress,requestId,0,offset, value, length);
+	ALOGD(LOGTAG"%s: preparedWrite(%d) responseNeeded(%d) offset(%d)", __FUNCTION__, preparedWrite, responseNeeded, offset);
+        {
+          int i;
+          for (i = 0; i < length; i++)
+            ALOGD(LOGTAG"%s: value[%d] = %02x(%c)", __func__, i, value[i], value[i]);
+        }
+        rsp->SendResponse(deviceAddress,requestId,0,offset, value, length);
   }
 
   void onDescriptorReadRequest(string deviceAddress, int requestId,
@@ -185,6 +190,7 @@ GattLeAdvertiser *mAdvertiser = NULL;
 Rsp::Rsp(GattLibService* g_gatt) {
   ALOGE(LOGTAG "rsp instantiated");
   fprintf(stdout,"rsp instantiated ");
+  wlan_state = WLAN_INACTIVE;
   mlibservice = g_gatt->getGatt();
 }
 
@@ -251,9 +257,9 @@ void Rsp::SendResponse(string deviceAddress, int requestId, int status,
   } else {
     status = -1;
   }
-  if (value != NULL) {
-    fprintf(stdout, "(%s) Sending RSP response to write value (%s) "
-      "State (%d)",__FUNCTION__, value,GetDeviceState());
+  if ((value != NULL) && (length >=2)) {
+    fprintf(stdout, "(%s) Sending RSP response to write value (%c%c) "
+      "State (%d)\n", __FUNCTION__, value[0], value[1], GetDeviceState());
   }
   rsp->SetDeviceState(WLAN_ACTIVE);
   mServer->sendResponse(deviceAddress,requestId,status,offset,value,length);
