@@ -326,6 +326,16 @@ class Gap {
      * @return bool
      */
     bool IsDeviceBonded(bt_bdaddr_t device);
+
+    /**
+     * @brief GetBondState
+     *
+     * It will return's the device bond state
+     *
+     * @return bond state
+     */
+    int GetBondState(bt_bdaddr_t device);
+
     /**
      * @brief SetAFHChannels
      *
