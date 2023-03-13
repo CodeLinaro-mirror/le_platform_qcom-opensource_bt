@@ -274,6 +274,23 @@ void GattServer::onConnectionUpdated(string address, int interval, int latency,
   }
 }
 
+void GattServer::onSubrateChanged(string address, int subrateFactor, int latency,
+                                int contNum, int timeout, int status)
+{
+  if (DBG) {
+    ALOGD(LOGTAG
+      " onServerSubrateChanged() - Device %s subrateFactor %d latency %d contNum %d timeout %d status %d",
+      address.c_str(), subrateFactor, latency, contNum, timeout, status);
+  }
+
+  try {
+    mCallback->onSubrateChanged(address, subrateFactor, latency,
+             contNum, timeout, status);
+  } catch (std::exception& e) {
+      ALOGE(LOGTAG " Unhandled exception in callback: %s", e.what());
+  }
+}
+
 GattServer::GattServer(GattLibService *gatt,int transport)
 {
   mService = gatt;
@@ -449,6 +466,45 @@ void GattServer::readPhy(string deviceAddress)
       ALOGE(LOGTAG " %s", e.what());
   }
 
+}
+
+bool GattServer::requestSubrateMode(string deviceAddress, int subrateMode)
+{
+  if (subrateMode < SUBRATE_MODE_BALANCED
+          || subrateMode > SUBRATE_MODE_LOW_POWER) {
+      throw std::invalid_argument("SubrateMode not within valid range");
+  }
+
+  ALOGD(LOGTAG " requestSubrateMode() - params: %d", subrateMode);
+  if (mService == NULL || mServerIf == 0) return false;
+
+  try {
+    mService->subrateModeRequest(mServerIf, deviceAddress, subrateMode);
+  } catch (std::exception& e) {
+    ALOGE(LOGTAG " %s", e.what());
+    return false;
+  }
+
+  return true;
+}
+
+bool GattServer::requestLeSubrate(string deviceAddress, int subrateMin, int subrateMax,
+                                    int maxLatency, int contNumber, int supervisionTimeout)
+{
+  ALOGD(LOGTAG "requestLeSubrate() - subrateMin/Max: %d/%d maxLatency: %d\
+                contNumber: %d supervisionTimeout: %d", subrateMin, subrateMax,
+                maxLatency, contNumber, supervisionTimeout);
+  if (mService == NULL || mServerIf == 0) return false;
+
+  try {
+    mService->leSubrateRequest(mServerIf, deviceAddress, subrateMin, subrateMax,
+                               maxLatency, contNumber, supervisionTimeout);
+  } catch (std::exception& e) {
+    ALOGE(LOGTAG " %s", e.what());
+    return false;
+  }
+
+  return true;
 }
 
 bool GattServer::sendResponse(string deviceAddress, int requestId,

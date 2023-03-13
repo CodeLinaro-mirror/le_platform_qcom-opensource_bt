@@ -51,6 +51,8 @@ class IServerCallback {
     virtual void onPhyRead(string address, int txPhy, int rxPhy, int status){}
     virtual void onConnectionUpdated(string address, int interval, int latency,
                                 int timeout, int status){}
+    virtual void onSubrateChanged(string address, int subrateFactor, int latency,
+                                int contNum, int timeout, int status){}
 
 };
 }

@@ -471,6 +471,25 @@ void GattClient::onConnectionUpdated(string address, int interval, int latency,
   }
 }
 
+void GattClient::onSubrateChanged(string address, int subrateFactor, int latency, int contNum,
+                                 int timeout, int status)
+{
+
+  ALOGD(LOGTAG " onSubrateChanged() - Device %s subrateFactor %d latency %d contNum %d timeout %d status %d",
+                address.c_str(),
+                subrateFactor, latency, contNum, timeout, status);
+
+  if (!caseInsCompare(address, mDeviceAddress)) {
+    ALOGE( LOGTAG "onSubrateChanged() address mis-match");
+    return;
+  }
+
+  if (mCallback != NULL) {
+      mCallback->onSubrateChanged(this, subrateFactor, latency, contNum,
+              timeout, status);
+  }
+}
+
 GattClient::~GattClient()
 {
   if ( mService != NULL) {
@@ -872,6 +891,46 @@ bool GattClient::requestConnectionPriority(int connectionPriority)
 
   try {
     mService->connectionParameterUpdate(mClientIf, mDeviceAddress, connectionPriority);
+  } catch (std::exception& e) {
+    ALOGE(LOGTAG " %s", e.what());
+    return false;
+  }
+
+  return true;
+}
+
+bool GattClient::requestSubrateMode(int subrateMode)
+{
+  if (subrateMode < SUBRATE_MODE_BALANCED
+          || subrateMode > SUBRATE_MODE_LOW_POWER) {
+      throw std::invalid_argument("SubrateMode not within valid range");
+  }
+
+  ALOGD(LOGTAG " requestSubrateMode() - params: %d", subrateMode);
+  if (mService == nullptr || mClientIf == 0) return false;
+
+  try {
+    mService->subrateModeRequest(mClientIf, mDeviceAddress, subrateMode);
+  } catch (std::exception& e) {
+    ALOGE(LOGTAG " %s", e.what());
+    return false;
+  }
+
+  return true;
+}
+
+bool GattClient::requestLeSubrate(int subrateMin, int subrateMax,
+                                    int maxLatency, int contNumber,
+                                    int supervisionTimeout)
+{
+  ALOGD(LOGTAG "requestLeSubrate() - subrateMin/Max: %d/%d maxLatency: %d\
+                contNumber: %d supervisionTimeout: %d", subrateMin, subrateMax,
+                maxLatency, contNumber, supervisionTimeout);
+  if (mService == nullptr || mClientIf == 0) return false;
+
+  try {
+    mService->leSubrateRequest(mClientIf, mDeviceAddress, subrateMin, subrateMax,
+                               maxLatency, contNumber, supervisionTimeout);
   } catch (std::exception& e) {
     ALOGE(LOGTAG " %s", e.what());
     return false;

@@ -378,8 +378,19 @@ void gattstestServerCallback::onPhyRead(string deviceAddress,int txPhy,int rxPhy
 
 void gattstestServerCallback::onConnectionUpdated(string deviceAddress,int interval,int latency,int timeout,int status)
 {
+  fprintf(stdout, "onSubrateChanged deviceAddress: %s interval (%d), latency (%d), timeout (%d), status (%d)\n",
+            deviceAddress.c_str(), interval, latency, timeout, status);
   ALOGD(LOGTAG"%s deviceAddress: %s,interval: %d,latency %d,timeout %d, status:%d", __FUNCTION__,
                                         deviceAddress.c_str(), interval, latency, timeout, status);
+}
+
+void gattstestServerCallback::onSubrateChanged(string deviceAddress, int subrateFactor, int latency, int contNum,
+                                 int timeout, int status)
+{
+  fprintf(stdout, "onSubrateChanged deviceAddress: %s subrateFactor (%d), latency (%d), contNum (%d), timeout (%d), status (%d)\n",
+            deviceAddress.c_str(), subrateFactor, latency, contNum, timeout, status);
+  ALOGD(LOGTAG"%s deviceAddress: %s,subrateFactor: %d,latency %d,contNum %d,timeout %d, status:%d", __FUNCTION__,
+                                        deviceAddress.c_str(), subrateFactor, latency, contNum, timeout, status);
 }
 
 
@@ -1122,6 +1133,81 @@ void GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
   ALOGD(LOGTAG"Descriptor Permissions: %d ", mgattDescriptor->getPermissions());
 }
 
+bool GattsTest::ReqSubrateMode(string instance, string deviceAddress, int subrateMode)
+{
+  ALOGD(LOGTAG"%s Address: %s", __FUNCTION__, deviceAddress.c_str());
+  vector <string> ::iterator str;
+  bool connected= false;
+  int instanceId;
+  istringstream(instance) >> instanceId;
+  GattServer *mServer;
+
+  if(!servInstanceMap.count(instanceId)) {
+    fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
+    return false;
+  } else {
+    mServer = servInstanceMap[instanceId];
+    for(str = connectedDevices.begin(); str != connectedDevices.end(); str++) {
+      if(deviceAddress == *str) {
+        ALOGD(LOGTAG"Present in connected device list ");
+        connected = true;
+        break;
+      }
+    }
+  }
+  if(connected) {
+    mServer->requestSubrateMode(deviceAddress, subrateMode);
+    return true;
+  } else {
+    fprintf(stdout,"Device is not present in connected list\n");
+    ALOGD(LOGTAG"Device is not present in connected list");
+    return false;
+  }
+}
+
+bool GattsTest::ReqLeSubrate(string instance, string deviceAddress, string subrateMin, string subrateMax,
+                                  string maxLatency, string contNumber, string supervisionTimeout)
+{
+  ALOGD(LOGTAG"%s Address: %s", __FUNCTION__, deviceAddress.c_str());
+  vector <string> ::iterator str;
+  bool connected= false;
+  int instanceId;
+  int subrate_Min = 0;
+  int subrate_Max = 0;
+  int max_Latency = 0;
+  int cont_Number = 0;
+  int supervision_Timeout = 0;
+  istringstream(instance) >> instanceId;
+  istringstream(subrateMin) >> subrate_Min;
+  istringstream(subrateMax) >> subrate_Max;
+  istringstream(maxLatency) >> max_Latency;
+  istringstream(contNumber) >> cont_Number;
+  istringstream(supervisionTimeout) >> supervision_Timeout;
+  GattServer *mServer;
+
+  if(!servInstanceMap.count(instanceId)) {
+    fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
+    return false;
+  } else {
+    mServer = servInstanceMap[instanceId];
+    for(str = connectedDevices.begin(); str != connectedDevices.end(); str++) {
+      if(deviceAddress == *str) {
+        ALOGD(LOGTAG"Present in connected device list ");
+        connected = true;
+        break;
+      }
+    }
+  }
+  if(connected) {
+    mServer->requestLeSubrate(deviceAddress, subrate_Min, subrate_Max, max_Latency,
+                                  cont_Number, supervision_Timeout);
+    return true;
+  } else {
+    fprintf(stdout,"Device is not present in connected list\n");
+    ALOGD(LOGTAG"Device is not present in connected list");
+    return false;
+  }
+}
 bool GattsTest::ReadPhy(string instance,string deviceAddress)
 {
   ALOGD(LOGTAG"%s Address: %s", __FUNCTION__, deviceAddress.c_str());
@@ -1148,6 +1234,7 @@ bool GattsTest::ReadPhy(string instance,string deviceAddress)
     mServer->readPhy(deviceAddress);
     return true;
   } else {
+    fprintf(stdout,"Device is not present in connected list\n");
     ALOGD(LOGTAG"Device is not present in connected list");
     return false;
   }

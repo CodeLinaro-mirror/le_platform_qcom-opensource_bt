@@ -115,6 +115,9 @@ class GattcTest {
         void startScan();
         void list_conn_devices();
         bool reqConnPri(string bdaddr, int conn_priority);
+        bool reqSubrateMode(string bdaddr, int subrateMode);
+        bool reqLeSubrate(string bdaddr, string subrateMin, string subrateMax,
+                                          string maxLatency, string contNumber, string supervisionTimeout);
         bool reliableWrite(string bdaddr, int instanceId);
         bool scanFilter(int filterType, string value);
         bool scanSettings(int scanType, int value);

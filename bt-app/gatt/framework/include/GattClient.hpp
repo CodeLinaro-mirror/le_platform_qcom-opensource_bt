@@ -148,6 +148,21 @@ class GattClient : public IClientCallback, public GattClientCallback {
     static const int CONNECTION_PRIORITY_LOW_POWER = 2;
 
     /**
+    * Subrate parameter update - Use the subrate parameters recommended by the
+    * Bluetooth SIG. This is the default value if no subrate parameter update
+    * is requested.
+    */
+    static const int SUBRATE_MODE_BALANCED = 0;
+
+    /**
+    * Subrate parameter update - Request a high priority, low latency subrate.
+    */
+    static const int SUBRATE_MODE_HIGH = 1;
+
+    /** Subrate parameter update - Request low power, reduced data rate subrate parameters. */
+    static const int SUBRATE_MODE_LOW_POWER = 2;
+
+    /**
     * No authentication required.
     */
     static const int AUTHENTICATION_NONE = 0;
@@ -399,6 +414,35 @@ class GattClient : public IClientCallback, public GattClientCallback {
     bool requestConnectionPriority(int connectionPriority);
 
     /**
+     * Request a subrate parameter update.
+     *
+     * <p>This function will send a subrate parameter update request to the
+     * remote device.
+     *
+     * @param subrateMode Request a specific subrate mode. Must be one of
+     * GattClient#SUBRATE_MODE_BALANCED, GattClient#SUBRATE_MODE_HIGH
+     * or GattClient#SUBRATE_MODE_LOW_POWER.
+     * @throws std::invalid_argument exception If the parameters are outside of
+     * their specified range.
+     */
+    bool requestSubrateMode(int subrateMode);
+
+    /**
+     * Request a subrate parameter update.
+     *
+     * <p>This function will send a subrate parameter update request to the
+     * remote device.
+     *
+     * @param subrateMin preferred minimal subrate.
+     * @param subrateMax preferred maximal subrate.
+     * @param maxLatency preferred maximal latency.
+     * @param contNumber preferred continuation number.
+     * @param supervisionTimeout preferred supervision timeout.
+     */
+    bool requestLeSubrate(int subrateMin, int subrateMax, int maxLatency,
+                               int contNumber, int supervisionTimeout);
+
+    /**
      * Request an MTU size used for a given connection.
      *
      * <p>When performing a write request operation (write without response),
@@ -495,6 +539,8 @@ class GattClient : public IClientCallback, public GattClientCallback {
 
     void onConnectionUpdated(string address, int interval, int latency,
                                 int timeout, int status);
+    void onSubrateChanged(string address, int subrateFactor, int latency, int contNum,
+                                 int timeout, int status);
 };
 }//namespace gatt
 #endif

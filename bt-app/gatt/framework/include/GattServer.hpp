@@ -74,6 +74,21 @@ class GattServer : public IServerCallback, public GattServerCallback {
     void unregisterCallback() ;
 
   public:
+    /**
+    * Subrate parameter update - Use the subrate parameters recommended by the
+    * Bluetooth SIG. This is the default value if no subrate parameter update
+    * is requested.
+    */
+    static const int SUBRATE_MODE_BALANCED = 0;
+
+    /**
+    * Subrate parameter update - Request a high priority, low latency subrate.
+    */
+    static const int SUBRATE_MODE_HIGH = 1;
+
+    /** Subrate parameter update - Request low power, reduced data rate subrate parameters. */
+    static const int SUBRATE_MODE_LOW_POWER = 2;
+
     GattServer();
       /**
      * Create a GattServer proxy object.
@@ -148,6 +163,37 @@ class GattServer : public IServerCallback, public GattServerCallback {
      * of GattDevice#PHY_OPTION_NO_PREFERRED, GattDevice#PHY_OPTION_S2 or GattDevice#PHY_OPTION_S8
      */
     void setPreferredPhy(string deviceAddress, int txPhy, int rxPhy, int phyOptions);
+
+    /**
+     * Request a subrate parameter update.
+     *
+     * <p>This function will send a subrate parameter update request to the
+     * remote device.
+     *
+     * @param deviceAddress The remote device to send this response to
+     * @param subrateMode Request a specific subrate mode. Must be one of
+     * GattClient#SUBRATE_MODE_BALANCED, GattClient#SUBRATE_MODE_HIGH
+     * or GattClient#SUBRATE_MODE_LOW_POWER.
+     * @throws std::invalid_argument exception If the parameters are outside of
+     * their specified range.
+     */
+    bool requestSubrateMode(string deviceAddress, int subrateMode);
+
+    /**
+     * Request a subrate parameter update.
+     *
+     * <p>This function will send a subrate parameter update request to the
+     * remote device.
+     *
+     * @param deviceAddress The remote device to send this response to
+     * @param subrateMin preferred minimal subrate.
+     * @param subrateMax preferred maximal subrate.
+     * @param maxLatency preferred maximal latency.
+     * @param contNumber preferred continuation number.
+     * @param supervisionTimeout preferred supervision timeout.
+     */
+    bool requestLeSubrate(string deviceAddress, int subrateMin, int subrateMax, int maxLatency,
+                               int contNumber, int supervisionTimeout);
 
     /**
      * Read the current transmitter PHY and receiver PHY of the connection. The values are returned
@@ -293,6 +339,8 @@ class GattServer : public IServerCallback, public GattServerCallback {
     void onPhyRead(string address, int txPhy, int rxPhy, int status);
     void onConnectionUpdated(string address, int interval, int latency,
                                 int timeout, int status);
+    void onSubrateChanged(string address, int subrateFactor, int latency,
+                                int contNum, int timeout, int status);
 };
 }//namespace gatt
 #endif

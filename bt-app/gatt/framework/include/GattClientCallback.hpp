@@ -191,6 +191,24 @@ class GattClientCallback {
     virtual void onConnectionUpdated(GattClient *gatt, int interval, int latency,
                                                               int timeout, int status) {}
 
+    /**
+    * Callback indicating the connection subrate parameters were updated.
+    *
+    * @param gatt GATT client involved
+    * @param subrateFactor Connection subrate factor used on this connection. Valid range is from
+    * 1 to 500.
+    * @param latency Slave latency for the connection in number of connection events. Valid range
+    * is from 0 to 499
+    * @param contNum Number of underlying connection intervals to remain active after a non-
+    * empty packet is transmitted or received. Valid range is from 0 to 499.
+    * @param timeout Supervision timeout for this connection, in 10ms unit. Valid range is from 10
+    * (0.1s) to 3200 (32s)
+    * @param status GattClient#GATT_SUCCESS if the connection has been updated
+    * successfully
+    * @hide
+    */
+    virtual void onSubrateChanged(GattClient *gatt, int subrateFactor, int latency, int contNum,
+                                                          int timeout, int status) {}
 };
 }
 #endif

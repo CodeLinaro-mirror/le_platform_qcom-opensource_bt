@@ -2151,10 +2151,63 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     }
                     int i = atoi(user_cmd[TWO_PARAM]);
                     if (i >= 0 && i <= 2) {
-                        gattctest->reqConnPri(user_cmd[ONE_PARAM],
+                        bool status = gattctest->reqConnPri(user_cmd[ONE_PARAM],
                             atoi(user_cmd[TWO_PARAM]));
+                        if(!status) {
+                            fprintf(stdout,"Connection Priority could not be requested\n");
+                        }
                     } else {
                         fprintf(stdout, "Enter 0/1/2 as priority\n");
+                    }
+                } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+                }
+            } else {
+                fprintf( stdout, "BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_REQSUBRATE_MODE:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattctest) {
+                    fprintf(stdout,"Requesting Subrate Mode \n");
+                    bool status = gattctest->validateInput
+                        (user_cmd[TWO_PARAM]);
+                    if (!status) {
+                        fprintf(stdout, "Enter Subrate Mode\n");
+                        break;
+                    }
+                    int i = atoi(user_cmd[TWO_PARAM]);
+                    if (i >= 0 && i <= 2) {
+                        bool status = gattctest->reqSubrateMode(user_cmd[ONE_PARAM],
+                            atoi(user_cmd[TWO_PARAM]));
+                        if(!status) {
+                            fprintf(stdout,"Subrate Mode could not be requested\n");
+                        }
+                    } else {
+                        fprintf(stdout, "Enter 0/1/2 as mode\n");
+                    }
+                } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+                }
+            } else {
+                fprintf( stdout, "BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_REQLE_SUBRATE:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattctest) {
+                    fprintf(stdout,"Requesting LE Subrate \n");
+                    string deviceAddress = user_cmd[ONE_PARAM];
+                    string subrateMin = user_cmd[TWO_PARAM];
+                    string subrateMax = user_cmd[THREE_PARAM];
+                    string maxLatency = user_cmd[FOUR_PARAM];
+                    string contNumber = user_cmd[FIVE_PARAM];
+                    string supervisionTimeout = user_cmd[SIX_PARAM];
+                    fprintf(stdout,"the user options are address: %s subrateMin: %s subrateMax: %s maxLatency: %s contNumber: %s supervisionTimeout: %s \n",
+                            deviceAddress.c_str(), subrateMin.c_str(), subrateMax.c_str(), maxLatency.c_str(), contNumber.c_str(), supervisionTimeout.c_str());
+                    bool status = gattctest->reqLeSubrate(deviceAddress, subrateMin, subrateMax, maxLatency, contNumber, supervisionTimeout);
+                    if(!status) {
+                        fprintf(stdout,"LE Subrate could not be requested\n");
                     }
                 } else {
                     fprintf(stdout,"Do the GATTCINIT first\n");
@@ -2309,6 +2362,54 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, "BT is in OFF State now \n");
              }
              break;
+        case GATTSTEST_REQ_SUBRATE_MODE:
+            if (string_is_bdaddr(user_cmd[TWO_PARAM])) {
+                if (gattstest) {
+                    fprintf(stdout,"Requesting Subrate Mode \n");
+                    int i = atoi(user_cmd[THREE_PARAM]);
+                    if (i >= 0 && i <= 2) {
+                        bool status = gattstest->ReqSubrateMode(user_cmd[ONE_PARAM],
+                                                        user_cmd[TWO_PARAM], i);
+                        if(!status) {
+                            fprintf(stdout,"Subrate Mode could not be requested\n");
+                        }
+                    } else {
+                        fprintf(stdout, "Enter 0/1/2 as mode\n");
+                    }
+                } else {
+                    fprintf(stdout,"Do Init first\n");
+                }
+            } else {
+                fprintf( stdout, "BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTSTEST_REQ_LE_SUBRATE:
+            if (string_is_bdaddr(user_cmd[TWO_PARAM])) {
+                if (gattstest) {
+                    fprintf(stdout,"Requesting LE Subrate \n");
+                    string server_instance = user_cmd[ONE_PARAM];
+                    string deviceAddress = user_cmd[TWO_PARAM];
+                    string subrateMin = user_cmd[THREE_PARAM];
+                    string subrateMax = user_cmd[FOUR_PARAM];
+                    string maxLatency = user_cmd[FIVE_PARAM];
+                    string contNumber = user_cmd[SIX_PARAM];
+                    string supervisionTimeout = user_cmd[SEVEN_PARAM];
+                    fprintf(stdout,"the user options are server_instance: %s address: %s subrateMin: %s subrateMax: %s\
+                                    maxLatency: %s contNumber: %s supervisionTimeout: %s \n",
+                                    server_instance.c_str(), deviceAddress.c_str(), subrateMin.c_str(), subrateMax.c_str(),
+                                    maxLatency.c_str(), contNumber.c_str(), supervisionTimeout.c_str());
+                    bool status = gattstest->ReqLeSubrate(server_instance, deviceAddress, subrateMin, subrateMax,
+                                                            maxLatency, contNumber, supervisionTimeout);
+                    if(!status) {
+                        fprintf(stdout,"LE Subrate could not be requested\n");
+                    }
+                } else {
+                    fprintf(stdout,"Do Init first\n");
+                }
+            } else {
+                fprintf( stdout, "BD address is NULL/Invalid \n");
+            }
+            break;
         case GATTSTEST_READPHY:
             fprintf(stdout,"Read Phy \n");
             if(string_is_bdaddr(user_cmd[ONE_PARAM])) {

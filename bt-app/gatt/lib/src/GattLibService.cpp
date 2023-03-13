@@ -465,6 +465,25 @@ void GattLibService::onClientConnUpdate(int connId, int interval, int latency,
   app->callback->onConnectionUpdated(address, interval, latency, timeout, status);
 }
 
+void GattLibService::onClientSubrateChange(int connId, int subrateFactor, int latency, int contNum,
+                                                    int timeout, int status)
+{
+  if (DBG) {
+    ALOGD(LOGTAG " onClientSubrateChange() - connId=%d, status=%d",
+               connId, status);
+  }
+
+  string address = mClientMap->addressByConnId(connId);
+  if (address.empty()) {
+    return;
+  }
+
+  ClientMap::App *app = mClientMap->getByConnId(connId);
+  CHECK_PARAM_VOID(app);
+
+  app->callback->onSubrateChanged(address, subrateFactor, latency, contNum, timeout, status);
+}
+
 void GattLibService::onServerPhyUpdate(int connId, int txPhy, int rxPhy, int status)
 {
   if (DBG) {
@@ -518,6 +537,24 @@ void GattLibService::onServerConnUpdate(int connId, int interval, int latency,
   CHECK_PARAM_VOID(app);
 
   app->callback->onConnectionUpdated(address, interval, latency, timeout, status);
+}
+
+void GattLibService::onServerSubrateChange(int connId, int subrateFactor, int latency, int contNum,
+                                                    int timeout, int status)
+{
+  if (DBG) {
+    ALOGD(LOGTAG " onServerSubrateChange() - connId=%d, status=%d", connId, status);
+  }
+
+  string address = mServerMap->addressByConnId(connId);
+  if (address.empty()) {
+    return;
+  }
+
+  ServerMap::App *app = mServerMap->getByConnId(connId);
+  CHECK_PARAM_VOID(app);
+
+  app->callback->onSubrateChanged(address, subrateFactor, latency, contNum, timeout, status);
 }
 
 void GattLibService::onSearchCompleted(int connId, int status)
@@ -2002,6 +2039,60 @@ void GattLibService::leConnectionUpdate(int clientIf, string address,
                                       minConnectionEventLen, maxConnectionEventLen);
 }
 
+void GattLibService::subrateModeRequest(int clientIf, string address, int subrateMode)
+{
+  int subrateMin;
+  int subrateMax;
+  int maxLatency;
+  int contNumber;
+  // Link supervision timeout is measured in N * 10ms
+  int supervisionTimeout = 500; // 5s
+
+  switch (subrateMode) {
+    case SUBRATE_REQ_HIGH:
+      subrateMin = SUBRATE_MODE_HIGH_PRIORITY_MIN_SUBRATE;
+      subrateMax = SUBRATE_MODE_HIGH_PRIORITY_MAX_SUBRATE;
+      maxLatency = SUBRATE_MODE_HIGH_PRIORITY_LATENCY;
+      contNumber = SUBRATE_MODE_HIGH_PRIORITY_CONT_NUMBER;
+      break;
+    case SUBRATE_REQ_LOW_POWER:
+      subrateMin = SUBRATE_MODE_LOW_POWER_MIN_SUBRATE;
+      subrateMax = SUBRATE_MODE_LOW_POWER_MAX_SUBRATE;
+      maxLatency = SUBRATE_MODE_LOW_POWER_LATENCY;
+      contNumber = SUBRATE_MODE_LOW_POWER_CONT_NUMBER;
+      break;
+    default:
+      // Using the values for SUBRATE_REQ_BALANCED.
+      subrateMin = SUBRATE_MODE_BALANCED_PRIORITY_MIN_SUBRATE;
+      subrateMax = SUBRATE_MODE_BALANCED_PRIORITY_MAX_SUBRATE;
+      maxLatency = SUBRATE_MODE_BALANCED_PRIORITY_LATENCY;
+      contNumber = SUBRATE_MODE_BALANCED_PRIORITY_CONT_NUMBER;
+      break;
+  }
+
+  if (DBG) {
+    ALOGD(LOGTAG " subrateModeRequest() - address %s subrateMin/Max %d/%d maxLatency %d\
+                  continuationNumber %d supervisionTimeout %d", address.c_str(), subrateMin,
+                  subrateMax, maxLatency, contNumber, supervisionTimeout);
+  }
+  mNative->gattSubrateRequestNative(clientIf, address, subrateMin, subrateMax, maxLatency,
+                                    contNumber, supervisionTimeout);
+}
+
+void GattLibService::leSubrateRequest(int clientIf, string address,
+                                       int subrateMin, int subrateMax,
+                                       int maxLatency, int contNumber,
+                                       int supervisionTimeout)
+{
+  if (DBG) {
+    ALOGD(LOGTAG "leSubrateRequest() - address %s subrateMin/Max %d/%d maxLatency %d\
+                  continuationNumber %d supervisionTimeout %d", address.c_str(), subrateMin,
+                  subrateMax, maxLatency, contNumber, supervisionTimeout);
+  }
+  mNative->gattSubrateRequestNative(clientIf, address, subrateMin, subrateMax, maxLatency,
+                                    contNumber, supervisionTimeout);
+}
+
 /**************************************************************************
 * GATT Service functions -SERVER
 *************************************************************************/
@@ -2734,6 +2825,13 @@ void GattLibService::HandleGattcConnUpdatedEvent(GattcConnUpdatedEvent *event)
           event->timeout, event->status);
 }
 
+void GattLibService::HandleGattcSubrateChangedEvent(GattcSubrateChangedEvent *event)
+{
+  if (!sGattService) return;
+  sGattService->onClientSubrateChange(event->conn_id, event->subrate_factor, event->latency,
+          event->cont_num, event->timeout, event->status);
+}
+
 void GattLibService::HandleGattcReadPhyEvent(GattcReadPhyEvent *event)
 {
   if (!sGattService) return;
@@ -2897,6 +2995,13 @@ void GattLibService::HandleGattsConnUpdatedEvent(GattsConnUpdatedEvent *event)
   if (!sGattService) return;
   sGattService->onServerConnUpdate(event->conn_id, event->interval,
                   event->latency, event->timeout, event->status);
+}
+
+void GattLibService::HandleGattsSubrateChangedEvent(GattsSubrateChangedEvent *event)
+{
+  if (!sGattService) return;
+  sGattService->onServerSubrateChange(event->conn_id, event->subrate_factor, event->latency,
+          event->cont_num, event->timeout, event->status);
 }
 
 void GattLibService::HandleGattsReadPhyEvent(GattsReadPhyEvent *event) {
@@ -3202,6 +3307,9 @@ void GattLibService::ProcessEvent(BtEvent* event)
      case BTGATTC_CONN_UPDATED_EVENT:
        HandleGattcConnUpdatedEvent((GattcConnUpdatedEvent *)event);
        break;
+     case BTGATTC_SUBRATE_CHANGED_EVENT:
+       HandleGattcSubrateChangedEvent((GattcSubrateChangedEvent *)event);
+       break;
      case BTGATTC_READ_PHY_EVENT:
        HandleGattcReadPhyEvent((GattcReadPhyEvent *)event);
        break;
@@ -3252,6 +3360,9 @@ void GattLibService::ProcessEvent(BtEvent* event)
        break;
      case BTGATTS_CONN_UPDATED_EVENT:
        HandleGattsConnUpdatedEvent((GattsConnUpdatedEvent *)event);
+       break;
+     case BTGATTS_SUBRATE_CHANGED_EVENT:
+       HandleGattsSubrateChangedEvent((GattsSubrateChangedEvent *)event);
        break;
      case BTGATTS_READ_PHY_EVENT:
        HandleGattsReadPhyEvent((GattsReadPhyEvent *)event);

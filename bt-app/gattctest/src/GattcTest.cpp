@@ -464,6 +464,24 @@ class gattctestClientCallback:public GattClientCallback
         fprintf(stdout, "Connection Update failed status %d\n", status);
       }
     }
+
+    void onSubrateChanged(GattClient *gatt, int subrateFactor, int latency, int contNum,
+        int timeout, int status)
+    {
+      ALOGD(LOGTAG "onSubrateChanged");
+
+      if ((status == GattClient::GATT_SUCCESS)) {
+        ALOGD(LOGTAG "onSubrateChanged subrateFactor (%d), latency (%d),"
+            "contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
+            contNum, timeout, status);
+        fprintf(stdout, "onSubrateChanged subrateFactor (%d), latency (%d),"
+            "contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
+            contNum, timeout, status);
+      } else {
+        ALOGE(LOGTAG "Connection Subrate Update failed status %d\n", status);
+        fprintf(stdout, "Connection Subrate Update failed status %d\n", status);
+      }
+    }
 };
 
 class mscancallback : public ScanCallback
@@ -955,6 +973,61 @@ bool GattcTest:: reqConnPri(string bdaddr, int conn_priority)
   } else {
     ALOGE(LOGTAG "Connection priority request failed");
     fprintf(stdout, "Connection priority request failed \n");
+  }
+
+  return true;
+}
+
+bool GattcTest:: reqSubrateMode(string bdaddr, int subrateMode)
+{
+  ALOGD(LOGTAG "reqSubrateMode subrateMode: %d", subrateMode);
+  if (!mDeviceMap.containsDevice(bdaddr)) {
+    ALOGE(LOGTAG "Device not found on Map");
+    fprintf(stdout, "Device not found on Map");
+    return false;
+  }
+  GattClient *CliDevice = mDeviceMap.getGatt(bdaddr);
+
+  if (CliDevice->requestSubrateMode(subrateMode)) {
+    ALOGD(LOGTAG "Requested Subrate Mode");
+    fprintf(stdout, "Requested Subrate Mode\n");
+  } else {
+    ALOGE(LOGTAG "Subrate Mode request failed");
+    fprintf(stdout, "Subrate Mode request failed \n");
+  }
+
+  return true;
+}
+
+bool GattcTest:: reqLeSubrate(string bdaddr, string subrateMin, string subrateMax,
+                                  string maxLatency, string contNumber, string supervisionTimeout)
+{
+  ALOGD(LOGTAG "reqLeSubrate address: %s subrateMin: %s subrateMax: %s maxLatency: %s contNumber: %s supervisionTimeout: %s",
+               bdaddr.c_str(), subrateMin.c_str(), subrateMax.c_str(), maxLatency.c_str(), contNumber.c_str(), supervisionTimeout.c_str());
+  int subrate_Min = 0;
+  int subrate_Max = 0;
+  int max_Latency = 0;
+  int cont_Number = 0;
+  int supervision_Timeout = 0;
+  istringstream(subrateMin) >> subrate_Min;
+  istringstream(subrateMax) >> subrate_Max;
+  istringstream(maxLatency) >> max_Latency;
+  istringstream(contNumber) >> cont_Number;
+  istringstream(supervisionTimeout) >> supervision_Timeout;
+  if (!mDeviceMap.containsDevice(bdaddr)) {
+    ALOGE(LOGTAG "Device not found on Map");
+    fprintf(stdout, "Device not found on Map");
+    return false;
+  }
+  GattClient *CliDevice = mDeviceMap.getGatt(bdaddr);
+
+  if (CliDevice->requestLeSubrate(subrate_Min, subrate_Max, max_Latency,
+                                  cont_Number, supervision_Timeout)) {
+    ALOGD(LOGTAG "Requested LE Subrate");
+    fprintf(stdout, "Requested LE Subrate\n");
+  } else {
+    ALOGE(LOGTAG "LE Subrate request failed");
+    fprintf(stdout, "LE Subrate request failed \n");
   }
 
   return true;

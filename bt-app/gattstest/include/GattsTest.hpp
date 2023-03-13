@@ -111,6 +111,8 @@ class GattsTest {
     void AddCharacteristics(Uuid,int,int,string);
     void AddDescriptors(Uuid,int,string);
     bool SetPreferredPhy(string,string,string,string,int);
+    bool ReqSubrateMode(string,string,int);
+    bool ReqLeSubrate(string,string,string,string,string,string,string);
     bool ReadPhy(string,string);
     bool EnablePeriodicAdvertising(bool);
     bool SetPeriodicAdvertisingData(int);
@@ -143,6 +145,8 @@ class gattstestServerCallback :public GattServerCallback
   void onPhyRead(string deviceAddress,int txPhy,int rxPhy,int status);
   void onConnectionUpdated(string deviceAddress,int interval,int latency,
                                     int timeout,int status);
+  void onSubrateChanged(string deviceAddress, int subrateFactor, int latency, int contNum,
+                                 int timeout, int status);
 };
 
 #endif

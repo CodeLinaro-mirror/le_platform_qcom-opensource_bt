@@ -107,9 +107,24 @@ class GattLibService           {
     static const int GATT_HIGH_PRIORITY_LATENCY = 0;
     static const int GATT_BALANCED_PRIORITY_LATENCY = 0;
     static const int GATT_LOW_POWER_LATENCY = 2;
-
     static const int CONNECTION_PRIORITY_HIGH = 1;
     static const int CONNECTION_PRIORITY_LOW_POWER = 2;
+
+    static const int SUBRATE_MODE_HIGH_PRIORITY_MIN_SUBRATE = 2;
+    static const int SUBRATE_MODE_HIGH_PRIORITY_MAX_SUBRATE = 4;
+    static const int SUBRATE_MODE_BALANCED_PRIORITY_MIN_SUBRATE = 4;
+    static const int SUBRATE_MODE_BALANCED_PRIORITY_MAX_SUBRATE = 7;
+    static const int SUBRATE_MODE_LOW_POWER_MIN_SUBRATE = 4;
+    static const int SUBRATE_MODE_LOW_POWER_MAX_SUBRATE = 10;
+    static const int SUBRATE_MODE_HIGH_PRIORITY_LATENCY = 0;
+    static const int SUBRATE_MODE_BALANCED_PRIORITY_LATENCY = 1;
+    static const int SUBRATE_MODE_LOW_POWER_LATENCY = 1;
+    static const int SUBRATE_MODE_HIGH_PRIORITY_CONT_NUMBER = 2;
+    static const int SUBRATE_MODE_BALANCED_PRIORITY_CONT_NUMBER = 2;
+    static const int SUBRATE_MODE_LOW_POWER_CONT_NUMBER = 2;
+    static const int SUBRATE_REQ_HIGH = 1;
+    static const int SUBRATE_REQ_LOW_POWER = 2;
+
     static const int GATT_SUCCESS = 0;
     static const int GATT_CONNECTION_CONGESTED = 0x8f;
 
@@ -230,6 +245,11 @@ class GattLibService           {
                                   int minConnectionInterval, int maxConnectionInterval,
                                   int slaveLatency, int supervisionTimeout,
                                   int minConnectionEventLen, int maxConnectionEventLen);
+    void subrateModeRequest(int clientIf, string address, int subrateMode);
+    void leSubrateRequest(int clientIf, string address,
+                                           int subrateMin, int subrateMax,
+                                           int maxLatency, int contNumber,
+                                           int supervisionTimeout);
     void registerServer(Uuid uuid, IServerCallback& callback);
     void unregisterServer(int serverIf);
     void serverConnect(int serverIf, string address, bool isDirect, int transport);
@@ -334,9 +354,13 @@ class GattLibService           {
     void onClientPhyUpdate(int connId, int txPhy, int rxPhy, int status);
     void onClientPhyRead(int clientIf, string address, int txPhy, int rxPhy, int status);
     void onClientConnUpdate(int connId, int interval, int latency, int timeout, int status);
+    void onClientSubrateChange(int connId, int subrateFactor, int latency, int contNum,
+            int timeout, int status);
     void onServerPhyUpdate(int connId, int txPhy, int rxPhy, int status);
     void onServerPhyRead(int serverIf, string address, int txPhy, int rxPhy, int status);
     void onServerConnUpdate(int connId, int interval, int latency, int timeout, int status);
+    void onServerSubrateChange(int connId, int subrateFactor, int latency, int contNum,
+            int timeout, int status);
     void onSearchCompleted(int connId, int status);
     GattDbElement* getSampleGattDbElement();
     void onGetGattDb(int connId, std::vector<GattDbElement*> db);
@@ -422,6 +446,7 @@ class GattLibService           {
     void HandleGattcGetGattDbEvent(GattcGetGattDbEvent *event);
     void HandleGattcPhyUpdatedEvent(GattcPhyUpdatedEvent *event);
     void HandleGattcConnUpdatedEvent(GattcConnUpdatedEvent *event);
+    void HandleGattcSubrateChangedEvent(GattcSubrateChangedEvent *event);
     void HandleGattcReadPhyEvent(GattcReadPhyEvent *event);
     void HandleGattsRegisterAppEvent(GattsRegisterAppEvent *event);
     void HandleGattsConnectionEvent(GattsConnectionEvent *event);
@@ -439,6 +464,7 @@ class GattLibService           {
     void HandleGattsMtuChangedEvent(GattsMTUchangedEvent *event);
     void HandleGattsPhyUpdatedEvent(GattsPhyUpdatedEvent *event);
     void HandleGattsConnUpdatedEvent(GattsConnUpdatedEvent *event);
+    void HandleGattsSubrateChangedEvent(GattsSubrateChangedEvent *event);
     void HandleGattsReadPhyEvent(GattsReadPhyEvent *event);
     void HandleBleScannerRegisterScannerEvent(BleScannerRegisterScannerEvent *event);
     void HandleBleScannerScanParamsCompleteEvent(BleScannerScanParamCompleteEvent *event);
