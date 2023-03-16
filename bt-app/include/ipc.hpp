@@ -609,6 +609,7 @@ typedef struct {
     bt_bdaddr_t address;
     char name[248];
     int bluetooth_class;
+    int adv_sid;
     short rssi;
     bt_uuid_t uuids[16];
     int device_type;

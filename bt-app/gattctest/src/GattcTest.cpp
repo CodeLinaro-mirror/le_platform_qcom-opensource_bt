@@ -34,6 +34,9 @@
 #include "ScanSettings.hpp"
 #include "ScanCallback.hpp"
 #include "GattLeScanner.hpp"
+#include "PeriodicAdvertisingManager.hpp"
+#include "PeriodicAdvertisingReport.hpp"
+#include "PeriodicAdvertisingCallback.hpp"
 #include <GattDescriptor.hpp>
 
 #include "utils.h"
@@ -76,12 +79,16 @@ string WRITE_VALUE_BAD_RESP = "BAD_RESP_TEST";
 #define INDICATE_CHARACTERISTIC_UUID 1
 #define START_HANDLE 1
 #define END_HANDLE 0xFFFF
+#define PSYNC_TIMEOUT 200
+#define PSYNC_SID_NOT_PRESENT 0xFF
+#define PSYNC_INVALID_HANDLE 0xFFF
 
 GattcTest *gattctest = NULL;
 extern GattLibService *g_gatt;
 
 mRemoteDev mDeviceMap("", NULL);
 
+PeriodicAdvertisingManager* mPeriodicAM = NULL;
 GattLeScanner* mScanner = NULL;
 ScanSettings *setting = NULL;
 
@@ -466,12 +473,26 @@ class mscancallback : public ScanCallback
     {
       ScanRecord *sr = result->getScanRecord();
       std::vector <Uuid> uuids = sr->getServiceUuids();
+      int advSid = result->getAdvertisingSid();
+      int paInterval = result->getPeriodicAdvertisingInterval();
+      string bdaddr = result->getDevice();
       ALOGD(LOGTAG "The scanned device is %s",
           result->getDevice().c_str());
       fprintf(stdout, "The scanned device is %s\n",
           result->getDevice().c_str());
       fprintf(stdout, "The scanned device is %s\n",
           sr->getDeviceName().c_str());
+
+      if (paInterval != 0) {
+        // is pa device, add device into map, or update sid
+        DeviceProperties dev_property;
+        strlcpy(dev_property.name, sr->getDeviceName().c_str(), strlen(sr->getDeviceName().c_str()) + 1);
+        dev_property.adv_sid = advSid;
+        mDeviceMap.addUpdatePaDev(bdaddr, dev_property);
+      } else {
+        // not pa device, if contained in map, remove it
+        mDeviceMap.removePaDev(bdaddr);
+      }
     }
 
     void onBatchScanResults(std::vector<ScanResult*> batchResult)
@@ -497,13 +518,55 @@ class mscancallback : public ScanCallback
     }
 };
 
+class mperiodicAdvcallback : public PeriodicAdvertisingCallback
+{
+  public:
+    void onSyncEstablished(int syncHandle, string device,
+            int advertisingSid, int skip, int timeout,
+            int status)
+    {
+      ALOGD(LOGTAG "onSyncEstablished device: %s syncHandle: 0x%x status: %d", device.c_str(), syncHandle, status);
+      fprintf(stdout, "onSyncEstablished device: %s syncHandle: 0x%x status: %d\n", device.c_str(), syncHandle, status);
+      if (status == 0) {
+        if (!mDeviceMap.containsPaSyncedDevice(syncHandle)) {
+          mDeviceMap.addPaSyncedDev(syncHandle, device);
+        }
+      } else {
+        mDeviceMap.removePaSyncedDev(syncHandle);
+        if (status == 0x3E) {
+          fprintf(stdout, "onSyncEstablished device: %s timeout\n", device.c_str());
+        } else if (status == 0x07) {
+          fprintf(stdout, "onSyncEstablished device: %s no adv record, wait to try again or restart scan\n", device.c_str());
+        }
+      }
+    }
+
+    void onPeriodicAdvertisingReport(PeriodicAdvertisingReport *report)
+    {
+      int SyncHandle = report->getSyncHandle();
+      int TxPower = report->getTxPower();
+      int Rssi = report->getRssi();
+      int DataStatus = report->getDataStatus();
+    }
+
+    void onSyncLost(int syncHandle)
+    {
+      ALOGE(LOGTAG "onSyncLost syncHandle: 0x%x", syncHandle);
+      fprintf(stdout, "onSyncLost syncHandle: 0x%x\n", syncHandle);
+      mDeviceMap.removePaSyncedDev(syncHandle);
+    }
+};
+
 gattctestClientCallback *gattCliCallback = NULL;
 mscancallback *mscan_callback = NULL;
+mperiodicAdvcallback *mperiodic_Advcallback = NULL;
 
 GattcTest::GattcTest(GattLibService* gatt)
 {
   ALOGD(LOGTAG "gattctest instantiated ");
   libservice = gatt;
+  mPeriodicAM = PeriodicAdvertisingManager::getPeriodicAdvertisingManager();
+  mperiodic_Advcallback = new mperiodicAdvcallback;
   mScanner = GattLeScanner::getGattLeScanner();
   mscan_callback = new mscancallback;
   gattCliCallback = new gattctestClientCallback;
@@ -537,6 +600,11 @@ GattcTest::~GattcTest()
     mScanner->stopScan(mscan_callback);
     if (mscan_callback != NULL) {
       delete(mscan_callback);
+    }
+//    mPeriodicAM->unregisterSync(mperiodic_Advcallback);
+    if (mperiodic_Advcallback != NULL) {
+      delete(mperiodic_Advcallback);
+      mperiodic_Advcallback = NULL;
     }
     if (gattCliCallback != NULL) {
       delete(gattCliCallback);
@@ -1269,10 +1337,22 @@ void GattcTest :: list_conn_devices()
   fprintf(stdout,"=====================================\n");
 }
 
+void GattcTest :: list_pa_devices()
+{
+  mDeviceMap.printPaDevices();
+}
+
+void GattcTest :: list_pa_synced_devices()
+{
+  mDeviceMap.printPaSyncedDevices();
+}
+
 mRemoteDev::mRemoteDev(string x, GattClient *gattconn)
 {
   mapClient[x] = gattconn;
   mapClient.clear();
+  mapPaDev.clear();
+  mapPaSyncedDev.clear();
 }
 
 void mRemoteDev :: add(string dev, GattClient *gattConn)
@@ -1327,9 +1407,116 @@ bool mRemoteDev :: containsDevice(string dev)
   return true;
 }
 
+void mRemoteDev :: addUpdatePaDev(string dev, DeviceProperties dev_property)
+{
+  int sid = dev_property.adv_sid;
+  PaDev::iterator it = mDeviceMap.mapPaDev.find(dev);
+  if (it == mDeviceMap.mapPaDev.end()) {
+    //add key-value pair
+    ALOGD(LOGTAG "Adding PA device: %s to map, sid: %d", dev.c_str(), sid);
+    mDeviceMap.mapPaDev.insert(std::pair<string, DeviceProperties>(dev, dev_property));
+  } else if (it->second.adv_sid != sid) {
+    //update value
+    it->second.adv_sid = sid;
+    ALOGD(LOGTAG "PA device: %s sid updated to: %d", dev.c_str(), sid);
+  } else if (strlen(dev_property.name) && strcmp(it->second.name, dev_property.name)) {
+    //update device name
+    strlcpy(it->second.name, dev_property.name, strlen(dev_property.name) + 1);
+    ALOGD(LOGTAG "PA device: %s name updated to: %s", dev.c_str(), it->second.name);
+  }
+}
+
+void mRemoteDev :: removePaDev(string dev)
+{
+  ALOGD(LOGTAG "Remove PA device: %s from map", dev.c_str());
+  if (!mDeviceMap.containsPaDevice(dev)) {
+    ALOGD(LOGTAG "PA Device Not Found");
+  } else {
+    mDeviceMap.mapPaDev.erase(dev);
+  }
+}
+
+int mRemoteDev :: getPaSid(string dev)
+{
+  ALOGD(LOGTAG "getting particular PA device: %s Sid", dev.c_str());
+  PaDev::const_iterator it = mDeviceMap.mapPaDev.find(dev);
+  if (it != mDeviceMap.mapPaDev.end()) {
+    return it->second.adv_sid;
+  } else {
+    return PSYNC_SID_NOT_PRESENT;
+  }
+}
+
+bool mRemoteDev :: containsPaDevice(string dev)
+{
+  if (mDeviceMap.mapPaDev.find(dev) == mDeviceMap.mapPaDev.end()) {
+    return false;
+  }
+  return true;
+}
+
+void mRemoteDev:: printPaDevices()
+{
+    fprintf(stdout, "\n**************************** PA Device List \
+**************************** \n");
+    for (auto it = mDeviceMap.mapPaDev.begin(); it != mDeviceMap.mapPaDev.end(); it++)
+        fprintf(stdout, "%-*s %s\n", 50, it->second.name, it->first.data());
+
+    fprintf(stdout, "****************************  End of List \
+*********************************\n");
+}
+
+void mRemoteDev :: addPaSyncedDev(int sync_handle, string dev)
+{
+  ALOGD(LOGTAG "Adding PA Synced device: %s to map", dev.c_str());
+  mDeviceMap.mapPaSyncedDev.insert(std::pair<int, string>(sync_handle, dev));
+}
+
+void mRemoteDev :: removePaSyncedDev(int sync_handle)
+{
+  ALOGD(LOGTAG "Remove PA Synced device from map, sync_handle= 0x%x", sync_handle);
+  if (!mDeviceMap.containsPaSyncedDevice(sync_handle)) {
+    ALOGD(LOGTAG "PA Synced Device Not Found");
+  } else {
+    mDeviceMap.mapPaSyncedDev.erase(sync_handle);
+  }
+}
+
+int mRemoteDev :: containsPaSyncedDevice(string dev)
+{
+  for (auto i = mDeviceMap.mapPaSyncedDev.begin(); i != mDeviceMap.mapPaSyncedDev.end(); i++) {
+    if (!dev.compare((*i).second)) {
+      // find same device address, return syncHandle
+      return ((*i).first);
+    }
+  }
+  return PSYNC_INVALID_HANDLE;
+}
+
+bool mRemoteDev :: containsPaSyncedDevice(int sync_handle)
+{
+  if (mDeviceMap.mapPaSyncedDev.find(sync_handle) == mDeviceMap.mapPaSyncedDev.end()) {
+    return false;
+  }
+  return true;
+}
+
+void mRemoteDev:: printPaSyncedDevices()
+{
+    fprintf(stdout, "\n**************************** PA Synced Device List \
+**************************** \n");
+    for (auto it = mDeviceMap.mapPaSyncedDev.begin(); it != mDeviceMap.mapPaSyncedDev.end(); it++)
+        fprintf(stdout, "%-*s   sync_handle: %d\n", 50, it->second.data(), it->first);
+
+    fprintf(stdout, "****************************  End of List \
+*********************************\n");
+}
+
 void mRemoteDev ::clear()
 {
   mDeviceMap.mapClient.clear();
+  mDeviceMap.mapPaDev.clear();
+  mDeviceMap.mapPaSyncedDev.clear();
 }
 
 enum filterTypes
@@ -1727,3 +1914,36 @@ void GattcTest :: testBatchscan(int value)
   fprintf(stdout, "Flush pending scan results\n");
   mScanner->flushPendingScanResults(mscan_callback);
 }
+
+bool GattcTest :: createPeriodicSync(string bdaddr)
+{
+  ALOGD(LOGTAG "CreatePeriodicSync device: %s", bdaddr.c_str());
+  int paSid = mDeviceMap.getPaSid(bdaddr);
+  if (paSid == PSYNC_SID_NOT_PRESENT) {
+    ALOGD(LOGTAG "CreatePeriodicSync device not periodic advertising");
+    fprintf(stdout, "CreatePeriodicSync fail for device not periodic advertising\n");
+    return false;
+  } else if (mDeviceMap.containsPaSyncedDevice(bdaddr) != PSYNC_INVALID_HANDLE) {
+    ALOGD(LOGTAG "CreatePeriodicSync device already synced");
+    fprintf(stdout, "CreatePeriodicSync fail for device already synced\n");
+    return false;
+  }
+  // only bdaddr and paSid are needed in scanResult to create sync
+  ScanResult scanResult(bdaddr, 0, 0, 0, paSid, 0, 0, 0, NULL);
+  mPeriodicAM->registerSync(&scanResult, 0, PSYNC_TIMEOUT, mperiodic_Advcallback);
+  return true;
+}
+
+void GattcTest :: stopPeriodicSync(string bdaddr)
+{
+  ALOGD(LOGTAG "StopPeriodicSync device: %s", bdaddr.c_str());
+  int sync_handle = mDeviceMap.containsPaSyncedDevice(bdaddr);
+  if (sync_handle != PSYNC_INVALID_HANDLE) {
+    mDeviceMap.removePaSyncedDev(sync_handle);
+    mPeriodicAM->unregisterSync(mperiodic_Advcallback);
+  } else {
+    ALOGD(LOGTAG "StopPeriodicSync fail for not syncing device: %s", bdaddr.c_str());
+    fprintf(stdout, "StopPeriodicSync fail for not syncing device: %s\n", bdaddr.c_str());
+  }
+}
+
