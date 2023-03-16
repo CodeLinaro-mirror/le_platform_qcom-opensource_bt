@@ -56,6 +56,7 @@ using namespace std;
 using std::list;
 using std::string;
 
+extern Gap *g_gap;
 extern Avrcp *pAvrcp;
 extern A2dp_Sink_Streaming *pA2dpSinkStream;
 A2dp_Source *pA2dpSource = NULL;
@@ -2099,6 +2100,17 @@ void PlayPosTimehandler(void *context) {
     PostMessage(THREAD_ID_A2DP_SOURCE, pEvent);
 }
 
+bool okToConnect(bt_bdaddr_t bd_addr, bool isOutgoingRequest) {
+    char str[18];
+    bdaddr_to_string(&bd_addr,str,18);
+    ALOGD(LOGTAG_AVRCP "okToConnect: device %s isOutgoingRequest: %d", str, isOutgoingRequest);
+
+    bt_bond_state_t bondstate = (bt_bond_state_t)g_gap->GetBondState(bd_addr);
+    // only support a2dp connect when device bonded
+    bool isEnabled = bondstate == BT_BOND_STATE_BONDED;
+    return isEnabled;
+}
+
 void A2dp_Source::StartPlayPostionTimer() {
     ALOGD(LOGTAG_AVRCP "%s:Entered",__func__);
     if(play_pos_timer) {
@@ -3509,8 +3521,18 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
         case A2DP_SOURCE_CONNECTING_CB:
             memcpy(&mConnectingDevice, &pEvent->a2dpSourceEvent.bd_addr, sizeof(bt_bdaddr_t));
             bdaddr_to_string(&mConnectingDevice, str, 18);
-            fprintf(stdout, "A2DP Source Connecting to %s\n", str);
-            change_state(STATE_A2DP_SOURCE_PENDING);
+//            fprintf(stdout, "A2DP Source Connecting to %s\n", str);
+//            change_state(STATE_A2DP_SOURCE_PENDING);
+            if (okToConnect(mConnectingDevice, false)) {
+                fprintf(stdout, "Incoming A2DP Connecting request accepted: %s\n", str);
+                change_state(STATE_A2DP_SOURCE_PENDING);
+            } else {
+                // Reject the connection and stay in Disconnected state
+                fprintf(stdout, "Incoming A2DP Connecting request rejected: %s\n", str);
+                if (sBtA2dpSourceInterface != NULL) {
+                    sBtA2dpSourceInterface->disconnect(pEvent->a2dpSourceEvent.bd_addr);
+                }
+            }
             break;
         case A2DP_SOURCE_CONNECTED_CB:
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
