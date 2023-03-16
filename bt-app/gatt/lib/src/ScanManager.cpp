@@ -990,7 +990,7 @@ void ScanManager::ScanNative::removeScanFilters(int scannerId)
 
 void ScanManager::ScanNative::removeFilterIfExisits(std::unordered_set<int> clients,
                                                           int scannerId, int filterIndex)
-{
+{
   if (!clients.count(scannerId)) {
     return;
   }

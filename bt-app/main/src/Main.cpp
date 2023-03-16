@@ -1806,6 +1806,30 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                fprintf(stdout,"Do the GATTCINIT first\n");
            }
            break;
+        case GATTCTEST_CREATE_PA_SYNC:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"creating pa sync \n");
+                   gattctest->createPeriodicSync(user_cmd[ONE_PARAM]);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        case GATTCTEST_STOP_PA_SYNC:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"stopping pa sync \n");
+                   gattctest->stopPeriodicSync(user_cmd[ONE_PARAM]);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
 
         case GATTCTEST_CONNECT:
            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
@@ -2152,6 +2176,22 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             if (gattctest) {
                 fprintf(stdout,"Listing Connected devices \n");
                 gattctest->list_conn_devices();
+           } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+           }
+           break;
+        case GATTCTEST_PA_DEVICES:
+            if (gattctest) {
+                fprintf(stdout,"Listing PA devices \n");
+                gattctest->list_pa_devices();
+           } else {
+                fprintf(stdout,"Do the GATTCINIT first\n");
+           }
+           break;
+        case GATTCTEST_PA_SYNCED_DEVICES:
+            if (gattctest) {
+                fprintf(stdout,"Listing PA Synced devices \n");
+                gattctest->list_pa_synced_devices();
            } else {
                 fprintf(stdout,"Do the GATTCINIT first\n");
            }
