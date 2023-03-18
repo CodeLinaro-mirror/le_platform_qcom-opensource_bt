@@ -44,10 +44,10 @@ AM_CPPFLAGS += -I$(top_srcdir)/ \
 
 AM_CPPFLAGS += @BLUETOOTHEXT_CFLAGS@
 
-if RB5_AUDIO_HAL
-else
+#if RB5_AUDIO_HAL
+#else
 AM_CPPFLAGS += -I${WORKSPACE}/hardware/libhardware/include
-endif
+#endif
 
 if USE_BT_OBEX
 AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
