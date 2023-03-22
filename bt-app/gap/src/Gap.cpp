@@ -537,6 +537,17 @@ bool Gap::IsDeviceBonded(bt_bdaddr_t device) {
     return adapter_properties_obj_->IsDeviceBonded(device);
 }
 
+int Gap::GetBondState(bt_bdaddr_t device) {
+    DeviceProperties *remote_dev_prop;
+    remote_dev_prop = remote_devices_obj_->GetDeviceProperties(device);
+
+    if (remote_dev_prop == NULL ) {
+        return BT_BOND_STATE_NONE;
+    } else {
+        return remote_dev_prop->bond_state;
+    }
+}
+
 void Gap::SetAFHChannels(unsigned char map[10]) {
     sBtVendorInterface->hci_cmd_send(0x003F | (0x03 << 10), map, 10);
 }
