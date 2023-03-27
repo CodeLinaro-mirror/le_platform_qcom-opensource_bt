@@ -171,7 +171,9 @@ void RemoteDevices::DeviceFound(DeviceFoundEventInt *dev_found) {
     /* Free the memory used for properties */
     ClearPropertyList(dev_found->num_properties, dev_found->properties);
 
-    /* Update all remote device available*/
+    /* Update only if remote device Name is available for Now */
+    if (rem_dev_prop->name[0] == '\0')
+        return;
     bt_event = new BtEvent;
     bt_event->event_id = MAIN_EVENT_DEVICE_FOUND;
     memcpy(&bt_event->device_found_event.remoteDevice, rem_dev_prop,

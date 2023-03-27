@@ -75,6 +75,8 @@ static bool is_a2dp_split_sink_enabled;
 extern "C" {
 #endif
 
+static bt_bdaddr_t inquiry_bda;
+
 static bool SetWakeAlarm(uint64_t delay_millis, bool should_wake, alarm_cb cb,
                                                                     void *data) {
     return BT_STATUS_SUCCESS;
@@ -153,6 +155,8 @@ static void DeviceFoundCb(int num_properties, bt_property_t *properties) {
     bt_property_t *props;
     unsigned short index;
     BtEvent *event = new BtEvent;
+    bdstr_t str;
+    bool is_inquiry_bda = false;
 
     ALOGV (LOGTAG " DeviceFoundCb:");
     props = new bt_property_t[num_properties];
@@ -160,11 +164,26 @@ static void DeviceFoundCb(int num_properties, bt_property_t *properties) {
     for (index = 0; index < num_properties; index++) {
         props[index].val = new char[properties[index].len];
         memcpy(props[index].val, properties[index].val, properties[index].len);
+        if((props[index].type == BT_PROPERTY_BDADDR) &&
+                !bdaddr_is_empty(&inquiry_bda) &&
+                bdaddr_equals((const bt_bdaddr_t*)props[index].val,
+			      &inquiry_bda)){
+             is_inquiry_bda = 1;
+             bdaddr_to_string(&inquiry_bda, str, sizeof(str));
+             printf("Found inquiry_bad: %s\n", str);
+        }
     }
     event->device_found_event_int.num_properties = num_properties;
     event->device_found_event_int.properties = props;
     event->event_id = GAP_EVENT_DEVICE_FOUND_INT;
     PostMessage(THREAD_ID_GAP, event);
+
+    if (is_inquiry_bda) {
+        event = new BtEvent;
+        event->event_id = GAP_API_STOP_INQUIRY;
+        PostMessage(THREAD_ID_GAP, event);
+    }
+
 }
 
 
@@ -906,14 +925,18 @@ void Gap::ProcessEvent(BtEvent* event) {
             break;
 
         case GAP_EVENT_DISCOVERY_STATE_CHANGED:
+            if (event->discovery_state_event.state == BT_DISCOVERY_STOPPED)
+                memset(&inquiry_bda, 0x00, sizeof(inquiry_bda));
             adapter_properties_obj_->HandleDiscoveryStateChange(
                                             event->discovery_state_event.state);
             break;
         case GAP_API_START_INQUIRY:
+            memcpy(&inquiry_bda, &event->bond_device.bd_addr, sizeof(inquiry_bda));
             HandleStartDiscovery();
             break;
 
         case GAP_API_STOP_INQUIRY:
+            memset(&inquiry_bda, 0x00, sizeof(inquiry_bda));
             HandleStopDiscovery();
             break;
 

@@ -142,6 +142,7 @@ typedef enum {
     BT_ENABLE,
     BT_DISABLE,
     START_ENQUIRY,
+    START_ENQUIRY_BDA,
     CANCEL_ENQUIRY,
     MAIN_EXIT,
     START_PAIR,
@@ -399,6 +400,7 @@ UserMenuList GapMenu[] = {
     {BT_ENABLE,             "enable",           ZERO_PARAM,    "enable"},
     {BT_DISABLE,            "disable",          ZERO_PARAM,    "disable"},
     {START_ENQUIRY,         "inquiry",          ZERO_PARAM,    "inquiry"},
+    {START_ENQUIRY_BDA,     "inquiry_bda",      ONE_PARAM,     "inquiry_bda <bt_address>"},
     {CANCEL_ENQUIRY,        "cancel_inquiry",   ZERO_PARAM,    "cancel_inquiry"},
     {START_PAIR,            "pair",             ONE_PARAM,    "pair<space><bt_address> \
     eg. pair 00:11:22:33:44:55"},
