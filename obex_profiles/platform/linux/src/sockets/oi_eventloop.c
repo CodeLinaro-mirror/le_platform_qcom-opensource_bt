@@ -361,6 +361,7 @@ OI_STATUS OI_EVENTLOOP_Register(OI_EVENTLOOP_GET_DESCRIPTORS_CB getDescriptors,
 
     newItem->getDescriptors = getDescriptors;
     newItem->handleEvents = handleEvents;
+    newItem->validate = validate;
 
     if (frequentEvents) {
         OI_List_Add(&newItem->links, &callbackList);
