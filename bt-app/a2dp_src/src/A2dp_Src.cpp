@@ -59,7 +59,7 @@ using std::string;
 extern Avrcp *pAvrcp;
 extern A2dp_Sink_Streaming *pA2dpSinkStream;
 A2dp_Source *pA2dpSource = NULL;
-static pthread_t playback_thread = NULL;
+static pthread_t playback_thread = 0;
 AttrType mAttrType;
 bool media_playing = false;
 bool use_bigger_metadata = false;
@@ -969,10 +969,10 @@ static void BtA2dpCloseOutputStream()
 {
     ALOGD(LOGTAG_A2DP "Close A2dp Output Stream");
     media_playing = false;
-    if (playback_thread != NULL)
+    if (playback_thread != 0)
     {
         pthread_join(playback_thread, NULL);
-        playback_thread = NULL;
+        playback_thread = 0;
     }
     if(!bt_a2dp_split_enabled) {
         pthread_mutex_lock(&a2dp_hal_mutex);
@@ -3145,9 +3145,9 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                 case CMD_ID_STOP:
                     /*Pause and Stop passthrough commands are handled here*/
                     media_playing = false;
-                    if (playback_thread != NULL) {
+                    if (playback_thread != 0) {
                         pthread_join(playback_thread, NULL);
-                        playback_thread = NULL;
+                        playback_thread = 0;
                     }
                     BtA2dpStopStreaming();
                     pA2dpSource->StopPlayPostionTimer();
