@@ -996,7 +996,7 @@ class BluetoothApp {
     /**
      * structure object for standard Bluetooth DM interface
      */
-    const bt_interface_t *bt_interface;
+    const bt_interface_t *bt_interface = NULL;
 
     reactor_object_t *listen_reactor_;
     reactor_object_t *accept_reactor_;

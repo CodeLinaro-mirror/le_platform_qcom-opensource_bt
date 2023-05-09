@@ -1141,7 +1141,12 @@ static const btgatt_callbacks_t sGattCallbacks = {
 
 
 GattNativeInterfaceV2 :: GattNativeInterfaceV2(const bt_interface_t *bt_interface) {
-  if (bluetooth_interface) return;
+  if (bluetooth_interface) {
+    ALOGE(LOGTAG "gatt interface already inited.");
+    return;
+  } else {
+    ALOGD(LOGTAG "init gatt interface.");
+  }
 
   bluetooth_interface = bt_interface;
   if (bluetooth_interface == NULL) {
