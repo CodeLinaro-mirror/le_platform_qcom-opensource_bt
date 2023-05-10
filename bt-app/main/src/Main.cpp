@@ -377,8 +377,10 @@ static void ExitHandler(void) {
     if ( g_bt_app && g_bt_app->bt_state == BT_STATE_ON) {
         SendDisableCmdToGap();
         sleep(3);
+#ifndef OWRT_BUILD
         system("killall -KILL wcnssfilter");
         usleep(200);
+#endif
     }
 
     // TODO to wait for complete turn off before proceeding
@@ -2395,10 +2397,16 @@ static void SendEnableCmdToGap() {
 
         g_bt_app->status.enable_cmd = COMMAND_INPROGRESS;
         // Killing previous iteration filter if they still exists
+#ifdef OWRT_BUILD
+        system("start-stop-daemon -q -p /data/misc/bluetooth/qcbtdaemon.pid -n qcbtdaemon -K -s KILL");
+        usleep(20);
+        system("rm -f /data/misc/bluetooth/qcbtdaemon.pid");
+#else
         system("killall -KILL wcnssfilter");
         system("killall -KILL btsnoop");
         system("killall -KILL qcbtdaemon");
         usleep(200);
+#endif
 
         BtEvent *event = new BtEvent;
         event->event_id = GAP_API_ENABLE;
@@ -3408,7 +3416,9 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 bonded_devices.clear();
                 inquiry_list.clear();
                 inq_db_count = 0;
+#ifndef OWRT_BUILD
                 system("killall -KILL wcnssfilter");
+#endif
                 usleep(200);
                 ALOGD (LOGTAG " BT State is OFF : %d",bt_state);
                 fprintf(stdout, " BT State is OFF\n");

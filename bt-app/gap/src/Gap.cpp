@@ -641,7 +641,11 @@ void Gap::ProcessEvent(BtEvent* event) {
             }
 
             ALOGV (LOGTAG "Start QC BT Daemon");
+#ifdef OWRT_BUILD
+            system("start-stop-daemon -q -p /data/misc/bluetooth/qcbtdaemon.pid -n qcbtdaemon -S -b -m -x qcbtdaemon");
+#else
             system("qcbtdaemon &");
+#endif
             HandleEnable();
 
             break;
@@ -784,7 +788,12 @@ void Gap::ProcessEvent(BtEvent* event) {
             alarm_cancel(profile_stop_timer);
             HandleDisable();
             ALOGV (LOGTAG "Stop QC BT Daemon");
+#ifdef OWRT_BUILD
+            system("start-stop-daemon -q -p /data/misc/bluetooth/qcbtdaemon.pid -n qcbtdaemon -K -s TERM");
+            system("rm -f /data/misc/bluetooth/qcbtdaemon.pid");
+#else
             system("killall -s SIGTERM qcbtdaemon");
+#endif
             break;
 
         case GAP_EVENT_PROFILE_START_TIMEOUT:
