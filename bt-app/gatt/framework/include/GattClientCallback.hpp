@@ -192,6 +192,17 @@ class GattClientCallback {
                                                               int timeout, int status) {}
 
     /**
+    * Callback indicating service changed event is received.
+    *
+    * Receiving this event means that the GATT database is out of sync with
+    * the remote device. {@link BluetoothGatt#discoverServices} should be
+    * called to re-discover the services.
+    *
+    * @param gatt GATT client involved
+    */
+    virtual void onServiceChanged(GattClient *gatt) {}
+
+    /**
     * Callback indicating the connection subrate parameters were updated.
     *
     * @param gatt GATT client involved
