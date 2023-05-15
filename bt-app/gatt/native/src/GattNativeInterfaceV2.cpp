@@ -338,6 +338,18 @@ static void btgattc_conn_updated_cb(int conn_id, uint16_t interval, uint16_t lat
   PostMessage(THREAD_ID_GATT, event);
 }
 
+static void btgattc_service_changed_cb(int conn_id) {
+  ALOGD(LOGTAG "(%s) conn_id: %d", __FUNCTION__,conn_id);
+
+  BtEvent *event = new BtEvent;
+  CHECK_PARAM_VOID(event);
+
+  event->event_id = BTGATTC_SERVICE_CHANGED_EVENT;
+  event->gattc_service_changed_event.conn_id = conn_id;
+
+  PostMessage(THREAD_ID_GATT, event);
+}
+
 static void readClientPhyCb(uint8_t clientIf, RawAddress bda, uint8_t tx_phy,
                             uint8_t rx_phy, uint8_t status) {
   ALOGD(LOGTAG "(%s) clientIf: %d, bda: %s, tx_phy: %d, rx_phy: %d, status: %d",
@@ -1112,7 +1124,8 @@ static const btgatt_client_callbacks_t sGattClientCallbacks = {
     NULL, /* services_removed_cb */
     NULL, /* services_added_cb */
     btgattc_phy_updated_cb,
-    btgattc_conn_updated_cb
+    btgattc_conn_updated_cb,
+    btgattc_service_changed_cb
 };
 
 

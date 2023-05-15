@@ -438,6 +438,23 @@ void GattLibService::onClientConnUpdate(int connId, int interval, int latency,
   app->callback->onConnectionUpdated(address, interval, latency, timeout, status);
 }
 
+void GattLibService::onClientServiceChange(int connId)
+{
+  if (DBG) {
+    ALOGD(LOGTAG " onClientServiceChange() - connId=%d", connId);
+  }
+
+  string address = mClientMap->addressByConnId(connId);
+  if (address.empty()) {
+    return;
+  }
+
+  ClientMap::App *app = mClientMap->getByConnId(connId);
+  CHECK_PARAM_VOID(app);
+
+  app->callback->onServiceChanged(address);
+}
+
 void GattLibService::onServerPhyUpdate(int connId, int txPhy, int rxPhy, int status)
 {
   if (DBG) {
@@ -2771,6 +2788,12 @@ void GattLibService::HandleGattcConnUpdatedEvent(GattcConnUpdatedEvent *event)
           event->timeout, event->status);
 }
 
+void GattLibService::HandleGattcServiceChangedEvent(GattcServiceChangedEvent *event)
+{
+  if (!sGattService) return;
+  sGattService->onClientServiceChange(event->conn_id);
+}
+
 void GattLibService::HandleGattcReadPhyEvent(GattcReadPhyEvent *event)
 {
   if (!sGattService) return;
@@ -3250,6 +3273,9 @@ void GattLibService::ProcessEvent(BtEvent* event)
        break;
      case BTGATTC_CONN_UPDATED_EVENT:
        HandleGattcConnUpdatedEvent((GattcConnUpdatedEvent *)event);
+       break;
+     case BTGATTC_SERVICE_CHANGED_EVENT:
+       HandleGattcServiceChangedEvent((GattcServiceChangedEvent *)event);
        break;
      case BTGATTC_READ_PHY_EVENT:
        HandleGattcReadPhyEvent((GattcReadPhyEvent *)event);

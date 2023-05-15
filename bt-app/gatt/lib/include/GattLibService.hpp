@@ -339,6 +339,7 @@ class GattLibService           {
     void onClientPhyUpdate(int connId, int txPhy, int rxPhy, int status);
     void onClientPhyRead(int clientIf, string address, int txPhy, int rxPhy, int status);
     void onClientConnUpdate(int connId, int interval, int latency, int timeout, int status);
+    void onClientServiceChange(int connId);
     void onServerPhyUpdate(int connId, int txPhy, int rxPhy, int status);
     void onServerPhyRead(int serverIf, string address, int txPhy, int rxPhy, int status);
     void onServerConnUpdate(int connId, int interval, int latency, int timeout, int status);
@@ -427,6 +428,7 @@ class GattLibService           {
     void HandleGattcGetGattDbEvent(GattcGetGattDbEvent *event);
     void HandleGattcPhyUpdatedEvent(GattcPhyUpdatedEvent *event);
     void HandleGattcConnUpdatedEvent(GattcConnUpdatedEvent *event);
+    void HandleGattcServiceChangedEvent(GattcServiceChangedEvent *event);
     void HandleGattcReadPhyEvent(GattcReadPhyEvent *event);
     void HandleGattsRegisterAppEvent(GattsRegisterAppEvent *event);
     void HandleGattsConnectionEvent(GattsConnectionEvent *event);

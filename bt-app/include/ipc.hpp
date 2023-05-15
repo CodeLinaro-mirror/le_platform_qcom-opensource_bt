@@ -538,6 +538,7 @@ typedef enum {
     BTGATTC_GET_GATT_DB_EVENT,
     BTGATTC_PHY_UPDATED_EVENT,
     BTGATTC_CONN_UPDATED_EVENT,
+    BTGATTC_SERVICE_CHANGED_EVENT,
     BTGATTC_READ_PHY_EVENT,
 
     BLEADVERTISER_SET_ADVERTISING_DATA_EVENT,
@@ -1256,6 +1257,12 @@ typedef struct
 typedef struct
 {
     BluetoothEventId event_id;
+    int conn_id;
+} GattcServiceChangedEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
     int clientIf;
     string *bda;
     uint8_t tx_phy;
@@ -1899,6 +1906,7 @@ typedef union {
     GattcGetGattDbEvent                     gattc_get_gatt_db_event;
     GattcPhyUpdatedEvent                    gattc_phy_updated_event;
     GattcConnUpdatedEvent                   gattc_conn_updated_event;
+    GattcServiceChangedEvent                gattc_service_changed_event;
     GattcReadPhyEvent                       gattc_read_phy_event;
 
     BleAdvertiserSetAdvDataEvent            bleadverister_set_adv_data_event;

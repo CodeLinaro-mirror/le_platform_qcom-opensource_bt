@@ -502,6 +502,12 @@ class gattctestClientCallback:public GattClientCallback
         fprintf(stdout, "Connection Update failed status %d\n", status);
       }
     }
+
+    void onServiceChanged(GattClient *gatt)
+    {
+      ALOGD(LOGTAG "onServiceChanged");
+      fprintf(stdout, "************* onServiceChanged *************\n");
+    }
 };
 
 class mscancallback : public ScanCallback
