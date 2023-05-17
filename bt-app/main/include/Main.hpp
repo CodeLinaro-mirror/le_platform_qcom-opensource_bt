@@ -490,9 +490,9 @@ UserMenuList RspMenu[] = {
 UserMenuList GattsTestMenu[] = {
     {GATTSTEST_INIT_SERVER,        "gattstest_init_server",        ZERO_PARAM,    "gattstest_init_server (only for Init time)"},
     {GATTSTEST_ADDSERVER,          "gattstest_addservers",         ZERO_PARAM,    "gattstest_addservers"},
-    {GATTSTEST_ADDSERVICES,        "gattstest_addservices",        TWO_PARAM,     "gattstest_addservices<space><server instance><space><service instance>"},
+    {GATTSTEST_ADDSERVICES,        "gattstest_addservices",        TWO_PARAM,     "gattstest_addservices<space><server instance><space><service instance> eg. gattstest_addservices 1 1"},
     {GATTSTEST_INIT_ADVERTISER,    "gattstest_init_advertiser",    ZERO_PARAM,    "gattstest_init_advertiser initialzes advertiser"},
-    {GATTSTEST_START_ADVERTISER,   "gattstest_start_advertiser",   ONE_PARAM,     "gattstest_start_advertiser<space><server instance>"},
+    {GATTSTEST_START_ADVERTISER,   "gattstest_start_advertiser",   TWO_PARAM,     "gattstest_start_advertiser<space><server instance><advset instance> eg. gattstest_start_advertiser 1 1"},
     {GATTSTEST_REQ_SUBRATE_MODE,   "gattstest_reqsubrate_mode",    THREE_PARAM,   "gattstest_reqsubrate_mode<space><server instance><space><remote address>\
 <space><mode balanced-0/high_priority-1/low_power-2>"},
     {GATTSTEST_REQ_LE_SUBRATE,     "gattstest_reqle_subrate",      SEVEN_PARAM,   "gattstest_reqle_subrate<space><server instance><space><remote_address>\
