@@ -222,6 +222,12 @@ void GattLeAdvertiser::startAdvertisingSet(AdvertisingSetParameters *parameters,
     throw std::invalid_argument("callback cannot be null");
   }
 
+  auto m = mCallback.find(callback);
+  if (m != mCallback.end()) {
+    ALOGE(LOGTAG "startAdvertisingSet() Advertising has started on same callback ");
+    throw std::invalid_argument("Stop this advertising server first");
+  }
+
   if (mGattLibService == NULL) {
     mGattLibService = GattLibService::getGatt();
     if (mGattLibService == NULL) {
@@ -299,12 +305,7 @@ void GattLeAdvertiser::startAdvertisingSet(AdvertisingSetParameters *parameters,
 
   IAdvertisingSetCallback *cb = this;
   mCb = callback;
-
-  auto m = mCallback.find(callback);
-  if (m == mCallback.end()) {
-    mCallback.insert({{callback,this}});
-    cb = this;
-  }
+  mCallback.insert({{callback,this}});
 
   try {
     mGattLibService->startAdvertisingSet(parameters, advertiseData, scanResponse,
@@ -314,7 +315,7 @@ void GattLeAdvertiser::startAdvertisingSet(AdvertisingSetParameters *parameters,
     postStartSetFailure(callback,
            AdvertisingSetCallback::ADVERTISE_FAILED_INTERNAL_ERROR);
     return;
-    }
+  }
 }
 
 void GattLeAdvertiser::stopAdvertisingSet(AdvertisingSetCallback *callback)
@@ -325,8 +326,8 @@ void GattLeAdvertiser::stopAdvertisingSet(AdvertisingSetCallback *callback)
 
   auto tCb = mCallback.find(callback);
   if (tCb == mCallback.end()) {
-  ALOGE(LOGTAG " stopAdvertisingSet() No callback ");
-  return;
+    ALOGE(LOGTAG " stopAdvertisingSet() No callback ");
+    return;
   }
 
   mCallback.erase(callback);

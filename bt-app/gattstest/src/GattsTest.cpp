@@ -863,6 +863,7 @@ bool GattsTest::StartAdvertisement(string        instanceID)
     }
   } catch(const std::exception &ex) {
     ALOGD(LOGTAG"%s start Advertising exception  %s", __FUNCTION__, ex.what());
+    fprintf(stdout,"%s \n", ex.what());
     return false;
   }
   return true;
