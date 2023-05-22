@@ -203,7 +203,7 @@ void AdvertiserManager::stopAdvertisingSet(IAdvertisingSetCallback *callback)
   mAdvertisers.erase(advertiserId);
 
   try {
-          callback->onAdvertisingSetStopped(advertiserId);
+    callback->onAdvertisingSetStopped(advertiserId);
   } catch (std::exception& e ) {
     ALOGE(LOGTAG " error sending onAdvertisingSetStopped callback %s", e.what());
   }
@@ -274,9 +274,13 @@ void AdvertiserManager::stopAdvertisingSets()
     }
 
     mNative->stopAdvertisingSetNative(advertiser_id);
+    if (callback == NULL) {
+      ALOGI(LOGTAG " stopAdvertisingSets() - callback is NULL");
+      continue;
+    }
 
     try {
-        callback->onAdvertisingSetStopped(advertiser_id);
+      callback->onAdvertisingSetStopped(advertiser_id);
     } catch (std::exception& e) {
       ALOGI( LOGTAG " error sending onAdvertisingSetStopped callback %s", e.what());
     }

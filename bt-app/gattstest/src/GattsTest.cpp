@@ -378,8 +378,8 @@ void gattstestServerCallback::onPhyRead(string deviceAddress,int txPhy,int rxPhy
 
 void gattstestServerCallback::onConnectionUpdated(string deviceAddress,int interval,int latency,int timeout,int status)
 {
-  fprintf(stdout, "onSubrateChanged deviceAddress: %s interval (%d), latency (%d), timeout (%d), status (%d)\n",
-            deviceAddress.c_str(), interval, latency, timeout, status);
+  fprintf(stdout, "%s deviceAddress: %s interval (%d), latency (%d), timeout (%d), status (%d)\n",
+            __FUNCTION__, deviceAddress.c_str(), interval, latency, timeout, status);
   ALOGD(LOGTAG"%s deviceAddress: %s,interval: %d,latency %d,timeout %d, status:%d", __FUNCTION__,
                                         deviceAddress.c_str(), interval, latency, timeout, status);
 }
@@ -387,8 +387,8 @@ void gattstestServerCallback::onConnectionUpdated(string deviceAddress,int inter
 void gattstestServerCallback::onSubrateChanged(string deviceAddress, int subrateFactor, int latency, int contNum,
                                  int timeout, int status)
 {
-  fprintf(stdout, "onSubrateChanged deviceAddress: %s subrateFactor (%d), latency (%d), contNum (%d), timeout (%d), status (%d)\n",
-            deviceAddress.c_str(), subrateFactor, latency, contNum, timeout, status);
+  fprintf(stdout, "%s deviceAddress: %s subrateFactor (%d), latency (%d), contNum (%d), timeout (%d), status (%d)\n",
+            __FUNCTION__, deviceAddress.c_str(), subrateFactor, latency, contNum, timeout, status);
   ALOGD(LOGTAG"%s deviceAddress: %s,subrateFactor: %d,latency %d,contNum %d,timeout %d, status:%d", __FUNCTION__,
                                         deviceAddress.c_str(), subrateFactor, latency, contNum, timeout, status);
 }
@@ -527,11 +527,11 @@ void GattsTest::ReadServerConfigurationFile()
   }
 
   while(!infile.eof()) {
-    getline(infile,ch,'\r');
-    if(std::regex_search(ch,std::regex("\\bServer[1-9]|Server[1-9][0-9]\\b"))) {
+    getline(infile,ch,'\n');
+    if(regex_search(ch, regex("\\bServer[1-9]|Server[1-9][0-9]\\b"))) {
       while(line_num < desired_line) {
         //parse all lines in Server[1-9], including Manufacture
-        getline(infile,ch,'\r');
+        getline(infile,ch,'\n');
         status = ParseServiceDetails(ch,line_num);
         if(!status) {
           fprintf(stdout,"Service Records are not consistent \n");
@@ -765,8 +765,8 @@ bool GattsTest::ReadAdvertiserConfigFile()
       }
       AdvSet_list.push_back(set_temp);
     }else {
-    fprintf(stdout,"There are no Advertising Set records in the file \n");
-    break;
+      fprintf(stdout,"There are no Advertising Set records in the file \n");
+      break;
     }
     line_num = 0;
   }
@@ -963,6 +963,11 @@ bool GattsTest::BuildAdvertisingData(int serverId, int advsetId) {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   AdvertiseData::Builder builder = AdvertiseData::Builder().setIncludeDeviceName(true)
                                   .setIncludeTxPowerLevel(set->includeTxPowerflag);
+  if (manufacturerId_list.size() < serverId) {
+    ALOGE(LOGTAG"%s Server in config file is less than %d", __FUNCTION__, serverId);
+    fprintf(stdout,"Server in config file is less than %d\n", serverId);
+    return false;
+  }
   mManufacturerID = manufacturerId_list[serverId-1];
   mManufacturerData = manufacturerData_list[serverId-1];
   int legacyflag =  set->legacyflag;
