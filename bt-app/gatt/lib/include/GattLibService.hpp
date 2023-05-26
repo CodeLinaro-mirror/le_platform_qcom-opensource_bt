@@ -288,6 +288,7 @@ class GattLibService           {
     void registerSync(ScanResult *scanResult, int skip, int timeout,
                           IPeriodicAdvertisingCallback *callback);
     void unregisterSync(IPeriodicAdvertisingCallback *callback);
+    void enablePaAdvReport(uint8_t enable, IPeriodicAdvertisingCallback *callback);
     void registerScanner(IScannerCallback *callback);
     void unregisterScanner(int scannerId);
     void startScan(int scannerId, ScanSettings *settings, std::vector<ScanFilter*> filters,

@@ -123,6 +123,34 @@ void PeriodicAdvertisingManager::unregisterSync(PeriodicAdvertisingCallback *cal
   }
 }
 
+void PeriodicAdvertisingManager::filterPaAdvReport(uint8_t enable, PeriodicAdvertisingCallback *callback)
+{
+  if (callback == NULL) {
+      throw std::invalid_argument("callback can't be null");
+  }
+   GattLibService *gatt;
+  try {
+      gatt = GattLibService::getGatt();
+  } catch (std::exception &e) {
+      ALOGE(LOGTAG "Failed to get Bluetooth gatt - %s", e.what());
+      return;
+  }
+
+  std::unordered_map<PeriodicAdvertisingCallback*,
+      IPeriodicAdvertisingCallback*>:: iterator it = mCallbackMap.find(callback);
+
+  if (it == mCallbackMap.end()) {
+      throw std::invalid_argument("callback was not properly registered");
+  }
+
+  try {
+      gatt->enablePaAdvReport(enable, it->second);
+  } catch (std::exception &e) {
+      ALOGE(LOGTAG "Failed to cancel sync creation - %s", e.what());
+      return;
+  }
+}
+
  void PeriodicAdvertisingManager::onSyncEstablished(int syncHandle, string device,
         int advertisingSid, int skip, int timeout, int status)
 {

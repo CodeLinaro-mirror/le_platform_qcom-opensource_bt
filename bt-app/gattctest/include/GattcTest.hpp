@@ -124,6 +124,7 @@ class GattcTest {
         void scanFilterManuData(int manuId, string manuData, string manuMask);
         bool createPeriodicSync(string bdaddr);
         void stopPeriodicSync(string bdaddr);
+        void filterPeriodicAdv(string bdaddr, string filter);
         void list_pa_devices();
         void list_pa_synced_devices();
 };

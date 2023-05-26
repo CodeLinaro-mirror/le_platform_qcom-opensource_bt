@@ -115,6 +115,7 @@ class GattNativeInterfaceV2{
     void setPeriodicAdvertisingEnableNative(int advertiser_id, bool enable);
     void startSyncNative(int sid, string address, int skip, int timeout, int reg_id);
     void stopSyncNative(int sync_handle);
+    void enablePaScanResultNative(int sync_handle, uint8_t enable);
     void gattTestNative(int command, btapp::Uuid uuid1, string bda1, int p1, int p2, int p3, int p4, int p5);
 };
 }  // namespace gatt

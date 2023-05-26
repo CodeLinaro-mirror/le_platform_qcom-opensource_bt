@@ -1821,6 +1821,18 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, " BD address is NULL/Invalid \n");
             }
             break;
+        case GATTCTEST_FILTER_PA_ADV:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"filtering pa adv \n");
+                   gattctest->filterPeriodicAdv(user_cmd[ONE_PARAM], user_cmd[TWO_PARAM]);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
 
         case GATTCTEST_CONNECT:
            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {

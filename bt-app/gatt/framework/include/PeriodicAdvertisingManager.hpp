@@ -91,6 +91,15 @@ public:
      * callback.
      */
     void unregisterSync(PeriodicAdvertisingCallback *callback);
+    /**
+     * Filter or disable periodic advertising reports.
+     *
+     * @param enable bit value of enable pa adv and filter duplicate pa adv.
+     * @param callback Callback used to deliver all operations status.
+     * @throws std::invalid_argument if callback is null, or not a properly registered
+     * callback.
+     */
+    void filterPaAdvReport(uint8_t enable, PeriodicAdvertisingCallback *callback);
 
 
     void onSyncEstablished(int syncHandle, string device,

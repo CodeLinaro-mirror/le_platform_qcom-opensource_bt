@@ -65,6 +65,7 @@ class PeriodicScanManager {
     void startSync(ScanResult *scanResult, int skip, int timeout,
             IPeriodicAdvertisingCallback *callback);
     void stopSync(IPeriodicAdvertisingCallback *callback);
+    void enablePaAdvReport(uint8_t enable, IPeriodicAdvertisingCallback *callback);
 };
 }
 #endif

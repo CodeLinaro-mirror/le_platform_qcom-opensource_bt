@@ -1833,6 +1833,12 @@ void GattNativeInterfaceV2 :: stopSyncNative(int sync_handle) {
   sGattIf->scanner->StopSync(sync_handle);
 }
 
+void GattNativeInterfaceV2 :: enablePaScanResultNative(int sync_handle, uint8_t enable) {
+  if (!sGattIf) return;
+
+  sGattIf->scanner->EnablePaScanResult(sync_handle, enable);
+}
+
 void GattNativeInterfaceV2 :: gattTestNative(int command,
                            btapp::Uuid uuid, string bda1,
                            int p1, int p2, int p3, int p4, int p5) {

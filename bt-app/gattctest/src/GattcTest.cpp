@@ -2026,3 +2026,19 @@ void GattcTest :: stopPeriodicSync(string bdaddr)
   }
 }
 
+void GattcTest :: filterPeriodicAdv(string bdaddr, string filter)
+{
+  uint8_t enable;
+  istringstream(filter) >> enable;
+  ALOGD(LOGTAG "filterPeriodicAdv device: %s enable: %d", bdaddr.c_str(), enable);
+  enable &= 0x03;
+  ALOGD(LOGTAG "filterPeriodicAdv device: %s enable: %d", bdaddr.c_str(), enable);
+  int sync_handle = mDeviceMap.containsPaSyncedDevice(bdaddr);
+  if (sync_handle != PSYNC_INVALID_HANDLE) {
+    mPeriodicAM->filterPaAdvReport(enable, mperiodic_Advcallback);
+  } else {
+    ALOGD(LOGTAG "filterPeriodicAdv fail for not syncing device: %s", bdaddr.c_str());
+    fprintf(stdout, "filterPeriodicAdv fail for not syncing device: %s\n", bdaddr.c_str());
+  }
+}
+

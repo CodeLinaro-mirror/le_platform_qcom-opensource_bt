@@ -86,7 +86,7 @@ void PeriodicScanManager::onSyncStarted(int regId, int syncHandle, int sid, int 
   if (status == 0) {
     mSyncs.insert({{syncHandle, cb}});
   } else {
-      mSyncs.erase(syncHandle);
+    mSyncs.erase(syncHandle);
   }
   cb->onSyncEstablished(syncHandle, address, sid, 0, 0, status);
 
@@ -98,13 +98,13 @@ void PeriodicScanManager::onSyncReport(int syncHandle, int txPower, int rssi, in
                                                   std::vector<uint8_t> data)
 {
   if (DBG) {
-      ALOGD(LOGTAG "onSyncReport() - syncHandle=%d", syncHandle);
+    ALOGD(LOGTAG "onSyncReport() - syncHandle=%d", syncHandle);
   }
 
   IPeriodicAdvertisingCallback *cb = findSync(syncHandle);
   if (cb == NULL) {
-      ALOGI(LOGTAG "onSyncReport() - no callback found for syncHandle %d", syncHandle);
-      return;
+    ALOGI(LOGTAG "onSyncReport() - no callback found for syncHandle %d", syncHandle);
+    return;
   }
 
   PeriodicAdvertisingReport *report =
@@ -119,13 +119,13 @@ void PeriodicScanManager::onSyncReport(int syncHandle, int txPower, int rssi, in
 void PeriodicScanManager::onSyncLost(int syncHandle)
 {
   if (DBG) {
-     ALOGD(LOGTAG "onSyncLost() - syncHandle=%d", syncHandle);
+    ALOGD(LOGTAG "onSyncLost() - syncHandle=%d", syncHandle);
   }
 
   IPeriodicAdvertisingCallback *cb = findSync(syncHandle);
   if (cb == NULL) {
-     ALOGI(LOGTAG "onSyncLost() - no callback found for syncHandle %d", syncHandle);
-     return;
+    ALOGI(LOGTAG "onSyncLost() - no callback found for syncHandle %d", syncHandle);
+    return;
   }
 
   mSyncs.erase(syncHandle);
@@ -144,7 +144,7 @@ void PeriodicScanManager::startSync(ScanResult *scanResult, int skip, int timeou
   mSyncs.insert({{cbId,callback}});
 
   if (DBG) {
-      ALOGD(LOGTAG "startSync() - reg_id=%d", cbId);
+    ALOGD(LOGTAG "startSync() - reg_id=%d", cbId);
   }
   mNative->startSyncNative(sid, address, skip, timeout, cbId);
 }
@@ -152,30 +152,59 @@ void PeriodicScanManager::startSync(ScanResult *scanResult, int skip, int timeou
 void PeriodicScanManager::stopSync(IPeriodicAdvertisingCallback *callback)
 {
   if (DBG) {
-      ALOGD(LOGTAG "stopSync() ");
+    ALOGD(LOGTAG "stopSync() ");
   }
   std::unordered_map<int, IPeriodicAdvertisingCallback*>::iterator it = mSyncs.begin();
   for (; it != mSyncs.end(); ++it) {
     if (it->second == callback)
-        break;
+      break;
   }
 
   if (it == mSyncs.end()) {
-      ALOGE(LOGTAG "stopSync() - no client found for callback");
-      fprintf(stdout, "stopSync() - no client found for callback");
-      return;
+    ALOGE(LOGTAG "stopSync() - no client found for callback");
+    fprintf(stdout, "stopSync() - no client found for callback");
+    return;
   }
 
   int syncHandle = it->first;
 
   if (syncHandle < 0) {
-      ALOGD(LOGTAG "stopSync() - not finished registration yet");
-      fprintf(stdout, "stopSync() - not finished registration yet");
-      // Sync will be freed once initiated in onSyncStarted()
-      return;
+    ALOGD(LOGTAG "stopSync() - not finished registration yet");
+    fprintf(stdout, "stopSync() - not finished registration yet");
+    // Sync will be freed once initiated in onSyncStarted()
+    return;
   }
 
   mNative->stopSyncNative(syncHandle);
+}
+
+void PeriodicScanManager::enablePaAdvReport(uint8_t enable, IPeriodicAdvertisingCallback *callback)
+{
+  if (DBG) {
+    ALOGD(LOGTAG "enablePaAdvReport() ");
+  }
+  std::unordered_map<int, IPeriodicAdvertisingCallback*>::iterator it = mSyncs.begin();
+  for (; it != mSyncs.end(); ++it) {
+    if (it->second == callback)
+      break;
+  }
+
+  if (it == mSyncs.end()) {
+    ALOGE(LOGTAG "enablePaAdvReport() - no client found for callback");
+    fprintf(stdout, "enablePaAdvReport() - no client found for callback");
+    return;
+  }
+
+  int syncHandle = it->first;
+
+  if (syncHandle < 0) {
+    ALOGD(LOGTAG "enablePaAdvReport() - not finished registration yet");
+    fprintf(stdout, "enablePaAdvReport() - not finished registration yet");
+    // Sync will be freed once initiated in onSyncStarted()
+    return;
+  }
+
+  mNative->enablePaScanResultNative(syncHandle, enable);
 }
 
 }

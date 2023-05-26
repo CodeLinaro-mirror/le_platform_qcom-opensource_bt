@@ -2416,6 +2416,12 @@ void GattLibService::unregisterSync(IPeriodicAdvertisingCallback *callback)
   mPeriodicScanManager->stopSync(callback);
 }
 
+void GattLibService::enablePaAdvReport(uint8_t enable, IPeriodicAdvertisingCallback *callback)
+{
+  if (!mPeriodicScanManager) return;
+  mPeriodicScanManager->enablePaAdvReport(enable, callback);
+}
+
 
 /**********************************************************************
 * GATT Service functions - Shared CLIENT/SERVER

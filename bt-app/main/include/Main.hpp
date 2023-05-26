@@ -253,6 +253,7 @@ typedef enum {
     GATTCTEST_STOP_SCAN,
     GATTCTEST_CREATE_PA_SYNC,
     GATTCTEST_STOP_PA_SYNC,
+    GATTCTEST_FILTER_PA_ADV,
     GATTCTEST_PA_DEVICES,
     GATTCTEST_PA_SYNCED_DEVICES,
     GATTCTEST_BATCH_SCAN,
@@ -524,9 +525,11 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_PA_DEVICES,     "gattctest_pa_dev",  ZERO_PARAM,    "gattctest_pa_dev"},
     {GATTCTEST_PA_SYNCED_DEVICES,     "gattctest_pa_synced_dev",  ZERO_PARAM,    "gattctest_pa_synced_dev"},
     {GATTCTEST_CREATE_PA_SYNC,           "gattctest_create_pa_sync", ONE_PARAM,     "gattctest_create_pa_sync<space><bt_address> \
-          eg.gattctest_create_pa_sync 00:11:22:33:44:55 "},
+          eg. gattctest_create_pa_sync 00:11:22:33:44:55 "},
     {GATTCTEST_STOP_PA_SYNC,           "gattctest_stop_pa_sync", ONE_PARAM,     "gattctest_stop_pa_sync<space><bt_address> \
-          eg.gattctest_stop_pa_sync 00:11:22:33:44:55 "},
+          eg. gattctest_stop_pa_sync 00:11:22:33:44:55 "},
+    {GATTCTEST_FILTER_PA_ADV,          "gattctest_filter_pa_adv", TWO_PARAM,     "gattctest_filter_pa_adv<space><bt_address><space><filter range(0-3)> \
+          eg. filter (0bit:enable pa adv(1); 1bit:filter duplicate(2))"},
     {BACK_TO_MAIN,          "main_menu",      ZERO_PARAM,    "main_menu"},
     {GATTCTEST_CONN_PARAMS,       "gattctest_conn_params",    THREE_PARAM,    "gattctest_conn_params<space><isAuto><space><phy><space><isOppur> \
         eg: isAuto(0/1);phy (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination); isOppur(0/1))"},
