@@ -539,6 +539,9 @@ class GattClient : public IClientCallback, public GattClientCallback {
 
     void onConnectionUpdated(string address, int interval, int latency,
                                 int timeout, int status);
+
+    void onServiceChanged(string address);
+
     void onSubrateChanged(string address, int subrateFactor, int latency, int contNum,
                                  int timeout, int status);
 };

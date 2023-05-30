@@ -511,6 +511,7 @@ typedef enum {
     BTGATTC_GET_GATT_DB_EVENT,
     BTGATTC_PHY_UPDATED_EVENT,
     BTGATTC_CONN_UPDATED_EVENT,
+    BTGATTC_SERVICE_CHANGED_EVENT,
     BTGATTC_SUBRATE_CHANGED_EVENT,
     BTGATTC_READ_PHY_EVENT,
 
@@ -1185,6 +1186,12 @@ typedef struct
 {
     BluetoothEventId event_id;
     int conn_id;
+} GattcServiceChangedEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int conn_id;
     uint16_t subrate_factor;
     uint16_t latency;
     uint16_t cont_num;
@@ -1823,6 +1830,7 @@ typedef union {
     GattcGetGattDbEvent                     gattc_get_gatt_db_event;
     GattcPhyUpdatedEvent                    gattc_phy_updated_event;
     GattcConnUpdatedEvent                   gattc_conn_updated_event;
+    GattcServiceChangedEvent                gattc_service_changed_event;
     GattcSubrateChangedEvent                gattc_subrate_changed_event;
     GattcReadPhyEvent                       gattc_read_phy_event;
 

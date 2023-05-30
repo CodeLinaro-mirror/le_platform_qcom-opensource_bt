@@ -335,6 +335,18 @@ static void btgattc_conn_updated_cb(int conn_id, uint16_t interval, uint16_t lat
   PostMessage(THREAD_ID_GATT, event);
 }
 
+static void btgattc_service_changed_cb(int conn_id) {
+  ALOGD(LOGTAG "(%s) conn_id: %d", __FUNCTION__,conn_id);
+
+  BtEvent *event = new BtEvent;
+  CHECK_PARAM_VOID(event);
+
+  event->event_id = BTGATTC_SERVICE_CHANGED_EVENT;
+  event->gattc_subrate_changed_event.conn_id = conn_id;
+
+  PostMessage(THREAD_ID_GATT, event);
+}
+
 static void btgattc_subrate_change_cb(int conn_id, uint16_t subrate_factor, uint16_t latency,
                              uint16_t cont_num, uint16_t timeout, uint8_t status) {
   ALOGD(LOGTAG "(%s) conn_id: %d subrate_factor: %d, latency: %d, cont_num: %d, timeout: %d status: %d",
@@ -1145,6 +1157,7 @@ static const btgatt_client_callbacks_t sGattClientCallbacks = {
     NULL, /* services_added_cb */
     btgattc_phy_updated_cb,
     btgattc_conn_updated_cb,
+    btgattc_service_changed_cb,
     btgattc_subrate_change_cb,
 };
 

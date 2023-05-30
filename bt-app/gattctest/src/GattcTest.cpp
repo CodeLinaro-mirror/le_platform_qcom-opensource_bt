@@ -465,6 +465,12 @@ class gattctestClientCallback:public GattClientCallback
       }
     }
 
+    void onServiceChanged(GattClient *gatt)
+    {
+      ALOGD(LOGTAG "onServiceChanged");
+      fprintf(stdout, "************* onServiceChanged *************\n");
+    }
+
     void onSubrateChanged(GattClient *gatt, int subrateFactor, int latency, int contNum,
         int timeout, int status)
     {
