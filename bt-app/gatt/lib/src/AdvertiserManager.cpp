@@ -125,7 +125,7 @@ periodic_advertising_parameters_t AdvertiserManager::
   bool includeTxPower = parameter->getIncludeTxPower();
   uint16_t interval = parameter->getInterval();
 
-  p.enable = true;
+  p.enable = 0x03; // Set bit0 (enable) and bit1 (ADI)
   p.min_interval = interval;
   p.max_interval = interval + 16; /* 20ms difference betwen min and max */
   uint16_t props = 0;
@@ -200,9 +200,10 @@ void AdvertiserManager::stopAdvertisingSet(IAdvertisingSetCallback *callback)
   }
 
   mNative->stopAdvertisingSetNative(advertiserId);
+  mAdvertisers.erase(advertiserId);
 
   try {
-          callback->onAdvertisingSetStopped(advertiserId);
+    callback->onAdvertisingSetStopped(advertiserId);
   } catch (std::exception& e ) {
     ALOGE(LOGTAG " error sending onAdvertisingSetStopped callback %s", e.what());
   }
@@ -273,13 +274,18 @@ void AdvertiserManager::stopAdvertisingSets()
     }
 
     mNative->stopAdvertisingSetNative(advertiser_id);
+    if (callback == NULL) {
+      ALOGI(LOGTAG " stopAdvertisingSets() - callback is NULL");
+      continue;
+    }
 
     try {
-        callback->onAdvertisingSetStopped(advertiser_id);
+      callback->onAdvertisingSetStopped(advertiser_id);
     } catch (std::exception& e) {
       ALOGI( LOGTAG " error sending onAdvertisingSetStopped callback %s", e.what());
     }
   }
+  mAdvertisers.clear();
 }
 
 void AdvertiserManager::onAdvertisingSetStarted(int regId, int advertiserId, int txPower, int status)

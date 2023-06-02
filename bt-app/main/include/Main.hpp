@@ -251,6 +251,10 @@ typedef enum {
     GATTCTEST_SCAN_SETTINGS,
     GATTCTEST_START_SCAN,
     GATTCTEST_STOP_SCAN,
+    GATTCTEST_CREATE_PA_SYNC,
+    GATTCTEST_STOP_PA_SYNC,
+    GATTCTEST_PA_DEVICES,
+    GATTCTEST_PA_SYNCED_DEVICES,
     GATTCTEST_BATCH_SCAN,
     GATTCTEST_CONN_PARAMS,
     GATTCTEST_CONNECT,
@@ -265,6 +269,8 @@ typedef enum {
     GATTCTEST_SETPHY,
     GATTCTEST_GETSERVICES,
     GATTCTEST_REQCONN_PRI,
+    GATTCTEST_REQSUBRATE_MODE,
+    GATTCTEST_REQLE_SUBRATE,
     GATTCTEST_GETSRVC,
     GATTCTEST_RDCHAR_UUID,
     GATTCTEST_RDWRCHAR,
@@ -279,12 +285,15 @@ typedef enum {
     GATTSTEST_ADDSERVICES,
     GATTSTEST_INIT_ADVERTISER,
     GATTSTEST_START_ADVERTISER,
+    GATTSTEST_REQ_SUBRATE_MODE,
+    GATTSTEST_REQ_LE_SUBRATE,
     GATTSTEST_READPHY,
     GATTSTEST_SET_PREFERRED_PHY,
     GATTSTEST_STOP,
     GATTSTEST_UNREGISTER_SERVER,
     GATTSTEST_DISABLE,
     GATTSTEST_CANCEL_CONNECTION,
+    GATTSTEST_SET_SUBRATE,
 #endif
     HFP_CLIENT,
     CREATE_SCO_CONN,
@@ -354,6 +363,7 @@ typedef enum {
     FOUR_PARAM,
     FIVE_PARAM,
     SIX_PARAM,
+    SEVEN_PARAM,
 } MaxParamCount;
 
 typedef enum {
@@ -480,9 +490,13 @@ UserMenuList RspMenu[] = {
 UserMenuList GattsTestMenu[] = {
     {GATTSTEST_INIT_SERVER,        "gattstest_init_server",        ZERO_PARAM,    "gattstest_init_server (only for Init time)"},
     {GATTSTEST_ADDSERVER,          "gattstest_addservers",         ZERO_PARAM,    "gattstest_addservers"},
-    {GATTSTEST_ADDSERVICES,        "gattstest_addservices",        TWO_PARAM,     "gattstest_addservices<space><server instance><space><service instance>"},
+    {GATTSTEST_ADDSERVICES,        "gattstest_addservices",        TWO_PARAM,     "gattstest_addservices<space><server instance><space><service instance> eg. gattstest_addservices 1 1"},
     {GATTSTEST_INIT_ADVERTISER,    "gattstest_init_advertiser",    ZERO_PARAM,    "gattstest_init_advertiser initialzes advertiser"},
-    {GATTSTEST_START_ADVERTISER,   "gattstest_start_advertiser",   ONE_PARAM,     "gattstest_start_advertiser<space><server instance>"},
+    {GATTSTEST_START_ADVERTISER,   "gattstest_start_advertiser",   TWO_PARAM,     "gattstest_start_advertiser<space><server instance><advset instance> eg. gattstest_start_advertiser 1 1"},
+    {GATTSTEST_REQ_SUBRATE_MODE,   "gattstest_reqsubrate_mode",    THREE_PARAM,   "gattstest_reqsubrate_mode<space><server instance><space><remote address>\
+<space><mode balanced-0/high_priority-1/low_power-2>"},
+    {GATTSTEST_REQ_LE_SUBRATE,     "gattstest_reqle_subrate",      SEVEN_PARAM,   "gattstest_reqle_subrate<space><server instance><space><remote_address>\
+<space><subrateMin><space><subrateMax(1-500)><space><maxLatency(0-499)><space><contNumber(0-499)><space><supervisionTimeout>"},
     {GATTSTEST_READPHY,            "gattstest_readphy",            TWO_PARAM,     "gattstest_readphy<space><remote address><server instance>"},
     {GATTSTEST_SET_PREFERRED_PHY,  "gattstest_set_preferred_phy",  FOUR_PARAM,    "gattstest_set_preferred_phy<space><remote address><space><server instance><space><tx phy><space><rx phy>"},
     {GATTSTEST_STOP,               "gattstest_stop",               ONE_PARAM,     "gattstest_stop<space><server_instance>"},
@@ -507,6 +521,12 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_START_SCAN,        "gattctest_start_scan", ZERO_PARAM,    "gattctest_start_scan"},
     {GATTCTEST_STOP_SCAN,         "gattctest_stop_scan",  ZERO_PARAM,    "gattctest_stop_scan"},
     {GATTCTEST_BATCH_SCAN,        "gattctest_batch_scan", ONE_PARAM,    "gattctest_batch_scan  0-FULL MODE 1- TRUNCATED MODE"},
+    {GATTCTEST_PA_DEVICES,     "gattctest_pa_dev",  ZERO_PARAM,    "gattctest_pa_dev"},
+    {GATTCTEST_PA_SYNCED_DEVICES,     "gattctest_pa_synced_dev",  ZERO_PARAM,    "gattctest_pa_synced_dev"},
+    {GATTCTEST_CREATE_PA_SYNC,           "gattctest_create_pa_sync", ONE_PARAM,     "gattctest_create_pa_sync<space><bt_address> \
+          eg.gattctest_create_pa_sync 00:11:22:33:44:55 "},
+    {GATTCTEST_STOP_PA_SYNC,           "gattctest_stop_pa_sync", ONE_PARAM,     "gattctest_stop_pa_sync<space><bt_address> \
+          eg.gattctest_stop_pa_sync 00:11:22:33:44:55 "},
     {BACK_TO_MAIN,          "main_menu",      ZERO_PARAM,    "main_menu"},
     {GATTCTEST_CONN_PARAMS,       "gattctest_conn_params",    THREE_PARAM,    "gattctest_conn_params<space><isAuto><space><phy><space><isOppur> \
         eg: isAuto(0/1);phy (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination); isOppur(0/1))"},
@@ -522,9 +542,13 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_REQMTU,           "gattctest_reqMtu",    TWO_PARAM,    "gattctest_reqMtu<space><bt_address><space><value>"},
     {GATTCTEST_REFRESH,           "gattctest_refresh",    ONE_PARAM,    "gattctest_refresh<space><bt_address>"},
     {GATTCTEST_SETPHY,           "gattctest_setphy",    THREE_PARAM,    "gattctest_setphy<space>\
-          <TxValue(0-255)><space><RxValue(0-255)><space><bt_address> (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination)"},
+<TxValue(0-255)><space><RxValue(0-255)><space><bt_address> (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination)"},
     {GATTCTEST_GETSERVICES,           "gattctest_getservices",    ONE_PARAM,    "gattctest_getservices<space><bt_address>"},
     {GATTCTEST_REQCONN_PRI,           "gattctest_reqconn_pri",    TWO_PARAM,    "gattctest_reqconn_pri<space><bt_address><space><priority 0/1/2>"},
+    {GATTCTEST_REQSUBRATE_MODE,           "gattctest_reqsubrate_mode",    TWO_PARAM,    "gattctest_reqsubrate_mode<space><bt_address>\
+<space><mode balanced-0/high_priority-1/low_power-2>"},
+    {GATTCTEST_REQLE_SUBRATE,           "gattctest_reqle_subrate",    SIX_PARAM,    "gattctest_reqle_subrate<space><bt_address>\
+<space><subrateMin><space><subrateMax(1-500)><space><maxLatency(0-499)><space><contNumber(0-499)><space><supervisionTimeout(10-3200)>"},
     {GATTCTEST_GETCHARID,           "gattctest_getcharid",    TWO_PARAM,    "gattctest_getcharid<space><bt_address><space><instanceid>"},
     {GATTCTEST_RELIABLEWRITE,       "gattctest_reliablewrite",    TWO_PARAM,    "gattctest_reliablewrite<space><bt_address><space><instanceid>"},
     {GATTCTEST_GETDESCID,           "gattctest_getdescid",    TWO_PARAM,    "gattctest_getdescid<space><bt_address><space><instanceid>"},

@@ -76,6 +76,8 @@ class GattNativeInterfaceV2{
     void gattConnectionParameterUpdateNative(int client_if, string address,
         int min_interval,int max_interval, int latency, int timeout, int min_ce_len,
         int max_ce_len);
+    void gattSubrateRequestNative(int client_if, string address, int subrate_min,
+        int subrate_max, int max_latency, int cont_num, int sup_timeout);
     void gattClientConfigBatchScanStorageNative(int client_if, int max_full_reports_percent,
         int max_trunc_reports_percent, int notify_threshold_level_percent);
     void gattClientStartBatchScanNative(int client_if, int scan_mode,

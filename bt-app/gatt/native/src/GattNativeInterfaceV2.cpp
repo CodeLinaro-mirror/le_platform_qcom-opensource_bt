@@ -335,6 +335,37 @@ static void btgattc_conn_updated_cb(int conn_id, uint16_t interval, uint16_t lat
   PostMessage(THREAD_ID_GATT, event);
 }
 
+static void btgattc_service_changed_cb(int conn_id) {
+  ALOGD(LOGTAG "(%s) conn_id: %d", __FUNCTION__,conn_id);
+
+  BtEvent *event = new BtEvent;
+  CHECK_PARAM_VOID(event);
+
+  event->event_id = BTGATTC_SERVICE_CHANGED_EVENT;
+  event->gattc_subrate_changed_event.conn_id = conn_id;
+
+  PostMessage(THREAD_ID_GATT, event);
+}
+
+static void btgattc_subrate_change_cb(int conn_id, uint16_t subrate_factor, uint16_t latency,
+                             uint16_t cont_num, uint16_t timeout, uint8_t status) {
+  ALOGD(LOGTAG "(%s) conn_id: %d subrate_factor: %d, latency: %d, cont_num: %d, timeout: %d status: %d",
+      __FUNCTION__,conn_id, subrate_factor, latency, cont_num, timeout, status);
+
+  BtEvent *event = new BtEvent;
+  CHECK_PARAM_VOID(event);
+
+  event->event_id = BTGATTC_SUBRATE_CHANGED_EVENT;
+  event->gattc_subrate_changed_event.conn_id = conn_id;
+  event->gattc_subrate_changed_event.subrate_factor = subrate_factor;
+  event->gattc_subrate_changed_event.latency = latency;
+  event->gattc_subrate_changed_event.cont_num = cont_num;
+  event->gattc_subrate_changed_event.timeout = timeout;
+  event->gattc_subrate_changed_event.status = status;
+
+  PostMessage(THREAD_ID_GATT, event);
+}
+
 static void readClientPhyCb(uint8_t clientIf, RawAddress bda, uint8_t tx_phy,
                             uint8_t rx_phy, uint8_t status) {
   ALOGD(LOGTAG "(%s) clientIf: %d, bda: %s, tx_phy: %d, rx_phy: %d, status: %d",
@@ -644,6 +675,25 @@ static void btgatts_conn_updated_cb(int conn_id, uint16_t interval, uint16_t lat
   PostMessage(THREAD_ID_GATT, event);
 }
 
+static void btgatts_subrate_change_cb(int conn_id, uint16_t subrate_factor, uint16_t latency,
+                             uint16_t cont_num, uint16_t timeout, uint8_t status) {
+  ALOGD(LOGTAG "(%s) conn_id: %d subrate_factor: %d, latency: %d, cont_num: %d, timeout: %d status: %d",
+      __FUNCTION__,conn_id, subrate_factor, latency, cont_num, timeout, status);
+
+  BtEvent *event = new BtEvent;
+  CHECK_PARAM_VOID(event);
+
+  event->event_id = BTGATTS_SUBRATE_CHANGED_EVENT;
+  event->gatts_subrate_changed_event.conn_id = conn_id;
+  event->gatts_subrate_changed_event.subrate_factor = subrate_factor;
+  event->gatts_subrate_changed_event.latency = latency;
+  event->gatts_subrate_changed_event.cont_num = cont_num;
+  event->gatts_subrate_changed_event.timeout = timeout;
+  event->gatts_subrate_changed_event.status = status;
+
+  PostMessage(THREAD_ID_GATT, event);
+}
+
 static void readServerPhyCb(uint8_t serverIf, RawAddress bda, uint8_t tx_phy,
                             uint8_t rx_phy, uint8_t status) {
   ALOGD(LOGTAG "(%s) serverIf: %d, bda: %s, tx_phy: %d, rx_phy: %d, status: %d",
@@ -713,6 +763,7 @@ static void scan_result_cb(uint16_t event_type, uint8_t addr_type,
   event->blescanner_scan_result_event.addr_type = addr_type;
   event->blescanner_scan_result_event.primary_phy = primary_phy;
   event->blescanner_scan_result_event.secondary_phy = secondary_phy;
+  event->blescanner_scan_result_event.advertising_sid = advertising_sid;
   event->blescanner_scan_result_event.tx_power = tx_power;
   event->blescanner_scan_result_event.periodic_adv_int = periodic_adv_int;
   event->blescanner_scan_result_event.adv_data = new std::vector<uint8_t>(adv_data);
@@ -1105,7 +1156,9 @@ static const btgatt_client_callbacks_t sGattClientCallbacks = {
     NULL, /* services_removed_cb */
     NULL, /* services_added_cb */
     btgattc_phy_updated_cb,
-    btgattc_conn_updated_cb
+    btgattc_conn_updated_cb,
+    btgattc_service_changed_cb,
+    btgattc_subrate_change_cb,
 };
 
 
@@ -1125,7 +1178,8 @@ static const btgatt_server_callbacks_t sGattServerCallbacks = {
     btgatts_congestion_cb,
     btgatts_mtu_changed_cb,
     btgatts_phy_updated_cb,
-    btgatts_conn_updated_cb
+    btgatts_conn_updated_cb,
+    btgatts_subrate_change_cb,
 };
 
 
@@ -1461,6 +1515,17 @@ void GattNativeInterfaceV2 :: gattConnectionParameterUpdateNative(
 
   sGattIf->client->conn_parameter_update(
       str2addr(address), min_interval, max_interval, latency, timeout);
+}
+
+void GattNativeInterfaceV2 :: gattSubrateRequestNative(
+                                                int client_if, string address,
+                                                int subrate_min, int subrate_max,
+                                                int max_latency, int cont_num,
+                                                int sup_timeout) {
+  if (!sGattIf) return;
+
+  sGattIf->client->subrate_request(
+    str2addr(address), subrate_min, subrate_max, max_latency, cont_num, sup_timeout);
 }
 
 void GattNativeInterfaceV2 :: gattClientConfigBatchScanStorageNative(

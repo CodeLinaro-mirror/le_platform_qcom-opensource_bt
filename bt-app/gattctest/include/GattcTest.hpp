@@ -42,6 +42,10 @@
 #include <GattDescriptor.hpp>
 #include "uuid.h"
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
 
 #define LOGTAG "GATTCTEST "
 
@@ -50,6 +54,8 @@ using namespace gatt;
 using namespace btapp;
 
 typedef map<string, class GattClient *> RmDev;
+typedef map<string, DeviceProperties> PaDev;
+typedef map<int, string> PaSyncedDev;
 
 class GattcTest {
     private:
@@ -109,27 +115,42 @@ class GattcTest {
         void startScan();
         void list_conn_devices();
         bool reqConnPri(string bdaddr, int conn_priority);
+        bool reqSubrateMode(string bdaddr, int subrateMode);
+        bool reqLeSubrate(string bdaddr, string subrateMin, string subrateMax,
+                                          string maxLatency, string contNumber, string supervisionTimeout);
         bool reliableWrite(string bdaddr, int instanceId);
         bool scanFilter(int filterType, string value);
         bool scanSettings(int scanType, int value);
         void scanFilterManuData(int manuId, string manuData, string manuMask);
+        bool createPeriodicSync(string bdaddr);
+        void stopPeriodicSync(string bdaddr);
+        void list_pa_devices();
+        void list_pa_synced_devices();
 };
 
 class mRemoteDev {
     private:
         RmDev mapClient;
+        PaDev mapPaDev;
+        PaSyncedDev mapPaSyncedDev;
     public:
         mRemoteDev(string x, class GattClient *);
         void add(string dev, class GattClient *);
         void remove(string dev);
         list<string> getConnectedDevices();
-
         GattClient* getGatt(string dev);
-
         list<GattClient*> getGattList();
-
         bool containsDevice(string device);
-
+        void addUpdatePaDev(string dev, DeviceProperties dev_property);
+        void removePaDev(string dev);
+        int getPaSid(string dev);
+        bool containsPaDevice(string dev);
+        void printPaDevices();
+        void addPaSyncedDev(int sync_handle, string dev);
+        void removePaSyncedDev(int sync_handle);
+        int containsPaSyncedDevice(string dev);
+        bool containsPaSyncedDevice(int sync_handle);
+        void printPaSyncedDevices();
         void clear();
 };
 

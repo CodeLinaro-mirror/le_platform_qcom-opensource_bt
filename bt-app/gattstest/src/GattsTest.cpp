@@ -378,8 +378,19 @@ void gattstestServerCallback::onPhyRead(string deviceAddress,int txPhy,int rxPhy
 
 void gattstestServerCallback::onConnectionUpdated(string deviceAddress,int interval,int latency,int timeout,int status)
 {
+  fprintf(stdout, "%s deviceAddress: %s interval (%d), latency (%d), timeout (%d), status (%d)\n",
+            __FUNCTION__, deviceAddress.c_str(), interval, latency, timeout, status);
   ALOGD(LOGTAG"%s deviceAddress: %s,interval: %d,latency %d,timeout %d, status:%d", __FUNCTION__,
                                         deviceAddress.c_str(), interval, latency, timeout, status);
+}
+
+void gattstestServerCallback::onSubrateChanged(string deviceAddress, int subrateFactor, int latency, int contNum,
+                                 int timeout, int status)
+{
+  fprintf(stdout, "%s deviceAddress: %s subrateFactor (%d), latency (%d), contNum (%d), timeout (%d), status (%d)\n",
+            __FUNCTION__, deviceAddress.c_str(), subrateFactor, latency, contNum, timeout, status);
+  ALOGD(LOGTAG"%s deviceAddress: %s,subrateFactor: %d,latency %d,contNum %d,timeout %d, status:%d", __FUNCTION__,
+                                        deviceAddress.c_str(), subrateFactor, latency, contNum, timeout, status);
 }
 
 
@@ -466,7 +477,7 @@ class gattstestAdvertiserCallback  :public AdvertisingSetCallback
 
   void onOwnAddressRead (AdvertisingSet *advertisingSet, int addressType, string address)
   {
-    ALOGD(LOGTAG"onOwnAddressRead  addressType: %d  address: %s advertiser id: %d", addressType, 
+    ALOGD(LOGTAG"onOwnAddressRead  addressType: %d  address: %s advertiser id: %d", addressType,
                                                 address.c_str(), advertisingSet->getAdvertiserId());
   }
 
@@ -516,10 +527,11 @@ void GattsTest::ReadServerConfigurationFile()
   }
 
   while(!infile.eof()) {
-    getline(infile,ch,'\r');
-    if(std::regex_search(ch,std::regex("\\bServer[1-9]|Server[1-9][0-9]\\b"))) {
+    getline(infile,ch,'\n');
+    if(regex_search(ch, regex("\\bServer[1-9]|Server[1-9][0-9]\\b"))) {
       while(line_num < desired_line) {
-        getline(infile,ch,'\r');
+        //parse all lines in Server[1-9], including Manufacture
+        getline(infile,ch,'\n');
         status = ParseServiceDetails(ch,line_num);
         if(!status) {
           fprintf(stdout,"Service Records are not consistent \n");
@@ -528,11 +540,11 @@ void GattsTest::ReadServerConfigurationFile()
         line_num++;
       }
     } else {
-        fprintf(stdout,"Server Config File is incorrect \n");
-        break;
-      }
-      line_num = 0;
+      fprintf(stdout,"Server Config File is incorrect \n");
+      break;
     }
+    line_num = 0;
+  }
   fprintf(stdout,"File reading Done \n");
   //closing the file after reading
   infile.close();
@@ -564,6 +576,7 @@ bool GattsTest::ParseServiceDetails(string temp,int line_num)
     } else if(line_num >= SERVICE_LINE_MIN && line_num <= SERVICE_LINE_MAX) {
         status = split(temp,',',service_field);
         if(status) {
+          //parse each service, including s_uuid/c_uuid/c_property/c_permissions/d_uuid/d_permissions
           ParseServiceElement(line_num);
           service_field.clear();
           return true;
@@ -578,9 +591,9 @@ bool GattsTest::ParseServiceDetails(string temp,int line_num)
   }
 }
 
-void GattsTest::ParseServiceElement(int instance)
+void GattsTest::ParseServiceElement(int serviceId)
 {
-  ALOGD(LOGTAG"%s instance: %d",__FUNCTION__,instance);
+  ALOGD(LOGTAG"%s instance: %d",__FUNCTION__,serviceId);
   string parameter;
   int property;
   int permissions;
@@ -592,7 +605,7 @@ void GattsTest::ParseServiceElement(int instance)
   service_temp->c_permissions = INVALID_VALUE;
   service_temp->d_permissions = INVALID_VALUE;
   int len = service_field.size();
-  if(instance >= SERVICE_LINE_MIN && instance <= SERVICE_LINE_MAX) {
+  if(serviceId >= SERVICE_LINE_MIN && serviceId <= SERVICE_LINE_MAX) {
       if(service_field[0].empty()) {
         ALOGD(LOGTAG"Service details are empty");
         service_temp = NULL;
@@ -619,7 +632,7 @@ void GattsTest::ParseServiceElement(int instance)
           service_temp->d_permissions = permissions;
         }
       }
-      service_list[instance].push_back(service_temp);
+      service_list[serviceId].push_back(service_temp);
   }
 }
 
@@ -752,8 +765,8 @@ bool GattsTest::ReadAdvertiserConfigFile()
       }
       AdvSet_list.push_back(set_temp);
     }else {
-    fprintf(stdout,"There are no Advertising Set records in the file \n");
-    break;
+      fprintf(stdout,"There are no Advertising Set records in the file \n");
+      break;
     }
     line_num = 0;
   }
@@ -799,12 +812,14 @@ void GattsTest::ParseAdvertiserDetails(string temp)
   }
 }
 
-bool GattsTest::StartAdvertisement(string        instanceID)
+bool GattsTest::StartAdvertisement(string serverID, string advsetID)
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
-  int instance = 0;
-  istringstream(instanceID) >> instance;
-  if (instance <= 0 || instance > MAX_SERVER_INSTANCE) {
+  int serverId = 0;
+  int advsetId = 0;
+  istringstream(serverID) >> serverId;
+  istringstream(advsetID) >> advsetId;
+  if (serverId <= 0 || serverId > MAX_SERVER_INSTANCE || advsetId <= 0 || advsetId > MAX_SERVER_INSTANCE) {
     ALOGD("%s invalid input argument");
     fprintf(stdout,"Invalid input argument \n");
     return false;
@@ -812,35 +827,35 @@ bool GattsTest::StartAdvertisement(string        instanceID)
   int legacyflag = 0;
   AdvertiseSet *temp = NULL;
   bool status = false;
-  status = BuildAdvertisingParameters(instance);
+  status = BuildAdvertisingParameters(advsetId);
   if(!status) {
     fprintf(stdout,"Advertising Parameters not set \n");
     return false;
   }
-  status = BuildAdvertisingData(instance);
+  status = BuildAdvertisingData(serverId, advsetId);
   if(!status) {
     fprintf(stdout,"Advertising Data not set \n");
     return false;
   }
-  status = SetPeriodicAdvertisingParameters(instance);
+  status = SetPeriodicAdvertisingParameters(advsetId);
   if(!status) {
     fprintf(stdout,"Periodic Advertising parameters not set \n");
     return false;
   }
-  status = SetPeriodicAdvertisingData(instance);
+  status = SetPeriodicAdvertisingData(advsetId);
   if(!status) {
     fprintf(stdout,"Periodic Advertising Data not set \n");
     return false;
   }
-  status = SetScanResponseData(instance);
+  status = SetScanResponseData(advsetId);
   if(!status) {
     fprintf(stdout,"Scan Response Data not set \n");
     return false;
   }
   //fetching advertiser Callback instance for the server/advertiser instance key
-  gattstestAdvCb = advCBInstanceMap[instance];
+  gattstestAdvCb = advCBInstanceMap[serverId];
   //Finding corresponding Legacy flag details for the corresponding advertiser
-  temp = AdvSet_list[instance -1];
+  temp = AdvSet_list[advsetId -1];
   legacyflag = temp->legacyflag;
   try {
     if(legacyflag) {
@@ -852,16 +867,17 @@ bool GattsTest::StartAdvertisement(string        instanceID)
     }
   } catch(const std::exception &ex) {
     ALOGD(LOGTAG"%s start Advertising exception  %s", __FUNCTION__, ex.what());
+    fprintf(stdout,"%s \n", ex.what());
     return false;
   }
   return true;
 }
 
-bool GattsTest::BuildAdvertisingParameters(int instance)
+bool GattsTest::BuildAdvertisingParameters(int advsetId)
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   AdvertiseSet *setParams;
-  setParams = AdvSet_list[instance - 1];
+  setParams = AdvSet_list[advsetId - 1];
   if(setParams == NULL) {
     ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
     return false;
@@ -929,7 +945,7 @@ bool GattsTest::BuildAdvertisingParameters(int instance)
   return true;
 }
 
-bool GattsTest::BuildAdvertisingData(int instance) {
+bool GattsTest::BuildAdvertisingData(int serverId, int advsetId) {
   int includeTxPowerflag;
   string mManufacturerID;
   string mManufacturerData;
@@ -939,7 +955,7 @@ bool GattsTest::BuildAdvertisingData(int instance) {
   string service_data= "QTI_SERVICE_DATA";
   string service_data_uuid = "0000AAAA-0000-1000-8000-00805F9B34FB";
   Uuid mUuid;
-  set = AdvSet_list[instance -1];
+  set = AdvSet_list[advsetId -1];
   if(set == NULL) {
     ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
     return false;
@@ -947,8 +963,13 @@ bool GattsTest::BuildAdvertisingData(int instance) {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   AdvertiseData::Builder builder = AdvertiseData::Builder().setIncludeDeviceName(true)
                                   .setIncludeTxPowerLevel(set->includeTxPowerflag);
-  mManufacturerID = manufacturerId_list[instance-1];
-  mManufacturerData = manufacturerData_list[instance-1];
+  if (manufacturerId_list.size() < serverId) {
+    ALOGE(LOGTAG"%s Server in config file is less than %d", __FUNCTION__, serverId);
+    fprintf(stdout,"Server in config file is less than %d\n", serverId);
+    return false;
+  }
+  mManufacturerID = manufacturerId_list[serverId-1];
+  mManufacturerData = manufacturerData_list[serverId-1];
   int legacyflag =  set->legacyflag;
   //If legacy flag is not set then add manufacturer and Service data
   if(!legacyflag) {
@@ -961,7 +982,7 @@ bool GattsTest::BuildAdvertisingData(int instance) {
       std::vector<uint8_t> vec(mManufacturerData.begin(), mManufacturerData.end());
       builder.addManufacturerData(id,vec);
     }
-    temp= service_list[SERVICE_1][instance -1];
+    temp= service_list[SERVICE_1][serverId -1];
     if(!temp->s_uuid.empty()) {
       mUuid = btapp::Uuid::FromString(temp->s_uuid);
       builder.addServiceUuid(mUuid);
@@ -980,12 +1001,12 @@ bool GattsTest::BuildAdvertisingData(int instance) {
   return true;
 }
 
-bool GattsTest::SetPeriodicAdvertisingData(int instance)
+bool GattsTest::SetPeriodicAdvertisingData(int advsetId)
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   int periodic_flag;
   AdvertiseSet *temp = NULL;
-  temp = AdvSet_list[instance -1];
+  temp = AdvSet_list[advsetId -1];
   if(temp == NULL) {
     ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
     return false;
@@ -1000,12 +1021,12 @@ bool GattsTest::SetPeriodicAdvertisingData(int instance)
 }
 
 
-bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
+bool GattsTest::SetPeriodicAdvertisingParameters(int advsetId)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   int periodic_flag;
   AdvertiseSet *temp = NULL;
-  temp = AdvSet_list[instance -1];
+  temp = AdvSet_list[advsetId -1];
   if(temp == NULL) {
     ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
     return false;
@@ -1029,12 +1050,12 @@ bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
   return true;
 }
 
-bool GattsTest::SetScanResponseData(int instance)
+bool GattsTest::SetScanResponseData(int advsetId)
 {
   ALOGD(LOGTAG"%s ",__FUNCTION__);
   int scannable_flag;
   AdvertiseSet *temp = NULL;
-  temp = AdvSet_list[instance -1];
+  temp = AdvSet_list[advsetId -1];
   if(temp == NULL) {
     ALOGE(LOGTAG"%s Advertising Configuration not found", __FUNCTION__);
     return false;
@@ -1082,16 +1103,16 @@ bool GattsTest::UnregisterServer(string instance)
   }
 }
 
-void GattsTest::StopAdvertisement(string instance)
+void GattsTest::StopAdvertisement(string serverID)
 {
   ALOGD(LOGTAG"StopAdvertisement \n");
-  int instanceId;
-  istringstream(instance) >> instanceId;
-  if(!advCBInstanceMap.count(instanceId)) {
+  int serverId;
+  istringstream(serverID) >> serverId;
+  if(!advCBInstanceMap.count(serverId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
   } else {
     AdvertisingSetCallback *mAdvSetCB;
-    mAdvSetCB = advCBInstanceMap[instanceId];
+    mAdvSetCB = advCBInstanceMap[serverId];
     madvertiser->stopAdvertising(mAdvSetCB);
   }
 }
@@ -1122,20 +1143,95 @@ void GattsTest::AddDescriptors(Uuid uid,int permissions,string value)
   ALOGD(LOGTAG"Descriptor Permissions: %d ", mgattDescriptor->getPermissions());
 }
 
-bool GattsTest::ReadPhy(string instance,string deviceAddress)
+bool GattsTest::ReqSubrateMode(string serverID, string deviceAddress, int subrateMode)
 {
   ALOGD(LOGTAG"%s Address: %s", __FUNCTION__, deviceAddress.c_str());
   vector <string> ::iterator str;
   bool connected= false;
-  int instanceId;
-  istringstream(instance) >> instanceId;
+  int serverId;
+  istringstream(serverID) >> serverId;
   GattServer *mServer;
 
-  if(!servInstanceMap.count(instanceId)) {
+  if(!servInstanceMap.count(serverId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   } else {
-    mServer = servInstanceMap[instanceId];
+    mServer = servInstanceMap[serverId];
+    for(str = connectedDevices.begin(); str != connectedDevices.end(); str++) {
+      if(deviceAddress == *str) {
+        ALOGD(LOGTAG"Present in connected device list ");
+        connected = true;
+        break;
+      }
+    }
+  }
+  if(connected) {
+    mServer->requestSubrateMode(deviceAddress, subrateMode);
+    return true;
+  } else {
+    fprintf(stdout,"Device is not present in connected list\n");
+    ALOGD(LOGTAG"Device is not present in connected list");
+    return false;
+  }
+}
+
+bool GattsTest::ReqLeSubrate(string serverID, string deviceAddress, string subrateMin, string subrateMax,
+                                  string maxLatency, string contNumber, string supervisionTimeout)
+{
+  ALOGD(LOGTAG"%s Address: %s", __FUNCTION__, deviceAddress.c_str());
+  vector <string> ::iterator str;
+  bool connected= false;
+  int serverId;
+  int subrate_Min = 0;
+  int subrate_Max = 0;
+  int max_Latency = 0;
+  int cont_Number = 0;
+  int supervision_Timeout = 0;
+  istringstream(serverID) >> serverId;
+  istringstream(subrateMin) >> subrate_Min;
+  istringstream(subrateMax) >> subrate_Max;
+  istringstream(maxLatency) >> max_Latency;
+  istringstream(contNumber) >> cont_Number;
+  istringstream(supervisionTimeout) >> supervision_Timeout;
+  GattServer *mServer;
+
+  if(!servInstanceMap.count(serverId)) {
+    fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
+    return false;
+  } else {
+    mServer = servInstanceMap[serverId];
+    for(str = connectedDevices.begin(); str != connectedDevices.end(); str++) {
+      if(deviceAddress == *str) {
+        ALOGD(LOGTAG"Present in connected device list ");
+        connected = true;
+        break;
+      }
+    }
+  }
+  if(connected) {
+    mServer->requestLeSubrate(deviceAddress, subrate_Min, subrate_Max, max_Latency,
+                                  cont_Number, supervision_Timeout);
+    return true;
+  } else {
+    fprintf(stdout,"Device is not present in connected list\n");
+    ALOGD(LOGTAG"Device is not present in connected list");
+    return false;
+  }
+}
+bool GattsTest::ReadPhy(string serverID,string deviceAddress)
+{
+  ALOGD(LOGTAG"%s Address: %s", __FUNCTION__, deviceAddress.c_str());
+  vector <string> ::iterator str;
+  bool connected= false;
+  int serverId;
+  istringstream(serverID) >> serverId;
+  GattServer *mServer;
+
+  if(!servInstanceMap.count(serverId)) {
+    fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
+    return false;
+  } else {
+    mServer = servInstanceMap[serverId];
     for(str = connectedDevices.begin(); str != connectedDevices.end(); str++) {
       if(deviceAddress == *str) {
         ALOGD(LOGTAG"Present in connected device list ");
@@ -1148,24 +1244,25 @@ bool GattsTest::ReadPhy(string instance,string deviceAddress)
     mServer->readPhy(deviceAddress);
     return true;
   } else {
+    fprintf(stdout,"Device is not present in connected list\n");
     ALOGD(LOGTAG"Device is not present in connected list");
     return false;
   }
 }
 
-bool GattsTest::SetPreferredPhy(string deviceAddress,string instance,string txPhy,string rxPhy,int phyOptions)
+bool GattsTest::SetPreferredPhy(string deviceAddress,string serverID,string txPhy,string rxPhy,int phyOptions)
 {
   ALOGD(LOGTAG"%s Address: %s  txPhy: %s rxPhy: %s phyOptions: %d", __FUNCTION__, deviceAddress.c_str(), txPhy.c_str(), rxPhy.c_str(), phyOptions);
-  int instanceId = 0;
+  int serverId = 0;
   int tx_phy = 0;
   int rx_phy = 0;
-  istringstream(instance) >> instanceId;
+  istringstream(serverID) >> serverId;
   istringstream(txPhy) >> tx_phy;
   istringstream(rxPhy) >> rx_phy;
   GattServer *mServer;
   vector <string> ::iterator str;
   bool connected= false;
-  if(!servInstanceMap.count(instanceId)) {
+  if(!servInstanceMap.count(serverId)) {
     fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
     return false;
   } else {
@@ -1177,7 +1274,7 @@ bool GattsTest::SetPreferredPhy(string deviceAddress,string instance,string txPh
     fprintf(stdout,"Enter a valid rx phy option \n");
     return false;
   }
-  mServer = servInstanceMap[instanceId];
+  mServer = servInstanceMap[serverId];
   for(str = connectedDevices.begin(); str != connectedDevices.end(); str++) {
     if(deviceAddress == *str) {
       ALOGD(LOGTAG"Present in connected device list ");

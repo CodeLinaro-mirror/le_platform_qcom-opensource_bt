@@ -83,7 +83,7 @@ class GattsTest {
 
     vector <AdvertiseSet*> AdvSet_list;
     AdvertiseSet *set_temp= NULL;
-    vector <Service*> service_list[5];
+    vector <Service*> service_list[5];//service_list[Service ID][Server ID]
     vector <int> manufacturerId_list;
     vector <string> manufacturerData_list;
     GattCharacteristic *mgattCharacteristic = NULL;
@@ -102,15 +102,17 @@ class GattsTest {
     bool ReadAdvertiserConfigFile();
     void ParseAdvertiserDetails(string);
     bool DisableGATTSTEST();
-    bool StartAdvertisement(string);
+    bool StartAdvertisement(string, string);
     bool BuildAdvertisingParameters(int);
-    bool BuildAdvertisingData(int);
+    bool BuildAdvertisingData(int, int);
     void StopAdvertisement(string);
     bool UnregisterServer(string);
     bool AddService(string,string);
     void AddCharacteristics(Uuid,int,int,string);
     void AddDescriptors(Uuid,int,string);
     bool SetPreferredPhy(string,string,string,string,int);
+    bool ReqSubrateMode(string,string,int);
+    bool ReqLeSubrate(string,string,string,string,string,string,string);
     bool ReadPhy(string,string);
     bool EnablePeriodicAdvertising(bool);
     bool SetPeriodicAdvertisingData(int);
@@ -143,6 +145,8 @@ class gattstestServerCallback :public GattServerCallback
   void onPhyRead(string deviceAddress,int txPhy,int rxPhy,int status);
   void onConnectionUpdated(string deviceAddress,int interval,int latency,
                                     int timeout,int status);
+  void onSubrateChanged(string deviceAddress, int subrateFactor, int latency, int contNum,
+                                 int timeout, int status);
 };
 
 #endif

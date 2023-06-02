@@ -486,6 +486,7 @@ typedef enum {
     BTGATTS_MTU_CHANGED_EVENT,
     BTGATTS_PHY_UPDATED_EVENT,
     BTGATTS_CONN_UPDATED_EVENT,
+    BTGATTS_SUBRATE_CHANGED_EVENT,
     BTGATTS_READ_PHY_EVENT,
 
     //GATTC EVENTS
@@ -510,6 +511,8 @@ typedef enum {
     BTGATTC_GET_GATT_DB_EVENT,
     BTGATTC_PHY_UPDATED_EVENT,
     BTGATTC_CONN_UPDATED_EVENT,
+    BTGATTC_SERVICE_CHANGED_EVENT,
+    BTGATTC_SUBRATE_CHANGED_EVENT,
     BTGATTC_READ_PHY_EVENT,
 
     BLEADVERTISER_SET_ADVERTISING_DATA_EVENT,
@@ -609,6 +612,7 @@ typedef struct {
     bt_bdaddr_t address;
     char name[248];
     int bluetooth_class;
+    int adv_sid;
     short rssi;
     bt_uuid_t uuids[16];
     int device_type;
@@ -1181,6 +1185,23 @@ typedef struct
 typedef struct
 {
     BluetoothEventId event_id;
+    int conn_id;
+} GattcServiceChangedEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int conn_id;
+    uint16_t subrate_factor;
+    uint16_t latency;
+    uint16_t cont_num;
+    uint16_t timeout;
+    uint8_t status;
+} GattcSubrateChangedEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
     int clientIf;
     string *bda;
     uint8_t tx_phy;
@@ -1371,6 +1392,17 @@ typedef struct
     uint16_t timeout;
     uint8_t status;
 } GattsConnUpdatedEvent;
+
+typedef struct
+{
+    BluetoothEventId event_id;
+    int conn_id;
+    uint16_t subrate_factor;
+    uint16_t latency;
+    uint16_t cont_num;
+    uint16_t timeout;
+    uint8_t status;
+} GattsSubrateChangedEvent;
 
 typedef struct
 {
@@ -1773,6 +1805,7 @@ typedef union {
     GattsMTUchangedEvent                    gatts_mtu_changed_event;
     GattsPhyUpdatedEvent                    gatts_phy_updated_event;
     GattsConnUpdatedEvent                   gatts_conn_updated_event;
+    GattsSubrateChangedEvent                gatts_subrate_changed_event;
     GattsReadPhyEvent                       gatts_read_phy_event;
 
     GattcRegisterAppEvent                   gattc_register_app_event;
@@ -1797,6 +1830,8 @@ typedef union {
     GattcGetGattDbEvent                     gattc_get_gatt_db_event;
     GattcPhyUpdatedEvent                    gattc_phy_updated_event;
     GattcConnUpdatedEvent                   gattc_conn_updated_event;
+    GattcServiceChangedEvent                gattc_service_changed_event;
+    GattcSubrateChangedEvent                gattc_subrate_changed_event;
     GattcReadPhyEvent                       gattc_read_phy_event;
 
     BleAdvertiserSetAdvDataEvent            bleadverister_set_adv_data_event;

@@ -66,6 +66,11 @@ class IClientCallback {
     virtual void onConnectionUpdated(string address, int interval, int latency,
                                  int timeout, int status){}
 
+    virtual void onServiceChanged(string address){}
+
+    virtual void onSubrateChanged(string address, int subrateFactor, int latency, int contNum,
+                                 int timeout, int status){}
+
 };
 }
 #endif
