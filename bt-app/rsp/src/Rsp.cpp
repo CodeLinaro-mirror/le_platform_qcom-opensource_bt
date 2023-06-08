@@ -216,14 +216,16 @@ bool Rsp::EnableRSP() {
 }
 
 bool Rsp::StartAdvertisement() {
+  bool ext_adv_supp = false;
   std::vector<uint8_t> vec(adv_data.begin(), adv_data.end());
-  ALOGE(LOGTAG "%s",__FUNCTION__);
+  ext_adv_supp = mlibservice->isLeExtendedAdvertisingSupported();
+  ALOGE(LOGTAG "%s: ext_adv_supp = %d", __FUNCTION__, (int)ext_adv_supp);
   fprintf(stdout,"Rsp::StartAdvertisement \n");
   SetDeviceState(WLAN_INACTIVE);
   mParameters = AdvertisingSetParameters::Builder()
                             .setConnectable(CONNECTABLE)
-                            .setScannable(SCANNABLE)
-                            .setLegacyMode(LEGACYMODE)
+                            .setScannable((ext_adv_supp ? SCANNABLE : 1))
+                            .setLegacyMode((ext_adv_supp ? LEGACYMODE : 1))
                             .setAnonymous(ANONYMOUS)
                             .setIncludeTxPower(INCLUDETXPOWER)
                             .setInterval(AdvertisingSetParameters::INTERVAL_MEDIUM)
@@ -232,7 +234,9 @@ bool Rsp::StartAdvertisement() {
   AdvertiseData::Builder builder = AdvertiseData::Builder().setIncludeDeviceName(true)
                                   .setIncludeTxPowerLevel(false);
   builder.addServiceUuid(SERVICE_UUID);
-  builder.addServiceData(SERVICE_UUID,vec);
+  if (ext_adv_supp) {
+    builder.addServiceData(SERVICE_UUID,vec);
+  }
   mAdvData = builder.build();
   try {
       mAdvertiser->startAdvertisingSet(mParameters,
