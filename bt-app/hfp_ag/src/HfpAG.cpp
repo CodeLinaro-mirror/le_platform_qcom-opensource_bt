@@ -40,8 +40,8 @@ volatile bool stop_record = true;
 volatile bool stop_playback = true;
 
 
-static pthread_t record_tid = NULL;
-static pthread_t playback_tid = NULL;
+static pthread_t record_tid = 0;
+static pthread_t playback_tid = 0;
 
 #if defined(BT_AUDIO_HAL_INTEGRATION)
 config_t *config;
@@ -922,15 +922,15 @@ void Hfp_Ag::HandleDisableAg(void) {
        sBtHfpAgVendorInterface->cleanup_vendor();
        sBtHfpAgVendorInterface = NULL;
    }
-   if (record_tid != NULL)
+   if (record_tid != 0)
    {
        pthread_join(record_tid, NULL);
-       record_tid = NULL;
+       record_tid = 0;
    }
-   if (playback_tid != NULL)
+   if (playback_tid != 0)
    {
        pthread_join(playback_tid, NULL);
-       playback_tid = NULL;
+       playback_tid = 0;
    }
    configurescoaudio(false);
 
@@ -1071,15 +1071,15 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             stop_record = true;
             stop_playback = true;
 
-            if (record_tid != NULL)
+            if (record_tid != 0)
             {
               pthread_join(record_tid, NULL);
-              record_tid = NULL;
+              record_tid = 0;
             }
-            if (playback_tid != NULL)
+            if (playback_tid != 0)
             {
               pthread_join(playback_tid, NULL);
-              playback_tid = NULL;
+              playback_tid = 0;
             }
 
             configurescoaudio(false);
@@ -1594,15 +1594,15 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             stop_playback = true;
 
 
-            if (record_tid != NULL)
+            if (record_tid != 0)
             {
               pthread_join(record_tid, NULL);
-              record_tid = NULL;
+              record_tid = 0;
             }
-            if (playback_tid != NULL)
+            if (playback_tid != 0)
             {
               pthread_join(playback_tid, NULL);
-              playback_tid = NULL;
+              playback_tid = 0;
             }
 
             configurescoaudio(false);

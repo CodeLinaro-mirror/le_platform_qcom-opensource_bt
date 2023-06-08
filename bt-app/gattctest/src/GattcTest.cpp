@@ -846,7 +846,7 @@ bool GattcTest :: writeCharacteristic(string bdaddr, uint8_t *writeValue, int le
   if (!mDeviceMap.containsDevice(bdaddr)) {
     ALOGE(LOGTAG "Device not found on Map");
     fprintf(stdout, "Device not found on Map");
-    return NULL;
+    return false;
   }
   GattClient *CliDevice = mDeviceMap.getGatt(bdaddr);
 
