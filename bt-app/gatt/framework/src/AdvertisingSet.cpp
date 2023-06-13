@@ -99,10 +99,10 @@ void AdvertisingSet::setPeriodicAdvertisingData(AdvertiseData& periodicData)
   }
 }
 
-void AdvertisingSet::setPeriodicAdvertisingEnabled(bool enable)
+void AdvertisingSet::setPeriodicAdvertisingEnabled(uint8_t enable)
 {
   try {
-    mGatt->setPeriodicAdvertisingEnable(mAdvertiserId, &enable);
+    mGatt->setPeriodicAdvertisingEnable(mAdvertiserId, enable);
   } catch (std::exception& e) {
       ALOGE(LOGTAG " remote exception - %s", e.what());
   }

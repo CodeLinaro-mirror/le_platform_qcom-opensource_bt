@@ -284,7 +284,7 @@ class GattLibService           {
     void setPeriodicAdvertisingParameters(int advertiserId,
                                                   PeriodicAdvertiseParameters *parameters);
     void setPeriodicAdvertisingData(int advertiserId, AdvertiseData *data);
-    void setPeriodicAdvertisingEnable(int advertiserId, bool enable);
+    void setPeriodicAdvertisingEnable(int advertiserId, uint8_t enable);
     void registerSync(ScanResult *scanResult, int skip, int timeout,
                           IPeriodicAdvertisingCallback *callback);
     void unregisterSync(IPeriodicAdvertisingCallback *callback);

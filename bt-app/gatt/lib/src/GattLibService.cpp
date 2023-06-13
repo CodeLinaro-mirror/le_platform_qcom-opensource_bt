@@ -2392,7 +2392,7 @@ void GattLibService::setPeriodicAdvertisingData(int advertiserId, AdvertiseData 
   mAdvertiserManager->setPeriodicAdvertisingData(advertiserId, data);
 }
 
-void GattLibService::setPeriodicAdvertisingEnable(int advertiserId, bool enable)
+void GattLibService::setPeriodicAdvertisingEnable(int advertiserId, uint8_t enable)
 {
   if (!mAdvertiserManager) return;
   mAdvertiserManager->setPeriodicAdvertisingEnable(advertiserId, enable);

@@ -78,7 +78,7 @@ class AdvertiserManager {
     void setPeriodicAdvertisingParameters(int advertiserId,
                                                      PeriodicAdvertiseParameters *parameters);
     void setPeriodicAdvertisingData(int advertiserId, AdvertiseData *data);
-    void setPeriodicAdvertisingEnable(int advertiserId, bool enable);
+    void setPeriodicAdvertisingEnable(int advertiserId, uint8_t enable);
     void stopAdvertisingSets();
     void onAdvertisingSetStarted(int regId, int advertiserId, int txPower, int status);
     void onAdvertisingEnabled(int advertiserId, bool enable, int status);

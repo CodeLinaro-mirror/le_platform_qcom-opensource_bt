@@ -255,7 +255,7 @@ void AdvertiserManager::setPeriodicAdvertisingData(int advertiserId, AdvertiseDa
           (AdvertiseHelper::advertiseDataToBytes(data, deviceName)));
 }
 
-void AdvertiserManager::setPeriodicAdvertisingEnable(int advertiserId, bool enable)
+void AdvertiserManager::setPeriodicAdvertisingEnable(int advertiserId, uint8_t enable)
 {
   mNative->setPeriodicAdvertisingEnableNative(advertiserId, enable);
 }

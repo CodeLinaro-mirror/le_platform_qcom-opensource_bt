@@ -121,7 +121,7 @@ class AdvertisingSet {
      * @param enable whether the periodic advertising should be enabled (true), or disabled
      * (false).
      */
-    void setPeriodicAdvertisingEnabled(bool enable);
+    void setPeriodicAdvertisingEnabled(uint8_t enable);
 
     /**
      * Returns address associated with this advertising set.

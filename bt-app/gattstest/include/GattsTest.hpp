@@ -118,6 +118,7 @@ class GattsTest {
     bool SetPeriodicAdvertisingData(int);
     bool SetPeriodicAdvertisingParameters(int);
     bool SetScanResponseData(int);
+    bool UpdatePeriodicAdvertisingData(string,string);
     void CancelConnection(string);
 };
 

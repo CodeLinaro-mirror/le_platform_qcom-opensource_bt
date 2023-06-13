@@ -112,7 +112,7 @@ class GattNativeInterfaceV2{
     void setAdvertisingParametersNative(int advertiser_id, advertise_parameters_t parameters);
     void setPeriodicAdvertisingParametersNative(int advertiser_id, periodic_advertising_parameters_t periodic_parameters);
     void setPeriodicAdvertisingDataNative(int advertiser_id,std::vector<uint8_t> data);
-    void setPeriodicAdvertisingEnableNative(int advertiser_id, bool enable);
+    void setPeriodicAdvertisingEnableNative(int advertiser_id, uint8_t enable);
     void startSyncNative(int sid, string address, int skip, int timeout, int reg_id);
     void stopSyncNative(int sync_handle);
     void enablePaScanResultNative(int sync_handle, uint8_t enable);

@@ -2375,6 +2375,26 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, "BT is in OFF State now \n");
              }
              break;
+        case GATTSTEST_UPDATE_PA_DATA:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (gattstest) {
+                    fprintf(stdout,"Update Periodic Adv Data \n");
+                    if(file_read && (init_advertiser_file == true)) {
+                        bool result =gattstest->UpdatePeriodicAdvertisingData(user_cmd[ONE_PARAM],
+                                                                            user_cmd[TWO_PARAM]);
+                        if(!result){
+                            fprintf(stdout,"Update has not started\n");
+                        }
+                    } else {
+                        fprintf(stdout,"Do init Advertiser first \n");
+                    }
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
+             } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+             break;
         case GATTSTEST_REQ_SUBRATE_MODE:
             if (string_is_bdaddr(user_cmd[TWO_PARAM])) {
                 if (gattstest) {

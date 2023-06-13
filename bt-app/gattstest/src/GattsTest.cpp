@@ -89,7 +89,7 @@ gattstestServerCallback *gattstestServerCb = NULL;
 
 
 
-map<int, AdvertisingSet*> advSetMap;
+map<AdvertisingSetCallback*, AdvertisingSet*> advSetMap;
 vector <string> connectedDevices;
 unordered_map < gattstestServerCallback*, GattServer*> servCBInstanceMap;
 
@@ -401,11 +401,10 @@ class gattstestAdvertiserCallback  :public AdvertisingSetCallback
     ALOGD(LOGTAG"%s status: %d  txpower: %d", __FUNCTION__, status, txPower);
     switch (status) {
       case AdvertisingSetCallback::ADVERTISE_SUCCESS:
-        num_of_advertiser++;
         ALOGD(LOGTAG"Advertising Set Success");
         fprintf(stdout,"onAdvertisingSetStarted - Success \n");
         ALOGD(LOGTAG"AdvertiserID: %d", advertisingSet->getAdvertiserId());
-        advSetMap.insert(pair <int,AdvertisingSet*> (num_of_advertiser,advertisingSet));
+        advSetMap.insert(pair <AdvertisingSetCallback*,AdvertisingSet*> (this, advertisingSet));
       break;
       case AdvertisingSetCallback::ADVERTISE_FAILED_ALREADY_STARTED:
         ALOGD(LOGTAG"Advertising Already started");
@@ -439,6 +438,7 @@ class gattstestAdvertiserCallback  :public AdvertisingSetCallback
   void onAdvertisingSetStopped (AdvertisingSet *advertisingSet)
   {
     ALOGD(LOGTAG"%s Advertiser ID  %d",__FUNCTION__,advertisingSet->getAdvertiserId());
+    advSetMap.erase(this);
   }
 
   void onAdvertisingEnabled (AdvertisingSet *advertisingSet, bool enable, int status)
@@ -466,6 +466,7 @@ class gattstestAdvertiserCallback  :public AdvertisingSetCallback
 
   void onPeriodicAdvertisingDataSet (AdvertisingSet *advertisingSet, int status)
   {
+    fprintf(stdout,"onPeriodicAdvertisingDataSet - status: %d \n", status);
     ALOGD(LOGTAG"onPeriodicAAdvertisingDataSet status: %d", status);
   }
 
@@ -1069,6 +1070,39 @@ bool GattsTest::SetScanResponseData(int advsetId)
   return true;
 }
 
+bool GattsTest::UpdatePeriodicAdvertisingData(string serverID, string serviceData)
+{
+  ALOGD(LOGTAG"%s",__FUNCTION__);
+  int serverId = 0;
+  istringstream(serverID) >> serverId;
+  AdvertisingSet *advertisingSet;
+  Service *temp;
+  string service_data_uuid = "0000BBBB-0000-1000-8000-00805F9B34FB";
+  Uuid mUuid;
+  AdvertiseData::Builder builder = AdvertiseData::Builder().setIncludeDeviceName(true);
+  if (advCBInstanceMap.find(serverId) == advCBInstanceMap.end()
+      || advSetMap.find(advCBInstanceMap[serverId]) == advSetMap.end()) {
+    fprintf(stdout,"Server instance value invalid or adv not started yet, Please type a valid instance\n");
+    return false;
+  }
+
+  temp= service_list[SERVICE_1][serverId -1];
+  if(!temp->s_uuid.empty()) {
+    mUuid = btapp::Uuid::FromString(temp->s_uuid);
+    builder.addServiceUuid(mUuid);
+    mUuid = btapp::Uuid::FromString(service_data_uuid);
+    std::vector<uint8_t> vec(serviceData.begin(), serviceData.end());
+    builder.addServiceData(mUuid,vec);
+  }
+  mPeriodicData = builder.build();
+
+  advertisingSet = advSetMap[advCBInstanceMap[serverId]];
+  //note: contrller may reject large periodic data if currently enabled
+  advertisingSet->setPeriodicAdvertisingData(*mPeriodicData);
+
+  return true;
+}
+
 bool GattsTest::UnregisterServer(string instance)
 {
   GattServer *mServer;
@@ -1343,6 +1377,7 @@ bool GattsTest::DisableGATTSTEST()
     delete(mAdvertisercallback);
   }
   advCBInstanceMap.clear();
+  advSetMap.clear();
   return true;
 }
 
