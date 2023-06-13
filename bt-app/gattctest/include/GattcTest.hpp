@@ -147,6 +147,7 @@ class mRemoteDev {
         int getPaSid(string dev);
         bool containsPaDevice(string dev);
         void printPaDevices();
+        void clearPaList();
         void addPaSyncedDev(int sync_handle, string dev);
         void removePaSyncedDev(int sync_handle);
         int containsPaSyncedDevice(string dev);

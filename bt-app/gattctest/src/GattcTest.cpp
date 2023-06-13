@@ -1546,6 +1546,11 @@ void mRemoteDev:: printPaDevices()
 *********************************\n");
 }
 
+void mRemoteDev ::clearPaList()
+{
+  mDeviceMap.mapPaDev.clear();
+}
+
 void mRemoteDev :: addPaSyncedDev(int sync_handle, string dev)
 {
   ALOGD(LOGTAG "Adding PA Synced device: %s to map", dev.c_str());
@@ -1913,6 +1918,7 @@ bool GattcTest :: scanSettings(int scanType, int value)
 void GattcTest :: startScan()
 {
   ALOGD(LOGTAG "startScan");
+  mDeviceMap.clearPaList();
 
   if (mscanSettings != settingType::NO_SCAN_SETTING) {
     ALOGD(LOGTAG "SCAN_SETTING present mask (%d) \n", settingMask);
