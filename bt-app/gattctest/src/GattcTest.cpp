@@ -639,6 +639,7 @@ GattcTest::~GattcTest()
       delete(gattctest->gattcli);
       gattctest->gattcli = NULL;
     }
+    mDeviceMap.clear();
   }
   libservice = NULL;
 
