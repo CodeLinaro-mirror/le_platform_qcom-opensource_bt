@@ -26,7 +26,12 @@
   * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
   * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   */
+/*
+  * Changes from Qualcomm Innovation Center are provided under the following license:
 
+  * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+  * SPDX-License-Identifier: BSD-3-Clause-Clear
+  */
 #include <iostream>
 #include <string.h>
 #include <hardware/bluetooth.h>
@@ -51,9 +56,13 @@
 #include "audio_a2dp_hw/include/audio_a2dp_hw.h"
 #include <mutex>
 
+#if defined(BT_PA_INTEGRATION)
+#include "utils/include/pa_routing_interface.h"
+#endif // defined(BT_PA_INTEGRATION)
 #define LOGTAG_A2DP "A2DP_SRC "
 #define LOGTAG_AVRCP "AVRCP_TG "
 
+extern bool is_pulse_enabled_;
 using namespace std;
 using std::list;
 using std::string;
@@ -3656,6 +3665,18 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
                 break;
             }
             BtA2dpOpenOutputStream();
+#if defined(BT_PA_INTEGRATION)
+            if (is_pulse_enabled_) {
+               if( PaRountingInterface::CreatePaQahwDevice(PA_A2DP_SOURCE_DEVICE) >= 0 )
+               {
+                   fprintf(stdout, "%s() Created bta2dp-out!!\n", __func__);
+                   //SendStartStreamReq();
+               }
+               else {
+                   fprintf(stdout, "%s() Fail to create bta2dp-out!!\n", __func__);
+               }
+            }
+#endif // defined(BT_PA_INTEGRATION)
             break;
         default:
             fprintf(stdout, "Event not processed in disconnected state %d ", pEvent->event_id);
@@ -3685,6 +3706,18 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
                 break;
             }
             BtA2dpOpenOutputStream();
+#if defined(BT_PA_INTEGRATION)
+            if (is_pulse_enabled_) {
+               if( PaRountingInterface::CreatePaQahwDevice(PA_A2DP_SOURCE_DEVICE) >= 0 )
+               {
+                   fprintf(stdout, "%s() Created bta2dp-out!!\n", __func__);
+                   //SendStartStreamReq();
+               }
+               else {
+                   fprintf(stdout, "%s() Fail to create bta2dp-out!!\n", __func__);
+               }
+            }
+#endif // defined(BT_PA_INTEGRATION)
             break;
         case A2DP_SOURCE_DISCONNECTED_CB:
             fprintf(stdout, "A2DP Source DisConnected \n");
@@ -3699,6 +3732,13 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(STATE_A2DP_SOURCE_DISCONNECTED);
+#if defined(BT_PA_INTEGRATION)
+            if (is_pulse_enabled_) {
+               if( PaRountingInterface::RemovePaQahwDevice(PA_A2DP_SOURCE_DEVICE) < 0 ) {
+                   fprintf(stdout, "%s() Fail to remove bta2dp-out!!\n", __func__);
+               }
+            }
+#endif // defined(BT_PA_INTEGRATION)
             break;
         case A2DP_SOURCE_API_CONNECT_REQ:
             bdaddr_to_string(&mConnectingDevice, str, 18);
@@ -3873,6 +3913,13 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             fprintf(stdout, "A2DP Source DisConnected \n");
             change_state(STATE_A2DP_SOURCE_DISCONNECTED);
+#if defined(BT_PA_INTEGRATION)
+            if (is_pulse_enabled_) {
+              if( PaRountingInterface::RemovePaQahwDevice(PA_A2DP_SOURCE_DEVICE) < 0 ) {
+                  fprintf(stdout, "%s() Fail to remove bta2dp-out!!\n", __func__);
+              }
+            }
+#endif // defined(BT_PA_INTEGRATION)
             break;
         case A2DP_SOURCE_DISCONNECTING_CB:
             fprintf(stdout, "A2DP Source DisConnecting \n");

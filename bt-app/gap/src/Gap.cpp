@@ -15,6 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
 
 #include <list>
 #include <map>
@@ -66,6 +72,8 @@ using std::string;
 Gap *g_gap = NULL;
 
 static bool is_a2dp_split_sink_enabled;
+
+bool is_pulse_enabled_ = false;
 
 #ifdef __cplusplus
 extern "C" {
@@ -721,6 +729,8 @@ void Gap::ProcessEvent(BtEvent* event) {
 
             ALOGV (LOGTAG "Start QC BT Daemon");
             system("qcbtdaemon &");
+            is_pulse_enabled_ =  config_get_bool (config_, CONFIG_DEFAULT_SECTION,
+                                    "BT_PULSE_INTEGRATION", false);
             HandleEnable();
 
             break;

@@ -45,7 +45,8 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
                -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include \
+               @SYSTEMD_CFLAGS@
 
 if USE_BT_OBEX
 AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
@@ -57,6 +58,10 @@ AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/include \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/include/profiles \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/oem
+endif
+
+if USE_PULSEAUDIO
+AM_CPPFLAGS += -DBT_PA_INTEGRATION
 endif
 
 if AUDIO_HAL_SUPPORTED
@@ -95,6 +100,10 @@ cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
               ../opp/src/Opp.cpp
 endif
 
+if USE_PULSEAUDIO
+cpp_sources += ../utils/src/pa_routing_interface.cc
+endif
+
 if USE_GST
 requiredlibs = ../osi/libgstbtapposi.la ../utils/libgstbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
 else
@@ -107,6 +116,10 @@ endif
 
 if AUDIO_HAL_SUPPORTED
 requiredlibs += -lqahw
+endif
+
+if USE_PULSEAUDIO
+requiredlibs += -lsystemd
 endif
 
 if USE_BT_OBEX
@@ -123,7 +136,7 @@ if USE_GST
 else
  btapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
  btapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
- btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
+ btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@ @SYSTEMD_LIBS@
 endif
 
 else
