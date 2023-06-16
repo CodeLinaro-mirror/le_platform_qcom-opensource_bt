@@ -14,6 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 #include "osi/include/properties.h"
 
 #include <list>
@@ -25,11 +32,19 @@
 #include <hardware/hardware.h>
 #include <hardware/bt_hf.h>
 #include "hardware/bt_hf_vendor.h"
+#if defined(BT_PA_INTEGRATION)
+#include <unistd.h>
+#include <systemd/sd-bus.h>
+#endif
 
 #include "osi/include/properties.h"
 
 #include "Audio_Manager.hpp"
 #include "HfpAG.hpp"
+
+#if defined(BT_PA_INTEGRATION)
+#include "utils/include/pa_routing_interface.h"
+#endif // defined(BT_PA_INTEGRATION
 
 #define LOGTAG "HFP_AG "
 
@@ -39,6 +54,7 @@ using std::string;
 
 Hfp_Ag *pHfpAG = NULL;
 extern BT_Audio_Manager *pBTAM;
+extern bool is_pulse_enabled_;
 volatile bool stop_record = true;
 volatile bool stop_playback = true;
 
@@ -495,7 +511,10 @@ void Hfp_Ag::configurescoaudio(bool enable) {
 }
 
 void Hfp_Ag::clear_audio_params(){
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
+#if defined(BT_PA_INTEGRATION)
+    teardown_sco_path();
+    return;
+#elif defined(BT_ALSA_AUDIO_INTEGRATION)
     teardown_sco_path();
 #endif
     stop_record = true;
@@ -749,7 +768,7 @@ void Hfp_Ag::HandleEnableAg(void) {
         init_modem();
 #endif
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
+#if defined(BT_ALSA_AUDIO_INTEGRATION) || defined(BT_PA_INTEGRATION)
         init_audio();
 #endif
         BtEvent *pEvent = new BtEvent;
@@ -780,7 +799,7 @@ void Hfp_Ag::HandleDisableAg(void) {
    release_modem();
 #endif
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
+#if defined(BT_ALSA_AUDIO_INTEGRATION) || defined(BT_PA_INTEGRATION)
    release_audio();
 #endif
 
@@ -975,6 +994,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                 ALOGD(LOGTAG "Failure setting active device %s", str);
                 break;
             }
+
+#if defined(BT_PA_INTEGRATION)
+            connect_pa_audio();
+#endif
 #if defined(BT_MODEM_INTEGRATION)
             processSlcConnected(&pEvent->hfp_ag_event.bd_addr);
 #endif
@@ -1296,18 +1319,20 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG "SCO/eSCO connected with device %s, codec %s", str,
                 ((mWbsState == BTHF_WBS_YES)? "WBS": "NBS"));
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
+#if defined(BT_ALSA_AUDIO_INTEGRATION) || defined(BT_PA_INTEGRATION)
             setup_sco_path();
 #endif
             change_state(HFP_AG_STATE_AUDIO_ON);
 
-            stop_record = false;
-            stop_playback = false;
+            if (!is_pulse_enabled_) {
+              stop_record = false;
+              stop_playback = false;
 
-            configurescoaudio(true);
+              configurescoaudio(true);
 
-            if (pthread_create(&record_tid, NULL, start_playback, NULL) != 0) {
-              fprintf(stdout, " Failed to create  playback hread \n");
+              if (pthread_create(&record_tid, NULL, start_playback, NULL) != 0) {
+                fprintf(stdout, " Failed to create  playback hread \n");
+              }
             }
 
             break;
@@ -1394,7 +1419,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
 
             // disconnect SCO, clean up SCO
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
+#if defined(BT_ALSA_AUDIO_INTEGRATION) || defined(BT_PA_INTEGRATION)
             teardown_sco_path();
 #endif
             if (sBtHfpAgInterface != NULL) {
@@ -1806,6 +1831,7 @@ bool Hfp_Ag::VoipCallInd(bt_bdaddr_t *bd_addr) {
         return false;
     }
     if(sBtHfpAgInterface != NULL) {
+        PaRountingInterface::SetParamPAQahwDevice(PA_A2DP_SOURCE_DEVICE, "A2dpSuspended=true");
         sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
                                               BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
         usleep(20000);
@@ -2620,6 +2646,85 @@ void Hfp_Ag::release_audio() {
 
    strcpy(cmd, "amix \'Voice_Tx Mixer SEC_AUX_PCM_TX_Voice\' 0");
    system(cmd);
+}
+
+#elif defined(BT_PA_INTEGRATION)
+
+static std::string g_encoding = "pcm";
+static uint32_t g_rate = 8000;
+static std::string g_format = "s16le";
+static std::string g_map = "front-left,front-right";
+
+void Hfp_Ag::init_audio() {
+  if (is_pulse_enabled_) {
+     mWbsState = BTHF_WBS_NO;
+     g_rate = 8000;
+     mNrec = BTHF_NREC_STOP;
+
+     ALOGD(LOGTAG, "%s: init for PA", __func__);
+  }
+}
+
+void Hfp_Ag::set_audio_params() {
+  if (is_pulse_enabled_) {
+     if (mWbsState == BTHF_WBS_YES) {
+       g_rate = 16000;
+     }
+     else {
+       g_rate = 8000;
+     }
+     ALOGD(LOGTAG, "%s: set params for PA rate:%d", __func__, g_rate);
+  }
+}
+
+void Hfp_Ag::connect_pa_audio() {
+    if(is_pulse_enabled_) {
+        set_audio_params();
+        PaRountingInterface::CreatePaQahwDevice(PA_SCO_SINK_DEVICE, g_encoding.c_str(), g_rate, g_format.c_str(), g_map.c_str());
+        PaRountingInterface::CreatePaQahwDevice(PA_SCO_SOURCE_DEVICE, g_encoding.c_str(), g_rate, g_format.c_str(), g_map.c_str());
+        ALOGD(LOGTAG, "%s: connect PA", __func__);
+    }
+}
+
+void Hfp_Ag::setup_sco_path() {
+  if (is_pulse_enabled_) {
+     ALOGD(LOGTAG, "%s: open device for PA\n", __func__);
+     // set sample rate before starting sco
+     //set_audio_params();
+     PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SINK_DEVICE, "BT_SCO=on");
+     PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SOURCE_DEVICE, "BT_SCO=on");
+     if (mWbsState == BTHF_WBS_YES)
+     {
+       ALOGD(LOGTAG, "%s: codec-configure - bt_wbs=on", __func__);
+       PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SINK_DEVICE, "bt_wbs=on");
+       PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SOURCE_DEVICE, "bt_wbs=on");
+     }
+     else
+     {
+       ALOGD(LOGTAG, "%s: codec-configure - bt_wbs=off", __func__);
+       PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SINK_DEVICE, "bt_wbs=off");
+       PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SOURCE_DEVICE, "bt_wbs=off");
+     }
+  }
+}
+
+void Hfp_Ag::teardown_sco_path() {
+  if (is_pulse_enabled_) {
+     ALOGD(LOGTAG, "%s: close device for PA\n", __func__);
+     PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SINK_DEVICE, "BT_SCO=off");
+     PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SOURCE_DEVICE, "BT_SCO=off");
+     PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SINK_DEVICE, "bt_wbs=off");
+     PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SOURCE_DEVICE, "bt_wbs=off");
+     PaRountingInterface::SetParamPAQahwDevice(PA_A2DP_SOURCE_DEVICE, "A2dpSuspended=false");
+  }
+}
+
+void Hfp_Ag::release_audio() {
+  if (is_pulse_enabled_) {
+     PaRountingInterface::RemovePaQahwDevice(PA_SCO_SINK_DEVICE);
+     PaRountingInterface::RemovePaQahwDevice(PA_SCO_SOURCE_DEVICE);
+     ALOGD(LOGTAG, "%s: release for PA", __func__);
+  }
 }
 
 #endif

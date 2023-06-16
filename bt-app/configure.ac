@@ -57,6 +57,13 @@ fi
 
 AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
 
+# Checks SYSTEMD module
+PKG_CHECK_MODULES(SYSTEMD, libsystemd, dummy=yes, AC_MSG_ERROR(libsystemd is required))
+SYSTEMD_CFLAGS="$SYSTEMD_CFLAGS"
+SYSTEMD_LIBS="$SYSTEMD_LIBS"
+AC_SUBST(SYSTEMD_CFLAGS)
+AC_SUBST(SYSTEMD_LIBS)
+
 # Library configs
 AC_ARG_WITH([common_includes],
       AC_HELP_STRING([--with-common-includes=@<:@dir@:>@],
@@ -89,6 +96,12 @@ AC_ARG_WITH([gengatt],
         [enable gengatt, building BT-APP which uses GEN GATT]))
 
 AM_CONDITIONAL(USE_GEN_GATT, test "x${with_gengatt}" = "xyes")
+
+AC_ARG_WITH([pulseaudio],
+     AC_HELP_STRING([--with-pulseaudio],
+        [enable pulseaudio, building BT-APP which uses PulseAudio]))
+
+AM_CONDITIONAL(USE_PULSEAUDIO, test "x${with_pulseaudio}" = "xyes")
 
 AC_ARG_ENABLE(target,
   [AS_HELP_STRING([--enable-target=TARGET], [Specify the target product to build])],

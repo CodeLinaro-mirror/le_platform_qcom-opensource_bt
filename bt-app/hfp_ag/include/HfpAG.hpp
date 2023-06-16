@@ -26,6 +26,12 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
 
 #ifndef HFP_AG_APP_H
 #define HFP_AG_APP_H
@@ -236,12 +242,15 @@ class Hfp_Ag {
     void processSlcConnected(bt_bdaddr_t *bd_addr);
 #endif
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
+#if defined(BT_ALSA_AUDIO_INTEGRATION) || defined(BT_PA_INTEGRATION)
     void init_audio();
     void set_audio_params();
     void setup_sco_path();
     void teardown_sco_path();
     void release_audio();
+#endif
+#if defined(BT_PA_INTEGRATION)
+    void connect_pa_audio();
 #endif
     void configurescoaudio(bool enable);
     void clear_audio_params();
