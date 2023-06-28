@@ -1308,8 +1308,13 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                bt_status_t status = sBtHfpAgInterface->set_sco_allowed(true);
                if (status != BT_STATUS_SUCCESS)
                  ALOGD("Failed HF set sco allowed, status: %d", status);
-               else
+               else {
+                if (is_pulse_enabled_) {
+                   PaRountingInterface::SetParamPAQahwDevice(PA_A2DP_SOURCE_DEVICE,
+                                                               "A2dpSuspended=true");
+                }
                 sBtHfpAgInterface->connect_audio(&pEvent->hfp_ag_event.bd_addr);
+               }
             }
             break;
         case HFP_AG_AUDIO_STATE_CONNECTED_CB:
@@ -1831,7 +1836,10 @@ bool Hfp_Ag::VoipCallInd(bt_bdaddr_t *bd_addr) {
         return false;
     }
     if(sBtHfpAgInterface != NULL) {
-        PaRountingInterface::SetParamPAQahwDevice(PA_A2DP_SOURCE_DEVICE, "A2dpSuspended=true");
+        if (is_pulse_enabled_) {
+           PaRountingInterface::SetParamPAQahwDevice(PA_A2DP_SOURCE_DEVICE,
+                                                       "A2dpSuspended=true");
+        }
         sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
                                               BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
         usleep(20000);
