@@ -1692,11 +1692,12 @@ void GattcTest :: stopScan()
 {
   ALOGD(LOGTAG "StopScan");
   fprintf(stdout, "stopping scan results\n");
-  if (gattctest->setting) delete gattctest->setting;
-  gattctest->setting = NULL;
   settingMask = 0;
   gattctest->filters.clear();
   mScanner->stopScan(mscan_callback);
+  /* setting is used in stopScan */
+  if (gattctest->setting) delete gattctest->setting;
+  gattctest->setting = NULL;
 }
 
 void GattcTest :: testBatchscan(int value)
