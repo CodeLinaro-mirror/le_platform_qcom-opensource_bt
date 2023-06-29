@@ -107,6 +107,9 @@ bool GattDescriptor::setValue(uint8_t *value, int length)
 
   mValueLength = length;
   mValue = new uint8_t[mValueLength];
+  if (!mValue)
+    return false;
+
   std::memcpy(mValue, value, mValueLength);
 
   return true;

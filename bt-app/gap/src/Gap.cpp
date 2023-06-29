@@ -116,6 +116,9 @@ static void AdapterPropertiesCb(bt_status_t status, int num_properties,
     ALOGV (LOGTAG " adapter_properties_callback:");
 
     props = new bt_property_t[num_properties];
+    if (!props)
+        return;
+
     memcpy(props, properties, num_properties * sizeof(bt_property_t));
     for (index = 0; index < num_properties; index++) {
         props[index].val = new char[properties[index].len];
@@ -136,6 +139,9 @@ static void RemoteDevicePropertiesCb(bt_status_t status, bt_bdaddr_t *bd_addr,
 
     ALOGV (LOGTAG " RemoteDevicePropertiesCb:");
     props = new bt_property_t[num_properties];
+    if (!props)
+        return;
+
     memcpy(props, properties, num_properties * sizeof(bt_property_t));
     for (index = 0; index < num_properties; index++) {
         props[index].val = new char[properties[index].len];
@@ -160,6 +166,9 @@ static void DeviceFoundCb(int num_properties, bt_property_t *properties) {
 
     ALOGV (LOGTAG " DeviceFoundCb:");
     props = new bt_property_t[num_properties];
+    if (!props)
+        return;
+
     memcpy(props, properties, num_properties * sizeof(bt_property_t));
     for (index = 0; index < num_properties; index++) {
         props[index].val = new char[properties[index].len];

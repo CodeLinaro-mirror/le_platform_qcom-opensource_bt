@@ -287,6 +287,8 @@ static void btgattc_get_gatt_db_cb(int conn_id, const btgatt_db_element_t* db,
   CHECK_PARAM_VOID(event);
 
   btgatt_db_element_t *tmp_db = new btgatt_db_element_t[count];
+  if (!tmp_db)
+    return;
   std::memcpy(tmp_db, db, sizeof(btgatt_db_element_t) * count);
 
   event->event_id = BTGATTC_GET_GATT_DB_EVENT;

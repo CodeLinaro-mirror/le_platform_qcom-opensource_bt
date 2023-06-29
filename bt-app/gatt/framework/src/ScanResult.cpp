@@ -105,5 +105,7 @@ int ScanResult::getPeriodicAdvertisingInterval()
   return mPeriodicAdvertisingInterval;
 }
 
-string ToString(ScanResult *result) {}
+string ToString(ScanResult *result) {
+  return std::string();
+}
 }//namespace gatt
