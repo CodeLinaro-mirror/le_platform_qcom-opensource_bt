@@ -85,8 +85,6 @@ void PeriodicScanManager::onSyncStarted(int regId, int syncHandle, int sid, int 
   mSyncs.erase(regId);
   if (status == 0) {
     mSyncs.insert({{syncHandle, cb}});
-  } else {
-    mSyncs.erase(syncHandle);
   }
   cb->onSyncEstablished(syncHandle, address, sid, 0, 0, status);
 
@@ -175,6 +173,7 @@ void PeriodicScanManager::stopSync(IPeriodicAdvertisingCallback *callback)
     return;
   }
 
+  mSyncs.erase(syncHandle);
   mNative->stopSyncNative(syncHandle);
 }
 

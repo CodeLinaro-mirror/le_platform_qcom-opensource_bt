@@ -43,6 +43,12 @@ PeriodicAdvertisingManager::~PeriodicAdvertisingManager()
     delete pAdvManager;
     pAdvManager = NULL;
   }
+  auto tCb = mCallbackMap.begin();
+  for (; tCb != mCallbackMap.end(); ++tCb) {
+    if (tCb->second != NULL) {
+      delete((PeriodicAdvertisingCallbackWrapper *)tCb->second);
+    }
+  }
   mCallbackMap.clear();
 }
 
@@ -84,10 +90,11 @@ void PeriodicAdvertisingManager::registerSync(ScanResult *scanResult, int skip, 
       return;
   }
 
-  mCallbackMap.insert({{callback, this}});
+  IPeriodicAdvertisingCallback *wrapper = new PeriodicAdvertisingCallbackWrapper(callback, this);
+  mCallbackMap.insert({{callback, wrapper}});
 
   try {
-      gatt->registerSync(scanResult, skip, timeout, this);
+      gatt->registerSync(scanResult, skip, timeout, wrapper);
   } catch (std::exception &e) {
       ALOGE(LOGTAG "Failed to register sync - %s", e.what());
       return;
@@ -117,6 +124,9 @@ void PeriodicAdvertisingManager::unregisterSync(PeriodicAdvertisingCallback *cal
 
   try {
       gatt->unregisterSync(it->second);
+      mCallbackMap.erase(callback);
+      if (it->second)
+          delete((PeriodicAdvertisingCallbackWrapper *)it->second);
   } catch (std::exception &e) {
       ALOGE(LOGTAG "Failed to cancel sync creation - %s", e.what());
       return;
@@ -151,69 +161,44 @@ void PeriodicAdvertisingManager::filterPaAdvReport(uint8_t enable, PeriodicAdver
   }
 }
 
- void PeriodicAdvertisingManager::onSyncEstablished(int syncHandle, string device,
+ PeriodicAdvertisingManager::PeriodicAdvertisingCallbackWrapper::PeriodicAdvertisingCallbackWrapper(PeriodicAdvertisingCallback *callback, PeriodicAdvertisingManager *sPaManager)
+ {
+   mCb = callback;
+   mOuterPaManager = sPaManager;
+ }
+
+ PeriodicAdvertisingManager::PeriodicAdvertisingCallbackWrapper::~PeriodicAdvertisingCallbackWrapper()
+ {
+   mCb = NULL;
+   mOuterPaManager = NULL;
+ }
+
+ void PeriodicAdvertisingManager::PeriodicAdvertisingCallbackWrapper::onSyncEstablished(int syncHandle, string device,
         int advertisingSid, int skip, int timeout, int status)
 {
-  std::unordered_map<PeriodicAdvertisingCallback*,
-            IPeriodicAdvertisingCallback*>::iterator it = mCallbackMap.begin();
-  for (; it != mCallbackMap.end(); ++it) {
-      if (it->second == this)
-        break;
-  }
-
-  if (it == mCallbackMap.end()) {
-    ALOGE(LOGTAG "Callback was not properly registered");
-    return;
-  }
-
-  PeriodicAdvertisingCallback *cb = it->first;
-  cb->onSyncEstablished(syncHandle, device, advertisingSid, skip,
+  mCb->onSyncEstablished(syncHandle, device, advertisingSid, skip,
                           timeout, status);
 
   if (status != PeriodicAdvertisingCallback::SYNC_SUCCESS) {
       // App can still unregister the sync until notified it failed. Remove
       // callback
       // after app was notifed.
-      mCallbackMap.erase(it);
+      mOuterPaManager->mCallbackMap.erase(mCb);
+      delete(this);
   }
 }
 
-void PeriodicAdvertisingManager::onPeriodicAdvertisingReport(PeriodicAdvertisingReport *report)
+void PeriodicAdvertisingManager::PeriodicAdvertisingCallbackWrapper::onPeriodicAdvertisingReport(PeriodicAdvertisingReport *report)
 {
-  std::unordered_map<PeriodicAdvertisingCallback*,
-            IPeriodicAdvertisingCallback*>::iterator it = mCallbackMap.begin();
-  for (; it != mCallbackMap.end(); ++it) {
-      if (it->second == this)
-        break;
-  }
-
-  if (it == mCallbackMap.end()) {
-    ALOGE(LOGTAG "Callback was not properly registered");
-    return;
-  }
-
-  PeriodicAdvertisingCallback *cb = it->first;
-  cb->onPeriodicAdvertisingReport(report);
+  mCb->onPeriodicAdvertisingReport(report);
 }
 
-void PeriodicAdvertisingManager::onSyncLost(int syncHandle)
+void PeriodicAdvertisingManager::PeriodicAdvertisingCallbackWrapper::onSyncLost(int syncHandle)
 {
-  std::unordered_map<PeriodicAdvertisingCallback*,
-            IPeriodicAdvertisingCallback*>::iterator it = mCallbackMap.begin();
-  for (; it != mCallbackMap.end(); ++it) {
-      if (it->second == this)
-        break;
-  }
-
-  if (it == mCallbackMap.end()) {
-    ALOGE(LOGTAG "Callback was not properly registered");
-    return;
-  }
-
-  PeriodicAdvertisingCallback *cb = it->first;
-  cb->onSyncLost(syncHandle);
+  mCb->onSyncLost(syncHandle);
   // App can still unregister the sync until notified it's lost.
   // Remove callback after app was notifed.
-  mCallbackMap.erase(it);
+  mOuterPaManager->mCallbackMap.erase(mCb);
+  delete(this);
 }
 }

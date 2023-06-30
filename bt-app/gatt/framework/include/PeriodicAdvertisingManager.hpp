@@ -41,7 +41,7 @@ namespace gatt {
  *
  * @hide
  */
-class PeriodicAdvertisingManager final : public IPeriodicAdvertisingCallback {
+class PeriodicAdvertisingManager {
   private:
 
     static const int SKIP_MIN = 0;
@@ -101,12 +101,22 @@ public:
      */
     void filterPaAdvReport(uint8_t enable, PeriodicAdvertisingCallback *callback);
 
-
-    void onSyncEstablished(int syncHandle, string device,
-            int advertisingSid, int skip, int timeout, int status);
-    void onPeriodicAdvertisingReport(PeriodicAdvertisingReport *report);
-    void onSyncLost(int syncHandle);
     ~PeriodicAdvertisingManager();
+
+    class PeriodicAdvertisingCallbackWrapper : public IPeriodicAdvertisingCallback {
+      private:
+        PeriodicAdvertisingCallback *mCb = NULL;
+        PeriodicAdvertisingManager *mOuterPaManager = NULL;
+
+      public:
+        PeriodicAdvertisingCallbackWrapper(PeriodicAdvertisingCallback *callback, PeriodicAdvertisingManager *sPaManager);
+        ~PeriodicAdvertisingCallbackWrapper();
+
+        void onSyncEstablished(int syncHandle, string device,
+                int advertisingSid, int skip, int timeout, int status);
+        void onPeriodicAdvertisingReport(PeriodicAdvertisingReport *report);
+        void onSyncLost(int syncHandle);
+    };
 };
 }
 #endif

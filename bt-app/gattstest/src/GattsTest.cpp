@@ -1120,11 +1120,16 @@ bool GattsTest::UnregisterServer(string instance)
       AdvertisingSetCallback *mAdvSetCB;
       mAdvSetCB = advCBInstanceMap[instanceId];
       madvertiser->stopAdvertising(mAdvSetCB);
+      if (mAdvSetCB != NULL)
+        delete(mAdvSetCB);
     }
     unordered_map <gattstestServerCallback*,GattServer*> ::iterator itr;
     for(itr = servCBInstanceMap.begin(); itr!= servCBInstanceMap.end(); ++itr) {
       if(itr->second == mServer ){
          servCBInstanceMap.erase(itr->first);
+         if (itr->first != NULL)
+           delete(itr->first);
+         delete(mServer);
          break;
        }
     }
@@ -1366,7 +1371,8 @@ bool GattsTest::DisableGATTSTEST()
   unordered_map  <gattstestServerCallback*,GattServer*> ::iterator it;
   for(it = servCBInstanceMap.begin(); it != servCBInstanceMap.end(); ++it) {
     mServercallback = it->first;
-    delete(mServercallback);
+    if (mServercallback != NULL)
+      delete(mServercallback);
     mServer = it->second;
     mServer->close();
     delete(mServer);
@@ -1374,7 +1380,8 @@ bool GattsTest::DisableGATTSTEST()
   servCBInstanceMap.clear();
   for(at = advCBInstanceMap.begin(); at != advCBInstanceMap.end(); ++at) {
     mAdvertisercallback = at->second;
-    delete(mAdvertisercallback);
+    if (mAdvertisercallback != NULL)
+      delete(mAdvertisercallback);
   }
   advCBInstanceMap.clear();
   advSetMap.clear();
