@@ -92,6 +92,7 @@ if USE_BLE_SOCKET_MANAGER
 cpp_sources += ../ble_sock_manager/src/BleSocketManager.cpp
 cpp_sources += ../ble_sock_manager/src/BleWlanDppBootstrap.cpp
 cpp_sources += ../ble_sock_manager/src/BleWifiControlService.cpp
+cpp_sources += ../ble_sock_manager/src/BleGapService.cpp
 AM_CPPFLAGS += -DUSE_BLE_SOCKET_MANAGER
 endif
 endif
@@ -161,4 +162,24 @@ bin_PROGRAMS = btapp
 btapp_CC = @CC@
 btapp_SOURCES = $(cpp_sources)
 endif
+
+if USE_GEN_SOCK_TEST
+
+if USE_GLIB
+bttestsocket_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
+bttestsocket_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
+bttestwifisocket_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
+bttestwifisocket_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
+endif
+
+bin_PROGRAMS += bttestsocket bttestwifisocket
+bttestsocket_CC = @CC@
+bttestsocket_SOURCES = ../sockettest/src/MainTestSocket.cpp
+bttestsocket_LDFLAGS = -lpthread @GLIB_LIBS@
+
+bttestwifisocket_CC = @CC@
+bttestwifisocket_SOURCES = ../sockettest/src/MainTestWifiSocket.cpp
+bttestwifisocket_LDFLAGS = -lpthread @GLIB_LIBS@
+endif
+
 pkgconfigdir = $(libdir)/pkgconfig

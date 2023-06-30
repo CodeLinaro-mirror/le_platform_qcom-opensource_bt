@@ -75,6 +75,12 @@ AC_ARG_WITH([gengatt],
 
 AM_CONDITIONAL(USE_GEN_GATT, test "x${with_gengatt}" = "xyes")
 
+AC_ARG_WITH([gensocktest],
+     AC_HELP_STRING([--with-gensocktest],
+        [enable gensocktest, building BT-APP which uses GEN SOCK TEST]))
+
+AM_CONDITIONAL(USE_GEN_SOCK_TEST, test "x${with_gensocktest}" = "xyes")
+
 AC_ARG_ENABLE(target,
   [AS_HELP_STRING([--enable-target=TARGET], [Specify the target product to build])],
   [TARGET=$enableval],

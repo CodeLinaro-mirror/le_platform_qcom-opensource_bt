@@ -14,6 +14,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include "ScanManager.hpp"
@@ -517,7 +521,9 @@ bool ScanManager::ScanNative::startRegularScan(ScanClient *client)
     return false;
   }
 
+  ALOGD(LOGTAG "%s check for filtering supported", __func__);
   if (sManager->isFilteringSupported()) {
+    ALOGD(LOGTAG "%s filtering is supported", __func__);
     configureScanFilters(client);
   }
   // Start scan native only for the first client.
@@ -822,6 +828,7 @@ std::vector<apcf_command_t> ScanManager::ScanNative::parseScanFilterToApcfComman
 
   std::vector<apcf_command_t> native_filters;
   int numFilters = entries.size();
+  ALOGD(LOGTAG "%s", __func__);
 
   for (int i = 0; i < numFilters; ++i) {
     apcf_command_t curr;
@@ -870,6 +877,7 @@ void ScanManager::ScanNative::configureScanFilters(ScanClient *client)
   int scannerId = client->scannerId;
   int deliveryMode = getDeliveryMode(client);
   int trackEntries = 0;
+  ALOGD(LOGTAG "%s", __func__);
 
   // Do not add any filters set by opportunistic scan clients
   if (isOpportunisticScanClient(client)) {
@@ -885,6 +893,7 @@ void ScanManager::ScanNative::configureScanFilters(ScanClient *client)
   sManager->waitForCallback();
 
   if (shouldUseAllPassFilter(client)) {
+    ALOGD(LOGTAG "%s all pass filter", __func__);
     int filterIndex =
             (deliveryMode == DELIVERY_MODE_BATCH) ? ALL_PASS_FILTER_INDEX_BATCH_SCAN
                     : ALL_PASS_FILTER_INDEX_REGULAR_SCAN;
@@ -895,6 +904,7 @@ void ScanManager::ScanNative::configureScanFilters(ScanClient *client)
     sManager->waitForCallback();
   } else {
     std::deque<int> clientFilterIndices;
+    ALOGD(LOGTAG "%s not all pass filter", __func__);
     for (ScanFilter *filter : client->filters) {
       ScanFilterQueue *queue = new ScanFilterQueue();
       queue->addScanFilter(filter);
@@ -907,6 +917,7 @@ void ScanManager::ScanNative::configureScanFilters(ScanClient *client)
         std::vector<apcf_command_t> filters = parseScanFilterToApcfCommand(entries);
         entries.clear();
         sManager->resetCountDownLatch();
+        ALOGD(LOGTAG "%s gattClientScanFilterAddNative", __func__);
         sManager->mNative->gattClientScanFilterAddNative(scannerId, filterIndex, filters);
         sManager->waitForCallback();
       }
@@ -931,6 +942,7 @@ void ScanManager::ScanNative::configureScanFilters(ScanClient *client)
         }
       }
 
+      ALOGD(LOGTAG "%s configureFilterParam", __func__);
       configureFilterParamter(scannerId, client, featureSelection, filterIndex,
               trackEntries);
       sManager->waitForCallback();
@@ -1081,6 +1093,7 @@ void ScanManager::ScanNative::configureFilterParamter(int scannerId, ScanClient 
   int onLostTimeout = getOnFoundOnLostTimeoutMillis(settings, false);
   int onFoundCount = getOnFoundOnLostSightings(settings);
   onLostTimeout = 10000;
+  ALOGD(LOGTAG "%s", __func__);
   if (DBG) {
     ALOGD(LOGTAG " configureFilterParamter onFoundTimeout %d onLostTimeout %d \
                       onFoundCount %d numOfTrackingEntries %d deliveryMode %d ",
