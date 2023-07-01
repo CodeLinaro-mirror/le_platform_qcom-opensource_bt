@@ -3968,6 +3968,12 @@ bt_bdaddr_t BluetoothApp:: AddFoundedDevice(DeviceProperties *deviceFound) {
     it = inq_db_find_bdaddr(deviceAddress);
     if (it != NULL) {
         ALOGI(LOGTAG " Device exists %s", deviceFound->address.ToString().c_str());
+        // update device name if exist
+        if (strlen(deviceFound->name) && strcmp(it->name, deviceFound->name)) {
+            strlcpy(it->name, deviceFound->name, strlen(deviceFound->name) + 1);
+            ALOGI(LOGTAG "Device name updated to %s", it->name);
+            fprintf(stdout, "*************** Device name updated ****************\n");
+        }
         return (deviceFound->address);
     } else {
         // add new device in db
