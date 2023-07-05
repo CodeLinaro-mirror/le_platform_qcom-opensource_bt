@@ -582,6 +582,8 @@ class mperiodicAdvcallback : public PeriodicAdvertisingCallback
       int TxPower = report->getTxPower();
       int Rssi = report->getRssi();
       int DataStatus = report->getDataStatus();
+      ALOGD(LOGTAG "%s: syncHandle: 0x%x Rssi: %d, DataStatus: %d", __func__, SyncHandle, Rssi, DataStatus);
+      fprintf(stdout, "%s: syncHandle: 0x%x Rssi: %d, DataStatus: %d\n", __func__, SyncHandle, Rssi, DataStatus);
     }
 
     void onSyncLost(int syncHandle)
@@ -637,8 +639,10 @@ GattcTest::~GattcTest()
       delete(mscan_callback);
     }
     for(auto itr = paCBInstanceMap.begin(); itr != paCBInstanceMap.end(); ++itr) {
-      if (itr->second != NULL)
+      if (itr->second != NULL) {
+        mPeriodicAM->unregisterSync(itr->second);
         delete((mperiodicAdvcallback*)itr->second);
+      }
     }
     paCBInstanceMap.clear();
     sTempSyncId = -1;

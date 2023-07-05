@@ -908,7 +908,7 @@ void GattLibService::sendBatchScanResults(ScannerMap::App *app, ScanClient *clie
     mScannerMap->remove(client->scannerId);
     if (!mScanManager) return;
     mScanManager->stopScan(client);
-    }
+  }
 }
 
 void GattLibService::deliverBatchScan(ScanClient *client,
