@@ -14,6 +14,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #ifndef GATTLEADVERTISER_HPP_
@@ -45,8 +49,32 @@ namespace gatt{
 * represented by AdvertiseData.
 * Use getGattLeAdvertiser() to get an instance of GattLeAdvertiser.
 */
-class GattLeAdvertiser : public IAdvertisingSetCallback {
+class GattLeAdvertiser {
   private:
+    /**
+     * Bluetooth GATT interface callbacks
+     */
+    class BleAdvertiseCallbackWrapper : public IAdvertisingSetCallback {
+      private:
+        AdvertisingSetCallback *mCb = NULL;
+        GattLeAdvertiser *mOuterAdvertiser = NULL;
+
+      public:
+        BleAdvertiseCallbackWrapper(AdvertisingSetCallback *callback, GattLeAdvertiser *sAdvertiser);
+        ~BleAdvertiseCallbackWrapper();
+
+        void onAdvertisingSetStarted(int advertiserId, int txPower, int status);
+        void onOwnAddressRead(int advertiserId, int addressType, string address);
+        void onAdvertisingSetStopped(int advertiserId);
+        void onAdvertisingEnabled(int advertiserId, bool enabled, int status);
+        void onAdvertisingDataSet(int advertiserId, int status);
+        void onScanResponseDataSet(int advertiserId, int status);
+        void onAdvertisingParametersUpdated(int advertiserId, int txPower, int status);
+        void onPeriodicAdvertisingParametersUpdated(int advertiserId, int status);
+        void onPeriodicAdvertisingDataSet(int advertiserId, int status);
+        void onPeriodicAdvertisingEnabled(int advertiserId, bool enable, int status);
+    };
+
     static const int MAX_ADVERTISING_DATA_BYTES = 1650;
     static const int MAX_LEGACY_ADVERTISING_DATA_BYTES = 31;
     // Each fields need one byte for field length and another byte for field type.
@@ -61,7 +89,6 @@ class GattLeAdvertiser : public IAdvertisingSetCallback {
     int totalBytes(AdvertiseData *data, bool isFlagsIncluded);
     int byteLength(std::vector<uint8_t> array);
 
-    AdvertisingSetCallback *mCb = NULL;
     GattDevice *mGattDevice = NULL;
     GattLibService *mGattLibService = NULL;
 
@@ -187,17 +214,8 @@ class GattLeAdvertiser : public IAdvertisingSetCallback {
     void postStartSetFailure(AdvertisingSetCallback *callback,const int error);
     void postStartFailure(AdvertisingSetCallback *callback, const int error);
     void postStartSuccess(AdvertisingSetCallback *callback, AdvertiseSettings *settings);
-    void onAdvertisingSetStarted(int advertiserId, int txPower, int status);
-    void onOwnAddressRead(int advertiserId, int addressType, string address);
-    void onAdvertisingSetStopped(int advertiserId);
-    void onAdvertisingEnabled(int advertiserId, bool enabled, int status);
-    void onAdvertisingDataSet(int advertiserId, int status);
-    void onScanResponseDataSet(int advertiserId, int status);
-    void onAdvertisingParametersUpdated(int advertiserId, int txPower, int status);
-    void onPeriodicAdvertisingParametersUpdated(int advertiserId, int status);
-    void onPeriodicAdvertisingDataSet(int advertiserId, int status);
-    void onPeriodicAdvertisingEnabled(int advertiserId, bool enable, int status);
 
 };
 }
 #endif
+

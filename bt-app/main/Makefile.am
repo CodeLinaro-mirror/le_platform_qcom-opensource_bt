@@ -46,7 +46,7 @@ AM_CPPFLAGS += @BLUETOOTHEXT_CFLAGS@
 
 if RB5_AUDIO_HAL
 else
-AM_CPPFLAGS += -I${WORKSPACE}/hardware/libhardware/include
+#AM_CPPFLAGS += -I${WORKSPACE}/hardware/libhardware/include
 endif
 
 if USE_BT_OBEX

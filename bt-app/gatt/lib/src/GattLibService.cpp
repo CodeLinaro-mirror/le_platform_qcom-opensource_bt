@@ -14,6 +14,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include "GattNativeInterfaceV2.hpp"
@@ -2217,8 +2221,8 @@ void GattLibService::startAdvertisingSet(AdvertisingSetParameters *parameters,
   }
 
   if (!mAdvertiserManager) return;
-  mAdvertiserManager->startAdvertisingSet(*parameters, *advertiseData, *scanResponse,
-                  *periodicParameters, *periodicData, duration, maxExtAdvEvents, *callback);
+  mAdvertiserManager->startAdvertisingSet(parameters, advertiseData, scanResponse,
+                  periodicParameters, periodicData, duration, maxExtAdvEvents, callback);
 }
 
 void GattLibService::stopAdvertisingSet(IAdvertisingSetCallback *callback)
@@ -2228,7 +2232,7 @@ void GattLibService::stopAdvertisingSet(IAdvertisingSetCallback *callback)
   }
 
   if (!mAdvertiserManager) return;
-  mAdvertiserManager->stopAdvertisingSet(*callback);
+  mAdvertiserManager->stopAdvertisingSet(callback);
 }
 
 void GattLibService::getOwnAddress(int advertiserId)
@@ -2247,33 +2251,33 @@ void GattLibService::enableAdvertisingSet(int advertiserId, bool enable, int dur
 void GattLibService::setAdvertisingData(int advertiserId, AdvertiseData *data)
 {
   if (!mAdvertiserManager) return;
-  mAdvertiserManager->setAdvertisingData(advertiserId, *data);
+  mAdvertiserManager->setAdvertisingData(advertiserId, data);
 }
 
 void GattLibService::setScanResponseData(int advertiserId, AdvertiseData *data)
 {
   if (!mAdvertiserManager) return;
-  mAdvertiserManager->setScanResponseData(advertiserId, *data);
+  mAdvertiserManager->setScanResponseData(advertiserId, data);
 }
 
 void GattLibService::setAdvertisingParameters(int advertiserId,
                                                    AdvertisingSetParameters *parameters)
 {
   if (!mAdvertiserManager) return;
-  mAdvertiserManager->setAdvertisingParameters(advertiserId, *parameters);
+  mAdvertiserManager->setAdvertisingParameters(advertiserId, parameters);
 }
 
 void GattLibService::setPeriodicAdvertisingParameters(int advertiserId,
                                                      PeriodicAdvertiseParameters *parameters)
 {
   if (!mAdvertiserManager) return;
-  mAdvertiserManager->setPeriodicAdvertisingParameters(advertiserId, *parameters);
+  mAdvertiserManager->setPeriodicAdvertisingParameters(advertiserId, parameters);
 }
 
 void GattLibService::setPeriodicAdvertisingData(int advertiserId, AdvertiseData *data)
 {
   if (!mAdvertiserManager) return;
-  mAdvertiserManager->setPeriodicAdvertisingData(advertiserId, *data);
+  mAdvertiserManager->setPeriodicAdvertisingData(advertiserId, data);
 }
 
 void GattLibService::setPeriodicAdvertisingEnable(int advertiserId, bool enable)

@@ -25,6 +25,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include <algorithm>
@@ -378,10 +382,11 @@ void gattstestServerCallback::onPhyRead(string deviceAddress,int txPhy,int rxPhy
 
 void gattstestServerCallback::onConnectionUpdated(string deviceAddress,int interval,int latency,int timeout,int status)
 {
+  fprintf(stdout, "%s deviceAddress: %s interval (%d), latency (%d), timeout (%d), status (%d)\n",
+            __FUNCTION__, deviceAddress.c_str(), interval, latency, timeout, status);
   ALOGD(LOGTAG"%s deviceAddress: %s,interval: %d,latency %d,timeout %d, status:%d", __FUNCTION__,
                                         deviceAddress.c_str(), interval, latency, timeout, status);
 }
-
 
 class gattstestAdvertiserCallback  :public AdvertisingSetCallback
 {
@@ -516,10 +521,11 @@ void GattsTest::ReadServerConfigurationFile()
   }
 
   while(!infile.eof()) {
-    getline(infile,ch,'\r');
-    if(std::regex_search(ch,std::regex("\\bServer[1-9]|Server[1-9][0-9]\\b"))) {
+    getline(infile,ch,'\n');
+    if(regex_search(ch, regex("\\bServer[1-9]|Server[1-9][0-9]\\b"))) {
       while(line_num < desired_line) {
-        getline(infile,ch,'\r');
+        //parse all lines in Server[1-9], including Manufacture
+        getline(infile,ch,'\n');
         status = ParseServiceDetails(ch,line_num);
         if(!status) {
           fprintf(stdout,"Service Records are not consistent \n");
@@ -752,8 +758,8 @@ bool GattsTest::ReadAdvertiserConfigFile()
       }
       AdvSet_list.push_back(set_temp);
     }else {
-    fprintf(stdout,"There are no Advertising Set records in the file \n");
-    break;
+      fprintf(stdout,"There are no Advertising Set records in the file \n");
+      break;
     }
     line_num = 0;
   }
@@ -852,6 +858,7 @@ bool GattsTest::StartAdvertisement(string        instanceID)
     }
   } catch(const std::exception &ex) {
     ALOGD(LOGTAG"%s start Advertising exception  %s", __FUNCTION__, ex.what());
+    fprintf(stdout,"%s \n", ex.what());
     return false;
   }
   return true;
@@ -947,8 +954,18 @@ bool GattsTest::BuildAdvertisingData(int instance) {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   AdvertiseData::Builder builder = AdvertiseData::Builder().setIncludeDeviceName(true)
                                   .setIncludeTxPowerLevel(set->includeTxPowerflag);
+/*
+  if (manufacturerId_list.size() < serverId) {
+    ALOGE(LOGTAG"%s Server in config file is less than %d", __FUNCTION__, serverId);
+    fprintf(stdout,"Server in config file is less than %d\n", serverId);
+    return false;
+  }
+  mManufacturerID = manufacturerId_list[serverId-1];
+  mManufacturerData = manufacturerData_list[serverId-1];
+*/
   mManufacturerID = manufacturerId_list[instance-1];
   mManufacturerData = manufacturerData_list[instance-1];
+
   int legacyflag =  set->legacyflag;
   //If legacy flag is not set then add manufacturer and Service data
   if(!legacyflag) {
