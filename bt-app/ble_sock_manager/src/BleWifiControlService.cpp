@@ -576,6 +576,10 @@ void BleWifiControlService :: CharacteristicReadRsp(WCSCharacteristicReadRspEven
     return;
   }
 
+  if((evt->len)> WCS_CHAR_VALUE_MAX_LEN) {
+    ALOGE(LOGTAG "Event length exceeds maximum allowed length: %d", (evt->len));
+    return;
+  }
   uint8_t *value = new uint8_t[evt->len];
   if(value){
     int status = (evt->status == BLE_IPC_STATUS_SUCCESS) ? (GattClient::GATT_SUCCESS)
@@ -640,6 +644,10 @@ void BleWifiControlService :: CharacteristicWriteRsp(WCSCharacteristicWriteRspEv
     return;
   }
 
+  if((evt->len)> WCS_CHAR_VALUE_MAX_LEN) {
+    ALOGE(LOGTAG "Event length exceeds maximum allowed length: %d", (evt->len));
+    return;
+  }
   if (evt->rsp_needed) {
     uint8_t *value = new uint8_t[evt->len];
     if(value){
