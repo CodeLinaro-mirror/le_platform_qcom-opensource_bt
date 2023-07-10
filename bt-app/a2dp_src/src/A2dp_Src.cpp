@@ -3777,7 +3777,7 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             fprintf(stdout, "A2DP Source Audio state changes to: %d  \n",pEvent->event_id);
             break;
         case A2DP_SOURCE_AUDIO_STOPPED:
-            fprintf(stdout, "A2DP Source Audio state changes to: %d ", pEvent->event_id);
+            fprintf(stdout, "A2DP Source Audio state changes to: %d  \n", pEvent->event_id);
             break;
         case A2DP_SOURCE_CODEC_CONFIG_CB:
             memcpy(&mDevice, &pEvent->a2dpSourceEvent.bd_addr, sizeof(bt_bdaddr_t));
