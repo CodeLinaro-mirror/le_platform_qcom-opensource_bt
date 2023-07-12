@@ -108,6 +108,7 @@ class GattsTest {
     void StopAdvertisement(string);
     bool UnregisterServer(string);
     bool AddService(string,string);
+    bool RemoveService(string,string);
     void AddCharacteristics(Uuid,int,int,string);
     void AddDescriptors(Uuid,int,string);
     bool SetPreferredPhy(string,string,string,string,int);
