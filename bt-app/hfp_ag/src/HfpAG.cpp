@@ -1880,6 +1880,10 @@ bool Hfp_Ag::VoipCallIncomingInd(bt_bdaddr_t *bd_addr,char* number, int call_act
         return false;
     }
     if(sBtHfpAgInterface != NULL) {
+       if (is_pulse_enabled_) {
+          PaRountingInterface::SetParamPAQahwDevice(PA_A2DP_SOURCE_DEVICE,
+                                                       "A2dpSuspended=true");
+        }
         sBtHfpAgInterface->phone_state_change(call_active,0,BTHF_CALL_STATE_INCOMING,number,
                                               BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
         return true;
