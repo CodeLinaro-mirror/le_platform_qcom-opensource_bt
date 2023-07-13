@@ -730,6 +730,55 @@ bool GattsTest::AddService(string server_instance,string service_instance)
   return true;
 }
 
+bool GattsTest::RemoveService(string server_instance,string service_instance)
+{
+  ALOGD(LOGTAG"%s  ",__FUNCTION__);
+  int server_inst;
+  int service_inst;
+  istringstream(server_instance) >> server_inst;
+  istringstream(service_instance) >> service_inst;
+  ALOGD(LOGTAG"server_inst: %d service_inst %d", server_inst, service_inst);
+  Uuid  temp_UUID;
+  string uid;
+  GattServer *mServer = NULL;
+  GattService *mService = NULL;
+  Service *service_temp;
+  if(!servInstanceMap.count(server_inst)) {
+    fprintf(stdout,"Please create the server instance first \n");
+    return false;
+  } else if((service_inst <= 0) || (service_inst > MAX_SERVICE_INSTANCE) ) {
+    fprintf(stdout,"Incorrect service instance values  \n" );
+    return false;
+  } else if (service_inst < 6) {
+    mServer = servInstanceMap[server_inst];
+    service_temp = service_list[service_inst - 1][server_inst -1];
+    if(service_temp == NULL) {
+      fprintf(stdout,"Service details are not available, service cannot be added \n");
+      ALOGE(LOGTAG"Service details are not available, service cannot be added ");
+      return false;
+    } else {
+      uid = service_temp->s_uuid;
+      temp_UUID = Uuid::FromString(uid);
+      GattService *mService = mServer->getService(temp_UUID);
+      if (mService == NULL) {
+        fprintf(stdout,"Service %d not added \n", service_inst);
+        ALOGD(LOGTAG"%s  Service %d not added",__FUNCTION__, service_inst);
+        return false;
+      }
+      if (mServer->removeService(*mService)) {
+        fprintf(stdout,"Service %d removed \n", service_inst);
+        ALOGD(LOGTAG"%s  Service %d removed",__FUNCTION__, service_inst);
+        delete(mService);
+        return true;
+      } else {
+        fprintf(stdout,"Service %d remove fail\n", service_inst);
+        ALOGD(LOGTAG"%s  Service %d remove fail",__FUNCTION__, service_inst);
+        return false;
+      }
+    }
+  }
+}
+
 bool GattsTest::ReadAdvertiserConfigFile()
 {
   ALOGD(LOGTAG"%s",__FUNCTION__);

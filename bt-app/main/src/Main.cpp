@@ -2337,6 +2337,23 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, "BT is in OFF State now \n");
             }
             break;
+        case GATTSTEST_REMOVESERVICES:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (gattstest) {
+                    fprintf(stdout,"RemoveServices \n");
+                    string server_instance = user_cmd[ONE_PARAM];
+                    string service_instance = user_cmd[TWO_PARAM];
+                    bool result = gattstest->RemoveService(server_instance,service_instance);
+                    if(!result) {
+                        fprintf(stdout,"Service could not be removed\n");
+                    }
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
+            } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+            }
+            break;
         case GATTSTEST_INIT_ADVERTISER:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 if (gattstest) {
