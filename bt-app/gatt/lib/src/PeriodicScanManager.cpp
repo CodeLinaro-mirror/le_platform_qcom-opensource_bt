@@ -99,16 +99,18 @@ void PeriodicScanManager::onSyncReport(int syncHandle, int txPower, int rssi, in
     ALOGD(LOGTAG "onSyncReport() - syncHandle=%d", syncHandle);
   }
 
-  IPeriodicAdvertisingCallback *cb = findSync(syncHandle);
-  if (cb == NULL) {
-    ALOGI(LOGTAG "onSyncReport() - no callback found for syncHandle %d", syncHandle);
-    return;
-  }
-
   PeriodicAdvertisingReport *report =
           new PeriodicAdvertisingReport(syncHandle, txPower, rssi, dataStatus,
                   ScanRecord::parseFromBytes(data));
-  cb->onPeriodicAdvertisingReport(report);
+
+  std::unique_lock<std::mutex> lk(mSyncLock);
+  IPeriodicAdvertisingCallback *cb = findSync(syncHandle);
+  if (cb != NULL) {
+    cb->onPeriodicAdvertisingReport(report);
+  } else {
+    ALOGI(LOGTAG "onSyncReport() - no callback found for syncHandle %d", syncHandle);
+  }
+  lk.unlock();
   if (report != NULL) {
     delete(report);
   }
@@ -173,7 +175,9 @@ void PeriodicScanManager::stopSync(IPeriodicAdvertisingCallback *callback)
     return;
   }
 
+  std::unique_lock<std::mutex> lk(mSyncLock);
   mSyncs.erase(syncHandle);
+  lk.unlock();
   mNative->stopSyncNative(syncHandle);
 }
 
