@@ -14,6 +14,12 @@ AM_CPPFLAGS = -I$(top_srcdir) \
 
 AM_CPPFLAGS  += @SYSTEM_BT_CFLAGS@ @LIBCHROME_CFLAGS@
 AM_CPPFLAGS  += -DUSE_ANDROID_LOGGING -DUSE_BT_OBEX -DUSE_LIBHW_AOSP -DUSE_GEN_GATT
+
+if USE_GLIB
+AM_CFLAGS += -DUSE_GLIB @GLIB_CFLAGS@
+AM_CPPFLAGS += -DUSE_GLIB @GLIB_CFLAGS@
+endif
+
 c_sources = \
     src/alarm.cc \
     src/allocator.cc \
@@ -47,4 +53,7 @@ libbtapposi_la_CPPFLAGS =$(AM_CPPFLAGS) -std=c++11 -fpermissive
 libbtapposi_la_LIBADD = $(requiredlibs)
 libbtapposi_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB -DHAS_NO_BDROID_BUILDCFG -D__GLIBC__
 libbtapposi_la_LDFLAGS = -static
+if USE_GLIB
+libbtapposi_la_LDFLAGS += @GLIB_LIBS@
+endif
 endif

@@ -577,12 +577,15 @@ void BleWifiControlService :: CharacteristicReadRsp(WCSCharacteristicReadRspEven
   }
 
   uint8_t *value = new uint8_t[evt->len];
+  if (!value)
+    return;
+
   int status = (evt->status == BLE_IPC_STATUS_SUCCESS) ? (GattClient::GATT_SUCCESS)
             : (GattClient::GATT_FAILURE);
 
   memcpy(value, evt->value, evt->len);
   mServer->sendResponse(bdaddr, evt->request_id, status, evt->offset, value, evt->len);
-  delete value;
+  delete[] value;
 }
 
 void BleWifiControlService :: CharacteristicWriteReq(string bdaddr,
@@ -640,11 +643,14 @@ void BleWifiControlService :: CharacteristicWriteRsp(WCSCharacteristicWriteRspEv
 
   if (evt->rsp_needed) {
     uint8_t *value = new uint8_t[evt->len];
+    if (!value)
+      return;
+
     int status = ((evt->status == BLE_IPC_STATUS_SUCCESS) ? (GattClient::GATT_SUCCESS)
               : (GattClient::GATT_FAILURE));
     memcpy(value, evt->value, evt->len);
     mServer->sendResponse(bdaddr, evt->request_id, status, evt->offset, value, evt->len);
-    delete value;
+    delete[] value;
   }
 }
 
