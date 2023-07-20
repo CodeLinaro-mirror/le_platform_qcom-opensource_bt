@@ -923,6 +923,9 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
+            if (is_pulse_enabled_) {
+               release_audio();
+            }
             change_state(HFP_AG_STATE_DISCONNECTED);
             break;
         case HFP_AG_AUDIO_STATE_DISCONNECTED_CB:
@@ -1009,6 +1012,9 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
+            if (is_pulse_enabled_) {
+               release_audio();
+            }
             change_state(HFP_AG_STATE_DISCONNECTED);
             break;
         case HFP_AG_DISCONNECTING_CB:
