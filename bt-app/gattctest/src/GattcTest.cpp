@@ -452,18 +452,16 @@ class gattctestClientCallback:public GattClientCallback
     void onConnectionUpdated (GattClient *gatt, int interval, int latency,
         int timeout, int status)
     {
-      ALOGD(LOGTAG "onConnectionUpdated");
+      ALOGD(LOGTAG "onConnectionUpdated interval (%d), latency (%d),"
+          "timeout (%d), status (%d)\n", interval, latency, timeout,
+          status);
 
-      if ((status == GattClient::GATT_SUCCESS)) {
-        ALOGD(LOGTAG "onConnectionUpdated interval (%d), latency (%d),"
-            "timeout (%d), status (%d)\n", interval, latency, timeout,
-            status);
+      if (status == GattClient::GATT_SUCCESS) {
         fprintf(stdout, "onConnectionUpdated interval (%d), latency (%d),"
             "timeout (%d), status (%d)\n", interval, latency, timeout,
             status);
       } else {
-        ALOGE(LOGTAG "Connection Update failed status %d\n", status);
-        fprintf(stdout, "Connection Update failed status %d\n", status);
+        fprintf(stdout, "Connection Update failed status (%d)\n", status);
       }
     }
 
@@ -476,18 +474,16 @@ class gattctestClientCallback:public GattClientCallback
     void onSubrateChanged(GattClient *gatt, int subrateFactor, int latency, int contNum,
         int timeout, int status)
     {
-      ALOGD(LOGTAG "onSubrateChanged");
+      ALOGD(LOGTAG "onSubrateChanged subrateFactor (%d), latency (%d),"
+          "contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
+          contNum, timeout, status);
 
-      if ((status == GattClient::GATT_SUCCESS)) {
-        ALOGD(LOGTAG "onSubrateChanged subrateFactor (%d), latency (%d),"
-            "contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
-            contNum, timeout, status);
+      if (status == GattClient::GATT_SUCCESS) {
         fprintf(stdout, "onSubrateChanged subrateFactor (%d), latency (%d),"
             "contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
             contNum, timeout, status);
       } else {
-        ALOGE(LOGTAG "Connection Subrate Update failed status %d\n", status);
-        fprintf(stdout, "Connection Subrate Update failed status %d\n", status);
+        fprintf(stdout, "Subrate Change failed status (%d)\n", status);
       }
     }
 };
