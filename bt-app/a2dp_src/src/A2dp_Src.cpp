@@ -1168,6 +1168,7 @@ static void BtA2dpSuspendStreaming()
 static void BtA2dpResumeStreaming()
 {
     ALOGD(LOGTAG_A2DP "Resume A2dp Stream");
+    a2dp_playstatus = A2DP_SOURCE_AUDIO_STARTED;
 
     if (is_sink_relay_enabled)
         flush_relay_data();
@@ -1670,6 +1671,7 @@ static void BtA2dpStartStreaming()
         pA2dpSource->SendStartStreamReq();
     }
 
+    a2dp_playstatus = A2DP_SOURCE_AUDIO_STARTED;
     media_playing = true;
     if (pthread_create(&playback_thread, NULL, thread_func, in_file) != 0) {
         ALOGD(LOGTAG_A2DP "Cannot create playback thread!\n");
@@ -3287,7 +3289,12 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     break;
                 case CMD_ID_STOP:
                     /*Pause and Stop passthrough commands are handled here*/
-                    BtA2dpSuspendStreaming();
+                    media_playing = false;
+                    if (playback_thread != NULL) {
+                        pthread_join(playback_thread, NULL);
+                        playback_thread = NULL;
+                    }
+                    BtA2dpStopStreaming();
                     pA2dpSource->StopPlayPostionTimer();
                     if (playStatus != BTRC_PLAYSTATE_STOPPED)
                     {
@@ -3932,7 +3939,7 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             fprintf(stdout, "A2DP Source Audio state changes to: %d  \n",pEvent->event_id);
             break;
         case A2DP_SOURCE_AUDIO_STOPPED:
-            fprintf(stdout, "A2DP Source Audio state changes to: %d ", pEvent->event_id);
+            fprintf(stdout, "A2DP Source Audio state changes to: %d \n", pEvent->event_id);
             break;
         case A2DP_SOURCE_CODEC_CONFIG_CB:
             memcpy(&mDevice, &pEvent->a2dpSourceEvent.bd_addr, sizeof(bt_bdaddr_t));
