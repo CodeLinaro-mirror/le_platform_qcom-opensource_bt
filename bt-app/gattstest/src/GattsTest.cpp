@@ -382,8 +382,9 @@ void gattstestServerCallback::onConnectionUpdated(string deviceAddress,int inter
   ALOGD(LOGTAG"%s deviceAddress: %s,interval: %d,latency %d,timeout %d, status:%d", __FUNCTION__,
                                         deviceAddress.c_str(), interval, latency, timeout, status);
   if (status == GATT_SUCCESS) {
-    fprintf(stdout, "%s deviceAddress: %s interval (%d), latency (%d), timeout (%d), status (%d)\n",
-              __FUNCTION__, deviceAddress.c_str(), interval, latency, timeout, status);
+    float conn_int = 1.25 * interval;
+    fprintf(stdout, "%s deviceAddress: %s interval (%.2f)ms, latency (%d), timeout (%d)ms, status (%d)\n",
+              __FUNCTION__, deviceAddress.c_str(), conn_int , latency, timeout*10, status);
   } else {
     fprintf(stdout, "Connection Update failed status (%d)\n", status);
   }
@@ -395,8 +396,8 @@ void gattstestServerCallback::onSubrateChanged(string deviceAddress, int subrate
   ALOGD(LOGTAG"%s deviceAddress: %s,subrateFactor: %d,latency %d,contNum %d,timeout %d, status:%d", __FUNCTION__,
                                         deviceAddress.c_str(), subrateFactor, latency, contNum, timeout, status);
   if (status == GATT_SUCCESS) {
-    fprintf(stdout, "%s deviceAddress: %s subrateFactor (%d), latency (%d), contNum (%d), timeout (%d), status (%d)\n",
-            __FUNCTION__, deviceAddress.c_str(), subrateFactor, latency, contNum, timeout, status);
+    fprintf(stdout, "%s deviceAddress: %s subrateFactor (%d), latency (%d), contNum (%d), timeout (%d)ms, status (%d)\n",
+            __FUNCTION__, deviceAddress.c_str(), subrateFactor, latency, contNum, timeout*10, status);
   } else {
     fprintf(stdout, "Subrate Change failed status (%d)\n", status);
   }

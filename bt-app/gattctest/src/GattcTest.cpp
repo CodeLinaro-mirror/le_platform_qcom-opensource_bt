@@ -453,12 +453,13 @@ class gattctestClientCallback:public GattClientCallback
         int timeout, int status)
     {
       ALOGD(LOGTAG "onConnectionUpdated interval (%d), latency (%d),"
-          "timeout (%d), status (%d)\n", interval, latency, timeout,
+          " timeout (%d), status (%d)\n", interval, latency, timeout,
           status);
 
       if (status == GattClient::GATT_SUCCESS) {
-        fprintf(stdout, "onConnectionUpdated interval (%d), latency (%d),"
-            "timeout (%d), status (%d)\n", interval, latency, timeout,
+        float conn_int = 1.25 * interval;
+        fprintf(stdout, "onConnectionUpdated interval (%.2f)ms, latency (%d),"
+            " timeout (%d)ms, status (%d)\n", conn_int , latency, timeout*10,
             status);
       } else {
         fprintf(stdout, "Connection Update failed status (%d)\n", status);
@@ -475,13 +476,13 @@ class gattctestClientCallback:public GattClientCallback
         int timeout, int status)
     {
       ALOGD(LOGTAG "onSubrateChanged subrateFactor (%d), latency (%d),"
-          "contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
+          " contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
           contNum, timeout, status);
 
       if (status == GattClient::GATT_SUCCESS) {
         fprintf(stdout, "onSubrateChanged subrateFactor (%d), latency (%d),"
-            "contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
-            contNum, timeout, status);
+            " contNum (%d), timeout (%d)ms, status (%d)\n", subrateFactor, latency,
+            contNum, timeout*10, status);
       } else {
         fprintf(stdout, "Subrate Change failed status (%d)\n", status);
       }
