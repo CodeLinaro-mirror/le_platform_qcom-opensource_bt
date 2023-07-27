@@ -1024,6 +1024,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_VOIP_CALL_TERMINATION:
             EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
+            if (is_pulse_enabled_) {
+                PaRountingInterface::SetParamPAQahwDevice(PA_A2DP_SOURCE_DEVICE,
+                                                           "A2dpSuspended=false");
+            }
             break;
         case HFP_AG_VOIP_CALL_INCOMING_INDICATION:
             VoipCallIncomingInd(&pEvent->hfp_ag_event.bd_addr,pEvent->hfp_ag_event.str,
