@@ -3516,6 +3516,13 @@ void A2dp_Source::HandleDisableSource(void) {
        sBtAvrcpTargetInterface->cleanup();
        sBtAvrcpTargetInterface = NULL;
    }
+
+#if defined(BT_PA_INTEGRATION)
+   if (is_pulse_enabled_) {
+      PaRountingInterface::RemovePaQahwDevice(PA_A2DP_SOURCE_DEVICE);
+    }
+#endif // defined(BT_PA_INTEGRATION)
+
    BtEvent *pEvent = new BtEvent;
    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
    pEvent->profile_stop_event.profile_id = PROFILE_ID_A2DP_SOURCE;
