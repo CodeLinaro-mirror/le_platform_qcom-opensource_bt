@@ -519,9 +519,6 @@ GattClient::~GattClient()
     mCallback = NULL;
   }
 
-  for (GattService *svc : mServices)
-    delete svc;
-
   mServices.clear();
 }
 
