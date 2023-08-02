@@ -242,7 +242,7 @@ class Hfp_Ag {
     void processSlcConnected(bt_bdaddr_t *bd_addr);
 #endif
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION) || defined(BT_PA_INTEGRATION)
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
     void init_audio();
     void set_audio_params();
     void setup_sco_path();
@@ -251,6 +251,11 @@ class Hfp_Ag {
 #endif
 #if defined(BT_PA_INTEGRATION)
     void connect_pa_audio();
+    void pa_init_audio();
+    void pa_set_audio_params();
+    void pa_setup_sco_path();
+    void pa_teardown_sco_path();
+    void pa_release_audio();
 #endif
     void configurescoaudio(bool enable);
     void clear_audio_params();
