@@ -17,6 +17,12 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+/*
+Changes from Qualcomm Innovation Center are provided under the following license:
+Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
+
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -64,6 +70,7 @@
 #endif
 #include "osi/include/compat.h"
 #include <cutils/properties.h>
+#include <systemdq/sd-bus.h>
 
 #include "utils.h"
 
@@ -73,6 +80,9 @@ using namespace btapp;
 #endif
 #define LOGTAG  "MAIN "
 #define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
+#define BTIF_NAME "org.fluoride"
+static char const *sObjPath = "/org/fluoride/hci0";
+#define DBUS_INTERFACE "org.fluoride.Adapter1"
 int server_num;
 bool file_read = 0;
 long onoff_count = 0;
@@ -117,6 +127,9 @@ extern BleSocketManager *g_ble_socket_manager;
 #endif
 #endif
 
+sd_bus *g_sdbus = nullptr;
+sd_event *g_eventLoop = nullptr;
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -124,6 +137,59 @@ extern "C"
 
 ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,split
 static void SendDisableCmdToGap();
+
+static void StartDbusLoop() {
+    int res = sd_bus_open_system(&g_sdbus);
+    if (res < 0) {
+        LOG_ERROR(LOGTAG " Unable open D-Bus: %d - %s\n", -res, strerror(-res));
+        goto done;
+    }
+    res = sd_bus_request_name(g_sdbus, BTIF_NAME, 0);
+    if (res < 0) {
+        LOG_ERROR(LOGTAG " Failed to get name: %d - %s\n", -res,
+                    strerror(-res));
+        goto done;
+    }
+    if (!g_sdbus) {
+       LOG_ERROR(LOGTAG "Unable to get on D-Bus");
+       goto done;
+    }
+
+    // Enable org.freedesktop.DBus.ObjectManager interface on root object path
+     res = sd_bus_add_object_manager(g_sdbus, nullptr, "/");
+    if (res < 0) {
+        LOG_ERROR(LOGTAG
+                    "failed to add object manager on root object path: %d - %s\n",
+                    -res, strerror(-res));
+        goto done;
+    }
+
+    res = sd_event_default(&g_eventLoop);
+    if (res < 0) {
+        LOG_ERROR(LOGTAG " Failed to get event loop: %d - %s\n", -res,
+                    strerror(-res));
+        goto done;
+    }
+
+    res = sd_bus_attach_event(g_sdbus, g_eventLoop, SD_EVENT_PRIORITY_NORMAL);
+    if (res < 0) {
+        LOG_ERROR(LOGTAG " Failed to attach event loop: %d - %s\n", -res,
+                    strerror(-res));
+        goto done;
+    }
+
+    res = sd_event_loop(g_eventLoop);
+    if (res < 0) {
+        LOG_ERROR(LOGTAG " Failed to run event loop: %d - %s\n", -res,
+                    strerror(-res));
+      goto done;
+    }
+done:
+    sd_bus_flush_close_unref(g_sdbus);
+    g_sdbus = nullptr;
+    sd_event_unref(g_eventLoop);
+    g_eventLoop = nullptr;
+}
 
 /**
  * @brief main function
@@ -151,6 +217,9 @@ int main (int argc, char *argv[]) {
         ALOGV (LOGTAG " Posting init to Main thread\n");
         PostMessage (THREAD_ID_MAIN, event);
 
+        // start DBUS event loop
+        StartDbusLoop();
+
         // wait for Main thread to exit
         thread_join (main_thread->thread_id);
         thread_free (main_thread->thread_id);
@@ -159,6 +228,7 @@ int main (int argc, char *argv[]) {
     closelog ();
 #endif
     return 0;
+
 }
 
 
@@ -2453,6 +2523,10 @@ static void SendEnableCmdToGap() {
     } else if ( g_bt_app->status.disable_cmd == COMMAND_INPROGRESS ) {
         fprintf( stdout, "Previous BT disable is still in progress\n");
     } else {
+        if(g_sdbus != NULL) {
+            int res = sd_bus_emit_properties_changed(g_sdbus, sObjPath,
+                               DBUS_INTERFACE, "Powered", nullptr);
+        }
         fprintf( stdout, "Currently BT is already ON\n");
     }
 }
@@ -2474,6 +2548,10 @@ static void SendDisableCmdToGap() {
     } else if (g_bt_app->status.enable_cmd == COMMAND_INPROGRESS) {
         fprintf( stdout, " Previous enable command is still in process\n");
     } else {
+        if(g_sdbus != NULL) {
+            int res = sd_bus_emit_properties_changed(g_sdbus, sObjPath,
+                               DBUS_INTERFACE, "Powered", nullptr);
+        }
         fprintf( stdout, "Currently BT is already OFF\n");
     }
 }

@@ -15,6 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+Changes from Qualcomm Innovation Center are provided under the following license:
+Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
 
 #ifndef GAP_APP_HPP
 #define GAP_APP_HPP
@@ -24,6 +29,7 @@
 #include <hardware/bluetooth.h>
 #include <hardware/vendor.h>
 #include <hardware/bt_obex_sock.h>
+#include <systemdq/sd-bus.h>
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
@@ -344,6 +350,18 @@ class Gap {
      * @return none
      */
     void SendHCICommand(uint8_t *cmd_ptr);
+
+    static int sd_getBtPowered(sd_bus *bus, const char *path,
+                              const char *interface, const char *property,
+                              sd_bus_message *reply, void *userdata,
+                              sd_bus_error *ret_error);
+    static int sd_setBtPowered(sd_bus_message *value, void *userdata, sd_bus_error *ret_error);
+
+    static int sd_getBtName(sd_bus *bus, const char *path,
+                              const char *interface, const char *property,
+                              sd_bus_message *reply, void *userdata,
+                              sd_bus_error *ret_error);
+    static int sd_setBtName(sd_bus_message *value, void *userdata, sd_bus_error *ret_error);
 };
 
 #endif
