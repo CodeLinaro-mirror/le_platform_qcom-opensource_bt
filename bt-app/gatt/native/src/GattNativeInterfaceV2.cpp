@@ -1113,7 +1113,7 @@ static void ble_advertising_parameters_updated_cb(uint8_t advertiser_id,
   PostMessage(THREAD_ID_GATT, event);
 }
 
-static void ble_periodic_advertising_set_enable_Cb(uint8_t advertiser_id, bool enable,
+static void ble_periodic_advertising_set_enable_Cb(uint8_t advertiser_id, uint8_t enable,
                                 uint8_t status) {
   ALOGD(LOGTAG "(%s) advertiser_id: %d enable: %d, status: %d",
       __FUNCTION__, advertiser_id, enable, status);
@@ -1808,7 +1808,7 @@ void GattNativeInterfaceV2 :: setPeriodicAdvertisingDataNative(
 
 void GattNativeInterfaceV2 :: setPeriodicAdvertisingEnableNative(
                                                int advertiser_id,
-                                               bool enable) {
+                                               uint8_t enable) {
   if (!sGattIf) return;
 
   sGattIf->advertiser->SetPeriodicAdvertisingEnable(
@@ -1831,6 +1831,12 @@ void GattNativeInterfaceV2 :: stopSyncNative(int sync_handle) {
   if (!sGattIf) return;
 
   sGattIf->scanner->StopSync(sync_handle);
+}
+
+void GattNativeInterfaceV2 :: enablePaScanResultNative(int sync_handle, uint8_t enable) {
+  if (!sGattIf) return;
+
+  sGattIf->scanner->EnablePaScanResult(sync_handle, enable);
 }
 
 void GattNativeInterfaceV2 :: gattTestNative(int command,

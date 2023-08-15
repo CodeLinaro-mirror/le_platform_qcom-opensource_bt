@@ -41,7 +41,7 @@ namespace gatt {
  *
  * @hide
  */
-class PeriodicAdvertisingManager final : public IPeriodicAdvertisingCallback {
+class PeriodicAdvertisingManager {
   private:
 
     static const int SKIP_MIN = 0;
@@ -91,13 +91,32 @@ public:
      * callback.
      */
     void unregisterSync(PeriodicAdvertisingCallback *callback);
+    /**
+     * Filter or disable periodic advertising reports.
+     *
+     * @param enable bit value of enable pa adv and filter duplicate pa adv.
+     * @param callback Callback used to deliver all operations status.
+     * @throws std::invalid_argument if callback is null, or not a properly registered
+     * callback.
+     */
+    void filterPaAdvReport(uint8_t enable, PeriodicAdvertisingCallback *callback);
 
-
-    void onSyncEstablished(int syncHandle, string device,
-            int advertisingSid, int skip, int timeout, int status);
-    void onPeriodicAdvertisingReport(PeriodicAdvertisingReport *report);
-    void onSyncLost(int syncHandle);
     ~PeriodicAdvertisingManager();
+
+    class PeriodicAdvertisingCallbackWrapper : public IPeriodicAdvertisingCallback {
+      private:
+        PeriodicAdvertisingCallback *mCb = NULL;
+        PeriodicAdvertisingManager *mOuterPaManager = NULL;
+
+      public:
+        PeriodicAdvertisingCallbackWrapper(PeriodicAdvertisingCallback *callback, PeriodicAdvertisingManager *sPaManager);
+        ~PeriodicAdvertisingCallbackWrapper();
+
+        void onSyncEstablished(int syncHandle, string device,
+                int advertisingSid, int skip, int timeout, int status);
+        void onPeriodicAdvertisingReport(PeriodicAdvertisingReport *report);
+        void onSyncLost(int syncHandle);
+    };
 };
 }
 #endif

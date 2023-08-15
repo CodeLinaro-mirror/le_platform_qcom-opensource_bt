@@ -401,6 +401,13 @@ void GattLibService::onDisconnected(int clientIf, int connId, int status,
               clientIf, connId, address.c_str());
   }
 
+  std::unordered_map<int, std::vector<GattService*>>::iterator it = mGattClientDatabases.find(connId);
+  if (it != mGattClientDatabases.end()) {
+    for( GattService *svc : it->second)
+      delete(svc);
+    mGattClientDatabases.erase(connId);
+  }
+
   mClientMap->removeConnection(clientIf, connId);
   ClientMap::App *app = mClientMap->getById(clientIf);
   if (app != NULL) {
@@ -645,6 +652,15 @@ void GattLibService::onGetGattDb(int connId, std::vector<GattDbElement*> db)
   }
 }
 
+  if (dbOut.size() != 0) {
+    std::unordered_map<int, std::vector<GattService*>>::iterator it = mGattClientDatabases.find(connId);
+    if (it != mGattClientDatabases.end()) {
+      ALOGD(LOGTAG " onGetGattDb() - find connId=%d in db", connId);
+      for( GattService *svc : it->second)
+        delete(svc);
+      mGattClientDatabases.erase(connId);
+    }
+  }
   // Search is complete when there was error, or nothing more to process
   mGattClientDatabases.insert({{connId, dbOut}});
   app->callback->onSearchComplete(address, dbOut, 0 /* status */);
@@ -908,7 +924,7 @@ void GattLibService::sendBatchScanResults(ScannerMap::App *app, ScanClient *clie
     mScannerMap->remove(client->scannerId);
     if (!mScanManager) return;
     mScanManager->stopScan(client);
-    }
+  }
 }
 
 void GattLibService::deliverBatchScan(ScanClient *client,
@@ -2392,7 +2408,7 @@ void GattLibService::setPeriodicAdvertisingData(int advertiserId, AdvertiseData 
   mAdvertiserManager->setPeriodicAdvertisingData(advertiserId, data);
 }
 
-void GattLibService::setPeriodicAdvertisingEnable(int advertiserId, bool enable)
+void GattLibService::setPeriodicAdvertisingEnable(int advertiserId, uint8_t enable)
 {
   if (!mAdvertiserManager) return;
   mAdvertiserManager->setPeriodicAdvertisingEnable(advertiserId, enable);
@@ -2414,6 +2430,12 @@ void GattLibService::unregisterSync(IPeriodicAdvertisingCallback *callback)
 {
   if (!mPeriodicScanManager) return;
   mPeriodicScanManager->stopSync(callback);
+}
+
+void GattLibService::enablePaAdvReport(uint8_t enable, IPeriodicAdvertisingCallback *callback)
+{
+  if (!mPeriodicScanManager) return;
+  mPeriodicScanManager->enablePaAdvReport(enable, callback);
 }
 
 

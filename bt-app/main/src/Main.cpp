@@ -1821,6 +1821,18 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, " BD address is NULL/Invalid \n");
             }
             break;
+        case GATTCTEST_FILTER_PA_ADV:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+               if (gattctest) {
+                   fprintf(stdout,"filtering pa adv \n");
+                   gattctest->filterPeriodicAdv(user_cmd[ONE_PARAM], user_cmd[TWO_PARAM]);
+               } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+               }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
 
         case GATTCTEST_CONNECT:
            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
@@ -2325,6 +2337,23 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 fprintf( stdout, "BT is in OFF State now \n");
             }
             break;
+        case GATTSTEST_REMOVESERVICES:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (gattstest) {
+                    fprintf(stdout,"RemoveServices \n");
+                    string server_instance = user_cmd[ONE_PARAM];
+                    string service_instance = user_cmd[TWO_PARAM];
+                    bool result = gattstest->RemoveService(server_instance,service_instance);
+                    if(!result) {
+                        fprintf(stdout,"Service could not be removed\n");
+                    }
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
+            } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+            }
+            break;
         case GATTSTEST_INIT_ADVERTISER:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
                 if (gattstest) {
@@ -2352,6 +2381,26 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                         bool result =gattstest->StartAdvertisement(server_instance, advset_instance);
                         if(!result){
                             fprintf(stdout,"Advertisement has not started\n");
+                        }
+                    } else {
+                        fprintf(stdout,"Do init Advertiser first \n");
+                    }
+                } else {
+                    fprintf(stdout , "Do Init first\n");
+                }
+             } else {
+                fprintf( stdout, "BT is in OFF State now \n");
+             }
+             break;
+        case GATTSTEST_UPDATE_PA_DATA:
+            if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (gattstest) {
+                    fprintf(stdout,"Update Periodic Adv Data \n");
+                    if(file_read && (init_advertiser_file == true)) {
+                        bool result =gattstest->UpdatePeriodicAdvertisingData(user_cmd[ONE_PARAM],
+                                                                            user_cmd[TWO_PARAM]);
+                        if(!result){
+                            fprintf(stdout,"Update has not started\n");
                         }
                     } else {
                         fprintf(stdout,"Do init Advertiser first \n");

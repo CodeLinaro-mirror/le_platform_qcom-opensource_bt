@@ -24,6 +24,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <mutex>
 #include "IPeriodicAdvertisingCallback.hpp"
 using namespace std;
 namespace gatt {
@@ -46,6 +47,7 @@ class PeriodicScanManager {
     int id_sync_handle;
     IPeriodicAdvertisingCallback *callback;
     std::unordered_map<int, IPeriodicAdvertisingCallback*> mSyncs;
+    std::mutex mSyncLock;
 
     static int sTempRegistrationId;
 
@@ -65,6 +67,7 @@ class PeriodicScanManager {
     void startSync(ScanResult *scanResult, int skip, int timeout,
             IPeriodicAdvertisingCallback *callback);
     void stopSync(IPeriodicAdvertisingCallback *callback);
+    void enablePaAdvReport(uint8_t enable, IPeriodicAdvertisingCallback *callback);
 };
 }
 #endif

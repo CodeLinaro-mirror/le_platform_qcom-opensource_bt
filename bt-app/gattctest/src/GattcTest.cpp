@@ -89,6 +89,8 @@ extern GattLibService *g_gatt;
 mRemoteDev mDeviceMap("", NULL);
 
 PeriodicAdvertisingManager* mPeriodicAM = NULL;
+map <int,PeriodicAdvertisingCallback*> paCBInstanceMap;
+static int sTempSyncId;
 GattLeScanner* mScanner = NULL;
 ScanSettings *setting = NULL;
 
@@ -450,18 +452,17 @@ class gattctestClientCallback:public GattClientCallback
     void onConnectionUpdated (GattClient *gatt, int interval, int latency,
         int timeout, int status)
     {
-      ALOGD(LOGTAG "onConnectionUpdated");
+      ALOGD(LOGTAG "onConnectionUpdated interval (%d), latency (%d),"
+          " timeout (%d), status (%d)\n", interval, latency, timeout,
+          status);
 
-      if ((status == GattClient::GATT_SUCCESS)) {
-        ALOGD(LOGTAG "onConnectionUpdated interval (%d), latency (%d),"
-            "timeout (%d), status (%d)\n", interval, latency, timeout,
-            status);
-        fprintf(stdout, "onConnectionUpdated interval (%d), latency (%d),"
-            "timeout (%d), status (%d)\n", interval, latency, timeout,
+      if (status == GattClient::GATT_SUCCESS) {
+        float conn_int = 1.25 * interval;
+        fprintf(stdout, "onConnectionUpdated interval (%.2f)ms, latency (%d),"
+            " timeout (%d)ms, status (%d)\n", conn_int , latency, timeout*10,
             status);
       } else {
-        ALOGE(LOGTAG "Connection Update failed status %d\n", status);
-        fprintf(stdout, "Connection Update failed status %d\n", status);
+        fprintf(stdout, "Connection Update failed status (%d)\n", status);
       }
     }
 
@@ -474,18 +475,16 @@ class gattctestClientCallback:public GattClientCallback
     void onSubrateChanged(GattClient *gatt, int subrateFactor, int latency, int contNum,
         int timeout, int status)
     {
-      ALOGD(LOGTAG "onSubrateChanged");
+      ALOGD(LOGTAG "onSubrateChanged subrateFactor (%d), latency (%d),"
+          " contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
+          contNum, timeout, status);
 
-      if ((status == GattClient::GATT_SUCCESS)) {
-        ALOGD(LOGTAG "onSubrateChanged subrateFactor (%d), latency (%d),"
-            "contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
-            contNum, timeout, status);
+      if (status == GattClient::GATT_SUCCESS) {
         fprintf(stdout, "onSubrateChanged subrateFactor (%d), latency (%d),"
-            "contNum (%d), timeout (%d), status (%d)\n", subrateFactor, latency,
-            contNum, timeout, status);
+            " contNum (%d), timeout (%d)ms, status (%d)\n", subrateFactor, latency,
+            contNum, timeout*10, status);
       } else {
-        ALOGE(LOGTAG "Connection Subrate Update failed status %d\n", status);
-        fprintf(stdout, "Connection Subrate Update failed status %d\n", status);
+        fprintf(stdout, "Subrate Change failed status (%d)\n", status);
       }
     }
 };
@@ -551,8 +550,16 @@ class mperiodicAdvcallback : public PeriodicAdvertisingCallback
     {
       ALOGD(LOGTAG "onSyncEstablished device: %s syncHandle: 0x%x status: %d", device.c_str(), syncHandle, status);
       fprintf(stdout, "onSyncEstablished device: %s syncHandle: 0x%x status: %d\n", device.c_str(), syncHandle, status);
+      for(auto itr = paCBInstanceMap.begin(); itr != paCBInstanceMap.end(); ++itr) {
+        if (itr->second == this) {
+          paCBInstanceMap.erase(itr);
+          ALOGD(LOGTAG "onSyncEstablished erase useless pair");
+          break;
+        }
+      }
       if (status == 0) {
         if (!mDeviceMap.containsPaSyncedDevice(syncHandle)) {
+          paCBInstanceMap.insert(pair <int,PeriodicAdvertisingCallback*> (syncHandle, this));
           mDeviceMap.addPaSyncedDev(syncHandle, device);
         }
       } else {
@@ -562,6 +569,7 @@ class mperiodicAdvcallback : public PeriodicAdvertisingCallback
         } else if (status == 0x07) {
           fprintf(stdout, "onSyncEstablished device: %s no adv record, wait to try again or restart scan\n", device.c_str());
         }
+        delete(this);
       }
     }
 
@@ -571,6 +579,8 @@ class mperiodicAdvcallback : public PeriodicAdvertisingCallback
       int TxPower = report->getTxPower();
       int Rssi = report->getRssi();
       int DataStatus = report->getDataStatus();
+      ALOGD(LOGTAG "%s: syncHandle: 0x%x Rssi: %d, DataStatus: %d", __func__, SyncHandle, Rssi, DataStatus);
+      fprintf(stdout, "%s: syncHandle: 0x%x Rssi: %d, DataStatus: %d\n", __func__, SyncHandle, Rssi, DataStatus);
     }
 
     void onSyncLost(int syncHandle)
@@ -578,19 +588,19 @@ class mperiodicAdvcallback : public PeriodicAdvertisingCallback
       ALOGE(LOGTAG "onSyncLost syncHandle: 0x%x", syncHandle);
       fprintf(stdout, "onSyncLost syncHandle: 0x%x\n", syncHandle);
       mDeviceMap.removePaSyncedDev(syncHandle);
+      paCBInstanceMap.erase(syncHandle);
+      delete(this);
     }
 };
 
 gattctestClientCallback *gattCliCallback = NULL;
 mscancallback *mscan_callback = NULL;
-mperiodicAdvcallback *mperiodic_Advcallback = NULL;
 
 GattcTest::GattcTest(GattLibService* gatt)
 {
   ALOGD(LOGTAG "gattctest instantiated ");
   libservice = gatt;
   mPeriodicAM = PeriodicAdvertisingManager::getPeriodicAdvertisingManager();
-  mperiodic_Advcallback = new mperiodicAdvcallback;
   mScanner = GattLeScanner::getGattLeScanner();
   mscan_callback = new mscancallback;
   gattCliCallback = new gattctestClientCallback;
@@ -625,11 +635,14 @@ GattcTest::~GattcTest()
     if (mscan_callback != NULL) {
       delete(mscan_callback);
     }
-//    mPeriodicAM->unregisterSync(mperiodic_Advcallback);
-    if (mperiodic_Advcallback != NULL) {
-      delete(mperiodic_Advcallback);
-      mperiodic_Advcallback = NULL;
+    for(auto itr = paCBInstanceMap.begin(); itr != paCBInstanceMap.end(); ++itr) {
+      if (itr->second != NULL) {
+        mPeriodicAM->unregisterSync(itr->second);
+        delete((mperiodicAdvcallback*)itr->second);
+      }
     }
+    paCBInstanceMap.clear();
+    sTempSyncId = -1;
     if (gattCliCallback != NULL) {
       delete(gattCliCallback);
       gattCliCallback = NULL;
@@ -639,6 +652,7 @@ GattcTest::~GattcTest()
       delete(gattctest->gattcli);
       gattctest->gattcli = NULL;
     }
+    mDeviceMap.clear();
   }
   libservice = NULL;
 
@@ -1545,6 +1559,11 @@ void mRemoteDev:: printPaDevices()
 *********************************\n");
 }
 
+void mRemoteDev ::clearPaList()
+{
+  mDeviceMap.mapPaDev.clear();
+}
+
 void mRemoteDev :: addPaSyncedDev(int sync_handle, string dev)
 {
   ALOGD(LOGTAG "Adding PA Synced device: %s to map", dev.c_str());
@@ -1912,6 +1931,7 @@ bool GattcTest :: scanSettings(int scanType, int value)
 void GattcTest :: startScan()
 {
   ALOGD(LOGTAG "startScan");
+  mDeviceMap.clearPaList();
 
   if (mscanSettings != settingType::NO_SCAN_SETTING) {
     ALOGD(LOGTAG "SCAN_SETTING present mask (%d) \n", settingMask);
@@ -2009,7 +2029,20 @@ bool GattcTest :: createPeriodicSync(string bdaddr)
   }
   // only bdaddr and paSid are needed in scanResult to create sync
   ScanResult scanResult(bdaddr, 0, 0, 0, paSid, 0, 0, 0, NULL);
-  mPeriodicAM->registerSync(&scanResult, 0, PSYNC_TIMEOUT, mperiodic_Advcallback);
+  PeriodicAdvertisingCallback *paCallback = new mperiodicAdvcallback();
+  int syncId = --sTempSyncId;
+  paCBInstanceMap.insert(pair <int,PeriodicAdvertisingCallback*> (syncId, paCallback));
+  try {
+    mPeriodicAM->registerSync(&scanResult, 0, PSYNC_TIMEOUT, paCallback);
+  } catch(const std::exception &ex) {
+    ALOGD(LOGTAG"%s exception  %s", __FUNCTION__, ex.what());
+    fprintf(stdout,"%s \n", ex.what());
+    paCBInstanceMap.erase(syncId);
+    if (paCallback != NULL) {
+      delete((mperiodicAdvcallback*)paCallback);
+    }
+    return false;
+  }
   return true;
 }
 
@@ -2019,10 +2052,41 @@ void GattcTest :: stopPeriodicSync(string bdaddr)
   int sync_handle = mDeviceMap.containsPaSyncedDevice(bdaddr);
   if (sync_handle != PSYNC_INVALID_HANDLE) {
     mDeviceMap.removePaSyncedDev(sync_handle);
-    mPeriodicAM->unregisterSync(mperiodic_Advcallback);
+    PeriodicAdvertisingCallback *paCallback = paCBInstanceMap[sync_handle];
+    try {
+      mPeriodicAM->unregisterSync(paCallback);
+    } catch(const std::exception &ex) {
+      ALOGD(LOGTAG"%s exception  %s", __FUNCTION__, ex.what());
+      fprintf(stdout,"%s \n", ex.what());
+    }
+    paCBInstanceMap.erase(sync_handle);
+    if (paCallback != NULL)
+      delete((mperiodicAdvcallback*)paCallback);
   } else {
     ALOGD(LOGTAG "StopPeriodicSync fail for not syncing device: %s", bdaddr.c_str());
     fprintf(stdout, "StopPeriodicSync fail for not syncing device: %s\n", bdaddr.c_str());
+  }
+}
+
+void GattcTest :: filterPeriodicAdv(string bdaddr, string filter)
+{
+  uint8_t enable;
+  istringstream(filter) >> enable;
+  ALOGD(LOGTAG "filterPeriodicAdv device: %s filter: %d", bdaddr.c_str(), enable);
+  enable &= 0x03;
+  int sync_handle = mDeviceMap.containsPaSyncedDevice(bdaddr);
+  ALOGD(LOGTAG "filterPeriodicAdv device: %s enable: %d sync_handle:%d", bdaddr.c_str(), enable, sync_handle);
+  if (sync_handle != PSYNC_INVALID_HANDLE) {
+    PeriodicAdvertisingCallback *paCallback = paCBInstanceMap[sync_handle];
+    try {
+      mPeriodicAM->filterPaAdvReport(enable, paCallback);
+    } catch(const std::exception &ex) {
+      ALOGD(LOGTAG"%s exception  %s", __FUNCTION__, ex.what());
+      fprintf(stdout,"%s \n", ex.what());
+    }
+  } else {
+    ALOGD(LOGTAG "filterPeriodicAdv fail for not syncing device: %s", bdaddr.c_str());
+    fprintf(stdout, "filterPeriodicAdv fail for not syncing device: %s\n", bdaddr.c_str());
   }
 }
 

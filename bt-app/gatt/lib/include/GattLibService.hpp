@@ -284,10 +284,11 @@ class GattLibService           {
     void setPeriodicAdvertisingParameters(int advertiserId,
                                                   PeriodicAdvertiseParameters *parameters);
     void setPeriodicAdvertisingData(int advertiserId, AdvertiseData *data);
-    void setPeriodicAdvertisingEnable(int advertiserId, bool enable);
+    void setPeriodicAdvertisingEnable(int advertiserId, uint8_t enable);
     void registerSync(ScanResult *scanResult, int skip, int timeout,
                           IPeriodicAdvertisingCallback *callback);
     void unregisterSync(IPeriodicAdvertisingCallback *callback);
+    void enablePaAdvReport(uint8_t enable, IPeriodicAdvertisingCallback *callback);
     void registerScanner(IScannerCallback *callback);
     void unregisterScanner(int scannerId);
     void startScan(int scannerId, ScanSettings *settings, std::vector<ScanFilter*> filters,

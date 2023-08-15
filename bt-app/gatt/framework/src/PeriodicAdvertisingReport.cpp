@@ -30,7 +30,11 @@ PeriodicAdvertisingReport::PeriodicAdvertisingReport(int syncHandle, int txPower
   this->mData = data;
 }
 
-PeriodicAdvertisingReport::~PeriodicAdvertisingReport() {}
+PeriodicAdvertisingReport::~PeriodicAdvertisingReport()
+{
+  if (mData != nullptr)
+    delete(mData);
+}
 
 int PeriodicAdvertisingReport::getSyncHandle()
 {

@@ -253,6 +253,7 @@ typedef enum {
     GATTCTEST_STOP_SCAN,
     GATTCTEST_CREATE_PA_SYNC,
     GATTCTEST_STOP_PA_SYNC,
+    GATTCTEST_FILTER_PA_ADV,
     GATTCTEST_PA_DEVICES,
     GATTCTEST_PA_SYNCED_DEVICES,
     GATTCTEST_BATCH_SCAN,
@@ -283,8 +284,10 @@ typedef enum {
     GATTSTEST_INIT_SERVER,
     GATTSTEST_ADDSERVER,
     GATTSTEST_ADDSERVICES,
+    GATTSTEST_REMOVESERVICES,
     GATTSTEST_INIT_ADVERTISER,
     GATTSTEST_START_ADVERTISER,
+    GATTSTEST_UPDATE_PA_DATA,
     GATTSTEST_REQ_SUBRATE_MODE,
     GATTSTEST_REQ_LE_SUBRATE,
     GATTSTEST_READPHY,
@@ -491,8 +494,10 @@ UserMenuList GattsTestMenu[] = {
     {GATTSTEST_INIT_SERVER,        "gattstest_init_server",        ZERO_PARAM,    "gattstest_init_server (only for Init time)"},
     {GATTSTEST_ADDSERVER,          "gattstest_addservers",         ZERO_PARAM,    "gattstest_addservers"},
     {GATTSTEST_ADDSERVICES,        "gattstest_addservices",        TWO_PARAM,     "gattstest_addservices<space><server instance><space><service instance> eg. gattstest_addservices 1 1"},
+    {GATTSTEST_REMOVESERVICES,     "gattstest_removeservices",     TWO_PARAM,     "gattstest_removeservices<space><server instance><space><service instance> eg. gattstest_removeservices 1 1"},
     {GATTSTEST_INIT_ADVERTISER,    "gattstest_init_advertiser",    ZERO_PARAM,    "gattstest_init_advertiser initialzes advertiser"},
     {GATTSTEST_START_ADVERTISER,   "gattstest_start_advertiser",   TWO_PARAM,     "gattstest_start_advertiser<space><server instance><advset instance> eg. gattstest_start_advertiser 1 1"},
+    {GATTSTEST_UPDATE_PA_DATA,     "gattstest_update_pa_data",     TWO_PARAM,     "gattstest_update_pa_data<space><server instance><space><service data> eg. gattstest_update_pa_data 1 QTI_SERVICE_DATA"},
     {GATTSTEST_REQ_SUBRATE_MODE,   "gattstest_reqsubrate_mode",    THREE_PARAM,   "gattstest_reqsubrate_mode<space><server instance><space><remote address>\
 <space><mode balanced-0/high_priority-1/low_power-2>"},
     {GATTSTEST_REQ_LE_SUBRATE,     "gattstest_reqle_subrate",      SEVEN_PARAM,   "gattstest_reqle_subrate<space><server instance><space><remote_address>\
@@ -524,9 +529,11 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_PA_DEVICES,     "gattctest_pa_dev",  ZERO_PARAM,    "gattctest_pa_dev"},
     {GATTCTEST_PA_SYNCED_DEVICES,     "gattctest_pa_synced_dev",  ZERO_PARAM,    "gattctest_pa_synced_dev"},
     {GATTCTEST_CREATE_PA_SYNC,           "gattctest_create_pa_sync", ONE_PARAM,     "gattctest_create_pa_sync<space><bt_address> \
-          eg.gattctest_create_pa_sync 00:11:22:33:44:55 "},
+          eg. gattctest_create_pa_sync 00:11:22:33:44:55 "},
     {GATTCTEST_STOP_PA_SYNC,           "gattctest_stop_pa_sync", ONE_PARAM,     "gattctest_stop_pa_sync<space><bt_address> \
-          eg.gattctest_stop_pa_sync 00:11:22:33:44:55 "},
+          eg. gattctest_stop_pa_sync 00:11:22:33:44:55 "},
+    {GATTCTEST_FILTER_PA_ADV,          "gattctest_filter_pa_adv", TWO_PARAM,     "gattctest_filter_pa_adv<space><bt_address><space><filter range(0-3)> \
+          eg. filter (0bit:enable pa adv(1); 1bit:filter duplicate(2))"},
     {BACK_TO_MAIN,          "main_menu",      ZERO_PARAM,    "main_menu"},
     {GATTCTEST_CONN_PARAMS,       "gattctest_conn_params",    THREE_PARAM,    "gattctest_conn_params<space><isAuto><space><phy><space><isOppur> \
         eg: isAuto(0/1);phy (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination); isOppur(0/1))"},
