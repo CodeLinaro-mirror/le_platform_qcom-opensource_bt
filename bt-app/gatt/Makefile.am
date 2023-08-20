@@ -2,18 +2,18 @@ if USE_GEN_GATT
 AM_CPPFLAGS = -O2 \
               -D_GNU_SOURCE \
               -std=c++11 \
-              -I${WORKSPACE}/../qcom-opensource/bt/bt-app/utils/include \
-              -I${WORKSPACE}/../qcom-opensource/bt/bt-app/gatt/native/include \
-              -I${WORKSPACE}/../qcom-opensource/bt/bt-app/gatt/lib/include \
-              -I${WORKSPACE}/../qcom-opensource/bt/bt-app/gatt/framework/include \
-              -I${WORKSPACE}/../qcom-opensource/bt/bt-app/include \
-              -I${WORKSPACE}/../qcom-opensource/bt/bt-app/ \
-              -I${WORKSPACE}/../vendor/qcom/opensource/bluetooth/hal/include/ \
-              -I${WORKSPACE}/../vendor/qcom/opensource/bluetooth/vhal/include \
-              -I${WORKSPACE}/../vendor/qcom/opensource/system/bt \
-              -I${WORKSPACE}/../vendor/qcom/opensource/system/bt/include \
-              -I${WORKSPACE}/../vendor/qcom/opensource/system/bt/types \
-              -I${WORKSPACE}/../system/core/include
+              -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include \
+              -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/native/include \
+              -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/lib/include \
+              -I${WORKSPACE}/qcom-opensource/bt/bt-app/gatt/framework/include \
+              -I${WORKSPACE}/qcom-opensource/bt/bt-app/include \
+              -I${WORKSPACE}/qcom-opensource/bt/bt-app/ \
+              -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include/ \
+              -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
+              -I${WORKSPACE}/vendor/qcom/opensource/system/bt \
+              -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
+              -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
+              -I${WORKSPACE}/system/core/include
 
 ACLOCAL_AMFLAGS = -I m4
 
