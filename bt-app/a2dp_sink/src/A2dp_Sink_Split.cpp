@@ -25,6 +25,11 @@
   * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
   * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
   * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  *
+  * Changes from Qualcomm Innovation Center are provided under the following license:
+  *
+  * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  * SPDX-License-Identifier: BSD-3-Clause-Clear
   */
 
 #include <list>
@@ -41,6 +46,7 @@
 #include "A2dp_Src.hpp"
 #include "hardware/bt_av_vendor.h"
 #include <algorithm>
+#include <dlfcn.h>
 
 #define LOGTAG "A2DP_SINK_SPLIT"
 
@@ -51,6 +57,9 @@ using std::string;
 A2dp_Sink_Split *pA2dpSinkSplit = NULL;
 extern Avrcp *pAvrcp;
 extern void flush_relay_data(void);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+static bool pa_a2dp_is_connected = false;
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -775,6 +784,27 @@ void BtA2dpSinkSplitMsgHandler(void *msg) {
             pA2dpSinkSplit->suspend_pending = false;
             }
             break;
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+        case A2DP_SINK_BT_ENABLE_COMMAND:
+            if (pA2dpSinkSplit->pa_routing_intf && pa_a2dp_is_connected) {
+                int ret = -1;
+                if (pEvent->a2dpSinkEvent.arg1) {
+                    ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SINK,
+                            "btsink_enable=true");
+                }
+                else {
+                    ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SINK,
+                            "btsink_enable=false");
+                }
+                if (ret) {
+                    ALOGE(LOGTAG, " btsink_enable=%d failed\n");
+                    fprintf(stdout, "btsink_enable=%d failed\n", pEvent->a2dpSinkEvent.arg1);
+                }
+                else
+                    fprintf(stdout, "btsink_enable=%d success\n", pEvent->a2dpSinkEvent.arg1);
+            }
+            break;
+#endif
         case BT_AM_CONTROL_STATUS:
             ALOGD(LOGTAG " BT_AM_CONTROL_STATUS");
             if (pA2dpSinkSplit) {
@@ -931,6 +961,12 @@ static void bta2dp_audio_split_sink_start_ind_callback(const bt_bdaddr_t& bd_add
     memcpy(&pA2dpSinkSplit->mPendingDevice, &bd_addr, sizeof(bt_bdaddr_t));
     pA2dpSinkSplit->start_pending = true;
     pA2dpSinkSplit->suspend_pending = false;
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    BtEvent *pEvent = new BtEvent;
+    pEvent->a2dpSinkEvent.event_id = A2DP_SINK_BT_ENABLE_COMMAND;
+    pEvent->a2dpSinkEvent.arg1 = 1;
+    PostMessage(THREAD_ID_A2DP_SINK_SPLIT, pEvent);
+#endif
 }
 
 static void bta2dp_audio_split_sink_suspend_ind_callback(const bt_bdaddr_t& bd_addr) {
@@ -945,6 +981,12 @@ static void bta2dp_audio_split_sink_suspend_ind_callback(const bt_bdaddr_t& bd_a
     memcpy(&pA2dpSinkSplit->mPendingDevice, &bd_addr, sizeof(bt_bdaddr_t));
     pA2dpSinkSplit->suspend_pending = true;
     pA2dpSinkSplit->start_pending = false;
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    BtEvent *pEvent = new BtEvent;
+    pEvent->a2dpSinkEvent.event_id = A2DP_SINK_BT_ENABLE_COMMAND;
+    pEvent->a2dpSinkEvent.arg1 = 0;
+    PostMessage(THREAD_ID_A2DP_SINK_SPLIT, pEvent);
+#endif
 }
 
 static void bta2dp_audio_mtu_config_callback(uint16_t mtu, const RawAddress& bd_addr) {
@@ -1048,6 +1090,21 @@ void A2dp_Sink_Split::HandleDisableSink(void) {
     pEvent->profile_stop_event.profile_id = PROFILE_ID_A2DP_SINK;
     pEvent->profile_stop_event.status = true;
     PostMessage(THREAD_ID_GAP, pEvent);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    int ret = 0;
+    BtEvent *pEvt = new BtEvent;
+    pEvt->a2dpSinkEvent.event_id = A2DP_SINK_BT_ENABLE_COMMAND;
+    pEvt->a2dpSinkEvent.arg1 = 0;
+    PostMessage(THREAD_ID_A2DP_SINK_SPLIT, pEvt);
+    if (pA2dpSinkSplit->pa_routing_intf && pa_a2dp_is_connected) {
+        ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SINK, false);
+        if (!ret) {
+            pa_a2dp_is_connected = false;
+            ALOGD(LOGTAG, " BT a2dp disconnect success");
+            fprintf(stdout, "BT a2dp disconnect success\n");
+        }
+    }
+#endif
 }
 
 void A2dp_Sink_Split::ProcessEvent(BtEvent* pEvent, list<A2dp_Device>::iterator iter) {
@@ -1131,10 +1188,46 @@ void A2dp_Sink_Split::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
                     ALOGE(LOGTAG "RC not already connected with this device ");
                 }
             }
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (!pA2dpSinkSplit->pa_routing_intf) {
+                pA2dpSinkSplit->pa_routing_intf = pa_routing_intf_open();
+                if (!pA2dpSinkSplit->pa_routing_intf) {
+                    ALOGE(LOGTAG, " pa_routing_intf_open failed!!!");
+                }
+                else {
+                    ALOGD(LOGTAG, " pa_routing_intf_open success!!!");
+                    pa_a2dp_is_connected = false;
+                }
+            }
+
+            if (pA2dpSinkSplit->pa_routing_intf && !pa_a2dp_is_connected) {
+                int ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SINK, true);
+                if (!ret) {
+                    pa_a2dp_is_connected = true;
+                    ALOGD(LOGTAG, " BT a2dp connect success");
+                    fprintf(stdout, "BT a2dp connect success\n");
+                }
+            }
+#endif
             break;
         case A2DP_SINK_API_DISCONNECT_REQ:
         case A2DP_SINK_DISCONNECTING_CB:
         case A2DP_SINK_DISCONNECTED_CB:
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (pA2dpSinkSplit->pa_routing_intf && pa_a2dp_is_connected) {
+                int ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SINK, false);
+                if (!ret) {
+                    pa_a2dp_is_connected = false;
+                    ALOGD(LOGTAG, " BT a2dp disconnect success");
+                    fprintf(stdout, "BT a2dp disconnect success\n");
+                }
+            }
+            if (pA2dpSinkSplit->pa_routing_intf) {
+                pa_routing_intf_close(pA2dpSinkSplit->pa_routing_intf);
+                pa_a2dp_is_connected = false;
+                pA2dpSinkSplit->pa_routing_intf = NULL;
+            }
+#endif
             if (pA2dpDeviceList.size() == 0) {
                 ALOGE(LOGTAG " no device to disconnect");
                 fprintf(stdout, "No device connected\n");
@@ -1581,8 +1674,17 @@ A2dp_Sink_Split :: A2dp_Sink_Split(const bt_interface_t *bt_interface, config_t 
     memset(&mStreamingDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mResumingDevice, 0, sizeof(bt_bdaddr_t));
     memset(&mPendingDevice, 0, sizeof(bt_bdaddr_t));
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_intf = NULL;
+#endif
 }
 
 A2dp_Sink_Split :: ~A2dp_Sink_Split() {
     pthread_mutex_destroy(&lock);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    if (pa_routing_intf) {
+        pa_routing_intf_close(pa_routing_intf);
+        pa_routing_intf = NULL;
+    }
+#endif
 }

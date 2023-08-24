@@ -13,6 +13,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include <list>
@@ -22,6 +27,7 @@
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
 #include <hardware/bt_hf_client.h>
+#include <dlfcn.h>
 
 //#include "Audio_Manager.hpp"
 #include "HfpClient.hpp"
@@ -45,6 +51,9 @@ using std::string;
 
 Hfp_Client *pHfpClient = NULL;
 extern BT_Audio_Manager *pBTAM;
+#ifdef BT_AUDIO_PAL_INTEGRATION
+static bool pa_hfp_is_connected = false;
+#endif
 
 #if (defined USE_GST)
 
@@ -1270,6 +1279,13 @@ void Hfp_Client::ConfigureRingTonePlayback() {
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
 #endif
+#ifdef BT_AUDIO_PAL_INTEGRATION
+   int ret = 0;
+   ALOGD(LOGTAG " %s: Initializing pulseaudio sink for ringtone playback", __func__);
+   ret = pa_routing_intf->pa_sink_init_fn(PA_SINK_LOW_LATENCY, 16, 8000, 1, PA_BT_PCM_FORMAT);
+   if (ret)
+       ALOGE(LOGTAG " %s: Failed to initialize pulseaudio sink for ringtone playback\n", __func__);
+#endif
 }
 
 // plays 1 sec tone
@@ -1318,6 +1334,22 @@ void Hfp_Client::PlayRingTone() {
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
 #endif
+#ifdef BT_AUDIO_PAL_INTEGRATION
+  bool ret = false;
+  char *buffer = (char*) osi_calloc(sizeof(ring_tone));
+  if (!buffer) {
+      fprintf(stdout, "memory allocation for playing ringtone failed\n");
+      ALOGE("%s: memory allocation for playing ringtone failed", __func__);
+      return;
+  }
+
+  memcpy(buffer, ring_tone, sizeof(ring_tone));
+  ret = pa_routing_intf->pa_sink_play_fn(buffer, sizeof(ring_tone));
+  if (!ret)
+      ALOGE(LOGTAG " %s: Failed to play ringtone on PA sink", __func__);
+
+  osi_free(buffer);
+#endif
 }
 
 void Hfp_Client::StopRingTone() {
@@ -1337,6 +1369,10 @@ void Hfp_Client::StopRingTone() {
     }
 #endif // USE_GST
 #endif // BT_AUDIO_HAL_INTEGRATION
+#ifdef BT_AUDIO_PAL_INTEGRATION
+    ALOGD(LOGTAG " %s:Deiniting the sink for ringtone playback", __func__);
+    pa_routing_intf->pa_sink_deinit_fn();
+#endif
 }
 
 void Hfp_Client::ConfigureAudio(bool enable) {
@@ -1399,8 +1435,65 @@ void Hfp_Client::ConfigureAudio(bool enable) {
    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
 #endif
-}
+#ifdef BT_AUDIO_PAL_INTEGRATION
+   if (pa_routing_intf) {
+       int ret = -1;
+       if (enable && !pa_hfp_is_connected) {
+           ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_SCO, true);
+           if(!ret) {
+               fprintf(stdout, "BT connect is success for SCO usecase\n");
+               ALOGD(LOGTAG " BT connect is success for SCO usecase");
+               pa_hfp_is_connected = true;
+           }
+           else {
+               fprintf(stdout, "BT connect failed for SCO usecase !!\n");
+               ALOGE(LOGTAG " BT connect failed for SCO usecase !!\n");
+               return;
+           }
 
+           ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, "hfp_volume=10");
+           if(!ret)
+               ALOGD(LOGTAG " HFP set volume success\n");
+
+           if (mAudioWbs)
+               ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, "hfp_sample_rate=16000");
+           else
+               ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, "hfp_sample_rate=8000");
+
+           if(!ret)
+               ALOGD(LOGTAG " set param- hfp_set_sampling_rate success\n");
+
+           ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, "hfp_enable=true");
+           if(!ret) {
+               fprintf(stdout, "set param- hfp_enable=true success\n");
+               ALOGD(LOGTAG " HFP enabled successfully\n");
+           }
+           else {
+               fprintf(stdout, "set param hfp_enable=true failed!!!\n");
+               ALOGE(LOGTAG " set param hfp_enable=true failed!!!\n");
+           }
+       }
+       else if (!enable && pa_hfp_is_connected) {
+           ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, "hfp_enable=false");
+           if(!ret) {
+               fprintf(stdout, "set param hfp_enable=false success\n");
+               ALOGD(LOGTAG " set param hfp_enable=false success\n");
+           }
+           else {
+               fprintf(stdout, "set param hfp_enable=false failed!!!\n");
+               ALOGE(LOGTAG " set param hfp_enable=false failed!!!\n");
+           }
+
+           ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_SCO, false);
+           if(!ret) {
+               fprintf(stdout, "BT disconnect is success for SCO usecase\n");
+               ALOGD(LOGTAG " BT disconnect is success for SCO usecase\n");
+               pa_hfp_is_connected = false;
+           }
+       }
+   }
+#endif
+}
 
 void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bool mute_mic) {
 
@@ -1444,6 +1537,41 @@ void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bo
    }
 
 #endif // BT_AUDIO_HAL_INTEGRATION
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+   int ret;
+   char vol_cmd[25];
+   char *vol_str = NULL;
+
+   if (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK) {
+       int cmd_len = 0;
+       vol_str = "hfp_volume=";
+       snprintf(vol_cmd, strlen(vol_str) + 3, "%s%d", vol_str, vol);
+   }
+   else if (vol_type == BTHF_CLIENT_VOLUME_TYPE_MIC) {
+       if (mute_mic) {
+           vol_str = "hfp_mic_mute=true";
+       }
+       else {
+           vol_str = "hfp_mic_mute=false";
+       }
+       strlcpy(vol_cmd, vol_str, strlen(vol_str) + 1);
+   }
+   else {
+       fprintf(stdout, "Unsupported volume type!!\n");
+       return;
+   }
+
+   ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, vol_cmd);
+   if(!ret) {
+       ALOGD(LOGTAG " set %s success\n", vol_cmd);
+       fprintf(stdout, "set %s success\n", vol_cmd);
+   }
+   else {
+       ALOGD(LOGTAG " HFP set mute failed !!\n");
+       fprintf(stdout, "HFP set mute failed !!\n");
+   }
+
+#endif // BT_AUDIO_PAL_INTEGRATION
 }
 
 void Hfp_Client::change_state(HfpClientState mState) {
@@ -1482,6 +1610,16 @@ Hfp_Client :: Hfp_Client(const bt_interface_t *bt_interface, config_t *config) {
     this->config = config;
     out_stream =  NULL;
 #endif // BT_AUDIO_HAL_INTEGRATION
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_intf = pa_routing_intf_open();
+    if (!pa_routing_intf) {
+        ALOGE(LOGTAG " pa_routing_intf_open failed !!");
+    }
+    else {
+        ALOGD(LOGTAG " pa_routing_intf_open success !!");
+        pa_hfp_is_connected = false;
+    }
+#endif
     pthread_mutex_init(&this->lock, NULL);
 }
 
@@ -1495,5 +1633,12 @@ Hfp_Client :: ~Hfp_Client() {
 #endif // USE_GST
     out_stream =  NULL;
 #endif // BT_AUDIO_HAL_INTEGRATION
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    if (pa_routing_intf) {
+        pa_routing_intf_close(pa_routing_intf);
+        pa_hfp_is_connected = false;
+    }
+    pa_routing_intf = NULL;
+#endif
     pthread_mutex_destroy(&lock);
 }

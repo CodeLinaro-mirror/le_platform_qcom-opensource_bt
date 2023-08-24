@@ -25,6 +25,11 @@
   * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
   * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
   * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  *
+  * Changes from Qualcomm Innovation Center are provided under the following license:
+  *
+  * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  * SPDX-License-Identifier: BSD-3-Clause-Clear
   */
 
 #include <list>
@@ -44,6 +49,10 @@
 #include "Gap.hpp"
 #include "hardware/bt_av_vendor.h"
 #include "Avrcp.hpp"
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+#include "pa_routing_interface.h"
+#include "A2dp_Sink_Split.hpp"
+#endif
 
 #if (defined USE_GST)
 #ifdef __cplusplus
@@ -71,6 +80,9 @@ static pthread_mutex_t data_q_lock;
 
 
 extern A2dp_Sink_Streaming *pA2dpSinkStream;
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+extern A2dp_Sink_Split *pA2dpSinkSplit;
+#endif
 extern BT_Audio_Manager *pBTAM;
 extern Avrcp *pAvrcp;
 extern Gap *g_gap;
@@ -1525,6 +1537,27 @@ void A2dp_Sink_Streaming::SetStreamVol(int curr_audio_index)
     }
     qahw_out_set_volume(out_stream, (float)curr_audio_index/15, (float)curr_audio_index/15);
     ALOGD(LOGTAG " SetStreamVol = %d successfully", curr_audio_index);
+#endif
+#if (defined(BT_AUDIO_PAL_INTEGRATION))
+    int ret = 0;
+    char vol_cmd[25];
+    char *vol_str = NULL;
+
+    if (pA2dpSinkSplit->pa_routing_intf) {
+        vol_str = "btsink_volume=";
+        snprintf(vol_cmd, strlen(vol_str) + 3, "%s%d", vol_str, curr_audio_index);
+        ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SINK, vol_cmd);
+        if (ret) {
+            fprintf(stdout, "%s set failed\n", vol_cmd);
+            ALOGD(LOGTAG "%s set failed", vol_cmd);
+        } else {
+            fprintf(stdout, "%s set successfully\n", vol_cmd);
+            ALOGD(LOGTAG "%s set successfully", vol_cmd);
+        }
+    }
+    else {
+        ALOGD(LOGTAG "pa_routing_intf not ready for set_volume command");
+    }
 #endif
 }
 

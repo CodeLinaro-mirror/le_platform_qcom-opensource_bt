@@ -25,6 +25,11 @@
   * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
   * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
   * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  *
+  * Changes from Qualcomm Innovation Center are provided under the following license:
+  *
+  * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  * SPDX-License-Identifier: BSD-3-Clause-Clear
   */
 
 #include <list>
@@ -798,7 +803,11 @@ void Avrcp::setAbsVolume(bt_bdaddr_t* dev, int absVol, int label) {
               * change in index values which are in range of 0-15. For such cases
               * no action is requiredf
               */
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+        if (newIndex != currIndex) {
+#else
         if (!is_a2dp_sink_split_enabled && newIndex != currIndex) {
+#endif
             curr_audio_index = newIndex;
             pA2dpSinkStream->SetStreamVol(curr_audio_index);
         }
@@ -994,7 +1003,9 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
                 iter++;
         }
         mPreviousPercentageVol = perVol;
-        if(!is_a2dp_sink_split_enabled)
+#if !defined(BT_AUDIO_PAL_INTEGRATION)
+        if (!is_a2dp_sink_split_enabled)
+#endif
             pA2dpSinkStream->SetStreamVol(curr_audio_index);
         break;
 
