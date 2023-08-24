@@ -16,6 +16,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 #pragma once
@@ -206,6 +211,9 @@ typedef enum {
     A2DP_SINK_AUDIO_SUSPEND_REQ,
     A2DP_SINK_ACCEPT_PENDING_COMMAND,
     A2DP_SINK_REJECT_PENDING_COMMAND,
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    A2DP_SINK_BT_ENABLE_COMMAND,
+#endif
     A2DP_SINK_CODEC_CONFIG,
     A2DP_SINK_FETCH_PCM_DATA,
     A2DP_SINK_FILL_COMPRESS_BUFFER,
