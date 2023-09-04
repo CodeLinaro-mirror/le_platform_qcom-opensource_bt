@@ -60,9 +60,9 @@ AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
                -I${WORKSPACE}/qcom-opensource/bt/obex_profiles/sdk/oem
 endif
 
-#if AUDIO_HAL_SUPPORTED
-#AM_CPPFLAGS += -DBT_AUDIO_HAL_INTEGRATION
-#endif
+if AUDIO_HAL_SUPPORTED
+AM_CPPFLAGS += -DBT_AUDIO_HAL_INTEGRATION
+endif
 
 cpp_sources = ../utils/src/utils.cc \
             src/ipc.cpp \
@@ -106,9 +106,9 @@ if USE_GEN_GATT
 requiredlibs += ../gatt/libgengatt.la
 endif
 
-#if AUDIO_HAL_SUPPORTED
-#requiredlibs += -lqahw
-#endif
+if AUDIO_HAL_SUPPORTED
+requiredlibs += -lqahw
+endif
 
 if USE_BT_OBEX
 requiredlibs += -lbtobex
