@@ -226,12 +226,3 @@ static void internal_dequeue_ready(void *context) {
   fixed_queue_t *queue = static_cast<fixed_queue_t*> (context);
   queue->dequeue_ready(queue, queue->dequeue_context);
 }
-
-size_t fixed_queue_length(fixed_queue_t* queue) {
-  if (queue == NULL) {
-     return 0;
-  }
-
-  return list_length(queue->list);
-}
-

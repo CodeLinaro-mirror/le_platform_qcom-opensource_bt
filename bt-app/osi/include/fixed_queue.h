@@ -99,11 +99,6 @@ void fixed_queue_register_dequeue(fixed_queue_t *queue, reactor_t *reactor, fixe
 // Unregisters the dequeue ready callback for |queue| from whichever reactor
 // it is registered with, if any. This function is idempotent.
 void fixed_queue_unregister_dequeue(fixed_queue_t *queue);
-
-// This function returns the length of queue. If the queue is empty, this
-// function returns 0 immediately.
-size_t fixed_queue_length(fixed_queue_t* queue);
-
 #ifdef __cplusplus
 }
 #endif
