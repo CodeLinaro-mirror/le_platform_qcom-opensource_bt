@@ -82,7 +82,7 @@ AC_ARG_ENABLE(target,
 )
 AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$TARGET" = "xapq8009" -o "x$TARGET" = "xapq8017" -o "x$TARGET" = "xapq8096" -o "x$TARGET" = "xapq8053" -o "x$TARGET" = "xapq8098" -o "x$TARGET" = "xqcs405" -o "x$TARGET" = "xqcs40x" -o "x$TARGET" = "xsdmsteppe" -o "x$TARGET" = "xqrb5165" -o "x$TARGET" = "xqrbx210"])
 AM_CONDITIONAL([RB5_AUDIO_HAL], [test "x$TARGET" = "xqrb5165"])
-AM_CONDITIONAL([USE_BLE_SOCKET_MANAGER], [test "x$TARGET" = "xsxr2130" -o "x$TARGET" = "xneo" -o "x$TARGET" = "xsdx75" -o "x$TARGET" = "xsdxbaagha"])
+AM_CONDITIONAL([USE_BLE_SOCKET_MANAGER], [test "x$TARGET" = "xsxr2130" -o "x$TARGET" = "xneo"])
 
 AC_SUBST(SYS_LIB)
 AC_SUBST([CFLAGS])
