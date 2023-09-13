@@ -3090,8 +3090,12 @@ void BtSocketDataHandler (void *context) {
                     PostMessage (THREAD_ID_PAN, event);
                     break;
                 case BT_IPC_REMOTE_START_WLAN:
-                    ALOGV (LOGTAG "  Posting IPC_MSG to GATT thread");
-                    PostMessage (THREAD_ID_GATT, event);
+					ALOGD(LOGTAG " %s: SKT_API_IPC_MSG_READ, BT_IPC_REMOTE_START_WLAN, %x", __func__, event->bt_ipc_msg_event.ipc_msg.status);
+					if (event->bt_ipc_msg_event.ipc_msg.status == SUCCESS)
+						rsp->SetDeviceState(WLAN_ACTIVE);
+					else
+						rsp->SetDeviceState(WLAN_INACTIVE);
+					delete event;
                     break;
                 default:
                     delete event;
