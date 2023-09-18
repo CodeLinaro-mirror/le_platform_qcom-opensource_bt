@@ -51,7 +51,7 @@
 
 #define MAX_SERVICE_DATA_SCAN_FILTER_LEN 24
 
-#define MAX_EXT_ADV_DATA_LEN 229
+#define MAX_EXT_ADV_DATA_LEN 1650
 
 #define MAX_ADV_DATA_TYPE_VAL_LEN 254
 
@@ -456,7 +456,7 @@ typedef struct {
   uint16_t service_data_uuid16;
   uint8_t service_data_len;
   // service data
-  uint8_t service_data[MAX_SERVICE_DATA_LEN];
+  uint8_t service_data[MAX_ADV_DATA_TYPE_VAL_LEN];
   uint8_t device_name_len;
   char device_name[MAX_ADV_DATA_TYPE_VAL_LEN];
   uint8_t raw_adv_data_len;
