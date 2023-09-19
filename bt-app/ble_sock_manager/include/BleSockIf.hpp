@@ -25,6 +25,10 @@
 * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 #ifndef BLE_SOCK_IF_H
@@ -34,6 +38,7 @@
 #include <stdint.h>
 
 #define BLE_WBDS_SOCKET_NAME "/data/misc/bluetooth/ble_wbds_socket"
+#define BLE_GAP_SOCKET_NAME "/data/misc/bluetooth/ble_gap_socket"
 #define MAX_BOOTSTRAP_ADV_DATA_LEN 200
 #define MAX_SERVICE_DATA_LEN 200
 
@@ -45,6 +50,10 @@
 #define CONNECTABLE_MASK 0x01
 
 #define MAX_SERVICE_DATA_SCAN_FILTER_LEN 24
+
+#define MAX_EXT_ADV_DATA_LEN 229
+
+#define MAX_ADV_DATA_TYPE_VAL_LEN 254
 
 typedef enum {
   BLE_IPC_STATUS_SUCCESS,
@@ -58,7 +67,9 @@ typedef enum {
   BLE_IPC_STATUS_WCS_PEER_DISCOVERY_ALREADY_DISABLED,
   BLE_IPC_STATUS_WCS_PEER_ALREADY_CONNECTED,
   BLE_IPC_STATUS_WCS_PEER_ALREADY_DISCONNECTED,
-  BLE_IPC_STATUS_WCS_PEER_ABNORMALLY_DISCONNECTED
+  BLE_IPC_STATUS_WCS_PEER_ABNORMALLY_DISCONNECTED,
+  BLE_IPC_STATUS_GAP_SCAN_ALREADY_ENABLED,
+  BLE_IPC_STATUS_GAP_ADV_ALREADY_ENABLED,
 } BleIpcStatus;
 
 typedef enum {
@@ -171,6 +182,43 @@ typedef enum{
    * ipc message is used to reply to an BLE_IPC_MSG_WCS_CCCD_WRITE_REQ event
    */
   BLE_IPC_MSG_WCS_CCCD_WRITE_RSP,
+  /**
+   * ipc message is used to enable advertising
+   */
+  BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ,
+  /**
+   * ipc message is used to reply to an BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ event
+   */
+  BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_RSP,
+  /**
+   * ipc message is used to disable advertising
+   */
+  BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_REQ,
+  /**
+   * ipc message is used to reply to an BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_REQ event
+   */
+  BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_RSP,
+  /**
+   * ipc message is used to enable scanning
+   */
+  BLE_IPC_MSG_GAP_SCAN_ENABLE_REQ,
+  /**
+   * ipc message is used to reply to an BLE_IPC_MSG_GAP_SCAN_ENABLE_REQ event
+   */
+  BLE_IPC_MSG_GAP_SCAN_ENABLE_RSP,
+  /**
+   * ipc message is used to report to scan result event
+   */
+  BLE_IPC_MSG_GAP_SCAN_RESULT,
+  /**
+   * ipc message is used to disable scanning
+   */
+  BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ,
+  /**
+   * ipc message is used to reply to an BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ event
+   */
+  BLE_IPC_MSG_GAP_SCAN_DISABLE_RSP,
+
 
   BLE_IPC_MSG_INAVALID = 0xFF
 } BleIpcEventId;
@@ -368,6 +416,104 @@ typedef struct {
   BleIpcStatus status;
 } __attribute__((packed)) WCSCCCDWriteRspEvent;
 
+typedef struct {
+  BleIpcEventId eventId;
+  // 16 bit service data uuid
+  uint16_t service_data_uuid16;
+  // service data len
+  uint8_t service_data_len;
+  // service data
+  uint8_t service_data[MAX_SERVICE_DATA_SCAN_FILTER_LEN];
+  // service data mask len
+  uint8_t service_data_mask_len;
+  //service data mask must include mask value, if mask len is greater than 0
+  uint8_t service_data_mask[MAX_SERVICE_DATA_SCAN_FILTER_LEN];
+  // scan mode (opportunistic = -1, low_power = 0 (default), balanced = 1, low_latency = 2)
+  int8_t scan_mode;
+  // legacy scan
+  bool legacy;
+} __attribute__((packed)) BleGapScanEnableReqEvent;
+
+typedef struct {
+  BleIpcEventId eventId;
+  BleIpcStatus status;
+} __attribute__((packed)) BleGapScanEnableRspEvent;
+
+typedef struct {
+  BleIpcEventId eventId;
+} __attribute__((packed)) BleGapScanDisableReqEvent;
+
+typedef struct {
+  BleIpcEventId eventId;
+  BleIpcStatus status;
+} __attribute__((packed)) BleGapScanDisableRspEvent;
+
+typedef struct {
+  BleIpcEventId eventId;
+  char bd_addr[BD_ADDR_STR_LEN];
+  int advertise_flags;
+  //16 bit service data uuid
+  uint16_t service_data_uuid16;
+  uint8_t service_data_len;
+  // service data
+  uint8_t service_data[MAX_SERVICE_DATA_LEN];
+  uint8_t device_name_len;
+  char device_name[MAX_ADV_DATA_TYPE_VAL_LEN];
+  uint8_t raw_adv_data_len;
+  // complete raw adv data
+  uint8_t raw_adv_data[MAX_EXT_ADV_DATA_LEN];
+  bool is_connectable;
+  bool is_legacy;
+  int16_t rssi;
+  int16_t tx_power;
+  uint8_t adv_sid;
+  uint16_t periodic_adv_int; // unit of 1.25 msec
+  uint8_t primary_phy;
+  uint8_t secondary_phy;
+} __attribute__((packed)) BleGapScanResultEvent;
+
+
+typedef struct
+{
+  //16 bit service data uuid
+  uint16_t service_data_uuid16;
+  uint8_t service_data_len;
+  uint8_t service_data[MAX_SERVICE_DATA_LEN];
+  bool include_device_name;
+  bool include_tx_power_level;
+} __attribute__((packed)) BleGapAdvertiseServiceData;
+typedef struct
+{
+  uint32_t interval;
+  int16_t tx_power_level;
+  bool include_tx_power;
+  bool connectable;
+  bool scannable;
+  bool anonymous;
+  uint32_t duration_msec;
+  bool legacy;
+  BleGapAdvertiseServiceData adv_data;
+} __attribute__((packed)) BleGapAdvertiseInfo;
+
+typedef struct {
+  BleIpcEventId eventId;
+  BleGapAdvertiseInfo info;
+} __attribute__((packed)) BleGapAdvertiseEnableReqEvent;
+
+typedef struct {
+  BleIpcEventId eventId;
+  BleIpcStatus status;
+} __attribute__((packed)) BleGapAdvertiseEnableRspEvent;
+
+typedef struct {
+  BleIpcEventId eventId;
+} __attribute__((packed)) BleGapAdvertiseDisableReqEvent;
+
+typedef struct {
+  BleIpcEventId eventId;
+  BleIpcStatus status;
+} __attribute__((packed)) BleGapAdvertiseDisableRspEvent;
+
 typedef union {
   BleIpcEventId eventId;
   WlanDppBootstrapModeEnableReqEvent wlanDppBootstrapModeEnableReqEvent;
@@ -394,6 +540,16 @@ typedef union {
   WCSCCCDReadRspEvent                 wcsCCCDReadRspEvent;
   WCSCCCDWriteReqEvent                wcsCCCDWriteReqEvent;
   WCSCCCDWriteRspEvent                wcsCCCDWriteRspEvent;
+  BleGapScanEnableReqEvent            bleGapScanEnableReqEvent;
+  BleGapScanEnableRspEvent            bleGapScanEnableRspEvent;
+  BleGapScanResultEvent               bleGapScanResultEvent;
+  BleGapScanDisableReqEvent           bleGapScanDisableReqEvent;
+  BleGapScanDisableRspEvent           bleGapScanDisableRspEvent;
+  BleGapAdvertiseInfo                 bleGapAdvertiseInfo;
+  BleGapAdvertiseEnableReqEvent       bleGapAdvertiseEnableReqEvent;
+  BleGapAdvertiseEnableRspEvent       bleGapAdvertiseEnableRspEvent;
+  BleGapAdvertiseDisableReqEvent      bleGapAdvertiseDisableReqEvent;
+  BleGapAdvertiseDisableRspEvent      bleGapAdvertiseDisableRspEvent;
 } ble_ipc_msg_t;
 
 #define BLE_IPC_MSG_LEN sizeof(ble_ipc_msg_t)

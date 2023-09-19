@@ -15,6 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+Changes from Qualcomm Innovation Center are provided under the following license:
+Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
 
 #include <list>
 #include <map>
@@ -33,6 +38,9 @@
 
 #define LOGTAG "AdapterProperties"
 
+extern sd_bus *g_sdbus;
+static char const *sObjPath = "/org/fluoride/hci0";
+#define DBUS_INTERFACE "org.fluoride.Adapter1"
 
 void AdapterProperties:: SetState(AdapterState state) {
     pthread_mutex_lock(&lock_);
@@ -148,14 +156,15 @@ void AdapterProperties::GetCorePropertyList(int num_properties,
            break;
            case BT_PROPERTY_BDNAME:
            {
-            ALOGD(LOGTAG "AdapterProperties::BT_PROPERTY_BDNAME");
+               ALOGD(LOGTAG "AdapterProperties::BT_PROPERTY_BDNAME");
 
-            memset (&bt_device_info.bd_name, '\0', sizeof (bt_device_info.bd_name));
-            std::memcpy((bt_bdname_t *)&bt_device_info.bd_name, properties[index].val,
-                          properties[index].len);
-
-            event->gatt_adapter_property_event.type = BT_PROPERTY_BDNAME;
-            PostMessage(THREAD_ID_GATT, event);
+               memset (&bt_device_info.bd_name, '\0', sizeof (bt_device_info.bd_name));
+               std::memcpy((bt_bdname_t *)&bt_device_info.bd_name, properties[index].val,
+                             properties[index].len);
+               sd_bus_emit_properties_changed(g_sdbus, sObjPath,
+                               DBUS_INTERFACE, "Name", nullptr);
+               event->gatt_adapter_property_event.type = BT_PROPERTY_BDNAME;
+               PostMessage(THREAD_ID_GATT, event);
            }
            break;
            case BT_PROPERTY_LOCAL_LE_FEATURES:

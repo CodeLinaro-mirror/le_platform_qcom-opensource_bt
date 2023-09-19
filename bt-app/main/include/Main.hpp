@@ -251,6 +251,10 @@ typedef enum {
     GATTCTEST_SCAN_SETTINGS,
     GATTCTEST_START_SCAN,
     GATTCTEST_STOP_SCAN,
+    GATTCTEST_CREATE_PA_SYNC,
+    GATTCTEST_STOP_PA_SYNC,
+    GATTCTEST_PA_DEVICES,
+    GATTCTEST_PA_SYNCED_DEVICES,
     GATTCTEST_BATCH_SCAN,
     GATTCTEST_CONN_PARAMS,
     GATTCTEST_CONNECT,
@@ -507,6 +511,12 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_START_SCAN,        "gattctest_start_scan", ZERO_PARAM,    "gattctest_start_scan"},
     {GATTCTEST_STOP_SCAN,         "gattctest_stop_scan",  ZERO_PARAM,    "gattctest_stop_scan"},
     {GATTCTEST_BATCH_SCAN,        "gattctest_batch_scan", ONE_PARAM,    "gattctest_batch_scan  0-FULL MODE 1- TRUNCATED MODE"},
+    {GATTCTEST_PA_DEVICES,     "gattctest_pa_dev",  ZERO_PARAM,    "gattctest_pa_dev"},
+    {GATTCTEST_PA_SYNCED_DEVICES,     "gattctest_pa_synced_dev",  ZERO_PARAM,    "gattctest_pa_synced_dev"},
+    {GATTCTEST_CREATE_PA_SYNC,           "gattctest_create_pa_sync", ONE_PARAM,     "gattctest_create_pa_sync<space><bt_address> \
+          eg.gattctest_create_pa_sync 00:11:22:33:44:55 "},
+    {GATTCTEST_STOP_PA_SYNC,           "gattctest_stop_pa_sync", ONE_PARAM,     "gattctest_stop_pa_sync<space><bt_address> \
+          eg.gattctest_stop_pa_sync 00:11:22:33:44:55 "},
     {BACK_TO_MAIN,          "main_menu",      ZERO_PARAM,    "main_menu"},
     {GATTCTEST_CONN_PARAMS,       "gattctest_conn_params",    THREE_PARAM,    "gattctest_conn_params<space><isAuto><space><phy><space><isOppur> \
         eg: isAuto(0/1);phy (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination); isOppur(0/1))"},

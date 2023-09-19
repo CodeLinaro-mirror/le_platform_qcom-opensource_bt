@@ -75,15 +75,20 @@ void PeriodicScanManager::onSyncStarted(int regId, int syncHandle, int sid, int 
   if (cb == NULL) {
     ALOGI(LOGTAG "onSyncStarted() - no callback found for regId %d", regId);
     // Sync was stopped before it was properly registered.
-    mNative->stopSyncNative(syncHandle);
+    if (status == 0) {
+      mNative->stopSyncNative(syncHandle);
+    }
     return;
   }
 
+  // erase regId due to stopSync() may find it instead of syncHandle
+  mSyncs.erase(regId);
   if (status == 0) {
     mSyncs.insert({{syncHandle, cb}});
   } else {
       mSyncs.erase(syncHandle);
   }
+  cb->onSyncEstablished(syncHandle, address, sid, 0, 0, status);
 
   // TODO: fix callback arguments
   // callback->onSyncStarted(syncHandle, tx_power, status);
@@ -106,6 +111,9 @@ void PeriodicScanManager::onSyncReport(int syncHandle, int txPower, int rssi, in
           new PeriodicAdvertisingReport(syncHandle, txPower, rssi, dataStatus,
                   ScanRecord::parseFromBytes(data));
   cb->onPeriodicAdvertisingReport(report);
+  if (report != NULL) {
+    delete(report);
+  }
 }
 
 void PeriodicScanManager::onSyncLost(int syncHandle)
@@ -121,6 +129,7 @@ void PeriodicScanManager::onSyncLost(int syncHandle)
   }
 
   mSyncs.erase(syncHandle);
+  cb->onSyncLost(syncHandle);
 }
 
 
@@ -153,6 +162,7 @@ void PeriodicScanManager::stopSync(IPeriodicAdvertisingCallback *callback)
 
   if (it == mSyncs.end()) {
       ALOGE(LOGTAG "stopSync() - no client found for callback");
+      fprintf(stdout, "stopSync() - no client found for callback");
       return;
   }
 
@@ -160,6 +170,7 @@ void PeriodicScanManager::stopSync(IPeriodicAdvertisingCallback *callback)
 
   if (syncHandle < 0) {
       ALOGD(LOGTAG "stopSync() - not finished registration yet");
+      fprintf(stdout, "stopSync() - not finished registration yet");
       // Sync will be freed once initiated in onSyncStarted()
       return;
   }

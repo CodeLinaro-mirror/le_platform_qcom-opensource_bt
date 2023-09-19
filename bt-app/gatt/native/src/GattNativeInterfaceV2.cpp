@@ -713,6 +713,7 @@ static void scan_result_cb(uint16_t event_type, uint8_t addr_type,
   event->blescanner_scan_result_event.addr_type = addr_type;
   event->blescanner_scan_result_event.primary_phy = primary_phy;
   event->blescanner_scan_result_event.secondary_phy = secondary_phy;
+  event->blescanner_scan_result_event.advertising_sid = advertising_sid;
   event->blescanner_scan_result_event.tx_power = tx_power;
   event->blescanner_scan_result_event.periodic_adv_int = periodic_adv_int;
   event->blescanner_scan_result_event.adv_data = new std::vector<uint8_t>(adv_data);

@@ -15,10 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+Changes from Qualcomm Innovation Center are provided under the following license:
+Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
 
 #include <list>
 #include <map>
 #include <string.h>
+#include <string>
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
 #include <sys/types.h>
@@ -69,7 +75,20 @@ using std::string;
 
 Gap *g_gap = NULL;
 
+sd_bus_slot *m_sdbusSlot = nullptr;
+static char const *sObjPath = "/org/fluoride/hci0";
+#define DBUS_INTERFACE "org.fluoride.Adapter1"
+#define COMMAND_ARG_SIZE 200
+#define COMMAND_SIZE 200
+ template <char... Args>
+  struct TYPE_TO_STR {
+      static constexpr const char value[] = {Args..., '\0'};
+  };
+  template <char... Args>
+  constexpr const char TYPE_TO_STR<Args...>::value[];
+
 static bool is_a2dp_split_sink_enabled;
+extern sd_bus *g_sdbus;
 
 #ifdef __cplusplus
 extern "C" {
@@ -610,6 +629,10 @@ void Gap::ProcessEvent(BtEvent* event) {
                 bt_event->state_event.status = event->state_event.status;
                 PostMessage(THREAD_ID_MAIN, bt_event);
             }
+            if (g_sdbus != NULL) {
+                int res = sd_bus_emit_properties_changed(g_sdbus, sObjPath,
+                                   DBUS_INTERFACE, "Powered", nullptr);
+            }
             break;
 
         case GAP_API_ENABLE:
@@ -1116,6 +1139,26 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         ALOGE(LOGTAG, " unable to create disable_timer timer.");
         return;
     }
+    static const sd_bus_vtable sSdAdapterDbusInterfaceVTable[] = {
+        SD_BUS_VTABLE_START(0),
+
+        SD_BUS_PROPERTY("Name","s", Gap:: sd_getBtName, 0 ,
+                                  SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
+        SD_BUS_PROPERTY("Powered", "b", Gap::sd_getBtPowered, 0,
+                         SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
+        SD_BUS_METHOD("SetPowered", "i", nullptr,
+             Gap:: sd_setBtPowered,
+             SD_BUS_VTABLE_UNPRIVILEGED),
+        SD_BUS_METHOD("SetName", "s", nullptr,
+             Gap:: sd_setBtName,
+             SD_BUS_VTABLE_UNPRIVILEGED),
+        SD_BUS_VTABLE_END};
+    int res = sd_bus_add_object_vtable(g_sdbus, &m_sdbusSlot, sObjPath,
+                                 DBUS_INTERFACE, sSdAdapterDbusInterfaceVTable, this);
+    if (res < 0) {
+        ALOGD(LOGTAG "interface init failed on path %s: %d - %s\n",
+                   sObjPath, -res, strerror(-res));
+    }
 }
 
 Gap :: ~Gap() {
@@ -1153,3 +1196,72 @@ bool Gap:: IsDiscovering() {
 bool Gap:: IsEnabled() {
     return (adapter_properties_obj_->GetState() == BT_STATE_ON);
 }
+
+int Gap:: sd_setBtPowered(sd_bus_message *msg, void *userdata, sd_bus_error *ret_error) {
+    int powered_command;
+    int res = sd_bus_message_read(msg, "i", &powered_command);
+    ALOGD(LOGTAG, "state(enable) arg = %d", powered_command);
+
+    if (powered_command == 1) {
+         BtEvent *event_on = new BtEvent;
+         event_on->event_id = MAIN_API_ENABLE;
+         ALOGD (LOGTAG "Posting enable\n");
+         PostMessage (THREAD_ID_MAIN, event_on);
+         int r = sd_bus_reply_method_return(msg, nullptr);
+         ALOGV(LOGTAG, "%d", r);
+         return r;
+    } else {
+         BtEvent *event_off = new BtEvent;
+         event_off->event_id = MAIN_API_DISABLE;
+         ALOGD (LOGTAG " Posting disable\n");
+         PostMessage (THREAD_ID_MAIN, event_off);
+         int r = sd_bus_reply_method_return(msg, nullptr);
+         ALOGV(LOGTAG, "%d", r);
+         return r;
+    }
+    return 0;
+
+}
+
+int Gap:: sd_setBtName(sd_bus_message *value, void *userdata, sd_bus_error *ret_error) {
+    if (g_gap -> GetState() == BT_STATE_ON) {
+         const char *name;
+         int res = sd_bus_message_read(value, "s", &name);
+         bt_bdname_t bd_name;
+         BtEvent *event_set_name = new BtEvent;
+         event_set_name->event_id = GAP_API_SET_BDNAME;
+         event_set_name->set_device_name_event.prop.type = BT_PROPERTY_BDNAME;
+         strlcpy((char*)&bd_name.name[0], name ,COMMAND_SIZE);
+         event_set_name->set_device_name_event.prop.val = &bd_name;
+         event_set_name->set_device_name_event.prop.len = strlen((char*)bd_name.name);
+         PostMessage (THREAD_ID_GAP, event_set_name);
+         res = sd_bus_reply_method_return(value, nullptr);
+         ALOGV(LOGTAG, "%d", res);
+         return res;
+    } else {
+        ALOGV(LOGTAG, "Currently BT is off");
+    }
+    return 0;
+}
+
+int Gap:: sd_getBtPowered(sd_bus *bus, const char *path,
+                             const char *interface, const char *property,
+                             sd_bus_message *reply, void *userdata,
+                             sd_bus_error *ret_error) {
+   int r  = sd_bus_message_append(reply, TYPE_TO_STR<SD_BUS_TYPE_BOOLEAN>::value,
+                               g_gap->GetState());
+   ALOGV(LOGTAG, "%d", r);
+   return r;
+}
+
+int Gap:: sd_getBtName(sd_bus *bus, const char *path,
+                             const char *interface, const char *property,
+                             sd_bus_message *reply, void *userdata,
+                             sd_bus_error *ret_error) {
+   ALOGV(LOGTAG, "SD_BUS getname called");
+   char* bt_name = ((char*)g_gap->GetBtName()->name);
+   int r = sd_bus_message_append(reply ,"s", bt_name);
+   ALOGV(LOGTAG, "%d", r);
+   return r;
+}
+

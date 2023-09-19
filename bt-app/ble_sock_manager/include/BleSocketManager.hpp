@@ -25,6 +25,10 @@
 * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 #ifndef BLE_SOCKET_MANAGER_H
@@ -48,12 +52,15 @@
 
 void WBDSSocketListenHandler(void *context);
 void WBDSSocketDataHandler(void *context);
+void BleGapSocketListenHandler(void *context);
+void BleGapSocketDataHandler(void *context);
 
 extern const char *BT_LE_SOCKET_MANAGER_ENABLED;
 
 class BleSocketManager {
   private:
     int WBDSSocketCreate();
+    int BleGapSocketCreate();
 
   public:
     static const int SOCKET_MANAGER_CLEANUP_TIMEOUT_MS = 2000;
@@ -62,6 +69,11 @@ class BleSocketManager {
     reactor_object_t *wbds_accept_reactor_;
     int wbds_listen_socket_local_;
     int wbds_client_socket_;
+    thread_t *ble_gap_thread_obj_;
+    reactor_object_t *ble_gap_listen_reactor_;
+    reactor_object_t *ble_gap_accept_reactor_;
+    int ble_gap_listen_socket_local_;
+    int ble_gap_client_socket_;
     std::condition_variable socket_manager_cleanup_;
     std::mutex socket_manager_cleanup_lock_;
     bool cleanup_due_to_deinit_;
@@ -69,8 +81,10 @@ class BleSocketManager {
     ~BleSocketManager();
     int init();
     void deinit();
-    void cleanup();
+    void cleanupWBDS();
+    void cleanupGAP();
     void WBDSSocketWriteHandler(ble_ipc_msg_t *ipc_msg);
+    void BleGapSocketWriteHandler(ble_ipc_msg_t *ipc_msg);
 };
 
 #endif

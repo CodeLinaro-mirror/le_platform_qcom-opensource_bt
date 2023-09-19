@@ -14,6 +14,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #ifndef GATT_NATIVE_INTERFACE_V2_HPP
@@ -28,7 +32,7 @@ namespace gatt {
 
 class GattNativeInterfaceV2{
   private:
-    const bt_interface_t * bluetooth_interface;
+    const bt_interface_t * bluetooth_interface = NULL;
     btgatt_interface_t *sGattIf;
   public:
      GattNativeInterfaceV2(const bt_interface_t *bt_interface);
