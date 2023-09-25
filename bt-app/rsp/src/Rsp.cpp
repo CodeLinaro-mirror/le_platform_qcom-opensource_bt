@@ -251,22 +251,27 @@ bool Rsp::StartAdvertisement() {
 void Rsp::SendResponse(string deviceAddress, int requestId, int status,
                                               int offset, uint8_t * value, int length) {
   ALOGE(LOGTAG "%s",__FUNCTION__);
-  if(value != NULL && !strncasecmp((const char *)(value), "on", 2)) {
-    if (GetDeviceState() == WLAN_INACTIVE) {
-      fprintf(stdout, "(%s) Turn ON WLAN\n", __FUNCTION__);
-      HandleWlanOn();
-      SetDeviceState(WLAN_TRANSACTION_PENDING);
-    }
-    status = 0;
+  bool is_valid_value = false;
+
+  if (value && (length == 2) && !strncasecmp((const char *)(value), "on", 2))
+	is_valid_value = true;
+
+  if (is_valid_value) {
+      status = 0;
+	  if (GetDeviceState() == WLAN_INACTIVE) {
+		fprintf(stdout, "(%s) Turn ON WLAN\n", __FUNCTION__);
+		HandleWlanOn();
+		SetDeviceState(WLAN_TRANSACTION_PENDING);
+	  }
+	  mServer->sendResponse(deviceAddress,requestId,status,offset,value,length);
   } else {
-    status = -1;
+	  status = -1;
+      if (length == 2)
+		fprintf(stdout, "(%s) INvalid input value %c%c\n", __func__, value[0], value[1]);
+	  else
+		fprintf(stdout, "(%s) INvalid length %d\n", __func__, length);
+      mServer->sendResponse(deviceAddress,requestId,status,offset,value,length);
   }
-  if ((value != NULL) && (length >=2)) {
-    fprintf(stdout, "(%s) Sending RSP response to write value (%c%c) "
-      "State (%d)\n", __FUNCTION__, value[0], value[1], GetDeviceState());
-  }
-  rsp->SetDeviceState(WLAN_ACTIVE);
-  mServer->sendResponse(deviceAddress,requestId,status,offset,value,length);
 }
 
 bool Rsp::HandleWlanOn() {
