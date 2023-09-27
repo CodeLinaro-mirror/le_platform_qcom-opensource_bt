@@ -957,7 +957,6 @@ static void bta2dp_audio_split_sink_start_ind_callback(const bt_bdaddr_t& bd_add
     fprintf(stdout, "\n*************************************************");
     fprintf(stdout, "\n Recieved Start from Src device");
     fprintf(stdout, "\n*************************************************\n");
-    fprintf(stdout, " ** Please enter accept / reject in a2dp_sink_menu **\n");
     memcpy(&pA2dpSinkSplit->mPendingDevice, &bd_addr, sizeof(bt_bdaddr_t));
     pA2dpSinkSplit->start_pending = true;
     pA2dpSinkSplit->suspend_pending = false;
@@ -977,7 +976,6 @@ static void bta2dp_audio_split_sink_suspend_ind_callback(const bt_bdaddr_t& bd_a
     fprintf(stdout, "\n*************************************************");
     fprintf(stdout, "\n Recieved Suspend from Src device");
     fprintf(stdout, "\n*************************************************\n");
-    fprintf(stdout, " ** Please enter accept / reject in a2dp_sink_menu **\n");
     memcpy(&pA2dpSinkSplit->mPendingDevice, &bd_addr, sizeof(bt_bdaddr_t));
     pA2dpSinkSplit->suspend_pending = true;
     pA2dpSinkSplit->start_pending = false;
