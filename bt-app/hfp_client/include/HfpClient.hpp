@@ -25,6 +25,11 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #ifndef HFP_CLIENT_APP_H
@@ -43,10 +48,18 @@
 #include <gst/gst.h>
 #endif
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
+
 #if defined(BT_AUDIO_HAL_INTEGRATION)
 
 #include <hardware/audio.h>
 #include <hardware/hardware.h>
+#endif
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+#include "pa_routing_interface.h"
 #endif
 
 #include "osi/include/log.h"
@@ -84,6 +97,9 @@ class Hfp_Client {
     config_t *config;
     qahw_stream_handle_t* out_stream;
     qahw_stream_handle_t* out_stream_ring_tone;
+#endif
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_interface_t *pa_routing_intf;
 #endif
     const bt_interface_t * bluetooth_interface;
     const bthf_client_interface_t *sBtHfpClientInterface;
