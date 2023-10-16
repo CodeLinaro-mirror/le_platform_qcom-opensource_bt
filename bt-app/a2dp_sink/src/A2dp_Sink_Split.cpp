@@ -1535,9 +1535,6 @@ void A2dp_Sink_Split::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>
             bdaddr_to_string(&pA2dpSinkSplit->mStreamingDevice, str, 18);
             ALOGD(LOGTAG " A2DP_SINK_AUDIO_STARTED - set current streaming device as %s", str);
 
-            sBtA2dpSinkVendorInterface->
-                    update_streaming_device_vendor(&pA2dpSinkSplit->mStreamingDevice);
-
             ALOGD(LOGTAG " BT_AM_REQUEST_CONTROL");
             pControlRequest = new BtEvent;
             pControlRequest->btamControlReq.event_id = BT_AM_REQUEST_CONTROL;
