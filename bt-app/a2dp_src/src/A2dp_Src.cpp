@@ -3278,7 +3278,12 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     break;
                 case CMD_ID_STOP:
                     /*Pause and Stop passthrough commands are handled here*/
-                    BtA2dpSuspendStreaming();
+                    media_playing = false;
+                    if (playback_thread != NULL) {
+                        pthread_join(playback_thread, NULL);
+                        playback_thread = NULL;
+                    }
+                    BtA2dpStopStreaming();
                     pA2dpSource->StopPlayPostionTimer();
                     if (playStatus != BTRC_PLAYSTATE_STOPPED)
                     {
@@ -3879,13 +3884,13 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             change_state(STATE_A2DP_SOURCE_PENDING);
             break;
         case A2DP_SOURCE_AUDIO_STARTED:
-            fprintf(stdout, "A2DP Source Audio state changes to: %d  \n",pEvent->event_id);
+            fprintf(stdout, "A2DP Source Audio state changes to: %d  \n", pEvent->event_id);
             break;
         case A2DP_SOURCE_AUDIO_SUSPENDED:
-            fprintf(stdout, "A2DP Source Audio state changes to: %d  \n",pEvent->event_id);
+            fprintf(stdout, "A2DP Source Audio state changes to: %d  \n", pEvent->event_id);
             break;
         case A2DP_SOURCE_AUDIO_STOPPED:
-            fprintf(stdout, "A2DP Source Audio state changes to: %d ", pEvent->event_id);
+            fprintf(stdout, "A2DP Source Audio state changes to: %d  \n", pEvent->event_id);
             break;
         case A2DP_SOURCE_CODEC_CONFIG_CB:
             memcpy(&mDevice, &pEvent->a2dpSourceEvent.bd_addr, sizeof(bt_bdaddr_t));
