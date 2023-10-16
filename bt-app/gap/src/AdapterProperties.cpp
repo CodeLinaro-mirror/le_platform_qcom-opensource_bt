@@ -161,8 +161,10 @@ void AdapterProperties::GetCorePropertyList(int num_properties,
                memset (&bt_device_info.bd_name, '\0', sizeof (bt_device_info.bd_name));
                std::memcpy((bt_bdname_t *)&bt_device_info.bd_name, properties[index].val,
                              properties[index].len);
-               sd_bus_emit_properties_changed(g_sdbus, sObjPath,
+                if(g_sdbus != NULL) {
+                    sd_bus_emit_properties_changed(g_sdbus, sObjPath,
                                DBUS_INTERFACE, "Name", nullptr);
+                }
                event->gatt_adapter_property_event.type = BT_PROPERTY_BDNAME;
                PostMessage(THREAD_ID_GATT, event);
            }

@@ -216,9 +216,10 @@ int main (int argc, char *argv[]) {
         event->event_id = MAIN_API_INIT;
         ALOGV (LOGTAG " Posting init to Main thread\n");
         PostMessage (THREAD_ID_MAIN, event);
-
-        // start DBUS event loop
-        StartDbusLoop();
+        if((argc >=2) && (strcmp(argv[1], "-d") == 0)) {
+            // start DBUS event loop
+            StartDbusLoop();
+        }
 
         // wait for Main thread to exit
         thread_join (main_thread->thread_id);
@@ -4007,8 +4008,8 @@ void BluetoothApp :: InitHandler (void) {
 
     if (is_bt_enable_autotest)
     {
-	fprintf(stdout, "auto test is enabled!\n");
-	SendEnableCmdToGap();
+       fprintf(stdout, "auto test is enabled!\n");
+       SendEnableCmdToGap();
     }
 
     threadInfo[THREAD_ID_SDP_CLIENT].thread_id = thread_new (

@@ -1153,11 +1153,13 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
              Gap:: sd_setBtName,
              SD_BUS_VTABLE_UNPRIVILEGED),
         SD_BUS_VTABLE_END};
-    int res = sd_bus_add_object_vtable(g_sdbus, &m_sdbusSlot, sObjPath,
-                                 DBUS_INTERFACE, sSdAdapterDbusInterfaceVTable, this);
-    if (res < 0) {
-        ALOGD(LOGTAG "interface init failed on path %s: %d - %s\n",
-                   sObjPath, -res, strerror(-res));
+    if(g_sdbus != NULL) {
+        int res = sd_bus_add_object_vtable(g_sdbus, &m_sdbusSlot, sObjPath,
+                                     DBUS_INTERFACE, sSdAdapterDbusInterfaceVTable, this);
+        if (res < 0) {
+            ALOGD(LOGTAG "interface init failed on path %s: %d - %s\n",
+                       sObjPath, -res, strerror(-res));
+        }
     }
 }
 
