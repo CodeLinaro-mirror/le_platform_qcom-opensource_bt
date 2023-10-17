@@ -8,8 +8,8 @@ AM_CFLAGS = -Wall \
             -fpermissive \
             -D__GLIBC__
 
-AM_CPPFLAGS = -I${WORKSPACE}/qcom-opensource/bt/bt-app \
-              -I${WORKSPACE}/qcom-opensource/bt/bt-app/utils/include
+AM_CPPFLAGS = -I${WORKSPACE}/bluetooth/btapp/bt-app \
+              -I${WORKSPACE}/bluetooth/btapp/bt-app/utils/include
 
 cpp_sources = src/uuid.cc
 

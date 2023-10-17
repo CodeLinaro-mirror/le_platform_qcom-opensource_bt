@@ -31,7 +31,7 @@
 #include "PeriodicAdvertiseParameters.hpp"
 #include "IAdvertisingSetCallback.hpp"
 #include "AdvertisingSetParameters.hpp"
-#include "utils/Log.h"
+#include "log.h"
 #include "GattLibService.hpp"
 #include "AdvertisingSet.hpp"
 

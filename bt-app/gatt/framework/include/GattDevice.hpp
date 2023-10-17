@@ -22,7 +22,7 @@
 #pragma once
 
 #include "ipc.hpp"
-#include "utils/Log.h"
+#include "log.h"
 #include <string>
 
 using namespace std;

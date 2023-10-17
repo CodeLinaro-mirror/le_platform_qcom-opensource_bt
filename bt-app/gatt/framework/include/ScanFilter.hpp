@@ -27,7 +27,7 @@
 
 #include "ScanResult.hpp"
 #include "ScanRecord.hpp"
-#include "utils/Log.h"
+#include "log.h"
 #include "utils/include/uuid.h"
 
 using namespace std;

@@ -60,7 +60,7 @@
 #include "Opp.hpp"
 #endif
 #include "osi/include/compat.h"
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 
 #include "utils.h"
 
@@ -4460,25 +4460,25 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_bt_ext_ldo = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_EXT_POWER, false);
     if(is_bt_ext_ldo){
-        property_set("wc_transport.extldo", "enabled");
+        osi_property_set("wc_transport.extldo", "enabled");
     }else{
-        property_set("wc_transport.extldo", "disabled");
+        osi_property_set("wc_transport.extldo", "disabled");
     }
 
     fw_snoop_enable = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_FW_SNOOP, false);
     if(fw_snoop_enable){
-        property_set("persist.service.bdroid.fwsnoop", "true");
+        osi_property_set("persist.service.bdroid.fwsnoop", "true");
     }else{
-        property_set("persist.service.bdroid.fwsnoop", "false");
+        osi_property_set("persist.service.bdroid.fwsnoop", "false");
     }
 
     soc_log_enable = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_ENABLE_SOC_LOG, false);
     if(soc_log_enable){
-        property_set("persist.service.bdroid.soclog", "true");
+        osi_property_set("persist.service.bdroid.soclog", "true");
     }else{
-        property_set("persist.service.bdroid.soclog", "false");
+        osi_property_set("persist.service.bdroid.soclog", "false");
     }
 
     // checking for the BT Enable option in config file

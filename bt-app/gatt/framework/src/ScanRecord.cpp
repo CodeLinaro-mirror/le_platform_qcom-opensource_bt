@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include <vector>
 #include <exception>
-#include <utils/Log.h>
+#include "log.h"
 
 #define LOGTAG "ScanRecord"
 

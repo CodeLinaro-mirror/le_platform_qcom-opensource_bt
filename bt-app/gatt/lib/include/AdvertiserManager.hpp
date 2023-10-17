@@ -27,7 +27,7 @@
 #include "AdvertisingSetParameters.hpp"
 #include "PeriodicAdvertiseParameters.hpp"
 #include "GattNativeInterfaceV2.hpp"
-#include "utils/Log.h"
+#include "log.h"
 #include "hardware/bt_gatt.h"
 #include "ipc.hpp"
 

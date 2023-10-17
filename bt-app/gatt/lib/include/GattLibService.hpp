@@ -19,7 +19,7 @@
 #define GATT_LIB_SERVICE_HPP_
 #pragma once
 
-#include "utils/Log.h"
+#include "log.h"
 #include "ipc.hpp"
 #include "GattCharacteristic.hpp"
 #include "GattDescriptor.hpp"

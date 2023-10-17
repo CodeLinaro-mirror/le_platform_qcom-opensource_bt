@@ -29,8 +29,13 @@ extern "C" {
 #define TAG "bt_app"
 
 #ifdef USE_ANDROID_LOGGING
-#include <utils/Log.h>
+#include <syslog.h>
 #define LOG_TAG "bt_app"
+#define ALOGV(fmt, arg...) syslog (LOG_WARNING, fmt, ##arg)
+#define ALOGD(fmt, arg...) syslog (LOG_NOTICE, fmt, ##arg)
+#define ALOGI(fmt, arg...) syslog (LOG_INFO, fmt, ##arg)
+#define ALOGW(fmt, arg...) syslog (LOG_WARNING, fmt, ##arg)
+#define ALOGE(fmt, arg...) syslog (LOG_ERR, fmt, ##arg)
 #define LOG_DEBUG ALOGD
 #define LOG_ERROR ALOGE
 #else

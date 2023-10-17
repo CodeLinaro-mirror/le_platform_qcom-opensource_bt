@@ -43,7 +43,7 @@
 #include "A2dp_Sink_Split.hpp"
 #include <math.h>
 #include <algorithm>
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 
 #define LOGTAG "AVRCP"
 #define LOGTAG_CTRL "AVRCP_CTRL"
@@ -1292,7 +1292,7 @@ void Avrcp::HandleEnableAvrcp(void) {
                                        "BtAvrcpCTGetPlayStatus", true);
     //Enable below property for devices, which send smaller size packets
     //after the pause command is sent.
-    property_get("vendor.bt.a2dp.whitelist.device", value, "false");
+    //property_get("vendor.bt.a2dp.whitelist.device", value, "false");
     ALOGD(LOGTAG_CTRL " HandleEnableAvrcp  whitelist Enabled: %s", value);
     if (strcmp(value, "false") != 0)
        whitelist_device = true;

@@ -19,7 +19,7 @@
 #include <iostream>
 #include "ScanClient.hpp"
 #include <vector>
-#include "utils/Log.h"
+#include "log.h"
 #define LOGTAG "ScanCLient"
 using namespace std;
 namespace gatt {

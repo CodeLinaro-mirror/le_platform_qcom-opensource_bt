@@ -9,12 +9,13 @@ AM_CFLAGS = -Wall \
             -DHAS_NO_BDROID_BUILDCFG \
             -D__GLIBC__
 
-AM_CPPFLAGS = -I${WORKSPACE}/qcom-opensource/bt/bt-app \
-              -I${WORKSPACE}/qcom-opensource/bt/bt-app/osi/include \
-              -I${WORKSPACE}/vendor/qcom/opensource/system/bt \
-              -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
-              -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
-              -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include/
+AM_CPPFLAGS = -I${WORKSPACE}/bluetooth/btapp/bt-app \
+              -I${WORKSPACE}/bluetooth/btapp/bt-app/osi/include \
+              -I${WORKSPACE}/bluetooth/stack/system/bt \
+              -I${WORKSPACE}/bluetooth/stack/system/bt/include \
+							-I${WORKSPACE}/bluetooth/stack/system/bt/include/hardware \
+              -I${WORKSPACE}/bluetooth/stack/system/bt/types \
+              -I${WORKSPACE}/bluetooth/bt_audio/hal/include
 
 c_sources = \
     src/alarm.cc \
@@ -40,7 +41,7 @@ libgstbtapposi_la_SOURCES = $(c_sources)
 libgstbtapposi_la_CPPFLAGS =$(AM_CPPFLAGS) -std=c++11 -fpermissive -DHAS_NO_BDROID_BUILDCFG -D__GLIBC__
 libgstbtapposi_la_LIBADD = $(requiredlibs)
 libgstbtapposi_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB
-libgstbtapposi_la_LDFLAGS = -static
+libgstbtapposi_la_LDFLAGS = -static -lbtosi -lbtutils
 else
 lib_LTLIBRARIES = libbtapposi.la
 libbtapposi_la_CC = @CC@
@@ -48,5 +49,5 @@ libbtapposi_la_SOURCES = $(c_sources)
 libbtapposi_la_CPPFLAGS =$(AM_CPPFLAGS) -std=c++11 -fpermissive
 libbtapposi_la_LIBADD = $(requiredlibs)
 libbtapposi_la_CFLAGS = $(AM_CFLAGS) -fPIC -D_GNU_SOURCE -DUSE_GLIB -DHAS_NO_BDROID_BUILDCFG -D__GLIBC__
-libbtapposi_la_LDFLAGS = -static
+libbtapposi_la_LDFLAGS = -static -lbtosi -lbtutils
 endif

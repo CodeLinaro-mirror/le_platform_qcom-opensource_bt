@@ -36,7 +36,6 @@
 #include "GattsTest.hpp"
 #include "Rsp.hpp"
 #endif
-#include <cutils/sockets.h>
 #include <sys/un.h>
 #include <sys/poll.h>
 #include <errno.h>

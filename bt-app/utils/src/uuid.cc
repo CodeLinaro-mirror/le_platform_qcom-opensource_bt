@@ -22,7 +22,7 @@
 #include <base/strings/stringprintf.h>
 #include <algorithm>
 #include <cstring>
-#include <utils/Log.h>
+#include "log.h"
 #define LOGTAG "UUID"
 namespace btapp {
 

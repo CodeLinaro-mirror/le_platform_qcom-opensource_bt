@@ -31,7 +31,7 @@
 #include <string.h>
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
-#include <hardware/audio.h>
+//#include <hardware/audio.h>
 #include <hardware/bt_av.h>
 #include <hardware/bt_rc.h>
 #include <list>
@@ -44,7 +44,7 @@
 #include "hardware/bt_rc_vendor.h"
 #include <math.h>
 #include <algorithm>
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 #include "osi/include/list.h"
 #include "osi/include/allocator.h"
 #include "A2dp_Sink_Streaming.hpp"
@@ -129,6 +129,52 @@ int mAudioStreamMax = 15;
 bool is_sink_relay_enabled = false;
 bool bt_a2dp_split_enabled = false;
 
+
+//TODO: Dummy definitions to fix compilation errors
+void BtA2dpSourceMsgHandler(void *msg) {
+    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
+}
+
+A2dp_Source :: A2dp_Source(const bt_interface_t *bt_interface, config_t *config) {
+    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
+}
+
+A2dp_Source :: ~A2dp_Source() {
+    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
+}
+
+void flush_relay_data(void) {
+    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
+}
+MediaInfo :: MediaInfo(uint8_t   uid[],    uint8_t   type,  uint16_t  charsetId, short displayableNameLength,
+                                char* displayableName, uint8_t   num_attrs){
+    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
+}
+
+MediaInfo :: ~MediaInfo() {
+}
+
+FolderInfo :: FolderInfo(uint8_t   uid[],    uint8_t   type, uint8_t   playable, uint16_t  charsetId, short displayableNameLength,
+                                char* displayableName){
+    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
+}
+
+FolderInfo :: ~FolderInfo() {
+    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
+}
+
+MediaPlayerInfo :: MediaPlayerInfo(short playerId, char majorPlayerType, int playerSubType,
+                                      char playState, short charsetId, short displayableNameLength,
+                                      char* displayableName, char* playerPackageName,
+                                      bool isAvailable, bool isFocussed, char itemType,
+                                      bool isRemoteAddressable,
+                                      char featureMask[]) {
+    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
+}
+
+MediaPlayerInfo :: ~MediaPlayerInfo() {
+}
+#if 0
 audio_hw_device_t *a2dp_device = NULL;
 struct audio_stream_out *output_stream = NULL;
 static pthread_mutex_t a2dp_hal_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -4310,3 +4356,5 @@ char* MediaInfo :: RetrieveMediaItemEntry() {
 
 MediaInfo :: ~MediaInfo() {
 }
+
+#endif

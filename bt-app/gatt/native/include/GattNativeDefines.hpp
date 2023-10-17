@@ -26,7 +26,7 @@
 #include <array>
 #include <memory>
 #include <iostream>
-#include "utils/Log.h"
+#include "log.h"
 #include "uuid.h"
 
 namespace gatt {

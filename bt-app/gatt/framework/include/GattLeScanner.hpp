@@ -30,7 +30,7 @@
 #include "IScannerCallback.hpp"
 #include "GattLibService.hpp"
 
-#include "utils/Log.h"
+#include "log.h"
 #include <vector>
 #include <mutex>
 #include <unordered_map>
