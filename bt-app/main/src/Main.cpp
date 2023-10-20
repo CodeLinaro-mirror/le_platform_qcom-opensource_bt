@@ -3968,6 +3968,12 @@ bt_bdaddr_t BluetoothApp:: AddFoundedDevice(DeviceProperties *deviceFound) {
     it = inq_db_find_bdaddr(deviceAddress);
     if (it != NULL) {
         ALOGI(LOGTAG " Device exists %s", deviceFound->address.ToString().c_str());
+        // update device name if exist
+        if (strlen(deviceFound->name) && strcmp(it->name, deviceFound->name)) {
+            strlcpy(it->name, deviceFound->name, strlen(deviceFound->name) + 1);
+            ALOGI(LOGTAG "Device name updated to %s", it->name);
+            fprintf(stdout, "*************** Device name updated ****************\n");
+        }
         return (deviceFound->address);
     } else {
         // add new device in db
@@ -4196,7 +4202,7 @@ void BluetoothApp :: InitHandler (void) {
     if(is_spp_client_enabled_) {
         threadInfo[THREAD_ID_SPP_CLIENT].thread_id = thread_new (
             threadInfo[THREAD_ID_SPP_CLIENT].thread_name);
-       
+
         if (threadInfo[THREAD_ID_SPP_CLIENT].thread_id)
             pSppClient = new Spp_Client(bt_interface, config);
     }
@@ -4204,7 +4210,7 @@ void BluetoothApp :: InitHandler (void) {
     if(is_spp_server_enabled_) {
         threadInfo[THREAD_ID_SPP_SERVER].thread_id = thread_new (
             threadInfo[THREAD_ID_SPP_SERVER].thread_name);
-       
+
         if (threadInfo[THREAD_ID_SPP_SERVER].thread_id)
             pSppServer = new Spp_Server(bt_interface, config);
     }
