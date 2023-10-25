@@ -862,7 +862,7 @@ static void bta2dp_audio_registration_callback(bool state) {
 
 static void bta2dp_audio_split_sink_start_ind_callback(const bt_bdaddr_t& bd_addr) {
     int accepted = 1;
-    int length = 200;
+    const int length = 200;
     char user_input[length] = {'\0'};
     ALOGD(LOGTAG " bta2dp_audio_split_sink_start_ind_callback ");
     fprintf(stdout, "\n*************************************************");
@@ -876,7 +876,7 @@ static void bta2dp_audio_split_sink_start_ind_callback(const bt_bdaddr_t& bd_add
 
 static void bta2dp_audio_split_sink_suspend_ind_callback(const bt_bdaddr_t& bd_addr) {
     int accepted = 1;
-    int length = 200;
+    const int length = 200;
     char user_input[length] = {'\0'};
     ALOGD(LOGTAG " bta2dp_audio_split_sink_suspend_ind_callback ");
     fprintf(stdout, "\n*************************************************");

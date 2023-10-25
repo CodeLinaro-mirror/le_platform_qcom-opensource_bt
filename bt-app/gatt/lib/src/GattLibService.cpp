@@ -2004,7 +2004,7 @@ void GattLibService::registerServer(Uuid uuid, IServerCallback& callback)
     ALOGD(LOGTAG " registerServer()  - UUID %s", uuid.ToString().c_str());
   }
   mServerMap->add(uuid, &callback, this);
-  ALOGE(LOGTAG "callback %p",callback);
+  ALOGE(LOGTAG "callback %p",(void *)&callback);
   mNative->gattServerRegisterAppNative(uuid);
 }
 

@@ -120,7 +120,7 @@ void sdp_client_search_callback(bt_status_t status, RawAddress& addr, const blue
             ALOGD("%s, ServiceName:  %s", __FUNCTION__, record->hdr.service_name);
         }
         if (mSearchCb)
-            mSearchCb(status, (&addr), (unsigned uint8_t*)((uuid.ToString()).c_str()), record, more_results);
+            mSearchCb(status, (&addr), (uint8_t*)((uuid.ToString()).c_str()), record, more_results);
     }
     mSearchOngoing = false;
     mSearchCb = NULL;

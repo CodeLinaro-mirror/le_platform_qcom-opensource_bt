@@ -361,7 +361,7 @@ static void callback_dispatch(UNUSED_ATTR void *context) {
     // We're done here if there are no alarms or the alarm at the front is in
     // the future. Release the monitor lock and exit right away since there's
     // nothing left to do.
-    if (list_is_empty(alarms) || (alarm = list_front(alarms))->deadline > now()) {
+    if (list_is_empty(alarms) || (alarm = (alarm_t *)list_front(alarms))->deadline > now()) {
       reschedule_root_alarm();
       pthread_mutex_unlock(&monitor);
       continue;
