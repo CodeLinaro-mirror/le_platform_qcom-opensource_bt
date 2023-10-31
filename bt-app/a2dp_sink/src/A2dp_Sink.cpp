@@ -380,6 +380,9 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs)
                 }
                 a2dpSnkCodecList[k].codec_config.aac_config.obj_type =
                     valid_aac_obj_type_values[i];
+		/* set default values for channels and bit rate */
+                a2dpSnkCodecList[k].codec_config.aac_config.channel_count = 0x0C;
+                a2dpSnkCodecList[k].codec_config.aac_config.bit_rate = 0x0002EE00;
                 j ++;
                 break;
             case A2DP_SINK_AUDIO_CODEC_MP3:
