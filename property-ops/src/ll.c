@@ -130,7 +130,7 @@ bool __list_add(property_db* list)
 
 bool __remove_node_from_list(unsigned char* property_name)
 {
-    bool retval;
+    bool retval = false;
 
     if (__list_is_empty())
     {

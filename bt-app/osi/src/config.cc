@@ -456,7 +456,7 @@ void config_file_append(const char *key,config_t *config,const char *filename){
 
     const char* const input_file_name =  filename;
     const char* const output_file_name = filename;
-    const char *value;
+    const char *value = NULL;
     vector<string> all_the_lines ;
 
     ifstream file(input_file_name) ;
