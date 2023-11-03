@@ -696,9 +696,9 @@ void registerMediaPlayers () {
             BTRC_ITEM_FOLDER, 0x00, 0x006A, 11, Folder2));
 
     pA2dpSource->pMediaList.push_back(MediaInfo (mediaUid1,
-            BTRC_ITEM_MEDIA, 0x006A, 6, Media2, 0));
+            BTRC_ITEM_MEDIA, 0x006A, (short)strlen(Media2), Media2, 0));
     pA2dpSource->pMediaList.push_back(MediaInfo (mediaUid2,
-            BTRC_ITEM_MEDIA, 0x006A, 6, Media1, 0));
+            BTRC_ITEM_MEDIA, 0x006A, (short)strlen(Media1), Media1, 0));
 
     ALOGD(LOGTAG_AVRCP "Exit registerMediaPlayers()");
 }
