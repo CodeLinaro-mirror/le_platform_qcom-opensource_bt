@@ -266,7 +266,7 @@ void Rsp::SendResponse(string deviceAddress, int requestId, int status,
 	  mServer->sendResponse(deviceAddress,requestId,status,offset,value,length);
   } else {
 	  status = -1;
-      if (length == 2)
+      if (value && (length == 2))
 		fprintf(stdout, "(%s) INvalid input value %c%c\n", __func__, value[0], value[1]);
 	  else
 		fprintf(stdout, "(%s) INvalid length %d\n", __func__, length);
