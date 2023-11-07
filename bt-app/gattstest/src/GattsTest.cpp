@@ -1117,6 +1117,9 @@ bool GattsTest::UnregisterServer(string instance)
       AdvertisingSetCallback *mAdvSetCB;
       mAdvSetCB = advCBInstanceMap[instanceId];
       madvertiser->stopAdvertising(mAdvSetCB);
+      delete(mAdvSetCB);
+      mAdvSetCB = NULL;
+      advCBInstanceMap.erase(instanceId);
     }
     unordered_map <gattstestServerCallback*,GattServer*> ::iterator itr;
     for(itr = servCBInstanceMap.begin(); itr!= servCBInstanceMap.end(); ++itr) {
@@ -1131,14 +1134,14 @@ bool GattsTest::UnregisterServer(string instance)
          break;
        }
     }
-    map <int,gattstestAdvertiserCallback*> ::iterator advcb_itr;
-    for(advcb_itr = advCBInstanceMap.begin(); advcb_itr!= advCBInstanceMap.end(); ++advcb_itr) {
-      ALOGD(LOGTAG"harish - test- adv cb instance mapped");
-      mAdvertisercallback = advcb_itr->second;
-      delete(mAdvertisercallback);
-      mAdvertisercallback = NULL;
-      advCBInstanceMap.erase(advcb_itr->first);
-    }
+//    map <int,gattstestAdvertiserCallback*> ::iterator advcb_itr;
+//    for(advcb_itr = advCBInstanceMap.begin(); advcb_itr!= advCBInstanceMap.end(); ++advcb_itr) {
+//      ALOGD(LOGTAG"harish - test- adv cb instance mapped");
+//      mAdvertisercallback = advcb_itr->second;
+//      delete(mAdvertisercallback);
+//      mAdvertisercallback = NULL;
+//      advCBInstanceMap.erase(advcb_itr->first);
+//    }
     servInstanceMap.erase(instanceId);
     return true;
   } else {
@@ -1328,7 +1331,6 @@ bool GattsTest::DisableGATTSTEST()
     mAdvertisercallback = at->second;
     delete(mAdvertisercallback);
     mAdvertisercallback = NULL;
-    advCBInstanceMap.erase(at->first);
   }
   advCBInstanceMap.clear();
   advSetMap.clear();
