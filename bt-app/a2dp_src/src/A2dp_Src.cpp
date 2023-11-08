@@ -1690,7 +1690,7 @@ static void BtA2dpStartStreaming()
 
     ALOGD(LOGTAG_A2DP "Start A2dp Stream");
     if (!is_sink_relay_enabled) {
-        in_file = fopen("/data/misc/bluetooth/pcmtest.wav", "r");
+        in_file = fopen("/etc/bluetooth/pcmtest.wav", "r");
         if (!in_file) {
             ALOGE(LOGTAG_A2DP "Cannot open input file. Bail out!!");
             return;

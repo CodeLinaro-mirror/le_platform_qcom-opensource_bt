@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "../include/property_ops.h"
-#define SOCKETNAME  "/data/misc/bluetooth/btprop"
+#define SOCKETNAME  "/etc/bluetooth/btprop"
 #define STDIN       0
 #define STDOUT       1
 #define MAX_LEN     (1024)

@@ -547,10 +547,10 @@ static void *start_playback(void *in_param) {
       config.offload_info.sample_rate = 8000;
     }
 
-    in_file = fopen("/data/misc/bluetooth/AG_playback.wav", "r");
+    in_file = fopen("/etc/bluetooth/AG_playback.wav", "r");
     if (in_file == NULL) {
-      fprintf(stdout, "AG_playback.wav file not present in /data/misc/bluetooth/ \n");
-      fprintf(stdout, "please push the file to /data/misc/bluetooth/ \n");
+      fprintf(stdout, "AG_playback.wav file not present in /etc/bluetooth/ \n");
+      fprintf(stdout, "please push the file to /etc/bluetooth/ \n");
       fprintf(stdout, "After pushing the file disconnect SCO or end call ");
       fprintf(stdout, "and connect sco or initiate the call again to hear audio \n");
       goto error;
@@ -563,7 +563,7 @@ static void *start_playback(void *in_param) {
       qahw_open_output_stream(audio_module, handle, OUT_DEVICE_BLUETOOTH_SCO,
            AUDIO_OUTPUT_FLAG_NONE, &config, &out_stream_plb_test, "bt_sco");
 
-      file_fd = fopen("/data/misc/bluetooth/sco_record.wav", "w+");
+      file_fd = fopen("/etc/bluetooth/sco_record.wav", "w+");
       if (file_fd == NULL) {
         fprintf(stdout, "sco_record.wav File open failed\n");
         goto error;

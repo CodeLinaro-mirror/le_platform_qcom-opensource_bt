@@ -55,8 +55,8 @@ using namespace gatt;
 #define LOGTAG "GATTSTEST "
 #define UNUSED
 
-#define SERVER_CFG_FILE_PATH "/data/misc/bluetooth/ServerConfigFile.txt"
-#define ADV_CFG_FILE_PATH "/data/misc/bluetooth/AdvertiserConfigFile.txt"
+#define SERVER_CFG_FILE_PATH "/etc/bluetooth/ServerConfigFile.txt"
+#define ADV_CFG_FILE_PATH "/etc/bluetooth/AdvertiserConfigFile.txt"
 #define GATT_SUCCESS 0
 #define AUTO_CONNECT 0
 #define TRANSPORT 2
