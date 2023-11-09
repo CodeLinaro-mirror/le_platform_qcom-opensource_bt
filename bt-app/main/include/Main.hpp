@@ -743,16 +743,16 @@ UserMenuList OppMenu[] = {
 UserMenuList SppClientMenu[] = {
     {SPPCLIENT_CONNECT,              "connect",             ONE_PARAM,  "connect <bt_addr>"},
     {SPPCLIENT_DISCONNECT,           "disconnect",          ZERO_PARAM, "disconnect"},
-    {SPPCLIENT_SEND_FILE,            "send_file",           ONE_PARAM,  "send_file<space><file_name>"},
-    {SPPCLIENT_RECV_FILE,            "recv_file",           ONE_PARAM,  "recv_file<space><file_name>"},
+    {SPPCLIENT_SEND_FILE,            "send_file",           ONE_PARAM,  "send_file<space><absolute_path_file_name>"},
+    {SPPCLIENT_RECV_FILE,            "recv_file",           ONE_PARAM,  "recv_file<space><absolute_path_file_name>"},
     {BACK_TO_MAIN,                   "main_menu",           ZERO_PARAM, "main_menu"},
 };
 
 UserMenuList SppServerMenu[] = {
     {SPPSERVER_START,              "start_server",         ZERO_PARAM, "start_server"},
     {SPPSERVER_DISCONNECT,         "stop_server",          ZERO_PARAM, "stop_server"},
-    {SPPSERVER_SEND_FILE,          "send_file",            ONE_PARAM, "send_file<space><file_name>"},
-    {SPPSERVER_RECV_FILE,          "recv_file",            ONE_PARAM, "recv_file<space><file_name>"},
+    {SPPSERVER_SEND_FILE,          "send_file",            ONE_PARAM, "send_file<space><absolute_path_file_name>"},
+    {SPPSERVER_RECV_FILE,          "recv_file",            ONE_PARAM, "recv_file<space><absolute_path_file_name>"},
     {BACK_TO_MAIN,                 "main_menu",            ZERO_PARAM, "main_menu"},
 };
 

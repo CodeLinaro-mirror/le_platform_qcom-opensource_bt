@@ -164,6 +164,11 @@ void Spp_Server::sppsrv_send_thread_handler()
             if(status != SUCCESS)
             {
                 ALOGD(LOGTAG_SPP_SERVER "Send file failed \n");
+                fprintf(stderr, "SPP server send file failed \n");
+            }
+            else
+            {
+                fprintf(stderr, "SPP server send file success \n");
             }
 
         }
@@ -207,7 +212,16 @@ void Spp_Server::sppsrv_recv_thread_handler()
         pthread_mutex_unlock(&recv_mutex);
 
         /* Receive File */
-        receive_file(file_name.c_str(),data_socfd);
+        int status = receive_file(file_name.c_str(),data_socfd);
+        if(status != SUCCESS)
+        {
+            ALOGD(LOGTAG_SPP_SERVER "Receive file failed \n");
+            fprintf(stderr, "SPP server receive file failed \n");
+        }
+        else
+        {
+            fprintf(stderr, "SPP server receive file success \n");
+        }
 
         if( !VALID_SRV_SOCFD(data_socfd) )
         {
@@ -740,11 +754,12 @@ void Spp_Server::register_sdp_get_accept_socfd()
     if( error != BT_STATUS_SUCCESS )
     {
         ALOGE(LOGTAG_SPP_SERVER "Error !!!!! SPP server init failed -Unable to listen for incoming RFCOMM socket: %d\n", error);
-        fprintf(stderr, "Unable to listen for incoming RFCOMM socket: %d\n", error);
+        fprintf(stderr, "SPP server init failed \n");
     }
     else
     {
         change_state(STATE_SPP_SERVER_ACTIVE);
+        fprintf(stderr, "SPP server init success \n");
     }
 }
 
@@ -1092,6 +1107,7 @@ void Spp_Server::state_connected_handler(BtEvent* pEvent) {
                 close(data_socfd);
                 RESET_SRV_SOCFD(data_socfd);
                 change_state(STATE_SPP_SERVER_ACTIVE);
+                fprintf(stderr, "SPP server disconnect success, enter 'ACTIVE' state \n");
             }
             break;
 
@@ -1123,6 +1139,7 @@ void Spp_Server::state_send_receive_handler(BtEvent* pEvent) {
                 close(data_socfd);
                 RESET_SRV_SOCFD(data_socfd);
                 change_state(STATE_SPP_SERVER_ACTIVE);
+                fprintf(stderr, "SPP server disconnect success, enter 'ACTIVE' state \n");
             }
             break;
 

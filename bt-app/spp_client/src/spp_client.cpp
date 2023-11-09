@@ -177,6 +177,11 @@ void Spp_Client::sppcli_send_thread_handler()
             if(status != SUCCESS)
             {
                 ALOGD(LOGTAG_SPP_CLIENT "Send file failed \n");
+                fprintf(stderr, "SPP client send file failed \n");
+            }
+            else
+            {
+                fprintf(stderr, "SPP client send file success \n");
             }
         }
         else
@@ -210,7 +215,16 @@ void Spp_Client::sppcli_recv_thread_handler()
         pthread_mutex_unlock(&client_recv_mutex);
 
         /* Receive File */
-        receive_file(file_name.c_str(),listen_data_socfd);
+        int status = receive_file(file_name.c_str(),listen_data_socfd);
+        if(status != SUCCESS)
+        {
+            ALOGD(LOGTAG_SPP_CLIENT "Receive file failed \n");
+            fprintf(stderr, "SPP client receive file failed \n");
+        }
+        else
+        {
+            fprintf(stderr, "SPP client receive file success \n");
+        }
 
         if( !VALID_CLI_SOCFD(listen_data_socfd) )
         {
@@ -694,6 +708,7 @@ void Spp_Client::process_connect_message()
         }
         ALOGD(LOGTAG_SPP_CLIENT "\n [AKK_DEBUB] Moving to connected state.\n");
         change_state(STATE_SPP_CLIENT_CONNECTED);
+        fprintf(stderr, "SPP client connect success \n");
     }
 
     ALOGD(LOGTAG_SPP_CLIENT "\n [AKK_DEBUB] Out of while loop \n");
@@ -719,12 +734,13 @@ void Spp_Client::connect(bt_bdaddr_t baddr)
     else
     {
         ALOGE(LOGTAG_SPP_CLIENT "Error -btsock_interface->connect, returned %d", status);
+        fprintf(stderr, "SPP client connect failed \n");
     }
 
 }
 
 void Spp_Client::HandleEnableClient(void) {
-    
+
     ALOGD(LOGTAG_SPP_CLIENT "HandleEnableClient ");
     BtEvent *pEvent = new BtEvent;
     pEvent->profile_start_event.status = true;
@@ -996,6 +1012,7 @@ void Spp_Client::state_connected_handler(BtEvent* pEvent) {
                 close(listen_data_socfd);
                 RESET_CLI_SOCFD(listen_data_socfd);
                 change_state(STATE_SPP_CLIENT_DISCONNECTED);
+                fprintf(stderr, "SPP client disconnect success, enter 'DISCONNECTED' state \n");
             }
             break;
 
@@ -1025,6 +1042,7 @@ void Spp_Client::state_send_receive_handler(BtEvent* pEvent) {
                 close(listen_data_socfd);
                 RESET_CLI_SOCFD(listen_data_socfd);
                 change_state(STATE_SPP_CLIENT_DISCONNECTED);
+                fprintf(stderr, "SPP client disconnect success, enter 'DISCONNECTED' state \n");
             }
             break;
 
