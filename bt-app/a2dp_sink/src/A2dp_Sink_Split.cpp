@@ -1130,6 +1130,22 @@ void A2dp_Sink_Split::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
                     pa_a2dp_is_connected = true;
                     ALOGD(LOGTAG, " BT a2dp connect success");
                     fprintf(stdout, "BT a2dp connect success\n");
+                } else {
+                    int ret = pA2dpSinkSplit->pa_routing_intf->
+                                    pa_bt_connect_fn(PA_BT_A2DP_SINK, false);
+                    if (!ret) {
+                        pa_a2dp_is_connected = false;
+                        ALOGD(LOGTAG, " BT a2dp disconnect success on retry");
+                        fprintf(stdout, "BT a2dp disconnect success\n");
+                    }
+                    ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SINK, true);
+                    if (!ret) {
+                        pa_a2dp_is_connected = true;
+                        ALOGD(LOGTAG, " BT a2dp connect success on retry");
+                        fprintf(stdout, "BT a2dp connect success\n");
+                    } else {
+                        fprintf(stdout, "BT a2dp connect failed!!!!!\n");
+                    }
                 }
             }
 #endif
@@ -1518,9 +1534,6 @@ void A2dp_Sink_Split::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>
                     sizeof(bt_bdaddr_t));
             bdaddr_to_string(&pA2dpSinkSplit->mStreamingDevice, str, 18);
             ALOGD(LOGTAG " A2DP_SINK_AUDIO_STARTED - set current streaming device as %s", str);
-
-            sBtA2dpSinkVendorInterface->
-                    update_streaming_device_vendor(&pA2dpSinkSplit->mStreamingDevice);
 
             ALOGD(LOGTAG " BT_AM_REQUEST_CONTROL");
             pControlRequest = new BtEvent;
