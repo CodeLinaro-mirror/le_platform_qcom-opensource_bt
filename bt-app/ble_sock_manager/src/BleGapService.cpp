@@ -22,6 +22,9 @@ using namespace gatt;
 extern BleGapService *g_ble_gap_service;
 extern BleSocketManager *g_ble_socket_manager;
 
+static std::condition_variable mAdvCV;
+static std::mutex mAdvLock;
+
 class BleGapServiceScannerCallback : public ScanCallback
 {
   public:
@@ -74,8 +77,11 @@ class BleGapServiceAdvertiserCallback : public AdvertisingSetCallback {
       if (status == AdvertisingSetCallback::ADVERTISE_SUCCESS) {
         g_ble_gap_service->AdvertiseEnableRsp(BLE_IPC_STATUS_SUCCESS);
       } else {
+        g_ble_gap_service->adv_in_progress_ = false;
         g_ble_gap_service->AdvertiseEnableRsp(BLE_IPC_STATUS_FAILED);
       }
+      std::unique_lock<std::mutex> lck(mAdvLock);
+      mAdvCV.notify_all();
     }
 
    void onAdvertisingEnabled (AdvertisingSet *advertisingSet, bool enable, int status) {
@@ -275,14 +281,27 @@ void BleGapService :: AdvertiseEnableReq(BleGapAdvertiseInfo *info)
                             .setTxPowerLevel(info->tx_power_level)
                             .build();
 
+  adv_in_progress_ = true;
   try {
     mAdvInstance->startAdvertisingSet(parameters,
                        advData, NULL, NULL ,NULL, info->duration_msec/10, 0, &mBleGapAdvCb);
   } catch(const std::exception &ex) {
     ALOGE(LOGTAG "%s : start Advertising exception  %s", __FUNCTION__, ex.what());
+    adv_in_progress_ = false;
     AdvertiseEnableRsp(BLE_IPC_STATUS_FAILED);
+    return;
   }
-  adv_in_progress_ = true;
+
+  if (adv_in_progress_) {
+    std::unique_lock<std::mutex> lck(mAdvLock);
+    if (mAdvCV.wait_for(lck,
+      std::chrono::milliseconds(500)) == std::cv_status::timeout)
+    {
+      ALOGE(LOGTAG "%s : start Advertising timeout", __FUNCTION__);
+    }
+  } else {
+    ALOGE(LOGTAG "%s : start Advertising failed", __FUNCTION__);
+  }
 }
 
 void BleGapService :: AdvertiseEnableRsp(BleIpcStatus status)
@@ -302,6 +321,8 @@ void BleGapService :: AdvertiseDisableReq()
   if (adv_in_progress_) {
     adv_in_progress_ = false;
     mAdvInstance->stopAdvertisingSet(&mBleGapAdvCb);
+  } else {
+    AdvertiseDisableRsp(BLE_IPC_STATUS_SUCCESS);
   }
 }
 
