@@ -125,7 +125,7 @@ if USE_GST
 else
  btapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
  btapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
- btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
+ btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@ -lpropertyvault
 endif
 
 else
