@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "osi/include/properties.h"
 
 #include <list>
 #include <map>
@@ -24,6 +25,8 @@
 #include <hardware/hardware.h>
 #include <hardware/bt_hf.h>
 #include "hardware/bt_hf_vendor.h"
+
+#include "osi/include/properties.h"
 
 #include "Audio_Manager.hpp"
 #include "HfpAG.hpp"
@@ -39,6 +42,9 @@ extern BT_Audio_Manager *pBTAM;
 volatile bool stop_record = true;
 volatile bool stop_playback = true;
 
+char value[PROPERTY_VALUE_MAX] = {'\0'};
+bool pts = false;
+bool count_pts = false;
 
 static pthread_t record_tid = NULL;
 static pthread_t playback_tid = NULL;
@@ -788,6 +794,10 @@ void Hfp_Ag::HandleDisableAg(void) {
 void Hfp_Ag::ProcessEvent(BtEvent* pEvent) {
     ALOGD(LOGTAG " Processing event %d", pEvent->event_id);
     fprintf(stdout, " AG: Processing event = %d\n", pEvent->event_id);
+
+    property_get("vendor.bt.pts.certification.hfp.twc", value, "false");
+    if (!(strcmp(value,"true"))) { pts = true; }
+
     switch(mAgState) {
         case HFP_AG_STATE_DISCONNECTED:
             state_disconnected_handler(pEvent);
@@ -861,6 +871,10 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
               fprintf(stdout, "\n all numbers deleted/no Number added to delete ");
               ALOGD(LOGTAG " all numbers deleted no Number added to delete ");
             }
+            break;
+        case HFP_AG_CONFIGURE_WBS:
+            sBtHfpAgInterface->configure_wbs(&pEvent->hfp_ag_event.bd_addr,
+                            (bthf_wbs_config_t)pEvent->hfp_ag_event.arg1);
             break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
@@ -962,7 +976,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                 break;
             }
 #if defined(BT_MODEM_INTEGRATION)
-            processSlcConnected();
+            processSlcConnected(&pEvent->hfp_ag_event.bd_addr);
 #endif
             break;
         case HFP_AG_DISCONNECTED_CB:
@@ -997,6 +1011,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_UPDATE_HELD_CALL_NUM:
             update_heldcall_num(pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_CONFIGURE_WBS:
+            sBtHfpAgInterface->configure_wbs(&pEvent->hfp_ag_event.bd_addr,
+                            (bthf_wbs_config_t)pEvent->hfp_ag_event.arg1);
             break;
         case HFP_AG_ADD_NUMBER:
             if (number_vec.size() < 2) {
@@ -1045,7 +1063,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG "VR start/stop req from device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                                                &pEvent->hfp_ag_event.bd_addr);
             }
             break;
@@ -1082,8 +1100,14 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
             dial_call(pEvent->hfp_ag_event.str, &pEvent->hfp_ag_event.bd_addr);
 #else
-            if((number_vec.size() == 0) && ((pEvent->hfp_ag_event.str[0] == '>')
-                || (pEvent->hfp_ag_event.str[0] == '\0'))) {
+            if (pts) {
+                if (sBtHfpAgInterface != NULL) {
+                    sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                                    &pEvent->hfp_ag_event.bd_addr);
+                }
+                dial_call_pts(&pEvent->hfp_ag_event.bd_addr);
+            } else if((number_vec.size() == 0) && ((pEvent->hfp_ag_event.str[0] == '>')
+                || (pEvent->hfp_ag_event.str[0] == '\0')) && (!pts)) {
               // if we don't add any number , send error
               // if it is redial request and we don't have last dialed number, send error
               // if memory dialing is requested, send error
@@ -1136,9 +1160,18 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                }
             }
 #else
-            if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
+            if (pts) {
+                if (sBtHfpAgInterface != NULL) {
+                    sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                                    &pEvent->hfp_ag_event.bd_addr);
+                }
+                process_chld_pts(pEvent->hfp_ag_event.arg1, &pEvent->hfp_ag_event.bd_addr);
+
+            } else {
+                if (sBtHfpAgInterface != NULL) {
+                    sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
                                                &pEvent->hfp_ag_event.bd_addr);
+                }
             }
 #endif
             break;
@@ -1431,6 +1464,10 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
         case HFP_AG_UPDATE_HELD_CALL_NUM:
             update_heldcall_num(pEvent->hfp_ag_event.arg1);
             break;
+        case HFP_AG_CONFIGURE_WBS:
+            sBtHfpAgInterface->configure_wbs(&pEvent->hfp_ag_event.bd_addr,
+                            (bthf_wbs_config_t)pEvent->hfp_ag_event.arg1);
+            break;
         case HFP_AG_ADD_NUMBER:
             if (number_vec.size() < 2) {
               number_vec.insert(number_vec.end(), pEvent->hfp_ag_event.str);
@@ -1480,7 +1517,8 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             // send error for VR start/stop request
 
             if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
+                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                     &pEvent->hfp_ag_event.bd_addr);
             }
             break;
         case HFP_AG_WBS_CB:
@@ -1516,15 +1554,21 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 #if defined(BT_MODEM_INTEGRATION)
             dial_call(pEvent->hfp_ag_event.str, &pEvent->hfp_ag_event.bd_addr);
 #else
-            if((number_vec.size() == 0) && ((pEvent->hfp_ag_event.str[0] == '>')
-                || (pEvent->hfp_ag_event.str[0] == '\0'))) {
+            if (pts) {
+                if (sBtHfpAgInterface != NULL) {
+                    sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                                    &pEvent->hfp_ag_event.bd_addr);
+                }
+                dial_call_pts(&pEvent->hfp_ag_event.bd_addr);
+            } else if((number_vec.size() == 0) && ((pEvent->hfp_ag_event.str[0] == '>')
+                || (pEvent->hfp_ag_event.str[0] == '\0')) && (!pts)) {
               // if we don't add any number , send error
               // if it is redial request and we don't have last dialed number, send error
               // if memory dialing is requested, send error
               if (sBtHfpAgInterface != NULL)
                 sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
                                           &pEvent->hfp_ag_event.bd_addr);
-            }else {
+            } else {
               if (sBtHfpAgInterface != NULL) {
                 sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
                                        &pEvent->hfp_ag_event.bd_addr);
@@ -1570,9 +1614,18 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
                }
             }
 #else
-            if (sBtHfpAgInterface != NULL) {
-                sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
-                                               &pEvent->hfp_ag_event.bd_addr);
+            if (pts) {
+                if (sBtHfpAgInterface != NULL) {
+                    sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                                    &pEvent->hfp_ag_event.bd_addr);
+                }
+                process_chld_pts(pEvent->hfp_ag_event.arg1, &pEvent->hfp_ag_event.bd_addr);
+
+            } else {
+                if (sBtHfpAgInterface != NULL) {
+                    sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0,
+                                    &pEvent->hfp_ag_event.bd_addr);
+                }
             }
 #endif
             break;
@@ -1885,16 +1938,53 @@ void Hfp_Ag::update_heldcall_num(int held) {
     }
 }
 
+void Hfp_Ag::process_chld_pts(int chld, bt_bdaddr_t *bd_addr) {
+    switch (chld) {
+       case BTHF_CHLD_TYPE_RELEASEACTIVE_ACCEPTHELD:
+            AcceptVoipCall(bd_addr);
+       break;
+       case BTHF_CHLD_TYPE_HOLDACTIVE_ACCEPTHELD:
+            if (!count_pts) {
+                SwapVoipCall(bd_addr);
+                count_pts = true;
+            } else {
+                sBtHfpAgInterface->phone_state_change(1,1,BTHF_CALL_STATE_IDLE,"",
+                                BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+            }
+       break;
+       default:
+            ALOGE(LOGTAG, "unhandled chld command %d", chld);
+            fprintf(stdout, "unhandled chld command %d\n", chld);
+       break;
+    }
+}
+
+void Hfp_Ag::dial_call_pts(bt_bdaddr_t *bd_addr) {
+    if(sBtHfpAgInterface != NULL) {
+        sBtHfpAgInterface->phone_state_change(1,0,BTHF_CALL_STATE_DIALING,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        usleep(1000000);
+        sBtHfpAgInterface->phone_state_change(1,0,BTHF_CALL_STATE_ALERTING,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        usleep(2000000);
+        sBtHfpAgInterface->phone_state_change(0,1,BTHF_CALL_STATE_ALERTING,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+        usleep(3000000);
+        sBtHfpAgInterface->phone_state_change(1,1,BTHF_CALL_STATE_IDLE,"",
+                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+    }
+}
+
 #if defined(BT_MODEM_INTEGRATION)
 
-void Hfp_Ag::processSlcConnected() {
+void Hfp_Ag::processSlcConnected(bt_bdaddr_t *bd_addr) {
   //  update the calls info to stack once done with SLC
   // TODO: should we add any delay here?
    sBtHfpAgInterface->phone_state_change(mNumActiveCalls,
                                mNumHeldCalls,
                                mCallSetupState,
                                mRingingAddress == NULL ? "" : mRingingAddress,
-                               BTHF_CALL_ADDRTYPE_INTERNATIONAL);
+                               BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
 }
 
 void Hfp_Ag::get_and_send_operator_name(bt_bdaddr_t *bd_addr) {
@@ -2265,7 +2355,7 @@ void Hfp_Ag::process_ril_ind(BtEvent* pEvent){
                      mNumHeldCalls,
                      mCallSetupState,
                      mRingingAddress == NULL ? "" : mRingingAddress,
-                     BTHF_CALL_ADDRTYPE_INTERNATIONAL);
+                     BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
           }
       }
           break;
@@ -2544,9 +2634,13 @@ void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
 
 void Hfp_Ag::process_at_biev(BtEvent* pEvent) {
     // TODO: just send OK for now
-    if (sBtHfpAgInterface != NULL) {
-        sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
-                    &pEvent->hfp_ag_event.bd_addr);
+    char value[PROPERTY_VALUE_MAX] = {'\0'};
+    property_get("vendor.bt.pts.certification.hfp.hfi", value, "false");
+    if ((strcmp(value,"true"))) {
+        if (sBtHfpAgInterface != NULL) {
+            sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
+                            &pEvent->hfp_ag_event.bd_addr);
+        }
     }
 }
 

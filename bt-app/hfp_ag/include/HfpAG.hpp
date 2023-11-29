@@ -216,6 +216,8 @@ class Hfp_Ag {
     void process_at_biev(BtEvent* pEvent);
     void update_activecall_num(int active);
     void update_heldcall_num(int held);
+    void process_chld_pts(int chld, bt_bdaddr_t *bd_addr);
+    void dial_call_pts(bt_bdaddr_t *bd_addr);
 #if defined(BT_MODEM_INTEGRATION)
     void init_modem();
     void release_modem();
@@ -231,7 +233,7 @@ class Hfp_Ag {
     uint32 process_chld(int chld);
     void process_ril_ind(BtEvent* pEvent);
     void process_ril_resp(BtEvent* pEvent);
-    void processSlcConnected();
+    void processSlcConnected(bt_bdaddr_t *bd_addr);
 #endif
 
 #if defined(BT_ALSA_AUDIO_INTEGRATION)

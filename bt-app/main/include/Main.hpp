@@ -357,6 +357,7 @@ typedef enum {
     CONN_PARAMS,
     SET_AFH_CHANNELS,
     SEND_HCI_COMMAND,
+    CONFIGURE_WBS,
     BACK_TO_MAIN,
     END,
 } CommandList;
@@ -779,6 +780,8 @@ UserMenuList HfpAGMenu[] = {
     {SEND_DEVICE_STAT_NOTFY, "send_device_stat_notfy", FOUR_PARAM, "send_device_stat_notfy<space>"
       "<bt_address><space><ntk_state><space><signal><space><batt_chg>"
       "eg:send_device_stat_notfy 00:15:83:6b:cf:8e 0(0/1-notavailable/available) 3(0-5) 5(0-5)"},
+    {CONFIGURE_WBS,         "configure_wbs", TWO_PARAM, "configure_wbs<space><bt_address>"
+      "<space><config>"},
 #if defined(BT_MODEM_INTEGRATION)
     {ACCEPT_CALL,           "accept_call",   ZERO_PARAM,   "accept_call"},
     {REJECT_CALL,           "reject_call",   ZERO_PARAM,   "reject_call"},
