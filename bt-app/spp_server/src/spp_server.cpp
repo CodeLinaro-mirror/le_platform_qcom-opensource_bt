@@ -950,7 +950,7 @@ void Spp_Server::state_inactive_handler(BtEvent* pEvent) {
             break;
 
         default:
-            fprintf(stdout, "Event not processed in in-active state %d ", pEvent->event_id);
+            fprintf(stdout, "Event not processed in in-active state %d \n", pEvent->event_id);
             ALOGE(LOGTAG_SPP_SERVER " event not handled %d (%s) ", pEvent->event_id,dump_message(pEvent->event_id) );
             break;
     }
@@ -1113,7 +1113,7 @@ void Spp_Server::state_connected_handler(BtEvent* pEvent) {
 
 
         default:
-            fprintf(stdout, "Event not processed in connected state %d ", pEvent->event_id);
+            fprintf(stdout, "Event not processed in connected state %d \n", pEvent->event_id);
             ALOGE(LOGTAG_SPP_SERVER " event not handled %d ", pEvent->event_id);
             break;
     }
@@ -1148,11 +1148,11 @@ void Spp_Server::state_send_receive_handler(BtEvent* pEvent) {
         {
             if(mServerState == STATE_SPP_SERVER_SEND_FILE)
             {
-                fprintf(stdout, "Event not processed in 'SEND' state %d ", pEvent->event_id);
+                fprintf(stdout, "Event not processed in 'SEND' state %d \n", pEvent->event_id);
             }
             else
             {
-                fprintf(stdout, "Event not processed in 'RECEIVE' state %d ", pEvent->event_id);
+                fprintf(stdout, "Event not processed in 'RECEIVE' state %d \n", pEvent->event_id);
             }
 
             ALOGE(LOGTAG_SPP_SERVER " event not handled %d ", pEvent->event_id);
@@ -1169,7 +1169,7 @@ void Spp_Server::state_disconnected_active_handler(BtEvent* pEvent) {
     switch(pEvent->event_id) {
 
         default:
-            fprintf(stdout, "Event not processed in Disconnected or Active state %d ", pEvent->event_id);
+            fprintf(stdout, "Event not processed in Disconnected or Active state %d \n", pEvent->event_id);
             ALOGE(LOGTAG_SPP_SERVER " event not handled %d ", pEvent->event_id);
             break;
     }

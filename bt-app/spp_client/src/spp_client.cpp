@@ -201,7 +201,7 @@ void Spp_Client::sppcli_send_thread_handler()
 
     pthread_mutex_destroy(&client_send_mutex);
     pthread_cond_destroy(&start_client_send_cv);
-
+    client_send_thread = NULL;
 }
 
 void Spp_Client::sppcli_recv_thread_handler()
@@ -238,7 +238,7 @@ void Spp_Client::sppcli_recv_thread_handler()
 
     pthread_mutex_destroy(&client_recv_mutex);
     pthread_cond_destroy(&start_client_recv_cv);
-
+    client_recv_thread = NULL;
 }
 
 static void *spp_client_write_thread_func(void *arg)
@@ -733,8 +733,9 @@ void Spp_Client::connect(bt_bdaddr_t baddr)
     }
     else
     {
+        change_state(STATE_SPP_CLIENT_IDLE);
         ALOGE(LOGTAG_SPP_CLIENT "Error -btsock_interface->connect, returned %d", status);
-        fprintf(stderr, "SPP client connect failed \n");
+        fprintf(stderr, "SPP client connect failed, enter 'IDLE' state  \n");
     }
 
 }
@@ -775,7 +776,7 @@ void Spp_Client::ProcessEvent(BtEvent* pEvent) {
 
         case STATE_SPP_CLIENT_CONNECTING:
             {
-                fprintf(stdout, "Event not processed in in-connecting state %d ", pEvent->event_id);
+                fprintf(stdout, "Event not processed in in-connecting state %d \n", pEvent->event_id);
                 ALOGE(LOGTAG_SPP_CLIENT " event not handled %d (%s) ", pEvent->event_id,dump_message(pEvent->event_id) );
             }
             break;
@@ -829,7 +830,7 @@ void Spp_Client::state_inactive_handler(BtEvent* pEvent) {
 
 
         default:
-            fprintf(stdout, "Event not processed in in-active state %d ", pEvent->event_id);
+            fprintf(stdout, "Event not processed in in-active state %d \n", pEvent->event_id);
             ALOGE(LOGTAG_SPP_CLIENT " event not handled %d (%s) ", pEvent->event_id,dump_message(pEvent->event_id) );
             break;
     }
@@ -849,14 +850,16 @@ void Spp_Client::state_active_handler(BtEvent* pEvent) {
 
         case SPP_CLI_CONNECT:
             {
-                //start the threads
-                start_send_recv_threads();
+                if (client_recv_thread == NULL || client_send_thread == NULL) {
+                    //start the threads
+                    start_send_recv_threads();
+                }
                 connect(pEvent->spp_cli_event.bd_addr);
             }
             break;
 
         default:
-            fprintf(stdout, "Event not processed in active state %d ", pEvent->event_id);
+            fprintf(stdout, "Event not processed in active state %d \n", pEvent->event_id);
             ALOGE(LOGTAG_SPP_CLIENT " event not handled %d ", pEvent->event_id);
             break;
     }
@@ -1017,8 +1020,11 @@ void Spp_Client::state_connected_handler(BtEvent* pEvent) {
             break;
 
         default:
-            ALOGE(LOGTAG_SPP_CLIENT " event not handled %d ", pEvent->event_id);
-            break;
+            {
+                fprintf(stderr, " event %d not handled in 'CONNECTED' state \n", pEvent->event_id);
+                ALOGE(LOGTAG_SPP_CLIENT " event %d not handled ", pEvent->event_id);
+                break;
+            }
     }
 }
 
@@ -1050,11 +1056,11 @@ void Spp_Client::state_send_receive_handler(BtEvent* pEvent) {
         {
             if(mClientState == STATE_SPP_CLIENT_SEND_FILE)
             {
-                fprintf(stdout, "Event not processed in 'SEND' state %d ", pEvent->event_id);
+                fprintf(stdout, "Event not processed in 'SEND' state %d \n", pEvent->event_id);
             }
             else
             {
-                fprintf(stdout, "Event not processed in 'RECEIVE' state %d ", pEvent->event_id);
+                fprintf(stdout, "Event not processed in 'RECEIVE' state %d \n", pEvent->event_id);
             }
 
             ALOGE(LOGTAG_SPP_CLIENT " event not handled %d ", pEvent->event_id);
@@ -1076,7 +1082,7 @@ void Spp_Client::state_disconnected_handler(BtEvent* pEvent) {
             break;
 
         default:
-            fprintf(stdout, "Event not processed in disconnected state %d ", pEvent->event_id);
+            fprintf(stdout, "Event not processed in disconnected state %d \n", pEvent->event_id);
             ALOGE(LOGTAG_SPP_CLIENT " event not handled %d ", pEvent->event_id);
             break;
     }
@@ -1088,18 +1094,24 @@ void Spp_Client::start_send_recv_threads()
 
     ALOGD(LOGTAG_SPP_CLIENT "--> start_send_recv_threads");
 
-    pthread_mutex_init(&client_recv_mutex, NULL);
-    pthread_cond_init(&start_client_recv_cv, NULL);
-    if (pthread_create(&client_recv_thread, NULL, spp_client_recv_thread_func, NULL) != 0) {
-        ALOGD(LOGTAG_SPP_CLIENT "!! ERROR !! Cannot create spp client receive thread!\n");
-        return;
+    if (client_recv_thread == NULL) {
+        ALOGD(LOGTAG_SPP_CLIENT "create client_recv_thread");
+        pthread_mutex_init(&client_recv_mutex, NULL);
+        pthread_cond_init(&start_client_recv_cv, NULL);
+        if (pthread_create(&client_recv_thread, NULL, spp_client_recv_thread_func, NULL) != 0) {
+            ALOGD(LOGTAG_SPP_CLIENT "!! ERROR !! Cannot create spp client receive thread!\n");
+            return;
+        }
     }
 
-    pthread_mutex_init(&client_send_mutex, NULL);
-    pthread_cond_init(&start_client_send_cv, NULL);
-    if (pthread_create(&client_send_thread, NULL, spp_client_send_thread_func, NULL) != 0) {
-        ALOGD(LOGTAG_SPP_CLIENT "!! ERROR !! Cannot create spp client send thread!\n");
-        return;
+    if (client_send_thread == NULL) {
+        ALOGD(LOGTAG_SPP_CLIENT "create client_send_thread");
+        pthread_mutex_init(&client_send_mutex, NULL);
+        pthread_cond_init(&start_client_send_cv, NULL);
+        if (pthread_create(&client_send_thread, NULL, spp_client_send_thread_func, NULL) != 0) {
+            ALOGD(LOGTAG_SPP_CLIENT "!! ERROR !! Cannot create spp client send thread!\n");
+            return;
+        }
     }
 
     ALOGD(LOGTAG_SPP_CLIENT "<-- start_send_recv_threads");
