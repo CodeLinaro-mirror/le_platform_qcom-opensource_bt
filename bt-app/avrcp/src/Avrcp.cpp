@@ -221,7 +221,7 @@ static void btavrcpctrl_playerapplicationsetting_callback(bt_bdaddr_t *bd_addr, 
                                                           uint8_t num_ext_attr, btrc_player_app_ext_attr_t *ext_attrs) {
      ALOGD(LOGTAG_CTRL " btavrcpctrl_playerapplicationsetting_callback");
 }
- 
+
 static void btavrcpctrl_playerapplicationsetting_changed_callback(bt_bdaddr_t *bd_addr, btrc_player_settings_t *p_vals) {
      ALOGD(LOGTAG_CTRL " btrc_ctrl_playerapplicationsetting_changed_callback");
 }
@@ -970,6 +970,12 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
     case AVRCP_CTRL_VOL_CHANGED_NOTI_REQ:
         ALOGD(LOGTAG_CTRL " AVRCP_CTRL_VOL_CHANGED_NOTI_REQ, vol level = %d",
                                                  pEvent->avrcpCtrlPassThruEvent.arg1);
+        if (pEvent->avrcpCtrlPassThruEvent.arg1 > AUDIO_MAX_VOL_LEVEL) {
+            ALOGW(LOGTAG_CTRL "wrong vol level input");
+            fprintf(stdout, "Fail to set vol level, shall fall in <0-15>.\n" );
+            break;
+        }
+        fprintf(stdout, "Success to set vol level %d.\n", pEvent->avrcpCtrlPassThruEvent.arg1);
         iter = FindFirstDevice();
         list_end = FindLastDevice();
         while (iter != list_end) {

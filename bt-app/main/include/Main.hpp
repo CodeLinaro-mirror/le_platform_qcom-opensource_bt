@@ -584,7 +584,7 @@ UserMenuList A2dpSinkMenu[] = {
     {POWER,                 "power",            ONE_PARAM,    "power<space><bt_address>"},
     {VOL_UP,                "volup",            ONE_PARAM,    "volup<space><bt_address>"},
     {VOL_DOWN,              "voldown",          ONE_PARAM,    "voldown<space><bt_address>"},
-    {VOL_CHANGED_NOTI,      "volchangednoti",   ONE_PARAM,    "volchangednoti<space><vol level>"},
+    {VOL_CHANGED_NOTI,      "volchangednoti",   ONE_PARAM,    "volchangednoti<space><vol level (0-15)>"},
     {MUTE,                  "mute",             ONE_PARAM,    "mute<space><bt_address>"},
     {CODEC_LIST,        "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"
         "param2,codec2,param1,param2,....>"},
