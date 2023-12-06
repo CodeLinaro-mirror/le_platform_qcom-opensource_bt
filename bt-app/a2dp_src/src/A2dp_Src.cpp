@@ -3886,8 +3886,14 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
         case A2DP_SOURCE_AUDIO_STARTED:
             fprintf(stdout, "A2DP Source Audio state changes to: %d  \n", pEvent->event_id);
             break;
-        case A2DP_SOURCE_AUDIO_SUSPENDED:
-            fprintf(stdout, "A2DP Source Audio state changes to: %d  \n", pEvent->event_id);
+        case A2DP_SOURCE_AUDIO_SUSPENDED: {
+                BtEvent *event = NULL;
+                event = new BtEvent;
+                event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
+                event->avrcpTargetEvent.key_id = CMD_ID_PAUSE;
+                PostMessage (THREAD_ID_A2DP_SOURCE, event);
+                fprintf(stdout, "A2DP Source Audio state changes to: %d  \n", pEvent->event_id);
+            }
             break;
         case A2DP_SOURCE_AUDIO_STOPPED:
             fprintf(stdout, "A2DP Source Audio state changes to: %d  \n", pEvent->event_id);
