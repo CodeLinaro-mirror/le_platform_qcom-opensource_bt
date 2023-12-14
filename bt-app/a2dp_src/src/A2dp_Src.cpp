@@ -696,9 +696,9 @@ void registerMediaPlayers () {
             BTRC_ITEM_FOLDER, 0x00, 0x006A, 11, Folder2));
 
     pA2dpSource->pMediaList.push_back(MediaInfo (mediaUid1,
-            BTRC_ITEM_MEDIA, 0x006A, 6, Media2, 0));
+            BTRC_ITEM_MEDIA, 0x006A, (short)strlen(Media2), Media2, 0));
     pA2dpSource->pMediaList.push_back(MediaInfo (mediaUid2,
-            BTRC_ITEM_MEDIA, 0x006A, 6, Media1, 0));
+            BTRC_ITEM_MEDIA, 0x006A, (short)strlen(Media1), Media1, 0));
 
     ALOGD(LOGTAG_AVRCP "Exit registerMediaPlayers()");
 }
@@ -1694,7 +1694,7 @@ static void btavrcp_target_getfolderitems_cmd_callback(uint8_t scope, uint32_t s
 
     pEvent->avrcpTargetEvent.buf_size = sizeof(folderItem);
     pEvent->avrcpTargetEvent.buf_ptr = (uint8_t*)osi_malloc(pEvent->avrcpTargetEvent.buf_size);
-    memcpy(pEvent->avrcpTargetEvent.buf_ptr, &folderItem, pEvent->avrcpTargetEvent.buf_size);
+    memcpy(pEvent->avrcpTargetEvent.buf_ptr, folderItem, pEvent->avrcpTargetEvent.buf_size);
     pEvent->avrcpTargetEvent.arg1 = (uint16_t)scope;
     memcpy(&pEvent->avrcpTargetEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     PostMessage (THREAD_ID_A2DP_SOURCE, pEvent);
@@ -2204,7 +2204,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                 break;
             }
             folderitem = (FolderListEntries*)osi_malloc(sizeof(FolderListEntries));
-            memcpy(&folderitem, pEvent->avrcpTargetEvent.buf_ptr, pEvent->avrcpTargetEvent.buf_size);
+            memcpy(folderitem, pEvent->avrcpTargetEvent.buf_ptr, pEvent->avrcpTargetEvent.buf_size);
             ALOGD(LOGTAG_AVRCP "  %d %d %d %d", folderitem->mStart, folderitem->mEnd,
                                                 folderitem->mSize, folderitem->mNumAttr);
             start = folderitem->mStart;
@@ -3988,8 +3988,8 @@ MediaPlayerInfo :: MediaPlayerInfo(short playerId, char majorPlayerType, int pla
     mPlayState = playState;
     mCharsetId = charsetId;
     mDisplayableNameLength = displayableNameLength;
-    memcpy(&mDisplayableName, &displayableName, strlen(displayableName)+1);
-    memcpy(&mPlayerPackageName, &playerPackageName, strlen(playerPackageName)+1);
+    memcpy(mDisplayableName, displayableName, strlen(displayableName)+1);
+    memcpy(mPlayerPackageName, playerPackageName, strlen(playerPackageName)+1);
     ALOGD(LOGTAG_AVRCP "  %s %s", mDisplayableName, mPlayerPackageName);
 
     mIsAvailable = isAvailable;
@@ -4067,7 +4067,7 @@ FolderInfo :: FolderInfo(uint8_t   uid[],    uint8_t   type, uint8_t   playable,
     mCharsetId = charsetId;
     mDisplayableNameLength = displayableNameLength;
     mDisplayableName = (char*)osi_malloc(mDisplayableNameLength);
-    memcpy(&mDisplayableName, &displayableName, mDisplayableNameLength);
+    memcpy(mDisplayableName, displayableName, mDisplayableNameLength);
     mItemLength = (short)(mDisplayableNameLength + BTRC_UID_SIZE + 1 + 2 + 2);
     mEntryLength = (short)(mItemLength + /* ITEM_LENGTH_LENGTH +*/ 1);
 }
@@ -4115,7 +4115,7 @@ MediaInfo :: MediaInfo(uint8_t   uid[],    uint8_t   type,  uint16_t  charsetId,
     mCharsetId = charsetId;
     mDisplayableNameLength = displayableNameLength;
     mDisplayableName = (char*)osi_malloc(mDisplayableNameLength);
-    memcpy(&mDisplayableName, &displayableName, mDisplayableNameLength);
+    memcpy(mDisplayableName, displayableName, mDisplayableNameLength);
     ALOGD(LOGTAG_AVRCP "  %s ", mDisplayableName);
     mNum_attrs = num_attrs;
     mItemLength = (short)(mDisplayableNameLength + BTRC_UID_SIZE + 1 + 2 + 2);
