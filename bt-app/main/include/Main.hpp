@@ -627,7 +627,7 @@ UserMenuList HfpClientMenu[] = {
     {REJECT_CALL,           "reject_call",   ZERO_PARAM,   "reject_call"},
     {END_CALL,              "end_call",      ZERO_PARAM,   "end_call"},
     {HOLD_CALL,             "hold_call",     ZERO_PARAM,   "hold_call"},
-    {RELEASE_HELD_CALL,     "release_held_call", ZERO_PARAM,   "release_held_call"},
+    {RELEASE_HELD_CALL,     "release_held_call", ZERO_PARAM,   "release_held_call or reject_waiting_incoming_call"},
     {RELEASE_ACTIVE_ACCEPT_WAITING_OR_HELD_CALL,  "release_active_accept_waiting_or_held_call",
       ZERO_PARAM,"release_active_accept_waiting_or_held_call"},
     {SWAP_CALLS,            "swap_calls", ZERO_PARAM,   "swap_calls"},
