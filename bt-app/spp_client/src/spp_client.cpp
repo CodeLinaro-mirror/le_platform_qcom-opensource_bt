@@ -29,6 +29,7 @@
 
 #include <iostream>
 #include <string.h>
+#include <chrono>
 #include <hardware/bluetooth.h>
 #include <hardware/bt_sock.h>
 #include "osi/include/alarm.h"
@@ -74,6 +75,9 @@ typedef struct
     uint8_t data[0];
 } data_st;
 
+ char srv_bdAddr[18];
+ bool connctFlg=false;
+
 static const uint8_t SPP_UUID[]        = {0x00, 0x00, 0x11, 0x01, 0x00, 0x00, 0x10, 0x00,
                                            0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB};
 
@@ -89,7 +93,15 @@ static pthread_t client_send_thread = NULL;
 static pthread_mutex_t client_send_mutex;
 static pthread_cond_t start_client_send_cv;
 
+/* SPP client send data thread */
+static pthread_t client_send_data_thread = NULL;
+static pthread_mutex_t client_send_data_mutex;
+static pthread_cond_t start_client_send_data_cv;
 
+/* SPP client receive data thread */
+static pthread_t client_recv_data_thread = NULL;
+static pthread_mutex_t client_recv_data_mutex;
+static pthread_cond_t start_client_recv_data_cv;
 
 #ifdef __cplusplus
 extern "C" {
@@ -143,25 +155,13 @@ void BtSppClientMsgHandler(void *msg) {
 
 static void *spp_client_send_thread_func(void *in_param)
 {
-
     pSppClient->sppcli_send_thread_handler();
     return NULL;
-
-}
-
-
-static void *spp_client_recv_thread_func(void *in_param)
-{
-
-    pSppClient->sppcli_recv_thread_handler();
-    return NULL;
-
 }
 
 
 void Spp_Client::sppcli_send_thread_handler()
 {
-
     while ( mClientState != STATE_SPP_CLIENT_INACTIVE )
     {
         /* Wait for receive command from the user */
@@ -196,12 +196,16 @@ void Spp_Client::sppcli_send_thread_handler()
 
     pthread_mutex_destroy(&client_send_mutex);
     pthread_cond_destroy(&start_client_send_cv);
+}
 
+static void *spp_client_recv_thread_func(void *in_param)
+{
+    pSppClient->sppcli_recv_thread_handler();
+    return NULL;
 }
 
 void Spp_Client::sppcli_recv_thread_handler()
 {
-
     while ( mClientState != STATE_SPP_CLIENT_INACTIVE )
     {
         /* Wait for receive command from the user */
@@ -210,7 +214,11 @@ void Spp_Client::sppcli_recv_thread_handler()
         pthread_mutex_unlock(&client_recv_mutex);
 
         /* Receive File */
-        receive_file(file_name.c_str(),listen_data_socfd);
+        int status = receive_file(file_name.c_str(),listen_data_socfd);
+        if(status != SUCCESS)
+        {
+            ALOGD(LOGTAG_SPP_CLIENT "receive file failed \n");
+        }
 
         if( !VALID_CLI_SOCFD(listen_data_socfd) )
         {
@@ -221,11 +229,92 @@ void Spp_Client::sppcli_recv_thread_handler()
             change_state(STATE_SPP_CLIENT_CONNECTED);
         }
     }
-
     pthread_mutex_destroy(&client_recv_mutex);
     pthread_cond_destroy(&start_client_recv_cv);
+}
+
+static void *spp_client_send_data_thread_func(void *in_param)
+{
+    pSppClient->sppcli_send_data_thread_handler();
+    return NULL;
+}
+
+
+void Spp_Client::sppcli_send_data_thread_handler()
+{
+    while ( mClientState != STATE_SPP_CLIENT_INACTIVE )
+    {
+        /* Wait for receive command from the user */
+        while ( mClientState != STATE_SPP_CLIENT_SEND_DATA )
+            pthread_cond_wait(&start_client_send_data_cv,&client_send_data_mutex);
+        pthread_mutex_unlock(&client_send_data_mutex);
+
+        /* Send data */
+        if(VALID_CLI_SOCFD(listen_data_socfd))
+        {
+            int status = send_data(dataSize.c_str(),listen_data_socfd);
+
+            if(status != SUCCESS)
+            {
+                ALOGD(LOGTAG_SPP_CLIENT "Send file failed \n");
+            }
+        }
+        else
+        {
+            ALOGD(LOGTAG_SPP_CLIENT "In-valid socfd, Connection may be lost");
+        }
+
+        if( !VALID_CLI_SOCFD(listen_data_socfd) )
+        {
+            change_state(STATE_SPP_CLIENT_DISCONNECTED);
+        }
+        else
+        {
+            change_state(STATE_SPP_CLIENT_CONNECTED);
+        }
+    }
+    pthread_mutex_destroy(&client_send_data_mutex);
+    pthread_cond_destroy(&start_client_send_data_cv);
+}
+
+
+static void *spp_client_recv_data_thread_func(void *in_param)
+{
+
+    pSppClient->sppcli_recv_data_thread_handler();
+    return NULL;
 
 }
+
+void Spp_Client::sppcli_recv_data_thread_handler()
+{
+    while ( mClientState != STATE_SPP_CLIENT_INACTIVE )
+    {
+        /* Wait for receive command from the user */
+        while ( mClientState != STATE_SPP_CLIENT_RECEIVE_DATA )
+            pthread_cond_wait(&start_client_recv_data_cv,&client_recv_data_mutex);
+        pthread_mutex_unlock(&client_recv_data_mutex);
+
+        /* Receive data */
+        int status = receive_data(listen_data_socfd);
+        if(status != SUCCESS)
+        {
+            ALOGD(LOGTAG_SPP_CLIENT "Receive data failed \n");
+        }
+        if( !VALID_CLI_SOCFD(listen_data_socfd) )
+        {
+            change_state(STATE_SPP_CLIENT_DISCONNECTED);
+        }
+        else
+        {
+            change_state(STATE_SPP_CLIENT_CONNECTED);
+        }
+    }
+    pthread_mutex_destroy(&client_recv_data_mutex);
+    pthread_cond_destroy(&start_client_recv_data_cv);
+
+}
+
 
 static void *spp_client_write_thread_func(void *arg)
 {
@@ -690,9 +779,15 @@ void Spp_Client::process_connect_message()
         }
         else
         {
-            ALOGD(LOGTAG_SPP_CLIENT "spp_server socket, threads creation is SUCCESS!!\n");
+            ALOGD(LOGTAG_SPP_CLIENT "spp_client socket, threads creation is SUCCESS!!\n");
         }
         ALOGD(LOGTAG_SPP_CLIENT "\n [AKK_DEBUB] Moving to connected state.\n");
+
+        snprintf(srv_bdAddr, 18, "%02x:%02x:%02x:%02x:%02x:%02x", pConnect_Sig->bd_addr.address[0],
+                            pConnect_Sig->bd_addr.address[1], pConnect_Sig->bd_addr.address[2],
+                            pConnect_Sig->bd_addr.address[3], pConnect_Sig->bd_addr.address[4],
+                            pConnect_Sig->bd_addr.address[5]);
+                            connctFlg=true;
         change_state(STATE_SPP_CLIENT_CONNECTED);
     }
 
@@ -776,6 +871,14 @@ void Spp_Client::ProcessEvent(BtEvent* pEvent) {
             state_send_receive_handler(pEvent);
             break;
 
+        case STATE_SPP_CLIENT_SEND_DATA:
+            state_send_receive_handler(pEvent);
+            break;
+
+        case STATE_SPP_CLIENT_RECEIVE_DATA:
+            state_send_receive_handler(pEvent);
+            break;
+
         case STATE_SPP_CLIENT_DISCONNECTED:
             state_disconnected_handler(pEvent);
             break;
@@ -794,6 +897,12 @@ char* Spp_Client::dump_message(BluetoothEventId event_id) {
 
         case SPP_CLI_RECV_FILE:
             return (char*)"SPP_CLI_RECV_FILE";
+
+        case SPP_CLI_SEND_DATA:
+            return (char*)"SPP_CLI_SEND_DATA";
+
+        case SPP_CLI_RECV_DATA:
+            return (char*)"SPP_CLI_RECV_DATA";
 
         case SPP_CLI_DISCONNECT:
             return (char*)"SPP_CLI_DISCONNECT";
@@ -853,6 +962,7 @@ int Spp_Client::receive_file(const char* fname, int &soc_fd)
     int status = SUCCESS;
     int i      = 0;
     char buffer[1024];
+    std::chrono::high_resolution_clock::time_point startTime,endTime;
 
     char ctrl_msgbuf[CMSG_SPACE(1)];
     struct cmsghdr *pcmsg;
@@ -878,27 +988,47 @@ int Spp_Client::receive_file(const char* fname, int &soc_fd)
     {
         while ((count = recvmsg(soc_fd,&message,0)) > 0 )
         {
+            if(strstr(buffer, "SPP_START_SENDING_FILE"))
+                startTime = std::chrono::high_resolution_clock::now();
             recv_file.write(buffer,count);
             recv_file.flush();
             ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB]RECVD DATA, count=%d", (int)count);
-            for(i =0; i< count ; i++)
+            //for(i =0; i< count ; i++)
+            //{
+            //    ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] buffer[%d]=%c",i, buffer[i]);
+            //}
+            if(strstr(buffer, "SPP_END_SENDING_FILE"))
             {
-                ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] buffer[%d]=%c",i, buffer[i]);
+                endTime = std::chrono::high_resolution_clock::now();
+                const auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+                ALOGD(LOGTAG_SPP_CLIENT "::Receive file Time Delta::\n file received successfully in %lld ms \n ",int_ms);
+                recv_file.flush();
+                recv_file.close();
+
+                fprintf(stdout,"File Receive Complete\n");
+                fprintf(stdout,"---------------------\n");
+                fprintf(stdout,"Device Address  : %s\n",srv_bdAddr);
+                //fprintf(stdout,"soc_fd          : %d\n",soc_fd);
+                fprintf(stdout,"File Name       : %s\n",fname);
+
+                return status;
             }
+
         }
-
-        recv_file.flush();
-        recv_file.close();
-
+        if(errno)
+            ALOGD(LOGTAG_SPP_CLIENT " receive_file errno err=%s\n",strerror(errno));
         if( count == 0 )
         {
             ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] connection closed by the remote");
             RESET_CLI_SOCFD(soc_fd);
             spp_client_write_thread_close();
         }
-        else
+        else if(count < 0 || errno == ECONNRESET)
         {
-            ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] Receive Error count=%d", count);
+            ALOGD(LOGTAG_SPP_CLIENT " recvmsg failed (ret=%d,errno=%d,err=%s)",count,errno,strerror(errno));
+            ALOGE(LOGTAG_SPP_CLIENT " Aborting receive_file, Invalid data socfd, connection may be lost\n");
+            fprintf(stderr, " Aborting receive_file, Invalid data socfd, connection may be lost, error(%s) \n",strerror(errno));
+            RESET_CLI_SOCFD(soc_fd);
             status = FAILED;
         }
     }
@@ -907,9 +1037,6 @@ int Spp_Client::receive_file(const char* fname, int &soc_fd)
         ALOGE(LOGTAG_SPP_CLIENT "Error opening file=%s\n", fname);
         status = FAILED;
     }
-
-    ALOGD(LOGTAG_SPP_CLIENT "<-- receive_file, fname=%s, soc_fd=%d\n", fname, soc_fd);
-
     return status;
 
 }
@@ -921,6 +1048,10 @@ int Spp_Client::snd_file(const char* fname, int &soc_fd)
     char buffer[1024];
     int max_read_size=500;
 
+    char startFile[]="SPP_START_SENDING_FILE";
+    char endFile[]="SPP_END_SENDING_FILE";
+    std::chrono::high_resolution_clock::time_point startTime,endTime;
+
     ALOGD(LOGTAG_SPP_CLIENT "--> snd_file, fname=%s, soc_fd=%d\n", fname, soc_fd);
 
 
@@ -928,28 +1059,42 @@ int Spp_Client::snd_file(const char* fname, int &soc_fd)
 
     if( snd_file.is_open())
     {
-        while (!snd_file.eof())
+        count = send(soc_fd,&startFile,strlen(startFile),MSG_NOSIGNAL);
+        if(count < 0);
+        else
         {
-            snd_file.read(buffer,max_read_size);
-
-            count = send(soc_fd,&buffer,snd_file.gcount(),MSG_NOSIGNAL);
-
-            if(count < 0)
+            startTime = std::chrono::high_resolution_clock::now();
+            while (!snd_file.eof())
             {
-                ALOGD(LOGTAG_SPP_CLIENT " sendmsg failed (ret=%d,errno=%d,err=%s)",count,errno,strerror(errno));
-                ALOGE(LOGTAG_SPP_CLIENT " Aborting send_file, Invalid data socfd, connection may be lost\n");
-                fprintf(stderr, " Aborting send_file, Invalid data socfd, connection may be lost, error(%s) \n",strerror(errno));
-                RESET_CLI_SOCFD(soc_fd);
-                status = FAILED;
-                break;
+                snd_file.read(buffer,max_read_size);
+                count = send(soc_fd,&buffer,snd_file.gcount(),MSG_NOSIGNAL);
+                if(count < 0)
+                    break;
             }
-            else
-            {
-                ALOGD(LOGTAG_SPP_CLIENT " sent bytes (%d)",count);
-            }
+            count = send(soc_fd,&endFile,strlen(endFile),MSG_NOSIGNAL);
         }
-
-        snd_file.close();
+        if(errno)
+            ALOGD(LOGTAG_SPP_CLIENT " snd_file errno err=%s\n",strerror(errno));
+        if(count < 0 || errno == ECONNRESET)
+        {
+            ALOGD(LOGTAG_SPP_CLIENT " sendmsg failed (ret=%d,errno=%d,err=%s)",count,errno,strerror(errno));
+            ALOGE(LOGTAG_SPP_CLIENT " Aborting send_file, Invalid data socfd, connection may be lost\n");
+            fprintf(stderr, " Aborting send_file, Invalid data socfd, connection may be lost, error(%s) \n",strerror(errno));
+            RESET_CLI_SOCFD(soc_fd);
+            status = FAILED;
+        }
+        else{
+            endTime = std::chrono::high_resolution_clock::now();
+            const auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+            //fprintf(stdout, "::Send file Time Delta::\n file sent successfully in %lld ms \n ",int_ms);
+            ALOGD(LOGTAG_SPP_CLIENT "<-- snd_file, fname=%s, soc_fd=%d\n", fname, soc_fd);
+            fprintf(stdout,"File Transfer Complete\n");
+            fprintf(stdout,"---------------------\n");
+            fprintf(stdout,"Device Address  : %s\n",srv_bdAddr);
+            //fprintf(stdout,"soc_fd          : %d\n",soc_fd);
+            fprintf(stdout,"File Name       : %s\n",fname);
+            snd_file.close();
+        }
     }
     else
     {
@@ -957,7 +1102,159 @@ int Spp_Client::snd_file(const char* fname, int &soc_fd)
         status = FAILED;
     }
 
-    ALOGD(LOGTAG_SPP_CLIENT "<-- snd_file, fname=%s, soc_fd=%d\n", fname, soc_fd);
+    return status;
+}
+
+int Spp_Client::send_data(const char* Size, int &soc_fd)
+{
+    int count  = 1;
+    int status = SUCCESS;
+    char *buffer = (char*)malloc(1025);
+    int max_read_size=500;
+    int sentBytes=0;
+    int dataLen=stoi(Size);
+    int totalBytes=0;
+    std::chrono::high_resolution_clock::time_point startTime,endTime;
+
+    ALOGD(LOGTAG_SPP_CLIENT "--> snd_data, dataSize=%s, soc_fd=%d\n", Size, soc_fd);
+    for(int i = 0; i < 1024; i++) {
+        buffer[i]='a';
+    }
+
+    if(soc_fd < 0){
+        ALOGE(LOGTAG_SPP_CLIENT "--> snd_data,  Invalid data socfd %d, connection may be lost \n", soc_fd);
+        return -1;
+    }
+    else
+    {
+        startTime = std::chrono::high_resolution_clock::now();
+        sentBytes = send(soc_fd,"Start",5,MSG_NOSIGNAL);
+        if(sentBytes < 0);
+        else{
+            while(count <= dataLen){
+                snprintf(&buffer[0],1025,"$%08d%s",count,&buffer[9]);
+                sentBytes = send(soc_fd,buffer,1024,MSG_NOSIGNAL);
+                if(sentBytes < 0)
+                    break;
+
+                totalBytes += sentBytes;
+                count++;
+            }
+            sentBytes = send(soc_fd,"end",3,MSG_NOSIGNAL);
+
+        }
+        if(errno)
+            ALOGD(LOGTAG_SPP_CLIENT " snd_data errno err=%s",strerror(errno));
+        if(sentBytes < 0 || errno == ECONNRESET )
+        {
+            ALOGD(LOGTAG_SPP_CLIENT " sendmsg failed (ret=%d,errno=%d,err=%s)",count,errno,strerror(errno));
+            ALOGE(LOGTAG_SPP_CLIENT " Aborting send_data, Invalid data socfd, connection may be lost\n");
+            fprintf(stderr, " Aborting send_data, Invalid data socfd, connection may be lost, error(%s) \n",strerror(errno));
+            RESET_CLI_SOCFD(soc_fd);
+            status = FAILED;
+        }
+        else
+        {
+            endTime = std::chrono::high_resolution_clock::now();
+            //long long duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+            const auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+            ALOGD(LOGTAG_SPP_CLIENT "--> snt_data, num of bytes sent %d, soc_fd=%d  buffer = %s \n ", totalBytes, soc_fd, buffer);
+            //fprintf(stdout, "::Tx Time Delta::\ndata size %d sent successfully in %lld ms \n ", totalBytes/1024,int_ms);
+            float TxTput = ((float) totalBytes * 8 * 1000)/int_ms.count();
+            float TxTputk = TxTput / 1000;
+            ALOGD(LOGTAG_SPP_CLIENT" write: Through put (send) is approximately(in kbps): %f\n",TxTputk);
+            fprintf(stdout,"Tx Results\n");
+            fprintf(stdout,"----------\n");
+            //fprintf(stdout,"soc_fd               : %d\n",soc_fd);
+            fprintf(stdout,"Device Address       : %s\n",srv_bdAddr);
+            fprintf(stdout,"Connection Direction : Client\n");
+            fprintf(stdout,"Throughput (in kbps) : %f\n",TxTputk);
+            totalBytes=0;
+        }
+
+    }
+    free(buffer);
+    return  status;
+}
+
+
+int Spp_Client::receive_data(int &soc_fd)
+{
+    int count  = 0;
+    int status = SUCCESS;
+    int i      = 0;
+    char buffer[1024];
+    int totalBytes = 0;
+
+    std::chrono::high_resolution_clock::time_point startTime,endTime;
+
+    char ctrl_msgbuf[CMSG_SPACE(1)];
+    struct cmsghdr *pcmsg;
+    struct sockaddr_storage src_addr;
+    struct iovec iov[1];
+    iov[0].iov_base=buffer;
+    iov[0].iov_len=sizeof(buffer);
+
+    struct msghdr message;
+    message.msg_name=&src_addr;
+    message.msg_namelen=sizeof(src_addr);
+    message.msg_iov=iov;
+    message.msg_iovlen=1;
+    message.msg_control= ctrl_msgbuf;
+    message.msg_controllen= sizeof(ctrl_msgbuf);
+
+    ALOGD(LOGTAG_SPP_CLIENT "--> receive_data, soc_fd=%d\n", soc_fd);
+
+    while ((count = recvmsg(soc_fd,&message,0)) > 0 )
+    {
+
+        totalBytes += count;
+        ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB]num of bytes received :: %d Incoming msg received in ClientSocket :: %s\n",count, buffer);
+        //for(i =0; i< count ; i++)
+        //{
+        //     ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] buffer[%d]=%c",i, buffer[i]);
+        // }
+
+        if(strstr(buffer, "Start"))
+            startTime = std::chrono::high_resolution_clock::now();
+        else if(strstr(buffer, "end"))
+        {
+            totalBytes -= 8;//Start - end
+            endTime = std::chrono::high_resolution_clock::now();
+            const auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+            ALOGD(LOGTAG_SPP_CLIENT "--> received_data, num of bytes Received %d, soc_fd=%d error(%s)\n ", totalBytes, soc_fd,strerror(errno));
+
+            float RxTput = ((float) totalBytes * 8 * 1000)/int_ms.count();
+            float RxTputk = RxTput / 1000;
+            ALOGD(LOGTAG_SPP_CLIENT" read: Through put (receive) is approximately(in kbps): %f\n",RxTputk);
+            fprintf(stdout,"Rx Results\n");
+            fprintf(stdout,"----------\n");
+            //fprintf(stdout,"soc_fd               : %d\n",soc_fd);
+            fprintf(stdout,"Device Address       : %s\n",srv_bdAddr);
+            fprintf(stdout,"Connection Direction : Client\n");
+            fprintf(stdout,"Throughput (in kbps) : %f\n",RxTputk);
+            totalBytes=0;
+            break;
+        }
+        memset(buffer, 0x00, sizeof(buffer));
+    }
+    if(errno)
+        ALOGD(LOGTAG_SPP_CLIENT " receive_data errno err=%s",strerror(errno));
+    if( count == 0 )
+    {
+        ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] connection closed by the remote");
+        RESET_CLI_SOCFD(soc_fd);
+        spp_client_write_thread_close();
+        status = FAILED;
+    }
+    else if(count < 0 || errno==ECONNRESET)
+    {
+        ALOGD(LOGTAG_SPP_CLIENT " recvmsg failed (ret=%d,errno=%d,err=%s)",count,errno,strerror(errno));
+        ALOGE(LOGTAG_SPP_CLIENT " Aborting receive_data, Invalid data socfd, connection may be lost\n");
+        fprintf(stderr, " Aborting receive_data, Invalid data socfd, connection may be lost, error(%s) \n",strerror(errno));
+        RESET_CLI_SOCFD(soc_fd);
+        status = FAILED;
+    }
 
     return status;
 
@@ -986,6 +1283,26 @@ void Spp_Client::state_connected_handler(BtEvent* pEvent) {
                 pthread_mutex_lock(&client_recv_mutex);
                 pthread_cond_signal(&start_client_recv_cv);
                 pthread_mutex_unlock(&client_recv_mutex);
+            }
+            break;
+
+        case SPP_CLI_SEND_DATA:
+            {
+                dataSize = pEvent->spp_cli_event.value;
+                change_state(STATE_SPP_CLIENT_SEND_DATA);
+                pthread_mutex_lock(&client_send_data_mutex);
+                pthread_cond_signal(&start_client_send_data_cv);
+                pthread_mutex_unlock(&client_send_data_mutex);
+            }
+            break;
+
+        case SPP_CLI_RECV_DATA:
+            {
+                dataSize = pEvent->spp_cli_event.value;
+                change_state(STATE_SPP_CLIENT_RECEIVE_DATA);
+                pthread_mutex_lock(&client_recv_data_mutex);
+                pthread_cond_signal(&start_client_recv_data_cv);
+                pthread_mutex_unlock(&client_recv_data_mutex);
             }
             break;
 
@@ -1057,6 +1374,12 @@ void Spp_Client::state_disconnected_handler(BtEvent* pEvent) {
             }
             break;
 
+        case SPP_CLI_DISCONNECT:
+            {
+                state_connected_handler(pEvent);
+            }
+            break;
+
         default:
             fprintf(stdout, "Event not processed in disconnected state %d ", pEvent->event_id);
             ALOGE(LOGTAG_SPP_CLIENT " event not handled %d ", pEvent->event_id);
@@ -1084,6 +1407,20 @@ void Spp_Client::start_send_recv_threads()
         return;
     }
 
+    pthread_mutex_init(&client_send_data_mutex, NULL);
+    pthread_cond_init(&start_client_send_data_cv, NULL);
+    if (pthread_create(&client_send_thread, NULL, spp_client_send_data_thread_func, NULL) != 0) {
+        ALOGD(LOGTAG_SPP_CLIENT "!! ERROR !! Cannot create spp client send data thread!\n");
+        return;
+    }
+
+    pthread_mutex_init(&client_recv_data_mutex, NULL);
+    pthread_cond_init(&start_client_recv_data_cv, NULL);
+    if (pthread_create(&client_recv_data_thread, NULL, spp_client_recv_data_thread_func, NULL) != 0) {
+        ALOGD(LOGTAG_SPP_CLIENT "!! ERROR !! Cannot create spp client receive data thread!\n");
+        return;
+    }
+
     ALOGD(LOGTAG_SPP_CLIENT "<-- start_send_recv_threads");
 
 }
@@ -1092,6 +1429,28 @@ void Spp_Client::change_state(SppClientState mState) {
    ALOGD(LOGTAG_SPP_CLIENT " current State = %d, new state = %d", mClientState, mState);
    pthread_mutex_lock(&lock);
    mClientState = mState;
+   switch(mClientState)
+   {
+        case STATE_SPP_CLIENT_CONNECTED:
+        if(connctFlg)
+        {
+            connctFlg=false;
+            fprintf(stdout,"Device is Connected\n");
+            fprintf(stdout,"----------------------\n");
+            fprintf(stdout,"Device Address       : %s\n",srv_bdAddr);
+            fprintf(stdout,"Connection Direction : Client\n");
+        }
+        break;
+        case STATE_SPP_CLIENT_DISCONNECTED:
+            fprintf(stdout,"Device is Disconnected\n");
+        break;
+        case STATE_SPP_CLIENT_CONNECTING:
+            fprintf(stdout,"Connecting Device...Please wait...!!!\n");
+        break;
+        default:
+        break;
+
+   }
    pthread_mutex_unlock(&lock);
    ALOGD(LOGTAG_SPP_CLIENT " state changed to %d ", mState);
 }
