@@ -11,16 +11,15 @@ AM_CFLAGS = -Wall \
         -DOI_USE_NATIVE_MALLOC \
         -DOI_USE_NATIVE_MEMCPY \
         -DOI_OBEX_OVER_L2CAP \
-        -I${WORKSPACE}/bluetooth/bt_audio/hal/include/ \
-        -I${WORKSPACE}/bluetooth/stack/system/bt/include/ \
-        -I${WORKSPACE}/bluetooth/stack/bluetooth_ext/vhal/include \
-        -I${WORKSPACE}/system/core/include/ \
-        -I${WORKSPACE}/bluetooth/btapp/obex_profiles/include \
-        -I${WORKSPACE}/bluetooth/btapp/obex_profiles/include/profiles \
-        -I${WORKSPACE}/bluetooth/btapp/obex_profiles/sdk/include \
-        -I${WORKSPACE}/bluetooth/btapp/obex_profiles/sdk/include/profiles \
-        -I${WORKSPACE}/bluetooth/btapp/obex_profiles/sdk/oem \
-        -I${WORKSPACE}/bluetooth/btapp/obex_profiles/platform/linux/include
+        -I${BT_SOURCE}hal/include/ \
+        -I${BT_SOURCE}/stack/system/bt/include/ \
+        -I${BT_SOURCE}/stack/bluetooth_ext/vhal/include \
+        -I${BT_SOURCE}/btapp/obex_profiles/include \
+        -I${BT_SOURCE}/btapp/obex_profiles/include/profiles \
+        -I${BT_SOURCE}/btapp/obex_profiles/sdk/include \
+        -I${BT_SOURCE}/btapp/obex_profiles/sdk/include/profiles \
+        -I${BT_SOURCE}/btapp/obex_profiles/sdk/oem \
+        -I${BT_SOURCE}/btapp/obex_profiles/platform/linux/include
 
 ACLOCAL_AMFLAGS = -I m4
 
