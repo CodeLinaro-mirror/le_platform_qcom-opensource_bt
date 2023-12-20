@@ -2,18 +2,17 @@ if USE_GEN_GATT
 AM_CPPFLAGS = -O2 \
               -D_GNU_SOURCE \
               -std=c++11 \
-              -I${WORKSPACE}/bluetooth/btapp/bt-app/utils/include \
-              -I${WORKSPACE}/bluetooth/btapp/bt-app/gatt/native/include \
-              -I${WORKSPACE}/bluetooth/btapp/bt-app/gatt/lib/include \
-              -I${WORKSPACE}/bluetooth/btapp/bt-app/gatt/framework/include \
-              -I${WORKSPACE}/bluetooth/btapp/bt-app/include \
-              -I${WORKSPACE}/bluetooth/btapp/bt-app/ \
-              -I${WORKSPACE}/bluetooth/bt_audio/hal/include/ \
-              -I${WORKSPACE}/bluetooth/stack/bluetooth_ext/vhal/include \
-              -I${WORKSPACE}/bluetooth/stack/system/bt \
-              -I${WORKSPACE}/bluetooth/stack/system/bt/include \
-              -I${WORKSPACE}/bluetooth/stack/system/bt/types 
-              #-I${WORKSPACE}/system/core/include
+              -I${BT_SOURCE}/btapp/bt-app/utils/include \
+              -I${BT_SOURCE}/btapp/bt-app/gatt/native/include \
+              -I${BT_SOURCE}/btapp/bt-app/gatt/lib/include \
+              -I${BT_SOURCE}/btapp/bt-app/gatt/framework/include \
+              -I${BT_SOURCE}/btapp/bt-app/include \
+              -I${BT_SOURCE}/btapp/bt-app/ \
+              -I${BT_SOURCE}/bt_audio/hal/include/ \
+              -I${BT_SOURCE}/stack/bluetooth_ext/vhal/include \
+              -I${BT_SOURCE}/stack/system/bt \
+              -I${BT_SOURCE}/stack/system/bt/include \
+              -I${BT_SOURCE}/stack/system/bt/types
 
 ACLOCAL_AMFLAGS = -I m4
 

@@ -9,13 +9,13 @@ AM_CFLAGS = -Wall \
             -DHAS_NO_BDROID_BUILDCFG \
             -D__GLIBC__
 
-AM_CPPFLAGS = -I${WORKSPACE}/bluetooth/btapp/bt-app \
-              -I${WORKSPACE}/bluetooth/btapp/bt-app/osi/include \
-              -I${WORKSPACE}/bluetooth/stack/system/bt \
-              -I${WORKSPACE}/bluetooth/stack/system/bt/include \
-							-I${WORKSPACE}/bluetooth/stack/system/bt/include/hardware \
-              -I${WORKSPACE}/bluetooth/stack/system/bt/types \
-              -I${WORKSPACE}/bluetooth/bt_audio/hal/include
+AM_CPPFLAGS = -I${BT_SOURCE}/btapp/bt-app \
+              -I${BT_SOURCE}/btapp/bt-app/osi/include \
+              -I${BT_SOURCE}/stack/system/bt \
+              -I${BT_SOURCE}/stack/system/bt/include \
+							-I${BT_SOURCE}/stack/system/bt/include/hardware \
+              -I${BT_SOURCE}/stack/system/bt/types \
+              -I${BT_SOURCE}/bt_audio/hal/include
 
 c_sources = \
     src/alarm.cc \
