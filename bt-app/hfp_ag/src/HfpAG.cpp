@@ -872,6 +872,10 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
               ALOGD(LOGTAG " all numbers deleted no Number added to delete ");
             }
             break;
+        case HFP_AG_CONFIGURE_WBS:
+            sBtHfpAgInterface->configure_wbs(&pEvent->hfp_ag_event.bd_addr,
+                            (bthf_wbs_config_t)pEvent->hfp_ag_event.arg1);
+            break;
         default:
             ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
@@ -1007,6 +1011,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_UPDATE_HELD_CALL_NUM:
             update_heldcall_num(pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_CONFIGURE_WBS:
+            sBtHfpAgInterface->configure_wbs(&pEvent->hfp_ag_event.bd_addr,
+                            (bthf_wbs_config_t)pEvent->hfp_ag_event.arg1);
             break;
         case HFP_AG_ADD_NUMBER:
             if (number_vec.size() < 2) {
@@ -1455,6 +1463,10 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_UPDATE_HELD_CALL_NUM:
             update_heldcall_num(pEvent->hfp_ag_event.arg1);
+            break;
+        case HFP_AG_CONFIGURE_WBS:
+            sBtHfpAgInterface->configure_wbs(&pEvent->hfp_ag_event.bd_addr,
+                            (bthf_wbs_config_t)pEvent->hfp_ag_event.arg1);
             break;
         case HFP_AG_ADD_NUMBER:
             if (number_vec.size() < 2) {
