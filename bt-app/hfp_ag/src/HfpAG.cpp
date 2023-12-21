@@ -2355,7 +2355,7 @@ void Hfp_Ag::process_ril_ind(BtEvent* pEvent){
                      mNumHeldCalls,
                      mCallSetupState,
                      mRingingAddress == NULL ? "" : mRingingAddress,
-                     BTHF_CALL_ADDRTYPE_INTERNATIONAL);
+                     BTHF_CALL_ADDRTYPE_INTERNATIONAL, &pEvent->hfp_ag_event.bd_addr);
           }
       }
           break;
