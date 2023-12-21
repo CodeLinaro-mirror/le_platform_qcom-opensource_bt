@@ -92,7 +92,7 @@ std::unordered_set<ScanClient*> ScanManager::getRegularScanQueue()
 /**
 * Returns batch scan queue.
 */
-std::unordered_set<ScanClient*> ScanManager::getBatchScanQueue()
+std::unordered_set<ScanClient*>& ScanManager::getBatchScanQueue()
 {
   return mBatchClients;
 }
