@@ -795,7 +795,7 @@ void Hfp_Ag::ProcessEvent(BtEvent* pEvent) {
     ALOGD(LOGTAG " Processing event %d", pEvent->event_id);
     fprintf(stdout, " AG: Processing event = %d\n", pEvent->event_id);
 
-    property_get("vendor.bt.pts.certification.hfp.twc", value, "false");
+    osi_property_get("vendor.bt.pts.certification.hfp.twc", value, "false");
     if (!(strcmp(value,"true"))) { pts = true; }
 
     switch(mAgState) {
@@ -2635,7 +2635,7 @@ void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
 void Hfp_Ag::process_at_biev(BtEvent* pEvent) {
     // TODO: just send OK for now
     char value[PROPERTY_VALUE_MAX] = {'\0'};
-    property_get("vendor.bt.pts.certification.hfp.hfi", value, "false");
+    osi_property_get("vendor.bt.pts.certification.hfp.hfi", value, "false");
     if ((strcmp(value,"true"))) {
         if (sBtHfpAgInterface != NULL) {
             sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0,
