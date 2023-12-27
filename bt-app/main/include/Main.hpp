@@ -254,11 +254,15 @@ typedef enum {
     SPPCLIENT_CONNECT,
     SPPCLIENT_DISCONNECT,
     SPPCLIENT_SEND_FILE,
+    SPPCLIENT_SEND_DATA,
     SPPCLIENT_RECV_FILE,
+    SPPCLIENT_RECV_DATA,
     SPPSERVER_START,
     SPPSERVER_DISCONNECT,
     SPPSERVER_RECV_FILE,
     SPPSERVER_SEND_FILE,
+    SPPSERVER_SEND_DATA,
+    SPPSERVER_RECV_DATA,
 
 #ifdef USE_GEN_GATT
     GATTCTEST_OPTION,
@@ -742,16 +746,26 @@ UserMenuList OppMenu[] = {
 UserMenuList SppClientMenu[] = {
     {SPPCLIENT_CONNECT,              "connect",             ONE_PARAM,  "connect <bt_addr>"},
     {SPPCLIENT_DISCONNECT,           "disconnect",          ZERO_PARAM, "disconnect"},
-    {SPPCLIENT_SEND_FILE,            "send_file",           ONE_PARAM,  "send_file<space><file_name>"},
-    {SPPCLIENT_RECV_FILE,            "recv_file",           ONE_PARAM,  "recv_file<space><file_name>"},
+    {SPPCLIENT_SEND_FILE,            "send_file",           ONE_PARAM,  "send_file<space><directory_with_file_name>"
+    "eg: send_file /var/fileName.txt"},
+    {SPPCLIENT_RECV_FILE,            "recv_file",           ONE_PARAM,  "recv_file<space><directory_with_file_name>"
+    "eg: recv_file /var/fileName.txt"},
+    {SPPCLIENT_SEND_DATA,          "send_data",            ONE_PARAM, "send_data<space><with_size>"
+    "eg: send_data 1000[Note:1000 means 1MB]"},
+    {SPPCLIENT_RECV_DATA,            "recv_data",           ZERO_PARAM,  "recv_data"},
     {BACK_TO_MAIN,                   "main_menu",           ZERO_PARAM, "main_menu"},
 };
 
 UserMenuList SppServerMenu[] = {
     {SPPSERVER_START,              "start_server",         ZERO_PARAM, "start_server"},
     {SPPSERVER_DISCONNECT,         "stop_server",          ZERO_PARAM, "stop_server"},
-    {SPPSERVER_SEND_FILE,          "send_file",            ONE_PARAM, "send_file<space><file_name>"},
-    {SPPSERVER_RECV_FILE,          "recv_file",            ONE_PARAM, "recv_file<space><file_name>"},
+    {SPPSERVER_SEND_FILE,          "send_file",            ONE_PARAM, "send_file<space><directory_with_file_name>"
+    "eg: send_file /var/fileName.txt"},
+    {SPPSERVER_RECV_FILE,          "recv_file",            ONE_PARAM, "recv_file<space><directory_with_file_name>"
+    "eg: recv_file /var/fileName.txt"},
+    {SPPSERVER_SEND_DATA,          "send_data",            ONE_PARAM, "send_data<space><with_size>"
+    "eg: send_data 1000[Note:1000 means 1MB]"},
+    {SPPSERVER_RECV_DATA,            "recv_data",           ZERO_PARAM,  "recv_data"},
     {BACK_TO_MAIN,                 "main_menu",            ZERO_PARAM, "main_menu"},
 };
 

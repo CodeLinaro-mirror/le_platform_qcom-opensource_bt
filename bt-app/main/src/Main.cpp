@@ -3192,6 +3192,16 @@ static void HandleSppClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             PostMessage (THREAD_ID_SPP_CLIENT, event);
             break;
 
+        case SPPCLIENT_SEND_DATA:
+            event = new BtEvent;
+            event->spp_cli_event.event_id = SPP_CLI_SEND_DATA;
+            memset( (void *) event->spp_cli_event.value, 0,
+                sizeof(event->spp_cli_event.value));
+            strlcpy(event->spp_cli_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_CLIENT, event);
+            break;
+
         case SPPCLIENT_RECV_FILE:
             event = new BtEvent;
             event->spp_cli_event.event_id = SPP_CLI_RECV_FILE;
@@ -3199,6 +3209,12 @@ static void HandleSppClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 sizeof(event->spp_cli_event.value));
             strlcpy(event->spp_cli_event.value, user_cmd[ONE_PARAM],
                 COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_CLIENT, event);
+            break;
+
+        case SPPCLIENT_RECV_DATA:
+            event = new BtEvent;
+            event->spp_cli_event.event_id = SPP_CLI_RECV_DATA;
             PostMessage (THREAD_ID_SPP_CLIENT, event);
             break;
 
@@ -3243,6 +3259,15 @@ static void HandleSppServerCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 COMMAND_SIZE);
             PostMessage (THREAD_ID_SPP_SERVER, event);
             break;
+        case SPPSERVER_SEND_DATA:
+            event = new BtEvent;
+            event->spp_srv_event.event_id = SPP_SRV_SEND_DATA;
+            memset( (void *) event->spp_srv_event.value, 0,
+                sizeof(event->spp_srv_event.value));
+            strlcpy(event->spp_srv_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_SERVER, event);
+            break;
         case SPPSERVER_RECV_FILE:
             event = new BtEvent;
             event->spp_srv_event.event_id = SPP_SRV_RECV_FILE;
@@ -3250,6 +3275,11 @@ static void HandleSppServerCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 sizeof(event->spp_srv_event.value));
             strlcpy(event->spp_srv_event.value, user_cmd[ONE_PARAM],
                 COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_SERVER, event);
+            break;
+        case SPPSERVER_RECV_DATA:
+            event = new BtEvent;
+            event->spp_cli_event.event_id = SPP_SRV_RECV_DATA;
             PostMessage (THREAD_ID_SPP_SERVER, event);
             break;
         case BACK_TO_MAIN:
@@ -4142,8 +4172,8 @@ void BluetoothApp :: InitHandler (void) {
 
     if (is_bt_enable_autotest)
     {
-	fprintf(stdout, "auto test is enabled!\n");
-	SendEnableCmdToGap();
+        fprintf(stdout, "auto test is enabled!\n");
+        SendEnableCmdToGap();
     }
 
     threadInfo[THREAD_ID_SDP_CLIENT].thread_id = thread_new (

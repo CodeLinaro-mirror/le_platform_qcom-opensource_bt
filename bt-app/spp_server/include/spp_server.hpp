@@ -49,7 +49,9 @@ typedef enum {
     STATE_SPP_SERVER_ACTIVE,
     STATE_SPP_SERVER_CONNECTED,
     STATE_SPP_SERVER_RECEIVE_FILE,
+    STATE_SPP_SERVER_RECEIVE_DATA,
     STATE_SPP_SERVER_SEND_FILE,
+    STATE_SPP_SERVER_SEND_DATA,
     STATE_SPP_SERVER_DISCONNECTED,
 }SppServerState;
 
@@ -66,6 +68,7 @@ class Spp_Server {
     int data_socfd;
     std::string file_name;
     SppServerState mServerState;
+    std::string dataSize;
 
     pthread_t server_read_thread = -1;
     pthread_t server_write_thread = -1;
@@ -98,9 +101,17 @@ class Spp_Server {
     SppServerState getState() { return mServerState; }
     int receive_file(const char* fname, int &soc_fd);
     int snd_file(const char* fname, int &soc_fd);
+
+    int send_data(const char* Size, int &soc_fd);
+    int receive_data(int &soc_fd);
+
     void state_disconnected_active_handler(BtEvent* pEvent);
     void sppsrv_send_thread_handler();
     void sppsrv_recv_thread_handler();
+
+    void sppsrv_send_data_thread_handler();
+    void sppsrv_receive_data_thread_handler();
+
     void spp_server_thread_handler(int accept_sockfd);
     int spp_server_create_socket();
     int spp_start_socket_threads();

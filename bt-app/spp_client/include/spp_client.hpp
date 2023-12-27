@@ -53,6 +53,8 @@ typedef enum {
     STATE_SPP_CLIENT_CONNECTING,
     STATE_SPP_CLIENT_CONNECTED,
     STATE_SPP_CLIENT_SEND_FILE,
+    STATE_SPP_CLIENT_SEND_DATA,
+    STATE_SPP_CLIENT_RECEIVE_DATA,
     STATE_SPP_CLIENT_RECEIVE_FILE,
     STATE_SPP_CLIENT_DISCONNECTED,
 
@@ -70,6 +72,7 @@ class Spp_Client {
     btsock_interface_t_v1 * btsock_interface;
     int listen_data_socfd;
     std::string file_name;
+    std::string dataSize;
     SppClientState mClientState;
 
     pthread_t client_read_thread = -1;
@@ -102,11 +105,19 @@ class Spp_Client {
     SppClientState getState() { return mClientState; }
     int receive_file(const char* fname, int &soc_fd);
     int snd_file(const char* fname, int &soc_fd);
+    int send_data(const char* Size, int &soc_fd);
+    int receive_data(int &soc_fd);
     void process_connect_message();
     void connect(bt_bdaddr_t baddr);
     void start_send_recv_threads();
     void sppcli_send_thread_handler();
+
+    void spp_client_send_data_thread_handler();
+    void spp_client_send_receive_thread_handler();
+
     void sppcli_recv_thread_handler();
+    void sppcli_send_data_thread_handler();
+    void sppcli_recv_data_thread_handler();
     int spp_client_create_socket();
     int spp_start_socket_threads();
     void spp_client_read_thread_handler();
