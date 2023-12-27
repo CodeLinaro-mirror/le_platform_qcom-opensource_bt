@@ -514,6 +514,7 @@ void Hfp_Ag::clear_audio_params(){
 #if defined(BT_PA_INTEGRATION)
     if(is_pulse_enabled_) {
        pa_teardown_sco_path();
+       pa_release_audio();
        return;
     }
 #endif
@@ -810,11 +811,6 @@ void Hfp_Ag::HandleDisableAg(void) {
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
    release_audio();
 #endif
-#if defined(BT_PA_INTEGRATION)
-   if (is_pulse_enabled_) {
-      pa_release_audio();
-   }
-#endif
 
    BtEvent *pEvent = new BtEvent;
    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
@@ -936,11 +932,6 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
-#if defined(BT_PA_INTEGRATION)
-            if (is_pulse_enabled_) {
-               pa_release_audio();
-            }
-#endif
             change_state(HFP_AG_STATE_DISCONNECTED);
             break;
         case HFP_AG_AUDIO_STATE_DISCONNECTED_CB:
@@ -1012,11 +1003,6 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                 ALOGD(LOGTAG "Failure setting active device %s", str);
                 break;
             }
-#if defined(BT_PA_INTEGRATION)
-            if (is_pulse_enabled_) {
-               connect_pa_audio();
-             }
-#endif
 #if defined(BT_MODEM_INTEGRATION)
             processSlcConnected(&pEvent->hfp_ag_event.bd_addr);
 #endif
@@ -1028,11 +1014,6 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
-#if defined(BT_PA_INTEGRATION)
-            if (is_pulse_enabled_) {
-               pa_release_audio();
-            }
-#endif
             change_state(HFP_AG_STATE_DISCONNECTED);
             break;
         case HFP_AG_DISCONNECTING_CB:
@@ -1359,7 +1340,8 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #endif
 #if defined(BT_PA_INTEGRATION)
             if (is_pulse_enabled_) {
-               pa_setup_sco_path();
+                connect_pa_audio();
+                pa_setup_sco_path();
             }
 #endif
             change_state(HFP_AG_STATE_AUDIO_ON);
@@ -1465,6 +1447,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 #if defined(BT_PA_INTEGRATION)
             if (is_pulse_enabled_) {
                pa_teardown_sco_path();
+               pa_release_audio();
             }
 #endif
             if (sBtHfpAgInterface != NULL) {
@@ -2745,10 +2728,6 @@ void Hfp_Ag::connect_pa_audio() {
 void Hfp_Ag::pa_setup_sco_path() {
   if (is_pulse_enabled_) {
      ALOGD(LOGTAG, "%s: open device for PA\n", __func__);
-     // set sample rate before starting sco
-     //set_audio_params();
-     PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SINK_DEVICE, "BT_SCO=on");
-     PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SOURCE_DEVICE, "BT_SCO=on");
      if (mWbsState == BTHF_WBS_YES)
      {
        ALOGD(LOGTAG, "%s: codec-configure - bt_wbs=on", __func__);
@@ -2767,8 +2746,6 @@ void Hfp_Ag::pa_setup_sco_path() {
 void Hfp_Ag::pa_teardown_sco_path() {
   if (is_pulse_enabled_) {
      ALOGD(LOGTAG, "%s: close device for PA\n", __func__);
-     PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SINK_DEVICE, "BT_SCO=off");
-     PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SOURCE_DEVICE, "BT_SCO=off");
      PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SINK_DEVICE, "bt_wbs=off");
      PaRountingInterface::SetParamPAQahwDevice(PA_SCO_SOURCE_DEVICE, "bt_wbs=off");
      PaRountingInterface::SetParamPAQahwDevice(PA_A2DP_SOURCE_DEVICE, "A2dpSuspended=false");
