@@ -847,6 +847,55 @@ GattCharacteristic* GattcTest :: getCharacteristic(Uuid uid, string bdaddr)
   return characteristic;
 }
 
+void GattcTest :: registerNotifications(string bdaddr, int charInstanceId, int descInstanceId, bool enable)
+{
+  ALOGD(LOGTAG "registerNotifications");
+  uint8_t writeValue[2] = {0x00, 0x00};
+  int valueLength = 2;
+
+  if (!mDeviceMap.containsDevice(bdaddr)) {
+    ALOGE(LOGTAG "Device not found on Map");
+    fprintf(stdout, "Device not found on Map");
+    return;
+  }
+  GattClient *CliDevice = mDeviceMap.getGatt(bdaddr);
+  GattCharacteristic *characteristic = CliDevice->getCharacteristicById(bdaddr, charInstanceId);
+  if (characteristic != NULL) {
+    ALOGD(LOGTAG "Instance ID   %d", characteristic->getInstanceId());
+
+    bool status = CliDevice->setCharacteristicNotification(*characteristic, enable);
+    if (status) {
+      ALOGD(LOGTAG "setCharacteristicNotification success");
+      fprintf(stdout, "setCharacteristicNotification success\n");
+    } else {
+      ALOGE(LOGTAG "setCharacteristicNotification failed");
+      fprintf(stdout, "setCharacteristicNotification Failed\n");
+    }
+  } else {
+    ALOGE(LOGTAG "No Characteristic. Please refresh services");
+    fprintf(stdout, "No Characteristic. Please refresh services");
+  }
+
+  GattDescriptor* descriptor =
+    CliDevice->getDescriptorById(bdaddr,descInstanceId);
+
+  if(0x01 == enable) {
+    writeValue[0] = 0x03;
+  } else {
+    writeValue[0] = 0x00;
+  }
+  if (descriptor != NULL) {
+    descriptor->setValue(writeValue, valueLength);
+    if (!CliDevice->writeDescriptor(*descriptor)) {
+      ALOGE(LOGTAG "WriteDescriptor Failed");
+      fprintf(stdout, "Write Descriptor Failed\n");
+    }
+  } else {
+    ALOGE(LOGTAG "No descriptor found with that instanceId");
+    fprintf(stdout, "No descriptor found with that instanceId\n");
+  }
+}
+
 bool GattcTest :: writeCharacteristic(string bdaddr, uint8_t *writeValue,
     int valueLength, int instanceId)
 {

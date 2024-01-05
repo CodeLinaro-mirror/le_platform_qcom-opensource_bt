@@ -96,6 +96,7 @@ class GattcTest {
         void readCharacteristic(string bdaddr, int instanceid);
         //bool readCharacteristicUUID(string bdaddr, Uuid uuid);
         void readDescriptor(string bdaddr, int instanceid);
+        void registerNotifications(string bdaddr, int charInstanceId, int descInstanceId, bool enable);
         void gattClientReadPhy(string bdaddr);
         void gattReadRemoteRssi(string bdaddr);
         void gattRefresh(string bdaddr);

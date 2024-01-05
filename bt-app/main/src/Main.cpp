@@ -2066,6 +2066,22 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             }
             break;
         }
+        case GATTCTEST_REGISTER_NOTIFICATIONS:
+        {
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattctest) {
+                    fprintf(stdout,"Enable disable notifications\n");
+                    gattctest->registerNotifications(user_cmd[ONE_PARAM],
+                        atoi(user_cmd[TWO_PARAM]),
+                        atoi(user_cmd[THREE_PARAM]),atoi(user_cmd[FOUR_PARAM]));
+                } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+                }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        }
         case GATTCTEST_RDWRCHAR:
         {
             if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
