@@ -1582,6 +1582,12 @@ bool GattcTest :: scanSettings(int scanType, int value)
           return false;
         }
         mscanSettings = settingType::SET_LEGACY;
+        if(mLegacy == true)
+        {
+           mPhy = 1;
+           fprintf(stdout, "For Legacy PHY_TYPE value : %d\n", mPhy);
+           settingMask |= (1 << PHY_TYPE_MASK);
+        }
         break;
       }
       case settingType::REPORT_DELAY_MILLS:
