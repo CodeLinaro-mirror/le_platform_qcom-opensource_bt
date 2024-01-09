@@ -3435,6 +3435,12 @@ static void BtCmdHandler (void *context) {
                         && g_bt_app->HandlePinInput(user_cmd)) {
         // validate the user input for PIN
         g_bt_app->pin_notification = false;
+    } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
+                        (!strcasecmp (user_cmd[ZERO_PARAM], "ok") ||
+                        !strcasecmp (user_cmd[ZERO_PARAM], "cancel"))
+                        && g_bt_app->HandleSspInput(user_cmd)) {
+        // validate the user input for SSP
+        g_bt_app->ssp_notification = false;
     }
 #ifdef USE_BT_OBEX
     else if (g_bt_app->incoming_file_notification && user_cmd[0][0] &&
@@ -3527,7 +3533,7 @@ bool BluetoothApp :: HandleSspInput(char user_cmd[][COMMAND_ARG_SIZE]) {
 
 
     BtEvent *bt_event = new BtEvent;
-    if (!strcasecmp (user_cmd[ZERO_PARAM], "yes")) {
+    if ((!strcasecmp (user_cmd[ZERO_PARAM], "yes")) || (!strcasecmp (user_cmd[ZERO_PARAM], "ok"))) {
         ssp_data.accept = true;
     }
     else if (!strcasecmp (user_cmd[ZERO_PARAM], "no")) {
@@ -3765,23 +3771,40 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             ssp_data.pass_key = event->ssp_request_event.pass_key;
             // if pairing variant is passkey notification just show passkey
             // and cancel option only
-            if( ssp_data.pairing_variant == BT_SSP_VARIANT_PASSKEY_NOTIFICATION) {
-              // instruct the cmd handler to treat the next inputs for SSP
-              fprintf(stdout, "\n*************************************************");
-              fprintf(stdout, "\n Pair with Device :: %s", ssp_data.bd_name.name);
-              fprintf(stdout, "\n Bluetooth Pairing code::%06d", ssp_data.pass_key);
-              fprintf(stdout, "\n Type the pairing code then press Return or Enter");
-              fprintf(stdout, "\n*************************************************\n");
-              fprintf(stdout, "** Please Enter cancel **\n");
-              ssp_notification = true;
-            } else{
-              // instruct the cmd handler to treat the next inputs for SSP
-              fprintf(stdout, "\n*************************************************");
-              fprintf(stdout, "\n BT pairing request::Device %s::Pairing Code:: %06d",
-                                      ssp_data.bd_name.name, ssp_data.pass_key);
-              fprintf(stdout, "\n*************************************************\n");
-              fprintf(stdout, " ** Please enter yes / no **\n");
-              ssp_notification = true;
+            fprintf(stdout, "\n BT pairing_variant %d",
+                                      ssp_data.pairing_variant);
+            switch(ssp_data.pairing_variant)
+            {
+                case BT_SSP_VARIANT_PASSKEY_CONFIRMATION:
+                    // instruct the cmd handler to treat the next inputs for SSP
+                    fprintf(stdout, "\n*************************************************");
+                    fprintf(stdout, "\n BT pairing request::Device %s::Pairing Code:: %06d",
+                                                    ssp_data.bd_name.name, ssp_data.pass_key);
+                    fprintf(stdout, "\n*************************************************\n");
+                    fprintf(stdout, " ** Please enter yes / no **\n");
+                    ssp_notification = true;
+                break;
+                case BT_SSP_VARIANT_PASSKEY_NOTIFICATION:
+                    // instruct the cmd handler to treat the next inputs for SSP
+                    fprintf(stdout, "\n*************************************************");
+                    fprintf(stdout, "\n Pair with Device :: %s", ssp_data.bd_name.name);
+                    fprintf(stdout, "\n Bluetooth Pairing code::%06d", ssp_data.pass_key);
+                    fprintf(stdout, "\n Type the pairing code then press Return or Enter");
+                    fprintf(stdout, "\n*************************************************\n");
+                    fprintf(stdout, "** Please enter cancel **\n");
+                    ssp_notification = true;
+                break;
+                case BT_SSP_VARIANT_CONSENT:
+                    // instruct the cmd handler to treat the next inputs for SSP
+                    fprintf(stdout, "\n*************************************************");
+                    fprintf(stdout, "\n BT pairing request::Device %s",ssp_data.bd_name.name);
+                    fprintf(stdout, "\n*************************************************\n");
+                    fprintf(stdout, "** Please enter ok / cancel **\n");
+                    ssp_notification = true;
+                break;
+                default:
+                    fprintf(stdout, "Device Type::%d is not supported \n", ssp_data.pairing_variant);
+                break;
             }
             break;
 
