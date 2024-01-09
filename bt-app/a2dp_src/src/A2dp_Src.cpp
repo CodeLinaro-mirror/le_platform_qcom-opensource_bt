@@ -3529,6 +3529,9 @@ void A2dp_Source::HandleEnableSource(void) {
         registerMediaPlayers();
     }
     a2dp_sink_relay_data_list = list_new(NULL);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_intf = NULL;
+#endif
 }
 
 void A2dp_Source::HandleDisableSource(void) {
@@ -3562,6 +3565,12 @@ void A2dp_Source::HandleDisableSource(void) {
    }
    unregisterMediaPlayers();
    a2dpSrcCodecList.clear();
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+   if (pa_routing_intf) {
+       pa_routing_intf_close(pa_routing_intf);
+       pa_routing_intf = NULL;
+   }
+#endif
 }
 
 void A2dp_Source::ProcessEvent(BtEvent* pEvent) {
@@ -3702,6 +3711,26 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
                 break;
             }
             BtA2dpOpenOutputStream();
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (!pa_routing_intf) {
+                pa_routing_intf = pa_routing_intf_open();
+                if (!pa_routing_intf) {
+                   ALOGE(LOGTAG, " pa_routing_intf_open failed!!!");
+                }
+                else {
+                   ALOGD(LOGTAG, " pa_routing_intf_open success!!!");
+                   int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, true);
+                   if (!ret) {
+                      ALOGD(LOGTAG, " BT a2dp source connect success");
+                      fprintf(stdout, "BT a2dp source connect success\n");
+                   }
+                   else {
+                      ALOGD(LOGTAG, " BT a2dp source connect failed");
+                      fprintf(stdout, "BT a2dp source connect failed\n");
+                   }
+                }
+            }
+#endif
             break;
         default:
             fprintf(stdout, "Event not processed in disconnected state %d ", pEvent->event_id);
@@ -3731,6 +3760,26 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
                 break;
             }
             BtA2dpOpenOutputStream();
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (!pa_routing_intf) {
+                pa_routing_intf = pa_routing_intf_open();
+                if (!pa_routing_intf) {
+                   ALOGE(LOGTAG, " pa_routing_intf_open failed!!!");
+                }
+                else {
+                   ALOGD(LOGTAG, " pa_routing_intf_open success!!!");
+                   int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, true);
+                   if (!ret) {
+                      ALOGD(LOGTAG, " BT a2dp source connect success");
+                      fprintf(stdout, "BT a2dp source connect success\n");
+                   }
+                   else {
+                      ALOGD(LOGTAG, " BT a2dp source connect failed");
+                      fprintf(stdout, "BT a2dp source connect failed\n");
+                   }
+                }
+            }
+#endif
             break;
         case A2DP_SOURCE_DISCONNECTED_CB:
             fprintf(stdout, "A2DP Source DisConnected \n");
@@ -3745,6 +3794,21 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(STATE_A2DP_SOURCE_DISCONNECTED);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (pa_routing_intf) {
+               int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, false);
+               if (!ret) {
+                  ALOGD(LOGTAG, " BT a2dp source disconnect success");
+                  fprintf(stdout, "BT a2dp source disconnect success\n");
+               }
+               else {
+                  ALOGD(LOGTAG, " BT a2dp source disconnect failed");
+                  fprintf(stdout, "BT a2dp source disconnect failed\n");
+                  pa_routing_intf_close(pa_routing_intf);
+                  pa_routing_intf = NULL;
+               }
+            }
+#endif
             break;
         case A2DP_SOURCE_API_CONNECT_REQ:
             bdaddr_to_string(&mConnectingDevice, str, 18);
@@ -3919,6 +3983,21 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             fprintf(stdout, "A2DP Source DisConnected \n");
             change_state(STATE_A2DP_SOURCE_DISCONNECTED);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (pa_routing_intf) {
+               int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, false);
+               if (!ret) {
+                  ALOGD(LOGTAG, " BT a2dp source disconnect success");
+                  fprintf(stdout, "BT a2dp source disconnect success\n");
+               }
+               else {
+                  ALOGD(LOGTAG, " BT a2dp source disconnect failed");
+                  fprintf(stdout, "BT a2dp source disconnect failed\n");
+                  pa_routing_intf_close(pa_routing_intf);
+                  pa_routing_intf = NULL;
+               }
+            }
+#endif
             break;
         case A2DP_SOURCE_DISCONNECTING_CB:
             fprintf(stdout, "A2DP Source DisConnecting \n");
