@@ -82,6 +82,9 @@ static void RxProcessing(ble_ipc_msg_t * evt) {
     case BLE_IPC_MSG_GAP_SCAN_DISABLE_RSP:
       printf("%s: scan disable rsp = %d\n", __func__, evt->bleGapScanDisableRspEvent.status);
     break;
+    case BLE_IPC_MSG_GAP_BT_STATE_EVT:
+      printf("%s: BT state = %d\n", __func__, evt->bleGapBtStateEvent.state);
+    break;
     default:
     break;
   }
@@ -128,6 +131,11 @@ void InitReadThread() {
 void ExecuteTestCases() {
   ble_ipc_msg_t msg;
   printf("%s\n", __func__);
+  //BT state test
+  printf("%s: start BT state test, turn off/on BT manually\n", __func__);
+  sleep(60);
+  printf("%s: end BT state test\n", __func__);
+
   // Start Adv
   printf("%s: start back to back adv\n", __func__);
   printf("%s: start adv 1\n", __func__);
