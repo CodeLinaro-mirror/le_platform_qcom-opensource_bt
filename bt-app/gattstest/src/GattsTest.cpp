@@ -1137,8 +1137,8 @@ bool GattsTest::UnregisterServer(string instance)
       mAdvertisercallback = advcb_itr->second;
       delete(mAdvertisercallback);
       mAdvertisercallback = NULL;
-      advCBInstanceMap.erase(advcb_itr->first);
     }
+    advCBInstanceMap.clear();
     servInstanceMap.erase(instanceId);
     return true;
   } else {
@@ -1328,7 +1328,6 @@ bool GattsTest::DisableGATTSTEST()
     mAdvertisercallback = at->second;
     delete(mAdvertisercallback);
     mAdvertisercallback = NULL;
-    advCBInstanceMap.erase(at->first);
   }
   advCBInstanceMap.clear();
   advSetMap.clear();
