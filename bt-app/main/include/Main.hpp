@@ -294,6 +294,7 @@ typedef enum {
     GATTCTEST_GETDESCID,
     GATTCTEST_CONN_DEVICES,
     GATTCTEST_RELIABLEWRITE,
+    GATTCTEST_REGISTER_NOTIFICATIONS,
     GATTSTEST_OPTION,
     GATTSTEST_INIT_SERVER,
     GATTSTEST_ADDSERVER,
@@ -564,6 +565,7 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_RDWRDESC,       "gattctest_RdWrDesc",    FIVE_PARAM,    "gattctest_RdWrDesc<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID><space><value length>"},
     {GATTCTEST_RDWRCHAR,           "gattctest_RdWrchar",    FIVE_PARAM,    "gattctest_RdWrchar<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID><space><value length>"},
     {GATTCTEST_CONN_DEVICES,     "gattctest_conn_dev",  ZERO_PARAM,    "gattctest_conn_dev"},
+    {GATTCTEST_REGISTER_NOTIFICATIONS, "gattctest_register_notifications", FOUR_PARAM, "gattctest_register_notifications<space><bt_address><space><CHARINSTANCEID><space><DESCINSTANCEID><space><E-1/D-0>"},
 };
 #endif
 
