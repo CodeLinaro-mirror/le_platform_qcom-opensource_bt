@@ -11,14 +11,15 @@ AM_CFLAGS = -Wall \
 AM_CPPFLAGS = -I${BT_SOURCE}/btapp/bt-app \
               -I${BT_SOURCE}/btapp/bt-app/utils/include
 
+
 AM_CPPFLAGS += @LIBCHROME_CFLAGS@
-if AUDIO_PAL_SUPPORTED
+#if AUDIO_PAL_SUPPORTED
 AM_CPPFLAGS += -DBT_AUDIO_PAL_INTEGRATION
 AM_CPPFLAGS += @PABTAUDIO_CFLAGS@
-endif
+#endif
 
 cpp_sources = src/uuid.cc
-#cpp_sources += src/pa_routing_interface.cc
+cpp_sources += src/pa_routing_interface.cc
 
 requiredlibs = -lchrome
 

@@ -55,7 +55,7 @@
 
 #define LOGTAG_A2DP "A2DP_SRC "
 #define LOGTAG_AVRCP "AVRCP_TG "
-
+#define LOGTAG "A2DP_SRC_PA "
 using namespace std;
 using std::list;
 using std::string;

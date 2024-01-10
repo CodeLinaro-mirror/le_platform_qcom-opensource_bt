@@ -1439,7 +1439,7 @@ void Hfp_Client::ConfigureAudio(bool enable) {
    if (pa_routing_intf) {
        int ret = -1;
        if (enable && !pa_hfp_is_connected) {
-           ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_SCO, true);
+           ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_HFP_CLIENT, true);
            if(!ret) {
                fprintf(stdout, "BT connect is success for SCO usecase\n");
                ALOGD(LOGTAG " BT connect is success for SCO usecase");
@@ -1451,19 +1451,19 @@ void Hfp_Client::ConfigureAudio(bool enable) {
                return;
            }
 
-           ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, "hfp_volume=10");
+           ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_CLIENT, "hfp_volume=10");
            if(!ret)
                ALOGD(LOGTAG " HFP set volume success\n");
 
            if (mAudioWbs)
-               ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, "hfp_sample_rate=16000");
+               ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_CLIENT, "hfp_sample_rate=16000");
            else
-               ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, "hfp_sample_rate=8000");
+               ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_CLIENT, "hfp_sample_rate=8000");
 
            if(!ret)
                ALOGD(LOGTAG " set param- hfp_set_sampling_rate success\n");
 
-           ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, "hfp_enable=true");
+           ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_CLIENT, "hfp_enable=true");
            if(!ret) {
                fprintf(stdout, "set param- hfp_enable=true success\n");
                ALOGD(LOGTAG " HFP enabled successfully\n");
@@ -1474,7 +1474,7 @@ void Hfp_Client::ConfigureAudio(bool enable) {
            }
        }
        else if (!enable && pa_hfp_is_connected) {
-           ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, "hfp_enable=false");
+           ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_CLIENT, "hfp_enable=false");
            if(!ret) {
                fprintf(stdout, "set param hfp_enable=false success\n");
                ALOGD(LOGTAG " set param hfp_enable=false success\n");
@@ -1484,7 +1484,7 @@ void Hfp_Client::ConfigureAudio(bool enable) {
                ALOGE(LOGTAG " set param hfp_enable=false failed!!!\n");
            }
 
-           ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_SCO, false);
+           ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_HFP_CLIENT, false);
            if(!ret) {
                fprintf(stdout, "BT disconnect is success for SCO usecase\n");
                ALOGD(LOGTAG " BT disconnect is success for SCO usecase\n");
@@ -1561,7 +1561,7 @@ void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bo
        return;
    }
 
-   ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_SCO, vol_cmd);
+   ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_CLIENT, vol_cmd);
    if(!ret) {
        ALOGD(LOGTAG " set %s success\n", vol_cmd);
        fprintf(stdout, "set %s success\n", vol_cmd);
