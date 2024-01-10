@@ -212,7 +212,12 @@ class gattctestClientCallback:public GattClientCallback
         ALOGD(LOGTAG "onCharacteristicRead UUID %s, value is %s",
             characteristic->getUuid().ToString().c_str(), value);
         fprintf(stdout,"onCharacteristicRead UUID %s, value is %s\n",
-            characteristic->getUuid().ToString().c_str(), value);
+            characteristic->getUuid().ToString().c_str(), characteristic->getStringValue(0).c_str());
+        fprintf(stdout,"onCharacteristicRead UUID %s ", characteristic->getUuid().ToString().c_str());
+        for(int i=0; i < characteristic->getValueLength(); i++) {
+          fprintf(stdout, " %d", *value++);
+        }
+        fprintf(stdout, "\n");
       } else if (status == GattClient::GATT_READ_NOT_PERMITTED) {
         ALOGE(LOGTAG "onCharacteristicRead error");
         fprintf(stdout, "onCharacteristicRead"
@@ -240,7 +245,12 @@ class gattctestClientCallback:public GattClientCallback
         ALOGE(LOGTAG "write characteristic uid %s, value:%s success",
             uid.ToString().c_str(), value);
         fprintf(stdout, "write characteristic uid %s, value:%s"
-            "==success\n", uid.ToString().c_str(), value);
+            "== success\n", uid.ToString().c_str(), characteristic->getStringValue(0).c_str());
+        fprintf(stdout,"owrite characteristic uid %s, value: ", uid.ToString().c_str());
+        for(int i=0; i < characteristic->getValueLength(); i++) {
+          fprintf(stdout, " %d", *value++);
+        }
+        fprintf(stdout, "== success\n");
       } else {
         ALOGE(LOGTAG "Failed to write characteristic: %d", status);
         fprintf(stdout,"Failed to write characteristic: %d\n", status);
@@ -336,9 +346,16 @@ class gattctestClientCallback:public GattClientCallback
       ALOGD(LOGTAG "onCharacteristicChanged: uid");
       Uuid uid = characteristic->getUuid();
 
+      uint8_t *value = characteristic->getValue();
       if (!uid.IsEmpty()) {
-        ALOGD(LOGTAG "onCharacteristicChanged Equal");
+        ALOGD(LOGTAG "onCharacteristicChanged ");
         ALOGD(LOGTAG "onCharacteristicChanged intimation");
+        fprintf(stdout,"onCharacteristicChanged value is %s\n", characteristic->getStringValue(0).c_str());
+        fprintf(stdout, "CharacteristicChanged to");
+        for(int i=0; i < characteristic->getValueLength(); i++) {
+          fprintf(stdout, " %d", *value++);
+        }
+        fprintf(stdout, "\n");
       }
     }
 
@@ -355,7 +372,11 @@ class gattctestClientCallback:public GattClientCallback
         uint8_t *des = descriptor->getValue();
         if(des != NULL) {
           ALOGD(LOGTAG "(%s) DESCRIPTOR VALUE is %s", __FUNCTION__, des);
-          fprintf(stdout, " DESCRIPTOR VALUE is %s\n", des);
+          fprintf(stdout,"onDescriptorRead ");
+          for(int i=0; i < descriptor->getValueLength(); i++) {
+            fprintf(stdout, " %d", *des++);
+          }
+          fprintf(stdout, "\n");
         }
       } else if (status == GattClient::GATT_READ_NOT_PERMITTED) {
         ALOGE(LOGTAG "(%s) UUID READ NOT PERMITTED\n", __FUNCTION__);
