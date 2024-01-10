@@ -1968,7 +1968,7 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             }
             break;
         case GATTCTEST_SETPHY:
-            if (string_is_bdaddr(user_cmd[THREE_PARAM])) {
+            if (string_is_bdaddr(user_cmd[FOUR_PARAM])) {
                 if (gattctest) {
                     fprintf(stdout,"Setting PHY \n");
                     bool status = gattctest->validateInput(user_cmd[ONE_PARAM]);
@@ -1981,8 +1981,13 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                         fprintf(stdout, "Enter proper RX Value\n");
                         break;
                     }
+                    status = gattctest->validateInput(user_cmd[THREE_PARAM]);
+                    if (!status) {
+                        fprintf(stdout, "Enter proper Phy Options\n");
+                        break;
+                    }
                     gattctest->setPreferredPhy(atoi(user_cmd[ONE_PARAM]),
-                        atoi(user_cmd[TWO_PARAM]), 1, user_cmd[THREE_PARAM]);
+                        atoi(user_cmd[TWO_PARAM]), atoi(user_cmd[THREE_PARAM]), user_cmd[FOUR_PARAM]);
                } else {
                    fprintf(stdout,"Do the GATTCINIT first\n");
                }
@@ -2339,7 +2344,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     string server_instance = user_cmd[TWO_PARAM];
                     string txOption = user_cmd[THREE_PARAM];
                     string rxOption = user_cmd[FOUR_PARAM];
-                    int phyOption = AdvertisingSetParameters::PHY_OPTION_NO_PREFERRED;
+                    int phyOption =  atoi(user_cmd[FIVE_PARAM]);
                     fprintf(stdout,"the user options are address: %s server_instance: %s txoption: %s rxoption: %s phyoption: %d \n",deviceAddress.c_str(),server_instance.c_str(),txOption.c_str(),rxOption.c_str(),phyOption);
                     bool status =gattstest->SetPreferredPhy(deviceAddress,server_instance,txOption,rxOption,phyOption);
                     if(!status) {

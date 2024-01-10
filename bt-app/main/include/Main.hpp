@@ -516,7 +516,7 @@ UserMenuList GattsTestMenu[] = {
     {GATTSTEST_INIT_ADVERTISER,    "gattstest_init_advertiser",    ZERO_PARAM,    "gattstest_init_advertiser initialzes advertiser"},
     {GATTSTEST_START_ADVERTISER,   "gattstest_start_advertiser",   ONE_PARAM,     "gattstest_start_advertiser<space><server instance>"},
     {GATTSTEST_READPHY,            "gattstest_readphy",            TWO_PARAM,     "gattstest_readphy<space><remote address><server instance>"},
-    {GATTSTEST_SET_PREFERRED_PHY,  "gattstest_set_preferred_phy",  FOUR_PARAM,    "gattstest_set_preferred_phy<space><remote address><space><server instance><space><tx phy><space><rx phy>"},
+    {GATTSTEST_SET_PREFERRED_PHY,  "gattstest_set_preferred_phy",  FIVE_PARAM,    "gattstest_set_preferred_phy<space><remote address><space><server instance><space><tx phy><space><rx phy><space><phy opt>"},
     {GATTSTEST_STOP,               "gattstest_stop",               ONE_PARAM,     "gattstest_stop<space><server_instance>"},
     {GATTSTEST_DISABLE,             "gattstest_disable",         ZERO_PARAM,     "gattstest_disable"},
     {GATTSTEST_CANCEL_CONNECTION,   "gattstest_cancel_connection",  ONE_PARAM,   "gattstest_cancel_connection<space><remote address>"},
@@ -553,8 +553,8 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_READRSSI,           "gattctest_readrssi",    ONE_PARAM,    "gattctest_readrssi<space><bt_address>"},
     {GATTCTEST_REQMTU,           "gattctest_reqMtu",    TWO_PARAM,    "gattctest_reqMtu<space><bt_address><space><value>"},
     {GATTCTEST_REFRESH,           "gattctest_refresh",    ONE_PARAM,    "gattctest_refresh<space><bt_address>"},
-    {GATTCTEST_SETPHY,           "gattctest_setphy",    THREE_PARAM,    "gattctest_setphy<space>\
-          <TxValue(0-255)><space><RxValue(0-255)><space><bt_address> (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination)"},
+    {GATTCTEST_SETPHY,           "gattctest_setphy",    FOUR_PARAM,    "gattctest_setphy<space>\
+          <TxValue(0-255,(0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination))><space><RxValue(0-255)><space><PhyOpt(0:no pref,1:s2,2:s8)><space><bt_address>"},
     {GATTCTEST_GETSERVICES,           "gattctest_getservices",    ONE_PARAM,    "gattctest_getservices<space><bt_address>"},
     {GATTCTEST_REQCONN_PRI,           "gattctest_reqconn_pri",    TWO_PARAM,    "gattctest_reqconn_pri<space><bt_address><space><priority 0/1/2>"},
     {GATTCTEST_GETCHARID,           "gattctest_getcharid",    TWO_PARAM,    "gattctest_getcharid<space><bt_address><space><instanceid>"},
