@@ -70,7 +70,7 @@ SPDX-License-Identifier: BSD-3-Clause-Clear
 #endif
 #include "osi/include/compat.h"
 #include <cutils/properties.h>
-#include <systemdq/sd-bus.h>
+#include <systemd/sd-bus.h>
 
 #include "utils.h"
 
