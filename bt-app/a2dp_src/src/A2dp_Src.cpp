@@ -4243,6 +4243,12 @@ A2dp_Source :: ~A2dp_Source() {
     mAbsVolRemoteSupported = false;
     TRACK_IS_SELECTED = 0L;
     pthread_mutex_destroy(&lock);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+   if (pa_routing_intf) {
+       pa_routing_intf_close(pa_routing_intf);
+       pa_routing_intf = NULL;
+   }
+#endif
 }
 
 MediaPlayerInfo :: MediaPlayerInfo(short playerId, char majorPlayerType, int playerSubType,
