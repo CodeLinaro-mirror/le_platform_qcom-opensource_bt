@@ -29,7 +29,7 @@ SPDX-License-Identifier: BSD-3-Clause-Clear
 #include <hardware/bluetooth.h>
 #include <hardware/vendor.h>
 #include <hardware/bt_obex_sock.h>
-#include <systemdq/sd-bus.h>
+#include <systemd/sd-bus.h>
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"

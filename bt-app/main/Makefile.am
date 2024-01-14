@@ -108,9 +108,9 @@ cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
 endif
 
 if USE_GST
-requiredlibs = ../osi/libgstbtapposi.la ../utils/libgstbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils -lsystemdq
+requiredlibs = ../osi/libgstbtapposi.la ../utils/libgstbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils -lsystemd
 else
-requiredlibs = ../osi/libbtapposi.la ../utils/libbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils -lsystemdq
+requiredlibs = ../osi/libbtapposi.la ../utils/libbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils -lsystemd
 endif
 
 if USE_GEN_GATT
