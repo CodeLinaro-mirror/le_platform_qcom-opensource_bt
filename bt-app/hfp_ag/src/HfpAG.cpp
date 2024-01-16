@@ -1005,7 +1005,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
 #if defined(BT_AUDIO_PAL_INTEGRATION)
         if (pa_routing_intf) {
-           int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "A2dpSuspended=false");
+           int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=false");
            if (ret) {
               ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
            }
@@ -1304,7 +1304,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                else {
 #if defined(BT_AUDIO_PAL_INTEGRATION)
                  if (pa_routing_intf) {
-                    int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "A2dpSuspended=true");
+                    int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=true");
                     if (ret) {
                        ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
                     }
@@ -1835,7 +1835,7 @@ bool Hfp_Ag::VoipCallInd(bt_bdaddr_t *bd_addr) {
     if(sBtHfpAgInterface != NULL) {
 #if defined(BT_AUDIO_PAL_INTEGRATION)
         if (pa_routing_intf) {
-           int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "A2dpSuspended=true");
+           int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=true");
            if (ret) {
               ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
            }
@@ -1883,7 +1883,7 @@ bool Hfp_Ag::VoipCallIncomingInd(bt_bdaddr_t *bd_addr,char* number, int call_act
     if(sBtHfpAgInterface != NULL) {
 #if defined(BT_AUDIO_PAL_INTEGRATION)
         if (pa_routing_intf) {
-           int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "A2dpSuspended=true");
+           int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=true");
            if (ret) {
               ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
            }
@@ -2706,7 +2706,7 @@ void Hfp_Ag::teardown_sco_path() {
          ALOGE(LOGTAG, "%s failed to reset wbs flag\n", __func__);
       }
       release_audio();
-      ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "A2dpSuspended=false");
+      ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=false");
       if (ret) {
          ALOGE(LOGTAG, "%s failed to reset A2dpSuspended flag\n", __func__);
       }
