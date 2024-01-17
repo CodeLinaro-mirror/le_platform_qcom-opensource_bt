@@ -4593,6 +4593,19 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_a2dp_source_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_A2DP_SOURCE_ENABLED, false);
 
+    if (is_a2dp_sink_split_enabled_ == true && is_a2dp_source_enabled_ == true) {
+        ALOGE (LOGTAG " Both A2dp Src and A2dp Sink are enabled, disabling A2dp Src. Set \
+           BtA2dpSourceEnable to true, BtA2dpSinkSplitEnable to false in bt_app.conf to \
+           enable only A2dp Source");
+        fprintf(stdout, " Both A2dp Src and A2dp Sink are enabled, disabling A2dp Src. Set \n \
+           BtA2dpSourceEnable to true, BtA2dpSinkSplitEnable to false in bt_app.conf to \n \
+           enable only A2dp Source\n ");
+        is_a2dp_source_enabled_ = false;
+    }
+
+    if(is_a2dp_source_enabled_) {
+        osi_property_set("persist.bt.a2dp_offload_cap","sbc-aac");
+    }
     //checking for hfp client
     is_hfp_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_HFP_CLIENT_ENABLED, false);
@@ -4607,8 +4620,8 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
         ALOGE (LOGTAG " Both HFP AG and Client are enabled, disabling AG. Set \
            BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
            enable only AG");
-        fprintf(stdout, " Both HFP AG and Client are enabled, disabling AG. Set \
-           BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
+        fprintf(stdout, " Both HFP AG and Client are enabled, disabling AG. Set \n \
+           BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \n \
            enable only AG\n" );
         is_hfp_ag_enabled_ = false;
     }
