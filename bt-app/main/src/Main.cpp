@@ -4299,6 +4299,7 @@ void BluetoothApp :: InitHandler (void) {
             pHid = new HidH(bt_interface, config);
     }
     is_hid_enabled = is_hid_enable_default_ ;
+    DisplayMenu(MAIN_MENU);
 }
 
 

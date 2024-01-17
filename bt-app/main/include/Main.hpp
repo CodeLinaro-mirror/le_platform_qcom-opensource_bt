@@ -456,9 +456,9 @@ UserMenuList GapMenu[] = {
  */
 UserMenuList MainMenu[] = {
     {GAP_OPTION,            "gap_menu",         ZERO_PARAM,   "gap_menu"},
-    {PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
+    //{PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
 #ifdef USE_GEN_GATT
-    {RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
+    //{RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
 #endif
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
