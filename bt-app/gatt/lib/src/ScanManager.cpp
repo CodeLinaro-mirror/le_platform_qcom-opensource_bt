@@ -134,27 +134,28 @@ void ScanManager::callbackDone(int scannerId, int status)
     ALOGD(LOGTAG " callback done for scannerId %d status %d ", scannerId, status);
   }
   if( status == 0)
-    countDown = true;
+  {
+      std::lock_guard<std::mutex> lk(lock);
+      countDown = true;
+      ALOGD(LOGTAG " callbackDone countDown: %d , status :%d", countDown, status);
+      cv.notify_all();
+  }
 }
 
 void ScanManager::resetCountDownLatch()
 {
   ALOGE(LOGTAG "resetCountDownLatch");
+  std::lock_guard<std::mutex> lk(lock);
   countDown = false;
 }
-
 void ScanManager::waitForCallback()
 {
   std::unique_lock<std::mutex> lk(lock);
-  if (cv.wait_for(lk,std::chrono::milliseconds(OPERATION_TIME_OUT_MILLIS), [] {return countDown;})) {
-    ALOGE(LOGTAG "waitForCallback() : LatchDown Timeout");
-    lk.unlock();
-    cv.notify_all();
+  if (cv.wait_for(lk, std::chrono::milliseconds(OPERATION_TIME_OUT_MILLIS), [] {return countDown;})) {
+    ALOGD(LOGTAG "waitForCallback() : LatchDown countDown is true");
   } else {
-    ALOGE(LOGTAG "waitForCallback() : LatchDown countDown is false");
-    lk.unlock();
-    cv.notify_all();
- }
+    ALOGE(LOGTAG "waitForCallback() : LatchDown Timeout");
+  }
 }
 
 int ScanManager::millsToUnit(int milliseconds)
