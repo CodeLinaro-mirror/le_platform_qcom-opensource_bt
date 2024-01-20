@@ -46,6 +46,7 @@ BleSocketManager *g_ble_socket_manager;
 BleWlanDppBootstrap *g_ble_wlan_dpp_bootstrap;
 BleWifiControlService *g_ble_wifi_control_service;
 BleGapService *g_ble_gap_service;
+static bt_state_t g_ble_gap_bt_state = BT_STATE_OFF;
 
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
 
@@ -108,10 +109,65 @@ void BtLeSocketMsgHandler(void *msg)
 
 BleSocketManager :: BleSocketManager(const bt_interface_t *bt_interface, config_t *config)
 {
+  ble_gap_client_socket_ = -1;
+  ble_gap_listen_socket_local_ = -1;
+  ble_gap_listen_reactor_ = NULL;
+  ble_gap_accept_reactor_ = NULL;
+  ble_gap_thread_obj_ = NULL;
 
+  int status = BleGapSocketCreate();
+  if (status != -1) {
+    ble_gap_thread_obj_ = thread_new ("BLE_GAP_TASK");
+
+    if (ble_gap_thread_obj_) {
+      ble_gap_listen_reactor_ = reactor_register (thread_get_reactor(ble_gap_thread_obj_),
+          ble_gap_listen_socket_local_, NULL, BleGapSocketListenHandler, NULL);
+      if (ble_gap_listen_reactor_ != NULL) {
+        status = 0;
+        g_ble_gap_service = new BleGapService();
+      }
+    }
+  }
+  else
+  {
+    ALOGE(LOGTAG "%s : create BleGapSocket failed.", __FUNCTION__);
+  }
 }
 BleSocketManager :: ~BleSocketManager()
 {
+  cleanupGAP();
+  if (ble_gap_accept_reactor_) {
+    reactor_unregister ( ble_gap_accept_reactor_);
+    ble_gap_accept_reactor_ = NULL;
+  }
+
+  if (ble_gap_listen_reactor_) {
+    reactor_unregister ( ble_gap_listen_reactor_);
+    ble_gap_listen_reactor_ = NULL;
+  }
+
+  if (ble_gap_thread_obj_) {
+    thread_free(ble_gap_thread_obj_);
+  }
+
+  ALOGD(LOGTAG "%s : ble_gap_client_socket_= %d, ble_gap_listen_socket_local_= %d",
+    __FUNCTION__, ble_gap_client_socket_, ble_gap_listen_socket_local_);
+
+  if (ble_gap_client_socket_ != -1) {
+    close(ble_gap_client_socket_);
+    ble_gap_client_socket_ = -1;
+  }
+
+  if (ble_gap_listen_socket_local_ != -1) {
+    close(ble_gap_listen_socket_local_);
+    ble_gap_listen_socket_local_ = -1;
+  }
+
+  if (g_ble_gap_service) {
+    delete g_ble_gap_service;
+    g_ble_gap_service = NULL;
+  }
+
 }
 
 int BleSocketManager :: init()
@@ -124,11 +180,6 @@ int BleSocketManager :: init()
   wbds_listen_reactor_ = NULL;
   wbds_accept_reactor_ = NULL;
   wbds_thread_obj_ = NULL;
-  ble_gap_client_socket_ = -1;
-  ble_gap_listen_socket_local_ = -1;
-  ble_gap_listen_reactor_ = NULL;
-  ble_gap_accept_reactor_ = NULL;
-  ble_gap_thread_obj_ = NULL;
 
   status = WBDSSocketCreate();
 
@@ -149,25 +200,17 @@ int BleSocketManager :: init()
   ALOGD(LOGTAG "%s : wbds_listen_reactor_= %p, wbds_thread_obj_=%p, status = %d",
       __FUNCTION__, wbds_listen_reactor_, wbds_thread_obj_, status);
 
-  if (status != -1) {
-    status = BleGapSocketCreate();
-  }
-
-  if (status != -1) {
-    ble_gap_thread_obj_ = thread_new ("BLE_GAP_TASK");
-
-    if (ble_gap_thread_obj_) {
-      ble_gap_listen_reactor_ = reactor_register (thread_get_reactor(ble_gap_thread_obj_),
-          ble_gap_listen_socket_local_, NULL, BleGapSocketListenHandler, NULL);
-      if (ble_gap_listen_reactor_ != NULL) {
-        status = 0;
-        g_ble_gap_service = new BleGapService();
-      }
-    }
-  }
 
   if (status == -1) {
     deinit();
+  }
+  else
+  {
+    g_ble_gap_bt_state = BT_STATE_ON;
+    ble_ipc_msg_t ipc_msg = {};
+    ipc_msg.eventId = BLE_IPC_MSG_GAP_BT_STATE_EVT;
+    ipc_msg.bleGapBtStateEvent.state = BT_STATE_ON;
+    BleGapSocketWriteHandler(&ipc_msg);
   }
 
   return status;
@@ -212,34 +255,6 @@ void BleSocketManager :: deinit()
     wbds_listen_socket_local_ = -1;
   }
 
-  if (ble_gap_accept_reactor_) {
-    reactor_unregister ( ble_gap_accept_reactor_);
-    ble_gap_accept_reactor_ = NULL;
-  }
-
-  if (ble_gap_listen_reactor_) {
-    reactor_unregister ( ble_gap_listen_reactor_);
-    ble_gap_listen_reactor_ = NULL;
-  }
-
-  if (ble_gap_thread_obj_) {
-    thread_free(ble_gap_thread_obj_);
-  }
-
-  ALOGD(LOGTAG "%s : ble_gap_client_socket_= %d, ble_gap_listen_socket_local_= %d",
-    __FUNCTION__, ble_gap_client_socket_, ble_gap_listen_socket_local_);
-
-  if (ble_gap_client_socket_ != -1) {
-    close(ble_gap_client_socket_);
-    ble_gap_client_socket_ = -1;
-  }
-
-  if (ble_gap_listen_socket_local_ != -1) {
-    close(ble_gap_listen_socket_local_);
-    ble_gap_listen_socket_local_ = -1;
-  }
-
-
   if (g_ble_wlan_dpp_bootstrap) {
     delete g_ble_wlan_dpp_bootstrap;
     g_ble_wlan_dpp_bootstrap = NULL;
@@ -250,10 +265,11 @@ void BleSocketManager :: deinit()
     g_ble_wifi_control_service = NULL;
   }
 
-  if (g_ble_gap_service) {
-    delete g_ble_gap_service;
-    g_ble_gap_service = NULL;
-  }
+  g_ble_gap_bt_state = BT_STATE_OFF;
+  ble_ipc_msg_t ipc_msg = {};
+  ipc_msg.eventId = BLE_IPC_MSG_GAP_BT_STATE_EVT;
+  ipc_msg.bleGapBtStateEvent.state = BT_STATE_OFF;
+  BleGapSocketWriteHandler(&ipc_msg);
 }
 
 void BleSocketManager :: cleanupWBDS()
@@ -525,7 +541,7 @@ void WBDSSocketDataHandler (void *context) {
 
 void BleGapSocketListenHandler (void *context) {
   struct sockaddr_un cliaddr;
-  int length;
+  int length = sizeof(cliaddr);
 
   ALOGD (LOGTAG "%s: ble_gap_client_socket_ = %d",
       __FUNCTION__, g_ble_socket_manager->ble_gap_client_socket_);
@@ -573,25 +589,61 @@ void BleGapSocketDataHandler (void *context) {
     } else if(len == BLE_IPC_MSG_LEN) {
       switch (ipc_msg.eventId) {
         case BLE_IPC_MSG_GAP_SCAN_ENABLE_REQ:
-          ALOGI (LOGTAG "%s: BLE_IPC_MSG_GAP_SCAN_ENABLE_REQ", __FUNCTION__);
-          g_ble_gap_service->ScanEnableReq(
-              &(ipc_msg.bleGapScanEnableReqEvent));
+        {
+          if (g_ble_gap_bt_state == BT_STATE_ON)
+          {
+            ALOGI (LOGTAG "%s: BLE_IPC_MSG_GAP_SCAN_ENABLE_REQ", __FUNCTION__);
+            g_ble_gap_service->ScanEnableReq(
+                &(ipc_msg.bleGapScanEnableReqEvent));
+          }
+          else
+          {
+            g_ble_gap_service->ScanEnableRsp(BLE_IPC_STATUS_GAP_BT_OFF);
+          }
+        }
           break;
 
         case BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ:
-          ALOGI (LOGTAG "%s: BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ", __FUNCTION__);
-          g_ble_gap_service->ScanDisableReq();
+        {
+          if (g_ble_gap_bt_state == BT_STATE_ON)
+          {
+            ALOGI (LOGTAG "%s: BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ", __FUNCTION__);
+            g_ble_gap_service->ScanDisableReq();
+          }
+          else
+          {
+            g_ble_gap_service->ScanDisableRsp(BLE_IPC_STATUS_GAP_BT_OFF);
+          }
+        }
           break;
 
         case BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ:
-          ALOGI (LOGTAG "%s: BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ", __FUNCTION__);
-          g_ble_gap_service->AdvertiseEnableReq(
-              &(ipc_msg.bleGapAdvertiseEnableReqEvent.info));
-          break;
+        {
+          if (g_ble_gap_bt_state == BT_STATE_ON)
+          {
+            ALOGI (LOGTAG "%s: BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ", __FUNCTION__);
+            g_ble_gap_service->AdvertiseEnableReq(
+                &(ipc_msg.bleGapAdvertiseEnableReqEvent.info));
+          }
+          else
+          {
+            g_ble_gap_service->AdvertiseEnableRsp(BLE_IPC_STATUS_GAP_BT_OFF);
+          }
+        }
+        break;
 
         case BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_REQ:
-          ALOGI (LOGTAG "%s: BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_REQ", __FUNCTION__);
-          g_ble_gap_service->AdvertiseDisableReq();
+        {
+          if (g_ble_gap_bt_state == BT_STATE_ON)
+          {
+            ALOGI (LOGTAG "%s: BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_REQ", __FUNCTION__);
+            g_ble_gap_service->AdvertiseDisableReq();
+          }
+          else
+          {
+            g_ble_gap_service->AdvertiseDisableRsp(BLE_IPC_STATUS_GAP_BT_OFF);
+          }
+        }
           break;
 
         default:

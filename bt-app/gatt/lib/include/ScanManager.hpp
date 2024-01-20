@@ -104,12 +104,12 @@ class ScanManager {
         /**
          * Scan params corresponding to regular scan setting
          */
-        static const int SCAN_MODE_LOW_POWER_WINDOW_MS = 512;
-        static const int SCAN_MODE_LOW_POWER_INTERVAL_MS = 5120;
-        static const int SCAN_MODE_BALANCED_WINDOW_MS = 1024;
-        static const int SCAN_MODE_BALANCED_INTERVAL_MS = 4096;
-        static const int SCAN_MODE_LOW_LATENCY_WINDOW_MS = 4096;
-        static const int SCAN_MODE_LOW_LATENCY_INTERVAL_MS = 4096;
+        static const int SCAN_MODE_LOW_POWER_WINDOW_MS = 140;
+        static const int SCAN_MODE_LOW_POWER_INTERVAL_MS = 1400;
+        static const int SCAN_MODE_BALANCED_WINDOW_MS = 183;
+        static const int SCAN_MODE_BALANCED_INTERVAL_MS = 730;
+        static const int SCAN_MODE_LOW_LATENCY_WINDOW_MS = 100;
+        static const int SCAN_MODE_LOW_LATENCY_INTERVAL_MS = 100;
 
         /**
          * Onfound/onlost for scan settings

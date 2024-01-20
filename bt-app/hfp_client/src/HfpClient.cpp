@@ -1060,6 +1060,23 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             fprintf(stdout, "Disconnected SCO connection with device %s\n", str);
             ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
             break;
+         case HFP_CLIENT_API_DISCONNECT_REQ:
+             // release control
+             pReleaseControlReq = new BtEvent;
+             pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+             pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_HFP_CLIENT;
+             PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+
+             mcontrolStatus = STATUS_LOSS_TRANSIENT;
+             if (sBtHfpClientInterface != NULL) {
+                 sBtHfpClientInterface->disconnect(&pEvent->hfp_client_event.bd_addr);
+             }
+
+             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
+             fprintf(stdout, "Disconnecting with device %s\n", str);
+             ALOGD(LOGTAG "Disconnecting with device %s", str);
+             change_state(HFP_CLIENT_STATE_CONNECTING);
+             break;
         case BT_AM_CONTROL_STATUS:
             ALOGD(LOGTAG "earlier status = %d  new status = %d", mcontrolStatus,
                                    pEvent->btamControlStatus.status_type);

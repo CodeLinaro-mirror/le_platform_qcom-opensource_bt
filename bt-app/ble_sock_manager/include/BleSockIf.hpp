@@ -70,6 +70,7 @@ typedef enum {
   BLE_IPC_STATUS_WCS_PEER_ABNORMALLY_DISCONNECTED,
   BLE_IPC_STATUS_GAP_SCAN_ALREADY_ENABLED,
   BLE_IPC_STATUS_GAP_ADV_ALREADY_ENABLED,
+  BLE_IPC_STATUS_GAP_BT_OFF,
 } BleIpcStatus;
 
 typedef enum {
@@ -218,6 +219,10 @@ typedef enum{
    * ipc message is used to reply to an BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ event
    */
   BLE_IPC_MSG_GAP_SCAN_DISABLE_RSP,
+  /**
+   * ipc message is used to reply to an BLE_IPC_MSG_GAP_BT_STATE event
+   */
+  BLE_IPC_MSG_GAP_BT_STATE_EVT,
 
 
   BLE_IPC_MSG_INAVALID = 0xFF
@@ -514,6 +519,11 @@ typedef struct {
   BleIpcStatus status;
 } __attribute__((packed)) BleGapAdvertiseDisableRspEvent;
 
+typedef struct {
+  BleIpcEventId eventId;
+  uint8_t state; // use uint8_t instead of bt_state_t to avoid ble-wifi-discovery compilation error
+} __attribute__((packed)) BleGapBtStateEvent;
+
 typedef union {
   BleIpcEventId eventId;
   WlanDppBootstrapModeEnableReqEvent wlanDppBootstrapModeEnableReqEvent;
@@ -550,6 +560,7 @@ typedef union {
   BleGapAdvertiseEnableRspEvent       bleGapAdvertiseEnableRspEvent;
   BleGapAdvertiseDisableReqEvent      bleGapAdvertiseDisableReqEvent;
   BleGapAdvertiseDisableRspEvent      bleGapAdvertiseDisableRspEvent;
+  BleGapBtStateEvent                  bleGapBtStateEvent;
 } ble_ipc_msg_t;
 
 #define BLE_IPC_MSG_LEN sizeof(ble_ipc_msg_t)

@@ -82,6 +82,9 @@ static void RxProcessing(ble_ipc_msg_t * evt) {
     case BLE_IPC_MSG_GAP_SCAN_DISABLE_RSP:
       printf("%s: scan disable rsp = %d\n", __func__, evt->bleGapScanDisableRspEvent.status);
     break;
+    case BLE_IPC_MSG_GAP_BT_STATE_EVT:
+      printf("%s: BT state = %d\n", __func__, evt->bleGapBtStateEvent.state);
+    break;
     default:
     break;
   }
@@ -128,6 +131,215 @@ void InitReadThread() {
 void ExecuteTestCases() {
   ble_ipc_msg_t msg;
   printf("%s\n", __func__);
+  //BT state test
+  printf("%s: start BT state test, turn off/on BT manually\n", __func__);
+  sleep(60);
+  printf("%s: end BT state test\n", __func__);
+
+  // Start Adv
+  printf("%s: start back to back adv\n", __func__);
+  printf("%s: start adv 1\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data_uuid16 = 0x1812;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data_len = 2;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data[0] = 2;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data[1] = 3;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.include_device_name = true;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.include_tx_power_level = true;
+  msg.bleGapAdvertiseEnableReqEvent.info.interval = 160;
+  msg.bleGapAdvertiseEnableReqEvent.info.tx_power_level = 1;
+  msg.bleGapAdvertiseEnableReqEvent.info.duration_msec = 30*1000;
+  SendMsgToSocket(&msg);
+  // Stop Adv
+  printf("%s: stop adv 1\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_REQ;
+  SendMsgToSocket(&msg);
+  // Start Adv
+  printf("%s: start adv 2\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data_uuid16 = 0x1812;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data_len = 2;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data[0] = 2;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data[1] = 3;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.include_device_name = true;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.include_tx_power_level = true;
+  msg.bleGapAdvertiseEnableReqEvent.info.interval = 160;
+  msg.bleGapAdvertiseEnableReqEvent.info.tx_power_level = 1;
+  msg.bleGapAdvertiseEnableReqEvent.info.duration_msec = 30*1000;
+  SendMsgToSocket(&msg);
+  // Stop Adv
+  printf("%s: stop adv 2\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_REQ;
+  SendMsgToSocket(&msg);
+  // Start Adv
+  printf("%s: start adv 3\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data_uuid16 = 0x1812;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data_len = 2;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data[0] = 2;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data[1] = 3;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.include_device_name = true;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.include_tx_power_level = true;
+  msg.bleGapAdvertiseEnableReqEvent.info.interval = 160;
+  msg.bleGapAdvertiseEnableReqEvent.info.tx_power_level = 1;
+  msg.bleGapAdvertiseEnableReqEvent.info.duration_msec = 30*1000;
+  SendMsgToSocket(&msg);
+  // Stop Adv
+  printf("%s: stop adv 3\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_REQ;
+  SendMsgToSocket(&msg);
+  // Start Adv
+  printf("%s: start adv 4\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data_uuid16 = 0x1812;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data_len = 2;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data[0] = 2;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data[1] = 3;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.include_device_name = true;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.include_tx_power_level = true;
+  msg.bleGapAdvertiseEnableReqEvent.info.interval = 160;
+  msg.bleGapAdvertiseEnableReqEvent.info.tx_power_level = 1;
+  msg.bleGapAdvertiseEnableReqEvent.info.duration_msec = 30*1000;
+  SendMsgToSocket(&msg);
+  // Stop Adv
+  printf("%s: stop adv 4\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_REQ;
+  SendMsgToSocket(&msg);
+  // Start Adv
+  printf("%s: start adv 5\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data_uuid16 = 0x1812;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data_len = 2;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data[0] = 2;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.service_data[1] = 3;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.include_device_name = true;
+  msg.bleGapAdvertiseEnableReqEvent.info.adv_data.include_tx_power_level = true;
+  msg.bleGapAdvertiseEnableReqEvent.info.interval = 160;
+  msg.bleGapAdvertiseEnableReqEvent.info.tx_power_level = 1;
+  msg.bleGapAdvertiseEnableReqEvent.info.duration_msec = 30*1000;
+  SendMsgToSocket(&msg);
+  // Stop Adv
+  printf("%s: stop adv 5\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_DISABLE_REQ;
+  SendMsgToSocket(&msg);
+  printf("%s: stop back to back adv \n", __func__);
+  sleep(10);
+
+  printf("%s: start back to back scan\n", __func__);
+  // Start Scanning
+  printf("%s: start scan 1\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_SCAN_ENABLE_REQ;
+  msg.bleGapScanEnableReqEvent.service_data_uuid16 = 0x1812;
+  msg.bleGapScanEnableReqEvent.service_data_len = 2;
+  msg.bleGapScanEnableReqEvent.service_data[0] = 2;
+  msg.bleGapScanEnableReqEvent.service_data[1] = 3;
+  msg.bleGapScanEnableReqEvent.service_data_mask_len = 2;
+  msg.bleGapScanEnableReqEvent.service_data_mask[0] = 0xFF;
+  msg.bleGapScanEnableReqEvent.service_data_mask[1] = 0xFF;
+  msg.bleGapScanEnableReqEvent.scan_mode = 2;
+  msg.bleGapScanEnableReqEvent.legacy = false;
+
+  SendMsgToSocket(&msg);
+  // Stop Scanning
+  printf("%s: stop scan 1\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ;
+  SendMsgToSocket(&msg);
+  // Start Scanning
+  printf("%s: start scan 2\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_SCAN_ENABLE_REQ;
+  msg.bleGapScanEnableReqEvent.service_data_uuid16 = 0x1812;
+  msg.bleGapScanEnableReqEvent.service_data_len = 2;
+  msg.bleGapScanEnableReqEvent.service_data[0] = 2;
+  msg.bleGapScanEnableReqEvent.service_data[1] = 3;
+  msg.bleGapScanEnableReqEvent.service_data_mask_len = 2;
+  msg.bleGapScanEnableReqEvent.service_data_mask[0] = 0xFF;
+  msg.bleGapScanEnableReqEvent.service_data_mask[1] = 0xFF;
+  msg.bleGapScanEnableReqEvent.scan_mode = 2;
+  msg.bleGapScanEnableReqEvent.legacy = false;
+
+  SendMsgToSocket(&msg);
+  // Stop Scanning
+  printf("%s: stop scan 2\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ;
+  SendMsgToSocket(&msg);
+  // Start Scanning
+  printf("%s: start scan 3\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_SCAN_ENABLE_REQ;
+  msg.bleGapScanEnableReqEvent.service_data_uuid16 = 0x1812;
+  msg.bleGapScanEnableReqEvent.service_data_len = 2;
+  msg.bleGapScanEnableReqEvent.service_data[0] = 2;
+  msg.bleGapScanEnableReqEvent.service_data[1] = 3;
+  msg.bleGapScanEnableReqEvent.service_data_mask_len = 2;
+  msg.bleGapScanEnableReqEvent.service_data_mask[0] = 0xFF;
+  msg.bleGapScanEnableReqEvent.service_data_mask[1] = 0xFF;
+  msg.bleGapScanEnableReqEvent.scan_mode = 2;
+  msg.bleGapScanEnableReqEvent.legacy = false;
+
+  SendMsgToSocket(&msg);
+  // Stop Scanning
+  printf("%s: stop scan 3\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ;
+  SendMsgToSocket(&msg);
+  // Start Scanning
+  printf("%s: start scan 4\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_SCAN_ENABLE_REQ;
+  msg.bleGapScanEnableReqEvent.service_data_uuid16 = 0x1812;
+  msg.bleGapScanEnableReqEvent.service_data_len = 2;
+  msg.bleGapScanEnableReqEvent.service_data[0] = 2;
+  msg.bleGapScanEnableReqEvent.service_data[1] = 3;
+  msg.bleGapScanEnableReqEvent.service_data_mask_len = 2;
+  msg.bleGapScanEnableReqEvent.service_data_mask[0] = 0xFF;
+  msg.bleGapScanEnableReqEvent.service_data_mask[1] = 0xFF;
+  msg.bleGapScanEnableReqEvent.scan_mode = 2;
+  msg.bleGapScanEnableReqEvent.legacy = false;
+
+  SendMsgToSocket(&msg);
+  // Stop Scanning
+  printf("%s: stop scan 4\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ;
+  SendMsgToSocket(&msg);
+  // Start Scanning
+  printf("%s: start scan 5\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_SCAN_ENABLE_REQ;
+  msg.bleGapScanEnableReqEvent.service_data_uuid16 = 0x1812;
+  msg.bleGapScanEnableReqEvent.service_data_len = 2;
+  msg.bleGapScanEnableReqEvent.service_data[0] = 2;
+  msg.bleGapScanEnableReqEvent.service_data[1] = 3;
+  msg.bleGapScanEnableReqEvent.service_data_mask_len = 2;
+  msg.bleGapScanEnableReqEvent.service_data_mask[0] = 0xFF;
+  msg.bleGapScanEnableReqEvent.service_data_mask[1] = 0xFF;
+  msg.bleGapScanEnableReqEvent.scan_mode = 2;
+  msg.bleGapScanEnableReqEvent.legacy = false;
+
+  SendMsgToSocket(&msg);
+  // Stop Scanning
+  printf("%s: stop scan 5\n", __func__);
+  memset(&msg, 0, sizeof(ble_ipc_msg_t));
+  msg.eventId = BLE_IPC_MSG_GAP_SCAN_DISABLE_REQ;
+  SendMsgToSocket(&msg);
+
+  printf("%s: stop back to back scan\n", __func__);
+  sleep(10);
+
   // Start Adv
   memset(&msg, 0, sizeof(ble_ipc_msg_t));
   msg.eventId = BLE_IPC_MSG_GAP_ADVERTISE_ENABLE_REQ;

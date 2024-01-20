@@ -197,6 +197,7 @@ void AdvertiserManager::stopAdvertisingSet(IAdvertisingSetCallback *callback)
   }
 
   int advertiserId = it->first;
+  mAdvertisers.erase(advertiserId);
   if (advertiserId < 0) {
     ALOGI(LOGTAG " stopAdvertisingSet() - advertiser not finished registration yet");
     // Advertiser will be freed once initiated in onAdvertisingSetStarted()
@@ -204,7 +205,6 @@ void AdvertiserManager::stopAdvertisingSet(IAdvertisingSetCallback *callback)
   }
 
   mNative->stopAdvertisingSetNative(advertiserId);
-  mAdvertisers.erase(advertiserId);
 
   try {
     callback->onAdvertisingSetStopped(advertiserId);
