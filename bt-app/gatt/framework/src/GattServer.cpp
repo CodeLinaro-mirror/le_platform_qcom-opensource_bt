@@ -38,13 +38,10 @@ void GattServer::onServerRegistered(int status, int serverIf)
     ALOGD(LOGTAG " onServerRegistered() - status %d serverIf %d", status, serverIf);
   }
 
-  {
-    std::lock_guard<std::mutex> lock(mServerIfLock);
-  }
-  mServerIfCond.notify_all();
-
   if (mCallback != NULL) {
+    std::lock_guard<std::mutex> lock(mServerIfLock);
     mServerIf = serverIf;
+    mServerIfCond.notify_all();
   } else {
     // registration timeout
     ALOGE(LOGTAG " onServerRegistered() : mCallback is null");
