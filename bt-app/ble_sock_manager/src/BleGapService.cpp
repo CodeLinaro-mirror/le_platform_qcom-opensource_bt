@@ -199,12 +199,19 @@ void BleGapService :: ScanEnableReq(BleGapScanEnableReqEvent * evt)
 {
   ALOGD(LOGTAG "%s ", __FUNCTION__);
   if (scan_in_progress_) return ScanEnableRsp(BLE_IPC_STATUS_GAP_SCAN_ALREADY_ENABLED);
+  if ((evt->service_data_len > MAX_ADV_DATA_TYPE_VAL_LEN) ||
+     (evt->service_data_mask_len != evt->service_data_len) ||
+     (evt->service_data_uuid16 == 0)) {
+    ALOGE(LOGTAG "%s: Invalid parameters", __FUNCTION__);
+    return ScanEnableRsp(BLE_IPC_STATUS_FAILED);
+  }
+
   std::vector<uint8_t> service_data(evt->service_data,
                                     (evt->service_data) + (evt->service_data_len));
   std::vector<uint8_t> service_data_mask(evt->service_data_mask,
       (evt->service_data_mask) + (evt->service_data_mask_len));
   service_data_uuid_ = Uuid::From16Bit(evt->service_data_uuid16);
-  ALOGD(LOGTAG "%s service_data_uuid = %d, service_data.size()=%d, service_data_mask.size()=%d", __FUNCTION__, service_data_uuid_, service_data.size(), service_data_mask.size());
+  ALOGD(LOGTAG "%s service_data_uuid16 = %d, service_data.size()=%d, service_data_mask.size()=%d", __FUNCTION__, evt->service_data_uuid16, service_data.size(), service_data_mask.size());
 
   ScanSettings *settings = ScanSettings::Builder()
                             .setScanMode(evt->scan_mode)
@@ -261,6 +268,12 @@ void BleGapService :: AdvertiseEnableReq(BleGapAdvertiseInfo *info)
   ALOGD(LOGTAG "%s ", __FUNCTION__);
 
   if (adv_in_progress_) return AdvertiseEnableRsp(BLE_IPC_STATUS_GAP_ADV_ALREADY_ENABLED);
+  if ((info->adv_data.service_data_len > MAX_ADV_DATA_TYPE_VAL_LEN) ||
+     (info->adv_data.service_data_uuid16 == 0)) {
+    ALOGE(LOGTAG "%s: Invalid parameters", __FUNCTION__);
+    return AdvertiseEnableRsp(BLE_IPC_STATUS_FAILED);
+  }
+
   AdvertiseData *advData = NULL;
   std::vector<uint8_t> service_data(info->adv_data.service_data, (info->adv_data.service_data) + (info->adv_data.service_data_len));
   const Uuid service_data_uuid = Uuid::From16Bit((info->adv_data.service_data_uuid16));
