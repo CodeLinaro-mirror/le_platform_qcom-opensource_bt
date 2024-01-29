@@ -31,7 +31,8 @@ AM_CPPFLAGS += -I$(top_srcdir) \
                -I$(top_srcdir)/sdp_client/include \
                -I${WORKSPACE}/qcom-opensource/bt/gatt/include \
                -I${WORKSPACE}/system/media/audio/include \
-               -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
+               -I${WORKSPACE}/system/core/include \
+	       -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
                -I${WORKSPACE}/mcm-api/api
@@ -79,12 +80,13 @@ c_sources +=  ../pbap_client/src/PbapClient.cpp \
 endif
 
 if USE_BTVENDORHAL
- requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal
+ requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lgengatt -lcutils
 else
- requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware
+ requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware -lgengatt -lcutils
 endif
 
-requiredlibs += $(SYS_LIB)/libgengatt.la
+#requiredlibs += $(SYS_LIB)/libgengatt.la
+
 if AUDIO_HAL_SUPPORTED
 requiredlibs += $(SYS_LIB)/libqahw.la
 endif
@@ -95,7 +97,7 @@ endif
 
 if USE_GLIB
  btapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
- btapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
+ btapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB -DUSE_LIBHW_AOSP @GLIB_CFLAGS@
  btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
 else
  btapp_CFLAGS = $(AM_CFLAGS)

@@ -16,7 +16,7 @@ c_sources = \
     src/sock_ops.c
 
 if USE_GLIB
- btproperty_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
+ btproperty_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB -DUSE_ANDROID_LOGGING @GLIB_CFLAGS@
  btproperty_LDFLAGS = -lpthread @GLIB_LIBS@
 else
  btproperty_CFLAGS = $(AM_CFLAGS)
