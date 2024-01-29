@@ -60,6 +60,12 @@ if test "x$with_lib_path" != "xno"; then
    SYS_LIB=${std_libdir}
 fi
 
+AC_ARG_WITH([gengatt],
+     AC_HELP_STRING([--with-gengatt],
+        [enable gengatt, building BT-APP which uses GEN GATT]))
+
+AM_CONDITIONAL(USE_GEN_GATT, test "x${with_gengatt}" = "xyes")
+
 AC_ARG_WITH([btobex],
      AC_HELP_STRING([--with-btobex],
         [enable btobex, building BT-APP which uses BTOBEX]))

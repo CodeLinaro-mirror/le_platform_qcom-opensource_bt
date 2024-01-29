@@ -9,7 +9,8 @@ AM_CFLAGS = -Wall \
             -D__GLIBC__
 
 AM_CPPFLAGS = -I$(top_srcdir) \
-               -I$(srcdir)/include
+	      -I${WORKSPACE}/system/core/include \
+              -I$(srcdir)/include 
 
 c_sources = \
     src/alarm.c \
