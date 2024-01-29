@@ -211,15 +211,14 @@ float GattCharacteristic::getFloatValue(int formatType, int offset)
 string GattCharacteristic::getStringValue(int offset)
 {
   if (mValue == NULL) return NULL;
-  size_t mValueSize = strlen((char*)mValue);
 
-  if (offset >mValueSize) return NULL;
+  if (offset >mValueLength) return NULL;
 
-  uint8_t strBytes[mValueSize - offset];
-  for (int i = 0; i != (mValueSize - offset); ++i)
+  uint8_t strBytes[mValueLength - offset];
+  for (int i = 0; i < (mValueLength - offset); ++i)
     strBytes[i] = mValue[offset + i];
 
-  return std::string(strBytes, strBytes+mValueSize);
+  return std::string(strBytes, strBytes+mValueLength);
 }
 
 int GattCharacteristic::getValueLength()
