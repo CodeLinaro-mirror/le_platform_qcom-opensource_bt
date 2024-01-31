@@ -1162,11 +1162,14 @@ bool GattsTest::UnregisterServer(string instance)
     map <int,gattstestAdvertiserCallback*> ::iterator advcb_itr;
     for(advcb_itr = advCBInstanceMap.begin(); advcb_itr!= advCBInstanceMap.end(); ++advcb_itr) {
       ALOGD(LOGTAG"harish - test- adv cb instance mapped");
-      mAdvertisercallback = advcb_itr->second;
-      delete(mAdvertisercallback);
-      mAdvertisercallback = NULL;
-      advCBInstanceMap.erase(advcb_itr->first);
-      break;
+      if (advcb_itr->first == instanceId)
+      {
+        mAdvertisercallback = advcb_itr->second;
+        delete(mAdvertisercallback);
+        mAdvertisercallback = NULL;
+        advCBInstanceMap.erase(advcb_itr->first);
+        break;
+      }
     }
     servInstanceMap.erase(instanceId);
     return true;
