@@ -60,6 +60,7 @@ static void *start_record(void *in_param);
 
 #if defined(BT_AUDIO_PAL_INTEGRATION)
 static uint32_t g_rate = 8000;
+static bool sco_connect = false;
 #endif
 
 #ifdef __cplusplus
@@ -2666,6 +2667,7 @@ void Hfp_Ag::setup_sco_path() {
       if (!ret) {
          fprintf(stdout, "BT connect is success for AG SCO usecase\n");
          ALOGD(LOGTAG " BT connect is success for AG SCO usecase");
+	 sco_connect = true;
       }
       else {
          fprintf(stdout, "BT connect failed for AG SCO usecase !!\n");
@@ -2726,10 +2728,12 @@ void Hfp_Ag::release_audio() {
    system(cmd);
 #endif
 #if defined(BT_AUDIO_PAL_INTEGRATION)
-   if (pa_routing_intf) {
+   if (pa_routing_intf && sco_connect) {
       int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_HFP_AG, false);
       if (ret) {
          ALOGE(LOGTAG, "%s failed to disconnect\n", __func__);
+      } else {
+          sco_connect = false;
       }
    }
 #endif
