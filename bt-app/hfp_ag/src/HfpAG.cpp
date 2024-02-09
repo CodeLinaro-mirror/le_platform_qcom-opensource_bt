@@ -49,13 +49,6 @@ bool count_pts = false;
 static pthread_t record_tid = NULL;
 static pthread_t playback_tid = NULL;
 
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-config_t *config;
-qahw_stream_handle_t* out_stream;
-qahw_stream_handle_t* out_stream_plb_test;
-qahw_stream_handle_t* in_handle_record;
-#endif
-
 static void *start_record(void *in_param);
 
 #if defined(BT_AUDIO_PAL_INTEGRATION)
@@ -447,56 +440,6 @@ playback through audio HAL
 void Hfp_Ag::configurescoaudio(bool enable) {
     ALOGD(LOGTAG "configurescoaudio - enable:%d",enable);
     fprintf(stdout, "configurescoaudio - enable:%d\n",enable);
-
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-    qahw_module_handle_t* audio_module;
-
-    if (pBTAM == NULL) {
-      ALOGD(LOGTAG "Audio Manager not initialized");
-      fprintf(stdout, "Audio Manager not initialized\n");
-      return;
-    }
-
-    audio_module = pBTAM->GetAudioDevice();
-    if(audio_module != NULL) {
-      if (enable) {
-        fprintf(stdout, "setting BT_SCO to on\n");
-        ALOGD(LOGTAG " setting BT_SCO to on");
-
-        qahw_set_parameters(audio_module, "BT_SCO=on");
-        if ( mWbsState == BTHF_WBS_YES )
-          qahw_set_parameters(audio_module, "bt_wbs=on");
-      } else {
-        if ((out_stream_plb_test != NULL) && (in_handle_record != NULL)) {
-          fprintf(stdout, "setting BT_SCO=off\n");
-          ALOGD(LOGTAG " setting BT_SCO=off");
-          qahw_set_parameters(audio_module, "BT_SCO=off");
-          qahw_set_parameters(audio_module, "bt_wbs=off");
-        }
-
-        if (out_stream_plb_test != NULL) {
-          fprintf(stdout, "closing output stream for SCO/eSCO\n");
-          ALOGD(LOGTAG " Closing output stream for SCO/eSCO");
-          qahw_close_output_stream(out_stream_plb_test);
-          out_stream_plb_test = NULL;
-        }
-        if (in_handle_record != NULL) {
-          //close input stream and device
-          fprintf(stdout, "closing input stream for SCO/eSCO\n");
-          ALOGD(LOGTAG " Closing input stream for SCO/eSCO");
-          qahw_close_input_stream(in_handle_record);
-          in_handle_record = NULL;
-        }
-      }
-    }
-    else {
-      fprintf(stdout, "configurescoaudio: audio_device is NULL\n");
-      ALOGD(LOGTAG " configurescoaudio: audio_device is NULL");
-    }
-#else
-    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
-#endif
 }
 
 void Hfp_Ag::clear_audio_params(){
@@ -522,207 +465,12 @@ void Hfp_Ag::clear_audio_params(){
     configurescoaudio(false);
 }
 static void *start_playback(void *in_param) {
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-    qahw_module_handle_t* audio_module;
-    audio_config_t config;
-    audio_io_handle_t handle = 0x999;
-    int i = 0, j = 0, ret = 0;
-    qahw_out_buffer_t out_buf_plb_test;
-    // 40msec of 8kz 16-bit mono = 40*8*2 = 640 bytes
-    uint8_t *buf = (uint8_t*)osi_malloc(640);
-    ALOGD(LOGTAG "start_playback - start");
-    fprintf(stdout, "start_playback - start\n");
-    FILE *file_fd = NULL,*in_file = NULL;
-    size_t len = 0;
-
-    if (buf == NULL)
-    {
-      fprintf(stdout, "memory allocation for playing audio failed\n");
-      ALOGD("%s: memory allocation for playing audio failed", __func__);
-      return NULL;
-    }
-
-    config.channel_mask = audio_channel_out_mask_from_count(1);
-    config.format = AUDIO_FORMAT_PCM_16_BIT;
-    config.offload_info.size = sizeof(audio_offload_info_t);
-    config.offload_info.format = AUDIO_FORMAT_PCM_16_BIT;
-    config.offload_info.version = AUDIO_OFFLOAD_INFO_VERSION_CURRENT;
-    // channel count 1 for mono
-    config.offload_info.channel_mask = audio_channel_out_mask_from_count(1);
-    if (pHfpAG == NULL) {
-      fprintf(stdout, " pHfpAG is NULL - HFP AG not init properly \n");
-      goto error;
-    }
-
-    if ( pHfpAG->mWbsState == BTHF_WBS_YES ) {
-      config.sample_rate = 16000;
-      config.offload_info.sample_rate = 16000;
-    } else {
-      config.sample_rate = 8000;
-      config.offload_info.sample_rate = 8000;
-    }
-
-    in_file = fopen("/etc/bluetooth/AG_playback.wav", "r");
-    if (in_file == NULL) {
-      fprintf(stdout, "AG_playback.wav file not present in /etc/bluetooth/ \n");
-      fprintf(stdout, "please push the file to /etc/bluetooth/ \n");
-      fprintf(stdout, "After pushing the file disconnect SCO or end call ");
-      fprintf(stdout, "and connect sco or initiate the call again to hear audio \n");
-      goto error;
-    }
-    audio_module = pBTAM->GetAudioDevice();
-    fprintf(stdout, "start_playback: getting audio module\n");
-    ALOGD(LOGTAG " start_playback: getting audio module");
-    if(audio_module != NULL) {
-      // select speaker(2) as output device
-      qahw_open_output_stream(audio_module, handle, OUT_DEVICE_BLUETOOTH_SCO,
-           AUDIO_OUTPUT_FLAG_NONE, &config, &out_stream_plb_test, "bt_sco");
-
-      file_fd = fopen("/etc/bluetooth/sco_record.wav", "w+");
-      if (file_fd == NULL) {
-        fprintf(stdout, "sco_record.wav File open failed\n");
-        goto error;
-      }
-
-      if (pthread_create(&record_tid, NULL, start_record, file_fd) != 0) {
-        fprintf(stdout, " Failed to create record thread \n");
-        if (file_fd) fclose(file_fd);
-        goto error;
-      }
-
-      out_buf_plb_test.buffer = buf;
-      out_buf_plb_test.bytes = 640;
-
-      while(!stop_playback)
-      {
-        len = fread(buf, 640, 1, in_file);
-        if (len == 0) {
-          ALOGD(LOGTAG "Read %d bytes from file", len);
-          fprintf(stdout, "Read %d bytes from file", len);
-          fseek(in_file, 0, SEEK_SET);
-          continue;
-        }
-        if ((pBTAM->GetAudioDevice() != NULL) && (out_stream_plb_test != NULL)) {
-          ret = qahw_out_write(out_stream_plb_test, &out_buf_plb_test);
-          //fprintf(stdout, "start_playback: playing  tone:%d\n",ret);
-          if (ret < 0) {
-            fprintf(stdout, "start_playback: writing data to audio hal failed:%d\n",ret);
-            ALOGE(LOGTAG " %s: writing data to audio hal failed", __func__);
-          }
-        }
-      }
-    }
-    else {
-      fprintf(stdout, "start_playback: audio_device is NULL\n");
-      ALOGD(LOGTAG " start_playback: audio_device is NULL");
-    }
-
-error:
-    if (buf)
-      osi_free(buf);
-    if (in_file) fclose(in_file);
-#else
-    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
-#endif
     return NULL;
 }
 
 static void *start_record(void *in_param) {
     ALOGD(LOGTAG "start_record - start");
     fprintf(stdout, "start_record - start\n");
-
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-    qahw_module_handle_t* audio_module;
-    audio_config_t config;
-    int rc = 0;
-
-    config.channel_mask = AUDIO_CHANNEL_NONE;
-    config.format = AUDIO_FORMAT_PCM_16_BIT;
-    config.offload_info.size = sizeof(audio_offload_info_t);
-    config.offload_info.format = AUDIO_FORMAT_PCM_16_BIT;
-    config.offload_info.version = AUDIO_OFFLOAD_INFO_VERSION_CURRENT;
-    // channel count 1 for mono
-    config.offload_info.channel_mask = audio_channel_out_mask_from_count(1);
-
-    if (pHfpAG) {
-      if ( pHfpAG->mWbsState == BTHF_WBS_YES ) {
-        config.sample_rate = 16000;
-        config.offload_info.sample_rate = 16000;
-      } else {
-        config.sample_rate = 8000;
-        config.offload_info.sample_rate = 8000;
-      }
-    }
-
-    if (pBTAM == NULL) {
-      ALOGD(LOGTAG "Audio Manager not initialized");
-      fprintf(stdout, "Audio Manager not initialized\n");
-      return NULL;
-    }
-
-    audio_module = pBTAM->GetAudioDevice();
-    fprintf(stdout, "start_record: getting audio module\n");
-    ALOGD(LOGTAG " start_record: getting audio module");
-    if(audio_module != NULL) {
-      rc = qahw_open_input_stream(audio_module,
-                             NULL, IN_DEVICE_BLUETOOTH_SCO_HEADSET,
-                             &config, &in_handle_record,
-                             AUDIO_INPUT_FLAG_NONE, "bt_sco_input_stream",
-                             AUDIO_SOURCE_MIC);
-      if (rc){
-       fprintf(stdout, "ERROR :::: Could not open input stream,rc:%d \n",rc);
-      }
-
-      qahw_in_set_parameters(in_handle_record, "audio_stream_profile=none");
-
-      /* Get buffer size to get upper bound on data to read from the HAL */
-      size_t buffer_size = qahw_in_get_buffer_size(in_handle_record);
-      char *buffer = (char *)calloc(1, buffer_size);
-      size_t written_size;
-      int data_sz = 0;
-      qahw_in_buffer_t in_buf;
-      ssize_t bytes_read = -1;
-      if (buffer == NULL) {
-        fprintf(stdout, "calloc failed!!, \n");
-      }
-
-      FILE *fdt = (FILE *)in_param;
-      if (fdt == NULL) {
-        fprintf(stdout, "sco_record.wav File open failed\n");
-        free(buffer);
-        return NULL;
-      }
-
-      memset(&in_buf,0, sizeof(qahw_in_buffer_t));
-
-      while(!stop_record){
-        in_buf.buffer = buffer;
-        in_buf.bytes = buffer_size;
-        bytes_read = qahw_in_read(in_handle_record, &in_buf);
-
-        //fprintf(stdout, "read data,bytes_read:%d \n",bytes_read);
-        written_size = fwrite(in_buf.buffer, 1, bytes_read, fdt);
-        //fprintf(stdout, "written_size data,written_size:%d \n",written_size);
-
-        if (written_size < bytes_read) {
-          fprintf(stdout,"Error in fwrite(%d)=%s\n",ferror(fdt), strerror(ferror(fdt)));
-          ALOGD(LOGTAG "Error in fwrite(%d)=%s\n",ferror(fdt), strerror(ferror(fdt)));
-          break;
-        }
-        data_sz += bytes_read;
-      }
-      free(buffer);
-      fclose(fdt);
-    }
-    else {
-      fprintf(stdout, "start_record: audio_device is NULL\n");
-      ALOGD(LOGTAG " start_record: audio_device is NULL");
-    }
-#else
-    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
-#endif
     return NULL;
 }
 
@@ -749,10 +497,7 @@ void Hfp_Ag::HandleEnableAg(void) {
         mActiveCallsNum = 0;
         mHeldCallsNum = 0;
         sBtHfpAgVendorInterface->init_vendor(&sBluetoothHfpAgVendorCallbacks);
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-        out_stream_plb_test = NULL;
-        in_handle_record = NULL;
-#endif
+
 
 #if defined(BT_MODEM_INTEGRATION)
         init_modem();

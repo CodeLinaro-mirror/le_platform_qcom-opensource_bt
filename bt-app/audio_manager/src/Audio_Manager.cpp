@@ -146,22 +146,6 @@ void BT_Audio_Manager::LoadAudioHal()
         ALOGD("%s property set to false, don't load Audio HAL ",__func__);
         return;
     }
-
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    ALOGD(LOGTAG " Load Audio HAL +");
-    fprintf(stdout, "Load Audio HAL started \n");
-    if (qahw_mod_handle != NULL) {
-        ALOGD(" Audio HAL already loaded");
-    } else {
-        qahw_mod_handle = qahw_load_module(QAHW_MODULE_ID_PRIMARY);
-    }
-    if (qahw_mod_handle == NULL) {
-        ALOGD("  qahw_load_module failed");
-        return;
-    }
-    ALOGD(LOGTAG "Load Audio HAL -");
-    fprintf(stdout, "Load Audio HAL completed\n");
-#endif
 }
 void BT_Audio_Manager::UnloadAudioHal()
 {
@@ -173,32 +157,8 @@ void BT_Audio_Manager::UnloadAudioHal()
         ALOGD("%s property set to false, don't unload Audio HAL ",__func__);
         return;
     }
-
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    int ret = 0;
-    ALOGD(LOGTAG "UnLoad Audio HAL +");
-    if(qahw_mod_handle != NULL)
-        ret = qahw_unload_module(qahw_mod_handle);
-
-    if (ret)
-        ALOGE(LOGTAG "Unloading audio hal failed");
-
-    qahw_mod_handle = NULL;
-    ALOGD(LOGTAG "UnLoad Audio HAL -");
-#endif
 }
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-qahw_module_handle_t* BT_Audio_Manager::GetAudioDevice()
-{
-    if (qahw_mod_handle != NULL) {
-        return qahw_mod_handle;
-    }
-    else {
-        ALOGD(" audio hw module handle is NULL ");
-        return NULL;
-    }
-}
-#endif
+
 ThreadIdType BT_Audio_Manager::GetThreadId(ProfileIdType profile_id) {
     ThreadIdType thread_id = THREAD_ID_MAX;
     switch(profile_id) {
@@ -366,9 +326,6 @@ BT_Audio_Manager :: BT_Audio_Manager(const bt_interface_t *bt_interface, config_
         audio_control_stack[i].profile_id =  PROFILE_ID_MAX;
         audio_control_stack[i].control_status = REQUEST_TYPE_DEFAULT;
     }
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    qahw_mod_handle = NULL;
-#endif
 }
 
 BT_Audio_Manager :: ~BT_Audio_Manager() {

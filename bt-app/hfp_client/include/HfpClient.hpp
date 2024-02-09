@@ -53,11 +53,7 @@
 #define strlcpy g_strlcpy
 #endif
 
-#if defined(BT_AUDIO_HAL_INTEGRATION)
 
-#include <hardware/audio.h>
-#include <hardware/hardware.h>
-#endif
 #if defined(BT_AUDIO_PAL_INTEGRATION)
 #include "pa_routing_interface.h"
 #endif
@@ -93,11 +89,7 @@ class Hfp_Client {
     unsigned int peer_feat;
     unsigned int chld_feat;
     uint32_t audio_out_device;
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-    config_t *config;
-    qahw_stream_handle_t* out_stream;
-    qahw_stream_handle_t* out_stream_ring_tone;
-#endif
+
 #if defined(BT_AUDIO_PAL_INTEGRATION)
     pa_routing_interface_t *pa_routing_intf;
 #endif

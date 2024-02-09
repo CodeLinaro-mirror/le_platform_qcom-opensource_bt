@@ -31,9 +31,6 @@
 #include <string.h>
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-#include <hardware/audio.h>
-#endif
 #include <hardware/bt_av.h>
 #include <hardware/bt_rc.h>
 #include <list>
@@ -131,15 +128,6 @@ int mAudioStreamMax = 15;
 bool is_sink_relay_enabled = false;
 bool bt_a2dp_split_enabled = false;
 
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-audio_hw_device_t *a2dp_device = NULL;
-struct audio_stream_out *output_stream = NULL;
-static pthread_mutex_t a2dp_hal_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-struct a2dp_stream_out;
-#endif
-
-
 struct a2dp_stream_common {
   std::recursive_mutex* mutex;  // See note below on mutex acquisition order.
   int ctrl_fd;
@@ -151,14 +139,6 @@ struct a2dp_stream_common {
   uint8_t codec_cfg[MAX_CODEC_CFG_SIZE];
 };
 
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-struct a2dp_stream_out {
-  struct audio_stream_out stream;
-  struct a2dp_stream_common common;
-  uint64_t frames_presented;  // frames written, never reset
-  uint64_t frames_rendered;   // frames written, reset on standby
-};
-#endif
 
 typedef enum
 {
@@ -1027,187 +1007,37 @@ void BtA2dpSourceMsgHandler(void *msg) {
 
 
 static void BtA2dpLoadA2dpHal() {
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    if(!bt_a2dp_split_enabled) {
-        const hw_module_t *module;
-        ALOGD(LOGTAG_A2DP "Load A2dp HAL");
-        if (hw_get_module_by_class(AUDIO_HARDWARE_MODULE_ID,
-                                   AUDIO_HARDWARE_MODULE_ID_A2DP,
-                                   &module)) {
-            ALOGE(LOGTAG_A2DP "A2dp Hal module not found");
-            return;
-        }
-        pthread_mutex_lock(&a2dp_hal_mutex);
-        if (audio_hw_device_open(module, &a2dp_device)) {
-            a2dp_device = NULL;
-            ALOGE(LOGTAG_A2DP "A2dp Hal device can not be opened");
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-            return;
-        }
-        pthread_mutex_unlock(&a2dp_hal_mutex);
-    }
-    ALOGD(LOGTAG_A2DP "A2dp HAL successfully loaded");
-#else
-    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
-#endif
+
 }
 
 static void BtA2dpStopStreaming()
 {
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    ALOGD(LOGTAG_A2DP "Stop A2dp Streaming");
 
-    if(pA2dpSource->pump_encoded_data) {
-        pA2dpSource->SendSuspendStreamReq();
-        ALOGD(LOGTAG_A2DP "PUMP A2dp stream successfully stopped");
-        return;
-    }
-
-    if(!bt_a2dp_split_enabled) {
-        pthread_mutex_lock(&a2dp_hal_mutex);
-        if(!output_stream)
-        {
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-            return;
-        }
-        output_stream->common.set_parameters(&output_stream->common, "A2dpSuspended=false");
-        output_stream->common.standby(&output_stream->common);
-        pthread_mutex_unlock(&a2dp_hal_mutex);
-    }
-    ALOGD(LOGTAG_A2DP "A2dp stream successfully stopped");
-#endif
 }
 
 static void BtA2dpCloseOutputStream()
 {
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    ALOGD(LOGTAG_A2DP "Close A2dp Output Stream");
-    media_playing = false;
-    if (playback_thread != NULL)
-    {
-        pthread_join(playback_thread, NULL);
-        playback_thread = NULL;
-    }
-    if(!bt_a2dp_split_enabled) {
-        pthread_mutex_lock(&a2dp_hal_mutex);
-        if(!a2dp_device)
-        {
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-            return;
-        }
-        if(!output_stream)
-        {
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-            return;
-        }
-        a2dp_device->close_output_stream(a2dp_device, output_stream);
-        output_stream = NULL;
-        pthread_mutex_unlock(&a2dp_hal_mutex);
-    }
-    ALOGD(LOGTAG_A2DP "A2dp Output Stream successfully closed");
-#endif
+
 }
 
 static void BtA2dpUnloadA2dpHal() {
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    ALOGD(LOGTAG_A2DP "Unload A2dp HAL");
-    BtA2dpCloseOutputStream();
-    if(!bt_a2dp_split_enabled) {
-        pthread_mutex_lock(&a2dp_hal_mutex);
-        if(!a2dp_device)
-        {
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-            return;
-        }
-        if (audio_hw_device_close(a2dp_device) < 0) {
-            ALOGE(LOGTAG_A2DP "A2dp HAL could not be closed gracefully");
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-            return;
-        }
-        a2dp_device = NULL;
-        pthread_mutex_unlock(&a2dp_hal_mutex);
-    }
-    ALOGD(LOGTAG_A2DP "A2dp HAL successfully Unloaded");
-#else
-    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
-#endif
+
 
 }
 
 static void BtA2dpOpenOutputStream()
 {
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    int ret = -1;
-    ALOGD(LOGTAG_A2DP "Open A2dp Output Stream");
-    if(!bt_a2dp_split_enabled) {
-        pthread_mutex_lock(&a2dp_hal_mutex);
-        if (!a2dp_device) {
-            ALOGE(LOGTAG_A2DP "Invalid A2dp HAL device. Bail out!");
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-            return;
-        }
-        ret = a2dp_device->open_output_stream(a2dp_device, 0, AUDIO_DEVICE_OUT_ALL_A2DP,
-                AUDIO_OUTPUT_FLAG_NONE, NULL, &output_stream, NULL);
-        if (ret < 0) {
-            output_stream = NULL;
-            ALOGE(LOGTAG_A2DP "open output stream returned %d\n", ret);
-        }
-        pthread_mutex_unlock(&a2dp_hal_mutex);
-    }
-    ALOGD(LOGTAG_A2DP "A2dp Output Stream successfully opened");
-#endif
+
 }
 
 static void BtA2dpSuspendStreaming()
 {
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    ALOGD(LOGTAG_A2DP "Suspend A2dp Stream");
-    if(pA2dpSource->pump_encoded_data) {
-        pA2dpSource->SendSuspendStreamReq();
-        ALOGD(LOGTAG_A2DP "PUMP A2dp Stream suspended successfully");
-        return ;
-    }
-    if(!bt_a2dp_split_enabled) {
-        pthread_mutex_lock(&a2dp_hal_mutex);
-        if(!output_stream)
-        {
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-            return;
-        }
-        output_stream->common.set_parameters(&output_stream->common, "A2dpSuspended=true");
-        pthread_mutex_unlock(&a2dp_hal_mutex);
-    }
-    ALOGD(LOGTAG_A2DP "A2dp Stream suspended successfully");
-#endif
+
 }
 
 static void BtA2dpResumeStreaming()
 {
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    ALOGD(LOGTAG_A2DP "Resume A2dp Stream");
 
-    if (is_sink_relay_enabled)
-        flush_relay_data();
-
-    if(pA2dpSource->pump_encoded_data) {
-        pA2dpSource->SendStartStreamReq();
-        ALOGD(LOGTAG_A2DP "PUMP A2dp Stream resumed successfully");
-        return ;
-    }
-    if(!bt_a2dp_split_enabled) {
-        pthread_mutex_lock(&a2dp_hal_mutex);
-        if(!output_stream)
-        {
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-            return;
-        }
-        output_stream->common.set_parameters(&output_stream->common, "A2dpSuspended=false");
-        pthread_mutex_unlock(&a2dp_hal_mutex);
-    }
-    ALOGD(LOGTAG_A2DP "A2dp Stream resumed successfully");
-#endif
 }
 
 int get_codec_relay_data(void)
@@ -1490,217 +1320,11 @@ void update_src_codec_config(btav_codec_config_t *src_codec_cnfg, btav_a2dp_code
     src_codec_cnfg->sbc_config.min_bitpool = codec_cfg.codec_specific_5;
 }
 
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-static void *thread_func(void *in_param)
-{
-    SrcStreamStatus srcStream = SRC_NO_STREAMING;
-    size_t len = 0;
-    ssize_t write_len = 0;
-    FILE *in_file = (FILE *)in_param;
-    size_t out_buffer_size = 0;
-    int codec_type;
-    short buffer[AUDIO_STREAM_OUTPUT_BUFFER_SZ];
-    uint8_t hdr_buffer[32];
-    btav_codec_config_t snk_codec_cfg;
-    uint16_t snk_codec_type;
-    uint8_t tmpval;
-    struct a2dp_stream_out* out;
-    ALOGD(LOGTAG_A2DP "Streaming thread started");
-    if(!bt_a2dp_split_enabled) {
-        pthread_mutex_lock(&a2dp_hal_mutex);
-        if(!output_stream)
-        {
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-            return NULL;
-        }
-        out = (struct a2dp_stream_out*)output_stream;
-        out_buffer_size = output_stream->common.get_buffer_size(&output_stream->common);
-        pthread_mutex_unlock(&a2dp_hal_mutex);
-        if (out_buffer_size <= 0 || out_buffer_size > AUDIO_STREAM_OUTPUT_BUFFER_SZ) {
-            ALOGE(LOGTAG_A2DP "Wrong buffer size. Bail out %u!!", out_buffer_size);
-           if (in_file) fclose(in_file);
-              return NULL;
-        }
-    }
 
-    while (media_playing) {
-        if(is_sink_relay_enabled)
-        {
-            ALOGD(LOGTAG_A2DP "try to get the codec information of snk side");
-            if( GetCodecInfoByAddr(nullptr,&snk_codec_type,&snk_codec_cfg))
-            {
-                if (!is_relay_sink2src())
-                    continue;
-
-                if((a2dp_playstatus == A2DP_SOURCE_AUDIO_SUSPENDED
-                            || a2dp_playstatus == A2DP_SOURCE_AUDIO_STOPPED)
-                            &&(srcStream != SRC_STREAMING))
-                {
-                    ALOGD(LOGTAG_A2DP" resume: playStatus = %d  srcStreamStatus=%d",playStatus,srcStream);
-                    BtA2dpResumeStreaming();
-                }
-                srcStream = SRC_STREAMING;
-                if (snk_codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
-                {
-                        codec_type = get_codec_relay_data();
-                        if(codec_type == INVALID_CODEC)
-                        {
-                            //ALOGD(LOGTAG_A2DP "enque relay empty");
-                            len = 0;
-                        }
-                        else if(codec_type == A2DP_SINK_AUDIO_CODEC_PCM)
-                        {
-                            if((src_codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
-                               &&(!memcmp(&src_codec_cfg,&snk_codec_cfg,5)))
-                            {
-                                len = get_pcm_data((uint8_t*)buffer, out_buffer_size);
-                            }
-                            else
-                            {
-                                ALOGD(LOGTAG_A2DP "audio parameter not matched ");
-                                len=0;
-                            }
-                        }
-                        else if(codec_type == A2DP_SINK_AUDIO_CODEC_SBC)//pcm data
-                        {
-                            if(src_codec_type == A2DP_SINK_AUDIO_CODEC_SBC)
-                            {
-                                PRINTBIT(&snk_codec_cfg,7);
-                                PRINTBIT(&src_codec_cfg,7);
-                                //if src and snk codec match, compare codec config here;
-                                //if(src_codec_type == A2DP_MEDIA_CT_SBC
-                                if (!memcmp(&src_codec_cfg,&snk_codec_cfg,sizeof(btav_sbc_codec_config_t)))
-                                {
-                                    if(pA2dpSource->pump_encoded_data)
-                                    {
-                                        pA2dpSource->SendEncodedData();
-                                        continue;
-                                    }
-                                    else
-                                    {
-                                        len = get_sbc_data((uint8_t*)buffer, out_buffer_size);
-                                    }
-                                }
-                                else
-                                {
-                                    ALOGD(LOGTAG_A2DP "sbc codec not match, and decoding is not enabled");
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                len=0;
-                            }
-                        }
-                 }
-            }
-            else
-            {
-                ALOGD(LOGTAG_A2DP "cannot get the snk info, may be no streaming ");
-                if((a2dp_playstatus == A2DP_SOURCE_AUDIO_STARTED) &&( srcStream != SRC_NO_STREAMING))
-                {
-                    ALOGD(LOGTAG_A2DP" suspend: playStatus = %d  srcStreamStatus=%d",playStatus,srcStream);
-                    BtA2dpSuspendStreaming();
-                }
-                srcStream= SRC_NO_STREAMING;
-                len =0;
-            }
-            if (len == 0) {
-                ALOGD(LOGTAG_A2DP "Read %d bytes from file sleep 20ms", len);
-                usleep(20000);
-                continue;
-            }
-        }
-
-        if (out->common.state == AUDIO_A2DP_STATE_SUSPENDED || out->common.state == AUDIO_A2DP_STATE_STOPPING)
-        {
-           ALOGD(LOGTAG_A2DP"A2DP suspended no need to read/write");
-           continue;
-        }
-
-        ALOGD(" relay %d",is_sink_relay_enabled);
-        if(!is_sink_relay_enabled)
-        {
-             /* Use file for streaming */
-             ALOGD(LOGTAG_A2DP "use file steaming Read %d buffer size", out_buffer_size);
-             if (!in_file) {
-                 ALOGE(LOGTAG_A2DP "File stream is NULL!! ");
-                 break;
-             }
-             memset(buffer, 0, AUDIO_STREAM_OUTPUT_BUFFER_SZ);
-             len = fread(buffer, out_buffer_size, 1, in_file);
-             if (len == 0) {
-                 ALOGD(LOGTAG_A2DP "Read %d bytes from file", len);
-                 fseek(in_file, 0, SEEK_SET);
-                 skip_pcm_header(in_file);
-                 continue;
-             }
-             codec_type = A2DP_SINK_AUDIO_CODEC_PCM;
-             len = out_buffer_size;
-        }
-        ALOGD(LOGTAG_A2DP "Read %d bytes from file   ==%d ", len,sizeof(len));
-        if(!bt_a2dp_split_enabled) {
-            pthread_mutex_lock(&a2dp_hal_mutex);
-            if (!output_stream) {
-                pthread_mutex_unlock(&a2dp_hal_mutex);
-                break;
-            }
-            //ALOGD(LOGTAG_A2DP"list the content of buffer send to the device");
-            //PRINTBIT(buffer,7);
-            //ALOGD(LOGTAG_A2DP"**QCOM** size wanna to write =%d, acctully = %d",len,write_len);
-            if(len!=0)
-            {
-                write_len = output_stream->write(output_stream, buffer, len);
-            }
-            pthread_mutex_unlock(&a2dp_hal_mutex);
-        }
-        ALOGD(LOGTAG_A2DP "codec_type %d Wrote %d bytes to A2dp Hal",codec_type, write_len);
-    };
-    media_playing = false;
-    if (in_file) fclose(in_file);
-    ALOGD(LOGTAG_A2DP "Streaming thread about to finish");
-    return NULL;
-}
-#endif
 
 static void BtA2dpStartStreaming()
 {
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-    FILE *in_file = NULL;
 
-    if (media_playing == true) {
-        ALOGD(LOGTAG_A2DP "media_playing == true\n");
-        fprintf(stdout, "A2DP_SRC : media_playing == true\n");
-        return;
-    }
-
-    ALOGD(LOGTAG_A2DP "Start A2dp Stream");
-    if (!is_sink_relay_enabled) {
-        in_file = fopen("/etc/bluetooth/pcmtest.wav", "r");
-        if (!in_file) {
-            ALOGE(LOGTAG_A2DP "Cannot open input file. Bail out!!");
-            return;
-        }
-        skip_pcm_header(in_file);
-        ALOGD(LOGTAG_A2DP "Successfully opened input file for playback");
-    }
-
-    if(is_sink_relay_enabled)
-        flush_relay_data();
-
-    if(pA2dpSource->pump_encoded_data) {
-        ALOGD(LOGTAG_A2DP "PUMP start stream\n");
-        pA2dpSource->SendStartStreamReq();
-    }
-
-    media_playing = true;
-    if (pthread_create(&playback_thread, NULL, thread_func, in_file) != 0) {
-        ALOGD(LOGTAG_A2DP "Cannot create playback thread!\n");
-        if (in_file) fclose(in_file);
-        return;
-    }
-    return;
-#endif
 }
 
 static void bta2dp_connection_state_callback(const RawAddress& bd_addr, btav_connection_state_t state) {
