@@ -2693,11 +2693,11 @@ void Hfp_Ag::teardown_sco_path() {
     ALOGD(LOGTAG, "%s: killing arec and aplay\n", __func__);
     fprintf(stdout, "%s: killing arec and aplay\n", __func__);
 
-    strcpy(cmd, "killall -9 arec");
-    system(cmd);
+    //strcpy(cmd, "killall -9 arec");
+    //system(cmd);
 
-    strcpy(cmd, "killall -9 aplay");
-    system(cmd);
+    //strcpy(cmd, "killall -9 aplay");
+    //system(cmd);
 #endif
 #if defined(BT_AUDIO_PAL_INTEGRATION)
    if (pa_routing_intf) {
