@@ -719,8 +719,8 @@ void Gap::ProcessEvent(BtEvent* event) {
                 break;
             }
 
-            ALOGV (LOGTAG "Start QC BT Daemon");
-            system("qcbtdaemon &");
+            //ALOGV (LOGTAG "Start QC BT Daemon");
+            //system("qcbtdaemon &");
             HandleEnable();
 
             break;
@@ -862,8 +862,8 @@ void Gap::ProcessEvent(BtEvent* event) {
             //stoping profile_stop_timer
             alarm_cancel(profile_stop_timer);
             HandleDisable();
-            ALOGV (LOGTAG "Stop QC BT Daemon");
-            system("killall -s SIGTERM qcbtdaemon");
+            //ALOGV (LOGTAG "Stop QC BT Daemon");
+            //system("killall -s SIGTERM qcbtdaemon");
             break;
 
         case GAP_EVENT_PROFILE_START_TIMEOUT:

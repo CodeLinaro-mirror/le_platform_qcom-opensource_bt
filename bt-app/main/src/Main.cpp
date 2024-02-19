@@ -2456,9 +2456,9 @@ static void SendEnableCmdToGap() {
 
         g_bt_app->status.enable_cmd = COMMAND_INPROGRESS;
         // Killing previous iteration filter if they still exists
-        system("killall -KILL wcnssfilter");
-        system("killall -KILL btsnoop");
-        system("killall -KILL qcbtdaemon");
+        //system("killall -KILL wcnssfilter");
+        //system("killall -KILL btsnoop");
+        //system("killall -KILL qcbtdaemon");
         usleep(200);
 
         BtEvent *event = new BtEvent;
@@ -3696,7 +3696,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 bonded_devices.clear();
                 inquiry_list.clear();
                 inq_db_count = 0;
-                system("killall -KILL wcnssfilter");
+                //system("killall -KILL wcnssfilter");
                 usleep(200);
                 ALOGD (LOGTAG " BT State is OFF : %d",bt_state);
                 fprintf(stdout, " BT State is OFF\n");
