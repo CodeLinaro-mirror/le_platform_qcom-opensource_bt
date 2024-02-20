@@ -254,11 +254,15 @@ typedef enum {
     SPPCLIENT_CONNECT,
     SPPCLIENT_DISCONNECT,
     SPPCLIENT_SEND_FILE,
+    SPPCLIENT_SEND_DATA,
     SPPCLIENT_RECV_FILE,
+    SPPCLIENT_RECV_DATA,
     SPPSERVER_START,
     SPPSERVER_DISCONNECT,
     SPPSERVER_RECV_FILE,
     SPPSERVER_SEND_FILE,
+    SPPSERVER_SEND_DATA,
+    SPPSERVER_RECV_DATA,
 
 #ifdef USE_GEN_GATT
     GATTCTEST_OPTION,
@@ -290,6 +294,7 @@ typedef enum {
     GATTCTEST_GETDESCID,
     GATTCTEST_CONN_DEVICES,
     GATTCTEST_RELIABLEWRITE,
+    GATTCTEST_REGISTER_NOTIFICATIONS,
     GATTSTEST_OPTION,
     GATTSTEST_INIT_SERVER,
     GATTSTEST_ADDSERVER,
@@ -356,6 +361,7 @@ typedef enum {
     CONN_PARAMS,
     SET_AFH_CHANNELS,
     SEND_HCI_COMMAND,
+    CONFIGURE_WBS,
     BACK_TO_MAIN,
     END,
 } CommandList;
@@ -450,9 +456,9 @@ UserMenuList GapMenu[] = {
  */
 UserMenuList MainMenu[] = {
     {GAP_OPTION,            "gap_menu",         ZERO_PARAM,   "gap_menu"},
-    {PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
+    //{PAN_OPTION,            "pan_menu",         ZERO_PARAM,   "pan_menu"},
 #ifdef USE_GEN_GATT
-    {RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
+    //{RSP_OPTION,            "rsp_menu",         ZERO_PARAM,   "rsp_menu"},
 #endif
     {TEST_MODE,             "test_menu",        ZERO_PARAM,   "test_menu"},
     {A2DP_SINK,             "a2dp_sink_menu",   ZERO_PARAM,   "a2dp_sink_menu"},
@@ -511,7 +517,7 @@ UserMenuList GattsTestMenu[] = {
     {GATTSTEST_INIT_ADVERTISER,    "gattstest_init_advertiser",    ZERO_PARAM,    "gattstest_init_advertiser initialzes advertiser"},
     {GATTSTEST_START_ADVERTISER,   "gattstest_start_advertiser",   ONE_PARAM,     "gattstest_start_advertiser<space><server instance>"},
     {GATTSTEST_READPHY,            "gattstest_readphy",            TWO_PARAM,     "gattstest_readphy<space><remote address><server instance>"},
-    {GATTSTEST_SET_PREFERRED_PHY,  "gattstest_set_preferred_phy",  FOUR_PARAM,    "gattstest_set_preferred_phy<space><remote address><space><server instance><space><tx phy><space><rx phy>"},
+    {GATTSTEST_SET_PREFERRED_PHY,  "gattstest_set_preferred_phy",  FIVE_PARAM,    "gattstest_set_preferred_phy<space><remote address><space><server instance><space><tx phy><space><rx phy><space><phy opt>"},
     {GATTSTEST_STOP,               "gattstest_stop",               ONE_PARAM,     "gattstest_stop<space><server_instance>"},
     {GATTSTEST_DISABLE,             "gattstest_disable",         ZERO_PARAM,     "gattstest_disable"},
     {GATTSTEST_CANCEL_CONNECTION,   "gattstest_cancel_connection",  ONE_PARAM,   "gattstest_cancel_connection<space><remote address>"},
@@ -548,8 +554,8 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_READRSSI,           "gattctest_readrssi",    ONE_PARAM,    "gattctest_readrssi<space><bt_address>"},
     {GATTCTEST_REQMTU,           "gattctest_reqMtu",    TWO_PARAM,    "gattctest_reqMtu<space><bt_address><space><value>"},
     {GATTCTEST_REFRESH,           "gattctest_refresh",    ONE_PARAM,    "gattctest_refresh<space><bt_address>"},
-    {GATTCTEST_SETPHY,           "gattctest_setphy",    THREE_PARAM,    "gattctest_setphy<space>\
-          <TxValue(0-255)><space><RxValue(0-255)><space><bt_address> (0-255 (0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination)"},
+    {GATTCTEST_SETPHY,           "gattctest_setphy",    FOUR_PARAM,    "gattctest_setphy<space>\
+          <TxValue(0-255,(0 bit:1M(1); 1bit:2M(2); 2bit:Coded(4); or any combination))><space><RxValue(0-255)><space><PhyOpt(0:no pref,1:s2,2:s8)><space><bt_address>"},
     {GATTCTEST_GETSERVICES,           "gattctest_getservices",    ONE_PARAM,    "gattctest_getservices<space><bt_address>"},
     {GATTCTEST_REQCONN_PRI,           "gattctest_reqconn_pri",    TWO_PARAM,    "gattctest_reqconn_pri<space><bt_address><space><priority 0/1/2>"},
     {GATTCTEST_GETCHARID,           "gattctest_getcharid",    TWO_PARAM,    "gattctest_getcharid<space><bt_address><space><instanceid>"},
@@ -559,6 +565,7 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_RDWRDESC,       "gattctest_RdWrDesc",    FIVE_PARAM,    "gattctest_RdWrDesc<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID><space><value length>"},
     {GATTCTEST_RDWRCHAR,           "gattctest_RdWrchar",    FIVE_PARAM,    "gattctest_RdWrchar<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID><space><value length>"},
     {GATTCTEST_CONN_DEVICES,     "gattctest_conn_dev",  ZERO_PARAM,    "gattctest_conn_dev"},
+    {GATTCTEST_REGISTER_NOTIFICATIONS, "gattctest_register_notifications", FOUR_PARAM, "gattctest_register_notifications<space><bt_address><space><CHARINSTANCEID><space><DESCINSTANCEID><space><E-1/D-0>"},
 };
 #endif
 
@@ -741,16 +748,26 @@ UserMenuList OppMenu[] = {
 UserMenuList SppClientMenu[] = {
     {SPPCLIENT_CONNECT,              "connect",             ONE_PARAM,  "connect <bt_addr>"},
     {SPPCLIENT_DISCONNECT,           "disconnect",          ZERO_PARAM, "disconnect"},
-    {SPPCLIENT_SEND_FILE,            "send_file",           ONE_PARAM,  "send_file<space><file_name>"},
-    {SPPCLIENT_RECV_FILE,            "recv_file",           ONE_PARAM,  "recv_file<space><file_name>"},
+    {SPPCLIENT_SEND_FILE,            "send_file",           ONE_PARAM,  "send_file<space><directory_with_file_name>"
+    "eg: send_file /var/fileName.txt"},
+    {SPPCLIENT_RECV_FILE,            "recv_file",           ONE_PARAM,  "recv_file<space><directory_with_file_name>"
+    "eg: recv_file /var/fileName.txt"},
+    {SPPCLIENT_SEND_DATA,          "send_data",            ONE_PARAM, "send_data<space><with_size>"
+    "eg: send_data 1000[Note:1000 means 1MB]"},
+    {SPPCLIENT_RECV_DATA,            "recv_data",           ZERO_PARAM,  "recv_data"},
     {BACK_TO_MAIN,                   "main_menu",           ZERO_PARAM, "main_menu"},
 };
 
 UserMenuList SppServerMenu[] = {
     {SPPSERVER_START,              "start_server",         ZERO_PARAM, "start_server"},
     {SPPSERVER_DISCONNECT,         "stop_server",          ZERO_PARAM, "stop_server"},
-    {SPPSERVER_SEND_FILE,          "send_file",            ONE_PARAM, "send_file<space><file_name>"},
-    {SPPSERVER_RECV_FILE,          "recv_file",            ONE_PARAM, "recv_file<space><file_name>"},
+    {SPPSERVER_SEND_FILE,          "send_file",            ONE_PARAM, "send_file<space><directory_with_file_name>"
+    "eg: send_file /var/fileName.txt"},
+    {SPPSERVER_RECV_FILE,          "recv_file",            ONE_PARAM, "recv_file<space><directory_with_file_name>"
+    "eg: recv_file /var/fileName.txt"},
+    {SPPSERVER_SEND_DATA,          "send_data",            ONE_PARAM, "send_data<space><with_size>"
+    "eg: send_data 1000[Note:1000 means 1MB]"},
+    {SPPSERVER_RECV_DATA,            "recv_data",           ZERO_PARAM,  "recv_data"},
     {BACK_TO_MAIN,                 "main_menu",            ZERO_PARAM, "main_menu"},
 };
 
@@ -778,6 +795,8 @@ UserMenuList HfpAGMenu[] = {
     {SEND_DEVICE_STAT_NOTFY, "send_device_stat_notfy", FOUR_PARAM, "send_device_stat_notfy<space>"
       "<bt_address><space><ntk_state><space><signal><space><batt_chg>"
       "eg:send_device_stat_notfy 00:15:83:6b:cf:8e 0(0/1-notavailable/available) 3(0-5) 5(0-5)"},
+    {CONFIGURE_WBS,         "configure_wbs", TWO_PARAM, "configure_wbs<space><bt_address>"
+      "<space><config>"},
 #if defined(BT_MODEM_INTEGRATION)
     {ACCEPT_CALL,           "accept_call",   ZERO_PARAM,   "accept_call"},
     {REJECT_CALL,           "reject_call",   ZERO_PARAM,   "reject_call"},

@@ -16,6 +16,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ *  Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 #pragma once
@@ -210,6 +215,9 @@ typedef enum {
     A2DP_SINK_AUDIO_SUSPEND_REQ,
     A2DP_SINK_ACCEPT_PENDING_COMMAND,
     A2DP_SINK_REJECT_PENDING_COMMAND,
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    A2DP_SINK_BT_ENABLE_COMMAND,
+#endif
     A2DP_SINK_CODEC_CONFIG,
     A2DP_SINK_FETCH_PCM_DATA,
     A2DP_SINK_FILL_COMPRESS_BUFFER,
@@ -373,6 +381,7 @@ typedef enum {
     HFP_AG_RIL_IND_CB,
     HFP_AG_RIL_RESP_CB,
     HFP_AG_KEY_PRESSED_CB,
+    HFP_AG_CONFIGURE_WBS,
 
     A2DP_SOURCE_API_CONNECT_REQ = A2DP_SOURCE_MSG_BASE,
     A2DP_SOURCE_API_DISCONNECT_REQ,
@@ -617,11 +626,15 @@ typedef enum {
     SPP_SRV_DISCONNECT,
     SPP_SRV_RECV_FILE,
     SPP_SRV_SEND_FILE,
+    SPP_SRV_SEND_DATA,
+    SPP_SRV_RECV_DATA,
 
     SPP_CLI_CONNECT,
     SPP_CLI_DISCONNECT,
     SPP_CLI_SEND_FILE,
     SPP_CLI_RECV_FILE,
+    SPP_CLI_SEND_DATA,
+    SPP_CLI_RECV_DATA,
     SPP_CLI_START_THREADS
 
 } BluetoothEventId;

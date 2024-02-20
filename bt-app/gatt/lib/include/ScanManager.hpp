@@ -272,7 +272,7 @@ class ScanManager {
     /**
      * Returns batch scan queue.
      */
-    std::unordered_set<ScanClient*> getBatchScanQueue();
+    std::unordered_set<ScanClient*>& getBatchScanQueue();
 
     /**
      * Returns a set of full batch scan clients.

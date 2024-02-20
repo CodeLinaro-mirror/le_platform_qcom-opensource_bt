@@ -1347,6 +1347,13 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             menu_type = MAIN_MENU;
             DisplayMenu(menu_type);
             break;
+        case CONFIGURE_WBS:
+            event = new BtEvent;
+            event->hfp_ag_event.event_id = HFP_AG_CONFIGURE_WBS;
+            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+            event->hfp_ag_event.arg1 = atoi(user_cmd[TWO_PARAM]);
+            PostMessage (THREAD_ID_HFP_AG, event);
+            break;
     }
 }
 
@@ -1961,7 +1968,7 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             }
             break;
         case GATTCTEST_SETPHY:
-            if (string_is_bdaddr(user_cmd[THREE_PARAM])) {
+            if (string_is_bdaddr(user_cmd[FOUR_PARAM])) {
                 if (gattctest) {
                     fprintf(stdout,"Setting PHY \n");
                     bool status = gattctest->validateInput(user_cmd[ONE_PARAM]);
@@ -1974,8 +1981,13 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                         fprintf(stdout, "Enter proper RX Value\n");
                         break;
                     }
+                    status = gattctest->validateInput(user_cmd[THREE_PARAM]);
+                    if (!status) {
+                        fprintf(stdout, "Enter proper Phy Options\n");
+                        break;
+                    }
                     gattctest->setPreferredPhy(atoi(user_cmd[ONE_PARAM]),
-                        atoi(user_cmd[TWO_PARAM]), 1, user_cmd[THREE_PARAM]);
+                        atoi(user_cmd[TWO_PARAM]), atoi(user_cmd[THREE_PARAM]), user_cmd[FOUR_PARAM]);
                } else {
                    fprintf(stdout,"Do the GATTCINIT first\n");
                }
@@ -2049,6 +2061,22 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                } else {
                     fprintf(stdout,"Do the GATTCINIT first\n");
                }
+            } else {
+                fprintf( stdout, " BD address is NULL/Invalid \n");
+            }
+            break;
+        }
+        case GATTCTEST_REGISTER_NOTIFICATIONS:
+        {
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                if (gattctest) {
+                    fprintf(stdout,"Enable disable notifications\n");
+                    gattctest->registerNotifications(user_cmd[ONE_PARAM],
+                        atoi(user_cmd[TWO_PARAM]),
+                        atoi(user_cmd[THREE_PARAM]),atoi(user_cmd[FOUR_PARAM]));
+                } else {
+                    fprintf(stdout,"Do the GATTCINIT first\n");
+                }
             } else {
                 fprintf( stdout, " BD address is NULL/Invalid \n");
             }
@@ -2332,7 +2360,7 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     string server_instance = user_cmd[TWO_PARAM];
                     string txOption = user_cmd[THREE_PARAM];
                     string rxOption = user_cmd[FOUR_PARAM];
-                    int phyOption = AdvertisingSetParameters::PHY_OPTION_NO_PREFERRED;
+                    int phyOption =  atoi(user_cmd[FIVE_PARAM]);
                     fprintf(stdout,"the user options are address: %s server_instance: %s txoption: %s rxoption: %s phyoption: %d \n",deviceAddress.c_str(),server_instance.c_str(),txOption.c_str(),rxOption.c_str(),phyOption);
                     bool status =gattstest->SetPreferredPhy(deviceAddress,server_instance,txOption,rxOption,phyOption);
                     if(!status) {
@@ -3185,6 +3213,16 @@ static void HandleSppClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             PostMessage (THREAD_ID_SPP_CLIENT, event);
             break;
 
+        case SPPCLIENT_SEND_DATA:
+            event = new BtEvent;
+            event->spp_cli_event.event_id = SPP_CLI_SEND_DATA;
+            memset( (void *) event->spp_cli_event.value, 0,
+                sizeof(event->spp_cli_event.value));
+            strlcpy(event->spp_cli_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_CLIENT, event);
+            break;
+
         case SPPCLIENT_RECV_FILE:
             event = new BtEvent;
             event->spp_cli_event.event_id = SPP_CLI_RECV_FILE;
@@ -3192,6 +3230,12 @@ static void HandleSppClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 sizeof(event->spp_cli_event.value));
             strlcpy(event->spp_cli_event.value, user_cmd[ONE_PARAM],
                 COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_CLIENT, event);
+            break;
+
+        case SPPCLIENT_RECV_DATA:
+            event = new BtEvent;
+            event->spp_cli_event.event_id = SPP_CLI_RECV_DATA;
             PostMessage (THREAD_ID_SPP_CLIENT, event);
             break;
 
@@ -3236,6 +3280,15 @@ static void HandleSppServerCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 COMMAND_SIZE);
             PostMessage (THREAD_ID_SPP_SERVER, event);
             break;
+        case SPPSERVER_SEND_DATA:
+            event = new BtEvent;
+            event->spp_srv_event.event_id = SPP_SRV_SEND_DATA;
+            memset( (void *) event->spp_srv_event.value, 0,
+                sizeof(event->spp_srv_event.value));
+            strlcpy(event->spp_srv_event.value, user_cmd[ONE_PARAM],
+                COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_SERVER, event);
+            break;
         case SPPSERVER_RECV_FILE:
             event = new BtEvent;
             event->spp_srv_event.event_id = SPP_SRV_RECV_FILE;
@@ -3243,6 +3296,11 @@ static void HandleSppServerCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 sizeof(event->spp_srv_event.value));
             strlcpy(event->spp_srv_event.value, user_cmd[ONE_PARAM],
                 COMMAND_SIZE);
+            PostMessage (THREAD_ID_SPP_SERVER, event);
+            break;
+        case SPPSERVER_RECV_DATA:
+            event = new BtEvent;
+            event->spp_cli_event.event_id = SPP_SRV_RECV_DATA;
             PostMessage (THREAD_ID_SPP_SERVER, event);
             break;
         case BACK_TO_MAIN:
@@ -3398,6 +3456,12 @@ static void BtCmdHandler (void *context) {
                         && g_bt_app->HandlePinInput(user_cmd)) {
         // validate the user input for PIN
         g_bt_app->pin_notification = false;
+    } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
+                        (!strcasecmp (user_cmd[ZERO_PARAM], "ok") ||
+                        !strcasecmp (user_cmd[ZERO_PARAM], "cancel"))
+                        && g_bt_app->HandleSspInput(user_cmd)) {
+        // validate the user input for SSP
+        g_bt_app->ssp_notification = false;
     }
 #ifdef USE_BT_OBEX
     else if (g_bt_app->incoming_file_notification && user_cmd[0][0] &&
@@ -3490,7 +3554,7 @@ bool BluetoothApp :: HandleSspInput(char user_cmd[][COMMAND_ARG_SIZE]) {
 
 
     BtEvent *bt_event = new BtEvent;
-    if (!strcasecmp (user_cmd[ZERO_PARAM], "yes")) {
+    if ((!strcasecmp (user_cmd[ZERO_PARAM], "yes")) || (!strcasecmp (user_cmd[ZERO_PARAM], "ok"))) {
         ssp_data.accept = true;
     }
     else if (!strcasecmp (user_cmd[ZERO_PARAM], "no")) {
@@ -3728,23 +3792,40 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             ssp_data.pass_key = event->ssp_request_event.pass_key;
             // if pairing variant is passkey notification just show passkey
             // and cancel option only
-            if( ssp_data.pairing_variant == BT_SSP_VARIANT_PASSKEY_NOTIFICATION) {
-              // instruct the cmd handler to treat the next inputs for SSP
-              fprintf(stdout, "\n*************************************************");
-              fprintf(stdout, "\n Pair with Device :: %s", ssp_data.bd_name.name);
-              fprintf(stdout, "\n Bluetooth Pairing code::%06d", ssp_data.pass_key);
-              fprintf(stdout, "\n Type the pairing code then press Return or Enter");
-              fprintf(stdout, "\n*************************************************\n");
-              fprintf(stdout, "** Please Enter cancel **\n");
-              ssp_notification = true;
-            } else{
-              // instruct the cmd handler to treat the next inputs for SSP
-              fprintf(stdout, "\n*************************************************");
-              fprintf(stdout, "\n BT pairing request::Device %s::Pairing Code:: %06d",
-                                      ssp_data.bd_name.name, ssp_data.pass_key);
-              fprintf(stdout, "\n*************************************************\n");
-              fprintf(stdout, " ** Please enter yes / no **\n");
-              ssp_notification = true;
+            fprintf(stdout, "\n BT pairing_variant %d",
+                                      ssp_data.pairing_variant);
+            switch(ssp_data.pairing_variant)
+            {
+                case BT_SSP_VARIANT_PASSKEY_CONFIRMATION:
+                    // instruct the cmd handler to treat the next inputs for SSP
+                    fprintf(stdout, "\n*************************************************");
+                    fprintf(stdout, "\n BT pairing request::Device %s::Pairing Code:: %06d",
+                                                    ssp_data.bd_name.name, ssp_data.pass_key);
+                    fprintf(stdout, "\n*************************************************\n");
+                    fprintf(stdout, " ** Please enter yes / no **\n");
+                    ssp_notification = true;
+                break;
+                case BT_SSP_VARIANT_PASSKEY_NOTIFICATION:
+                    // instruct the cmd handler to treat the next inputs for SSP
+                    fprintf(stdout, "\n*************************************************");
+                    fprintf(stdout, "\n Pair with Device :: %s", ssp_data.bd_name.name);
+                    fprintf(stdout, "\n Bluetooth Pairing code::%06d", ssp_data.pass_key);
+                    fprintf(stdout, "\n Type the pairing code then press Return or Enter");
+                    fprintf(stdout, "\n*************************************************\n");
+                    fprintf(stdout, "** Please enter cancel **\n");
+                    ssp_notification = true;
+                break;
+                case BT_SSP_VARIANT_CONSENT:
+                    // instruct the cmd handler to treat the next inputs for SSP
+                    fprintf(stdout, "\n*************************************************");
+                    fprintf(stdout, "\n BT pairing request::Device %s",ssp_data.bd_name.name);
+                    fprintf(stdout, "\n*************************************************\n");
+                    fprintf(stdout, "** Please enter ok / cancel **\n");
+                    ssp_notification = true;
+                break;
+                default:
+                    fprintf(stdout, "Device Type::%d is not supported \n", ssp_data.pairing_variant);
+                break;
             }
             break;
 
@@ -4135,8 +4216,8 @@ void BluetoothApp :: InitHandler (void) {
 
     if (is_bt_enable_autotest)
     {
-	fprintf(stdout, "auto test is enabled!\n");
-	SendEnableCmdToGap();
+        fprintf(stdout, "auto test is enabled!\n");
+        SendEnableCmdToGap();
     }
 
     threadInfo[THREAD_ID_SDP_CLIENT].thread_id = thread_new (
@@ -4218,6 +4299,7 @@ void BluetoothApp :: InitHandler (void) {
             pHid = new HidH(bt_interface, config);
     }
     is_hid_enabled = is_hid_enable_default_ ;
+    DisplayMenu(MAIN_MENU);
 }
 
 
@@ -4512,6 +4594,19 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     is_a2dp_source_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_A2DP_SOURCE_ENABLED, false);
 
+    if (is_a2dp_sink_split_enabled_ == true && is_a2dp_source_enabled_ == true) {
+        ALOGE (LOGTAG " Both A2dp Src and A2dp Sink are enabled, disabling A2dp Src. Set \
+           BtA2dpSourceEnable to true, BtA2dpSinkSplitEnable to false in bt_app.conf to \
+           enable only A2dp Source");
+        fprintf(stdout, " Both A2dp Src and A2dp Sink are enabled, disabling A2dp Src. Set \n \
+           BtA2dpSourceEnable to true, BtA2dpSinkSplitEnable to false in bt_app.conf to \n \
+           enable only A2dp Source\n ");
+        is_a2dp_source_enabled_ = false;
+    }
+
+    if(is_a2dp_source_enabled_) {
+        osi_property_set("persist.bt.a2dp_offload_cap","sbc-aac");
+    }
     //checking for hfp client
     is_hfp_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_HFP_CLIENT_ENABLED, false);
@@ -4526,8 +4621,8 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
         ALOGE (LOGTAG " Both HFP AG and Client are enabled, disabling AG. Set \
            BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
            enable only AG");
-        fprintf(stdout, " Both HFP AG and Client are enabled, disabling AG. Set \
-           BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
+        fprintf(stdout, " Both HFP AG and Client are enabled, disabling AG. Set \n \
+           BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \n \
            enable only AG\n" );
         is_hfp_ag_enabled_ = false;
     }

@@ -48,7 +48,9 @@
 #include "ipc.hpp"
 #include "utils.h"
 #include "hardware/bt_hf_vendor.h"
-
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+#include "pa_routing_interface.h"
+#endif
 // for MDM, define, this, TODO: move it to bitbake
 //#define BT_ALSA_AUDIO_INTEGRATION 0
 
@@ -191,6 +193,9 @@ class Hfp_Ag {
     ControlStatusType mcontrolStatus;
     bthf_nrec_t mNrec;
     const bthf_vendor_interface_t *sBtHfpAgVendorInterface;
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_interface_t *pa_routing_intf;
+#endif
   public:
     Hfp_Ag(const bt_interface_t *bt_interface, config_t *config);
     ~Hfp_Ag();
@@ -216,6 +221,8 @@ class Hfp_Ag {
     void process_at_biev(BtEvent* pEvent);
     void update_activecall_num(int active);
     void update_heldcall_num(int held);
+    void process_chld_pts(int chld, bt_bdaddr_t *bd_addr);
+    void dial_call_pts(bt_bdaddr_t *bd_addr);
 #if defined(BT_MODEM_INTEGRATION)
     void init_modem();
     void release_modem();
@@ -231,16 +238,14 @@ class Hfp_Ag {
     uint32 process_chld(int chld);
     void process_ril_ind(BtEvent* pEvent);
     void process_ril_resp(BtEvent* pEvent);
-    void processSlcConnected();
+    void processSlcConnected(bt_bdaddr_t *bd_addr);
 #endif
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
     void init_audio();
     void set_audio_params();
     void setup_sco_path();
     void teardown_sco_path();
     void release_audio();
-#endif
     void configurescoaudio(bool enable);
     void clear_audio_params();
 };

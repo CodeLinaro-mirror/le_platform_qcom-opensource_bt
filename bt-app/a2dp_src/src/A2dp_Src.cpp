@@ -31,7 +31,9 @@
 #include <string.h>
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
-//#include <hardware/audio.h>
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
+#include <hardware/audio.h>
+#endif
 #include <hardware/bt_av.h>
 #include <hardware/bt_rc.h>
 #include <list>
@@ -53,7 +55,7 @@
 
 #define LOGTAG_A2DP "A2DP_SRC "
 #define LOGTAG_AVRCP "AVRCP_TG "
-
+#define LOGTAG "A2DP_SRC_PA "
 using namespace std;
 using std::list;
 using std::string;
@@ -129,57 +131,14 @@ int mAudioStreamMax = 15;
 bool is_sink_relay_enabled = false;
 bool bt_a2dp_split_enabled = false;
 
-
-//TODO: Dummy definitions to fix compilation errors
-void BtA2dpSourceMsgHandler(void *msg) {
-    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
-}
-
-A2dp_Source :: A2dp_Source(const bt_interface_t *bt_interface, config_t *config) {
-    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
-}
-
-A2dp_Source :: ~A2dp_Source() {
-    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
-}
-
-void flush_relay_data(void) {
-    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
-}
-MediaInfo :: MediaInfo(uint8_t   uid[],    uint8_t   type,  uint16_t  charsetId, short displayableNameLength,
-                                char* displayableName, uint8_t   num_attrs){
-    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
-}
-
-MediaInfo :: ~MediaInfo() {
-}
-
-FolderInfo :: FolderInfo(uint8_t   uid[],    uint8_t   type, uint8_t   playable, uint16_t  charsetId, short displayableNameLength,
-                                char* displayableName){
-    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
-}
-
-FolderInfo :: ~FolderInfo() {
-    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
-}
-
-MediaPlayerInfo :: MediaPlayerInfo(short playerId, char majorPlayerType, int playerSubType,
-                                      char playState, short charsetId, short displayableNameLength,
-                                      char* displayableName, char* playerPackageName,
-                                      bool isAvailable, bool isFocussed, char itemType,
-                                      bool isRemoteAddressable,
-                                      char featureMask[]) {
-    ALOGE(LOGTAG_A2DP " Dummy definition of %s",__func__);
-}
-
-MediaPlayerInfo :: ~MediaPlayerInfo() {
-}
-#if 0
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
 audio_hw_device_t *a2dp_device = NULL;
 struct audio_stream_out *output_stream = NULL;
 static pthread_mutex_t a2dp_hal_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct a2dp_stream_out;
+#endif
+
 
 struct a2dp_stream_common {
   std::recursive_mutex* mutex;  // See note below on mutex acquisition order.
@@ -192,12 +151,14 @@ struct a2dp_stream_common {
   uint8_t codec_cfg[MAX_CODEC_CFG_SIZE];
 };
 
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
 struct a2dp_stream_out {
   struct audio_stream_out stream;
   struct a2dp_stream_common common;
   uint64_t frames_presented;  // frames written, never reset
   uint64_t frames_rendered;   // frames written, reset on standby
 };
+#endif
 
 typedef enum
 {
@@ -1064,7 +1025,9 @@ void BtA2dpSourceMsgHandler(void *msg) {
 }
 #endif
 
+
 static void BtA2dpLoadA2dpHal() {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
     if(!bt_a2dp_split_enabled) {
         const hw_module_t *module;
         ALOGD(LOGTAG_A2DP "Load A2dp HAL");
@@ -1084,10 +1047,15 @@ static void BtA2dpLoadA2dpHal() {
         pthread_mutex_unlock(&a2dp_hal_mutex);
     }
     ALOGD(LOGTAG_A2DP "A2dp HAL successfully loaded");
+#else
+    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
+    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
+#endif
 }
 
 static void BtA2dpStopStreaming()
 {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
     ALOGD(LOGTAG_A2DP "Stop A2dp Streaming");
 
     if(pA2dpSource->pump_encoded_data) {
@@ -1108,10 +1076,12 @@ static void BtA2dpStopStreaming()
         pthread_mutex_unlock(&a2dp_hal_mutex);
     }
     ALOGD(LOGTAG_A2DP "A2dp stream successfully stopped");
+#endif
 }
 
 static void BtA2dpCloseOutputStream()
 {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
     ALOGD(LOGTAG_A2DP "Close A2dp Output Stream");
     media_playing = false;
     if (playback_thread != NULL)
@@ -1136,9 +1106,11 @@ static void BtA2dpCloseOutputStream()
         pthread_mutex_unlock(&a2dp_hal_mutex);
     }
     ALOGD(LOGTAG_A2DP "A2dp Output Stream successfully closed");
+#endif
 }
 
 static void BtA2dpUnloadA2dpHal() {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
     ALOGD(LOGTAG_A2DP "Unload A2dp HAL");
     BtA2dpCloseOutputStream();
     if(!bt_a2dp_split_enabled) {
@@ -1157,10 +1129,16 @@ static void BtA2dpUnloadA2dpHal() {
         pthread_mutex_unlock(&a2dp_hal_mutex);
     }
     ALOGD(LOGTAG_A2DP "A2dp HAL successfully Unloaded");
+#else
+    ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
+    fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
+#endif
+
 }
 
 static void BtA2dpOpenOutputStream()
 {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
     int ret = -1;
     ALOGD(LOGTAG_A2DP "Open A2dp Output Stream");
     if(!bt_a2dp_split_enabled) {
@@ -1179,10 +1157,12 @@ static void BtA2dpOpenOutputStream()
         pthread_mutex_unlock(&a2dp_hal_mutex);
     }
     ALOGD(LOGTAG_A2DP "A2dp Output Stream successfully opened");
+#endif
 }
 
 static void BtA2dpSuspendStreaming()
 {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
     ALOGD(LOGTAG_A2DP "Suspend A2dp Stream");
     if(pA2dpSource->pump_encoded_data) {
         pA2dpSource->SendSuspendStreamReq();
@@ -1200,10 +1180,12 @@ static void BtA2dpSuspendStreaming()
         pthread_mutex_unlock(&a2dp_hal_mutex);
     }
     ALOGD(LOGTAG_A2DP "A2dp Stream suspended successfully");
+#endif
 }
 
 static void BtA2dpResumeStreaming()
 {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
     ALOGD(LOGTAG_A2DP "Resume A2dp Stream");
 
     if (is_sink_relay_enabled)
@@ -1225,6 +1207,7 @@ static void BtA2dpResumeStreaming()
         pthread_mutex_unlock(&a2dp_hal_mutex);
     }
     ALOGD(LOGTAG_A2DP "A2dp Stream resumed successfully");
+#endif
 }
 
 int get_codec_relay_data(void)
@@ -1507,6 +1490,7 @@ void update_src_codec_config(btav_codec_config_t *src_codec_cnfg, btav_a2dp_code
     src_codec_cnfg->sbc_config.min_bitpool = codec_cfg.codec_specific_5;
 }
 
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
 static void *thread_func(void *in_param)
 {
     SrcStreamStatus srcStream = SRC_NO_STREAMING;
@@ -1677,9 +1661,11 @@ static void *thread_func(void *in_param)
     ALOGD(LOGTAG_A2DP "Streaming thread about to finish");
     return NULL;
 }
+#endif
 
 static void BtA2dpStartStreaming()
 {
+#if (defined(BT_AUDIO_HAL_INTEGRATION))
     FILE *in_file = NULL;
 
     if (media_playing == true) {
@@ -1714,6 +1700,7 @@ static void BtA2dpStartStreaming()
         return;
     }
     return;
+#endif
 }
 
 static void bta2dp_connection_state_callback(const RawAddress& bd_addr, btav_connection_state_t state) {
@@ -3499,7 +3486,7 @@ void A2dp_Source::HandleEnableSource(void) {
         ALOGD(LOGTAG_A2DP "assignCodecConfigPriorities");
         assignCodecConfigPriorities(priority_values, numConfigs);
         sBtA2dpSourceInterface->init(&sBluetoothA2dpSourceCallbacks, 1, a2dpSrcCodecList);
-        property_get("persist.bt.a2dp_offload_cap", value, "false");
+        osi_property_get("persist.bt.a2dp_offload_cap", value, "false");
         ALOGD(LOGTAG_A2DP "offload_cap:%s", value);
         if (strcmp(value, "false") != 0)
             bt_a2dp_split_enabled = true;
@@ -3529,6 +3516,9 @@ void A2dp_Source::HandleEnableSource(void) {
         registerMediaPlayers();
     }
     a2dp_sink_relay_data_list = list_new(NULL);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_intf = NULL;
+#endif
 }
 
 void A2dp_Source::HandleDisableSource(void) {
@@ -3562,6 +3552,12 @@ void A2dp_Source::HandleDisableSource(void) {
    }
    unregisterMediaPlayers();
    a2dpSrcCodecList.clear();
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+   if (pa_routing_intf) {
+       pa_routing_intf_close(pa_routing_intf);
+       pa_routing_intf = NULL;
+   }
+#endif
 }
 
 void A2dp_Source::ProcessEvent(BtEvent* pEvent) {
@@ -3702,6 +3698,26 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
                 break;
             }
             BtA2dpOpenOutputStream();
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (!pa_routing_intf) {
+                pa_routing_intf = pa_routing_intf_open();
+                if (!pa_routing_intf) {
+                   ALOGE(LOGTAG, " pa_routing_intf_open failed!!!");
+                }
+                else {
+                   ALOGD(LOGTAG, " pa_routing_intf_open success!!!");
+                   int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, true);
+                   if (!ret) {
+                      ALOGD(LOGTAG, " BT a2dp source connect success");
+                      fprintf(stdout, "BT a2dp source connect success\n");
+                   }
+                   else {
+                      ALOGD(LOGTAG, " BT a2dp source connect failed");
+                      fprintf(stdout, "BT a2dp source connect failed\n");
+                   }
+                }
+            }
+#endif
             break;
         default:
             fprintf(stdout, "Event not processed in disconnected state %d ", pEvent->event_id);
@@ -3731,6 +3747,26 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
                 break;
             }
             BtA2dpOpenOutputStream();
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (!pa_routing_intf) {
+                pa_routing_intf = pa_routing_intf_open();
+                if (!pa_routing_intf) {
+                   ALOGE(LOGTAG, " pa_routing_intf_open failed!!!");
+                }
+                else {
+                   ALOGD(LOGTAG, " pa_routing_intf_open success!!!");
+                   int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, true);
+                   if (!ret) {
+                      ALOGD(LOGTAG, " BT a2dp source connect success");
+                      fprintf(stdout, "BT a2dp source connect success\n");
+                   }
+                   else {
+                      ALOGD(LOGTAG, " BT a2dp source connect failed");
+                      fprintf(stdout, "BT a2dp source connect failed\n");
+                   }
+                }
+            }
+#endif
             break;
         case A2DP_SOURCE_DISCONNECTED_CB:
             fprintf(stdout, "A2DP Source DisConnected \n");
@@ -3745,6 +3781,21 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(STATE_A2DP_SOURCE_DISCONNECTED);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (pa_routing_intf) {
+               int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, false);
+               if (!ret) {
+                  ALOGD(LOGTAG, " BT a2dp source disconnect success");
+                  fprintf(stdout, "BT a2dp source disconnect success\n");
+               }
+               else {
+                  ALOGD(LOGTAG, " BT a2dp source disconnect failed");
+                  fprintf(stdout, "BT a2dp source disconnect failed\n");
+               }
+               pa_routing_intf_close(pa_routing_intf);
+               pa_routing_intf = NULL;
+            }
+#endif
             break;
         case A2DP_SOURCE_API_CONNECT_REQ:
             bdaddr_to_string(&mConnectingDevice, str, 18);
@@ -3919,6 +3970,21 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             fprintf(stdout, "A2DP Source DisConnected \n");
             change_state(STATE_A2DP_SOURCE_DISCONNECTED);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (pa_routing_intf) {
+               int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, false);
+               if (!ret) {
+                  ALOGD(LOGTAG, " BT a2dp source disconnect success");
+                  fprintf(stdout, "BT a2dp source disconnect success\n");
+               }
+               else {
+                  ALOGD(LOGTAG, " BT a2dp source disconnect failed");
+                  fprintf(stdout, "BT a2dp source disconnect failed\n");
+               }
+               pa_routing_intf_close(pa_routing_intf);
+               pa_routing_intf = NULL;
+            }
+#endif
             break;
         case A2DP_SOURCE_DISCONNECTING_CB:
             fprintf(stdout, "A2DP Source DisConnecting \n");
@@ -4177,6 +4243,12 @@ A2dp_Source :: ~A2dp_Source() {
     mAbsVolRemoteSupported = false;
     TRACK_IS_SELECTED = 0L;
     pthread_mutex_destroy(&lock);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+   if (pa_routing_intf) {
+       pa_routing_intf_close(pa_routing_intf);
+       pa_routing_intf = NULL;
+   }
+#endif
 }
 
 MediaPlayerInfo :: MediaPlayerInfo(short playerId, char majorPlayerType, int playerSubType,
@@ -4357,4 +4429,3 @@ char* MediaInfo :: RetrieveMediaItemEntry() {
 MediaInfo :: ~MediaInfo() {
 }
 
-#endif

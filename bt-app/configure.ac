@@ -25,6 +25,25 @@ if test "x$with_chrome_includes" != "xno"; then
    CPPFLAGS="${CPPFLAGS} -I${chrome_incdir}"
    CFLAGS="${CFLAGS} -I${chrome_incdir}"
 fi
+
+#PKG_CHECK_MODULES([BLUETOOTHEXT], [bluetoothExt])
+#AC_SUBST([BLUETOOTHEXT_CFLAGS])
+#AC_SUBST([BLUETOOTHEXT_LIBS])
+
+PKG_CHECK_MODULES([LIBCHROME], [libchrome])
+AC_SUBST([LIBCHROME_CFLAGS])
+AC_SUBST([LIBCHROME_LIBS])
+
+#PKG_CHECK_MODULES([OBEX], [obex])
+#AC_SUBST([OBEX_CFLAGS])
+#AC_SUBST([OBEX_LIBS])
+
+PKG_CHECK_MODULES([PABTAUDIO], [pabtaudio])
+AC_SUBST([PABTAUDIO_CFLAGS])
+
+PKG_CHECK_MODULES([AROUTE], [audioroute])
+AC_SUBST([AROUTE_CFLAGS])
+
 AC_ARG_WITH([glib],
      AC_HELP_STRING([--with-glib],
         [enable glib, building HLOS systems which use glib]))
@@ -95,7 +114,14 @@ AC_ARG_ENABLE(target,
   [TARGET=$enableval],
   [TARGET=none]
 )
-AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$TARGET" = "xapq8009" -o "x$TARGET" = "qcm6490" -o "x$TARGET" = "xapq8017" -o "x$TARGET" = "xapq8096" -o "x$TARGET" = "xapq8053" -o "x$TARGET" = "xapq8098" -o "x$TARGET" = "xqcs40x" -o "x$TARGET" = "xsdmsteppe"])
+
+
+AC_DEFINE([BT_AUDIO_PAL_INTEGRATION], [1], [BT_AUDIO_PAL_INTEGRATION Macro])
+AC_DEFINE([AUDIO_PAL_SUPPORTED], [1], [AUDIO_PAL_SUPPORTED Macro])
+AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$TARGET" = "xapq8009" -o "x$TARGET" = "xapq8017" -o "x$TARGET" = "xapq8096" -o "x$TARGET" = "xapq8053" -o "x$TARGET" = "xapq8098" -o "x$TARGET" = "xqcs405" -o "x$TARGET" = "xqcs40x" -o "x$TARGET" = "xsdmsteppe" -o "x$TARGET" = "xqrb5165" -o "x$TARGET" = "xqrbx210"])
+AM_CONDITIONAL([AUDIO_PAL_SUPPORTED], [test "x$TARGET" = "xneo" -o "x$TARGET" = "qcm6490"])
+AM_CONDITIONAL([RB5_AUDIO_HAL], [test "x$TARGET" = "xqrb5165"])
+AM_CONDITIONAL([USE_BLE_SOCKET_MANAGER], [test "x$TARGET" = "xsxr2130" -o "x$TARGET" = "xneo"])
 
 AC_SUBST(SYS_LIB)
 AC_SUBST([CFLAGS])

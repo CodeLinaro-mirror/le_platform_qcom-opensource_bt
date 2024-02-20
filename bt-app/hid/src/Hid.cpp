@@ -483,7 +483,7 @@ void HidH::ProcessHidRequest(BtEvent* pEvent){
                 case HID_API_SET_PROTOCOL_REQ:
                     printf("Set Protocol Mode to %d ",pEvent->hid_profile_event.protocolMode);
                     if (sBluetoothHidInterface != NULL) {
-                        sBluetoothHidInterface->set_protocol(&pEvent->hid_profile_event.bd_addr,(bthh_protocol_mode_t)pEvent->hid_profile_event.reportType);
+                        sBluetoothHidInterface->set_protocol(&pEvent->hid_profile_event.bd_addr,(bthh_protocol_mode_t)pEvent->hid_profile_event.protocolMode);
                     }
                     break;
                 case HID_API_GET_REPORT_REQ:

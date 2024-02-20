@@ -199,6 +199,7 @@ void AdvertiserManager::stopAdvertisingSet(IAdvertisingSetCallback *callback)
 
   try {
           callback->onAdvertisingSetStopped(advertiserId);
+          mAdvertisers.erase(advertiserId);
   } catch (std::exception& e ) {
     ALOGE(LOGTAG " error sending onAdvertisingSetStopped callback %s", e.what());
   }
@@ -276,6 +277,7 @@ void AdvertiserManager::stopAdvertisingSets()
       ALOGI( LOGTAG " error sending onAdvertisingSetStopped callback %s", e.what());
     }
   }
+  mAdvertisers.clear();
 }
 
 void AdvertiserManager::onAdvertisingSetStarted(int regId, int advertiserId, int txPower, int status)

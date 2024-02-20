@@ -212,7 +212,12 @@ class gattctestClientCallback:public GattClientCallback
         ALOGD(LOGTAG "onCharacteristicRead UUID %s, value is %s",
             characteristic->getUuid().ToString().c_str(), value);
         fprintf(stdout,"onCharacteristicRead UUID %s, value is %s\n",
-            characteristic->getUuid().ToString().c_str(), value);
+            characteristic->getUuid().ToString().c_str(), characteristic->getStringValue(0).c_str());
+        fprintf(stdout,"onCharacteristicRead UUID %s ", characteristic->getUuid().ToString().c_str());
+        for(int i=0; i < characteristic->getValueLength(); i++) {
+          fprintf(stdout, " %d", *value++);
+        }
+        fprintf(stdout, "\n");
       } else if (status == GattClient::GATT_READ_NOT_PERMITTED) {
         ALOGE(LOGTAG "onCharacteristicRead error");
         fprintf(stdout, "onCharacteristicRead"
@@ -240,7 +245,12 @@ class gattctestClientCallback:public GattClientCallback
         ALOGE(LOGTAG "write characteristic uid %s, value:%s success",
             uid.ToString().c_str(), value);
         fprintf(stdout, "write characteristic uid %s, value:%s"
-            "==success\n", uid.ToString().c_str(), value);
+            "== success\n", uid.ToString().c_str(), characteristic->getStringValue(0).c_str());
+        fprintf(stdout,"owrite characteristic uid %s, value: ", uid.ToString().c_str());
+        for(int i=0; i < characteristic->getValueLength(); i++) {
+          fprintf(stdout, " %d", *value++);
+        }
+        fprintf(stdout, "== success\n");
       } else {
         ALOGE(LOGTAG "Failed to write characteristic: %d", status);
         fprintf(stdout,"Failed to write characteristic: %d\n", status);
@@ -336,9 +346,16 @@ class gattctestClientCallback:public GattClientCallback
       ALOGD(LOGTAG "onCharacteristicChanged: uid");
       Uuid uid = characteristic->getUuid();
 
+      uint8_t *value = characteristic->getValue();
       if (!uid.IsEmpty()) {
-        ALOGD(LOGTAG "onCharacteristicChanged Equal");
+        ALOGD(LOGTAG "onCharacteristicChanged ");
         ALOGD(LOGTAG "onCharacteristicChanged intimation");
+        fprintf(stdout,"onCharacteristicChanged value is %s\n", characteristic->getStringValue(0).c_str());
+        fprintf(stdout, "CharacteristicChanged to");
+        for(int i=0; i < characteristic->getValueLength(); i++) {
+          fprintf(stdout, " %d", *value++);
+        }
+        fprintf(stdout, "\n");
       }
     }
 
@@ -355,7 +372,11 @@ class gattctestClientCallback:public GattClientCallback
         uint8_t *des = descriptor->getValue();
         if(des != NULL) {
           ALOGD(LOGTAG "(%s) DESCRIPTOR VALUE is %s", __FUNCTION__, des);
-          fprintf(stdout, " DESCRIPTOR VALUE is %s\n", des);
+          fprintf(stdout,"onDescriptorRead ");
+          for(int i=0; i < descriptor->getValueLength(); i++) {
+            fprintf(stdout, " %d", *des++);
+          }
+          fprintf(stdout, "\n");
         }
       } else if (status == GattClient::GATT_READ_NOT_PERMITTED) {
         ALOGE(LOGTAG "(%s) UUID READ NOT PERMITTED\n", __FUNCTION__);
@@ -845,6 +866,55 @@ GattCharacteristic* GattcTest :: getCharacteristic(Uuid uid, string bdaddr)
     }
   }
   return characteristic;
+}
+
+void GattcTest :: registerNotifications(string bdaddr, int charInstanceId, int descInstanceId, bool enable)
+{
+  ALOGD(LOGTAG "registerNotifications");
+  uint8_t writeValue[2] = {0x00, 0x00};
+  int valueLength = 2;
+
+  if (!mDeviceMap.containsDevice(bdaddr)) {
+    ALOGE(LOGTAG "Device not found on Map");
+    fprintf(stdout, "Device not found on Map");
+    return;
+  }
+  GattClient *CliDevice = mDeviceMap.getGatt(bdaddr);
+  GattCharacteristic *characteristic = CliDevice->getCharacteristicById(bdaddr, charInstanceId);
+  if (characteristic != NULL) {
+    ALOGD(LOGTAG "Instance ID   %d", characteristic->getInstanceId());
+
+    bool status = CliDevice->setCharacteristicNotification(*characteristic, enable);
+    if (status) {
+      ALOGD(LOGTAG "setCharacteristicNotification success");
+      fprintf(stdout, "setCharacteristicNotification success\n");
+    } else {
+      ALOGE(LOGTAG "setCharacteristicNotification failed");
+      fprintf(stdout, "setCharacteristicNotification Failed\n");
+    }
+  } else {
+    ALOGE(LOGTAG "No Characteristic. Please refresh services");
+    fprintf(stdout, "No Characteristic. Please refresh services");
+  }
+
+  GattDescriptor* descriptor =
+    CliDevice->getDescriptorById(bdaddr,descInstanceId);
+
+  if(0x01 == enable) {
+    writeValue[0] = 0x03;
+  } else {
+    writeValue[0] = 0x00;
+  }
+  if (descriptor != NULL) {
+    descriptor->setValue(writeValue, valueLength);
+    if (!CliDevice->writeDescriptor(*descriptor)) {
+      ALOGE(LOGTAG "WriteDescriptor Failed");
+      fprintf(stdout, "Write Descriptor Failed\n");
+    }
+  } else {
+    ALOGE(LOGTAG "No descriptor found with that instanceId");
+    fprintf(stdout, "No descriptor found with that instanceId\n");
+  }
 }
 
 bool GattcTest :: writeCharacteristic(string bdaddr, uint8_t *writeValue,
@@ -1582,6 +1652,12 @@ bool GattcTest :: scanSettings(int scanType, int value)
           return false;
         }
         mscanSettings = settingType::SET_LEGACY;
+        if(mLegacy == true)
+        {
+           mPhy = 1;
+           fprintf(stdout, "For Legacy PHY_TYPE value : %d\n", mPhy);
+           settingMask |= (1 << PHY_TYPE_MASK);
+        }
         break;
       }
       case settingType::REPORT_DELAY_MILLS:

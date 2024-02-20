@@ -24,7 +24,6 @@
 #include <iostream>
 #include <cstring>
 #include <mutex>
-#include <unordered_map>
 #include "AdvertisingSetCallback.hpp"
 #include "AdvertiseSettings.hpp"
 #include "AdvertiseData.hpp"
@@ -46,7 +45,12 @@ namespace gatt{
 * Use getGattLeAdvertiser() to get an instance of GattLeAdvertiser.
 */
 class GattLeAdvertiser : public IAdvertisingSetCallback {
+  public:
+    GattLeAdvertiser();
+    AdvertisingSet *getAdvertisingSet () { return mAdvertisingSet;}
   private:
+    AdvertisingSet *mAdvertisingSet = NULL;
+    int mAdvertiserId;
     static const int MAX_ADVERTISING_DATA_BYTES = 1650;
     static const int MAX_LEGACY_ADVERTISING_DATA_BYTES = 31;
     // Each fields need one byte for field length and another byte for field type.
@@ -64,17 +68,7 @@ class GattLeAdvertiser : public IAdvertisingSetCallback {
     AdvertisingSetCallback *mCb = NULL;
     GattLibService *mGattLibService = NULL;
 
-    std::unordered_map<const AdvertisingSetCallback*, IAdvertisingSetCallback*> mCallback;
-    std::unordered_map<int, AdvertisingSet*> mAdvertisingSets;
-
     static std::mutex singletonLock;
-
-    /**
-    * Create GattLeAdvertiser object
-    * @hide
-    */
-
-    GattLeAdvertiser();
 
     /**
      * Creates a new advertising set. If operation succeed, device will start advertising. This

@@ -56,9 +56,14 @@ AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
                -I${BT_SOURCE}/btapp/obex_profiles/sdk/oem
 endif
 
+AM_CPPFLAGS += @AROUTE_CFLAGS@
 if AUDIO_HAL_SUPPORTED
 AM_CPPFLAGS += -DBT_AUDIO_HAL_INTEGRATION
 endif
+#if AUDIO_PAL_SUPPORTED
+AM_CPPFLAGS += -DBT_AUDIO_PAL_INTEGRATION
+AM_CPPFLAGS += @PABTAUDIO_CFLAGS@
+#endif
 
 cpp_sources = ../utils/src/utils.cc \
             src/ipc.cpp \

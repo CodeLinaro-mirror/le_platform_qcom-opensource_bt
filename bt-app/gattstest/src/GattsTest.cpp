@@ -92,6 +92,8 @@ gattstestServerCallback *gattstestServerCb = NULL;
 map<int, AdvertisingSet*> advSetMap;
 vector <string> connectedDevices;
 unordered_map < gattstestServerCallback*, GattServer*> servCBInstanceMap;
+map <int, unique_ptr<GattLeAdvertiser>> gAdvInstanceMap;
+
 
 //DeviceMap to store connected client addr and servers connected to client
 map<string,vector<GattServer*>> DeviceMap;
@@ -424,6 +426,16 @@ class gattstestAdvertiserCallback  :public AdvertisingSetCallback
   void onAdvertisingSetStopped (AdvertisingSet *advertisingSet)
   {
     ALOGD(LOGTAG"%s Advertiser ID  %d",__FUNCTION__,advertisingSet->getAdvertiserId());
+
+    //Delete adv instance from map
+    for (auto it = gAdvInstanceMap.begin(); it != gAdvInstanceMap.end(); it++)
+    {
+        if (it->second->getAdvertisingSet() == advertisingSet)
+        {
+            gAdvInstanceMap.erase(it->first);
+            break;
+        }
+    }
   }
 
   void onAdvertisingEnabled (AdvertisingSet *advertisingSet, bool enable, int status)
@@ -481,6 +493,7 @@ class gattstestAdvertiserCallback  :public AdvertisingSetCallback
 
 map <int, GattServer*> servInstanceMap;
 map <int,gattstestAdvertiserCallback*> advCBInstanceMap;
+
 gattstestAdvertiserCallback *gattstestAdvCb = NULL;
 GattLeAdvertiser *madvertiser = NULL;
 
@@ -868,14 +881,25 @@ bool GattsTest::StartAdvertisement(string        instanceID)
   //Finding corresponding Legacy flag details for the corresponding advertiser
   temp = AdvSet_list[instance -1];
   legacyflag = temp->legacyflag;
+
+  auto isAdvPresent = gAdvInstanceMap.find(instance);
+  if (isAdvPresent != gAdvInstanceMap.end())
+  {
+    fprintf(stdout,"Server instance %d already in use \n",instance);
+    return false;
+  }
+
+  GattLeAdvertiser *adv = new GattLeAdvertiser();
+  unique_ptr<GattLeAdvertiser> unqPrtAdv(adv);
   try {
     if(legacyflag) {
       ALOGD(LOGTAG"Legacy StartAdvertisement");
-      madvertiser->startAdvertising(mAdvertiseSettings,mAdvertiseData,mScanResponseData,gattstestAdvCb);
+      adv->startAdvertising(mAdvertiseSettings,mAdvertiseData,mScanResponseData,gattstestAdvCb);
     } else {
-      madvertiser->startAdvertisingSet(mAdvertisingParameters,
+      adv->startAdvertisingSet(mAdvertisingParameters,
                           mAdvertiseData,mScanResponseData,mPeriodicParams,mPeriodicData,gattstestAdvCb);
     }
+    gAdvInstanceMap.insert(pair <int, unique_ptr<GattLeAdvertiser>> (instance, std::move(unqPrtAdv)));
   } catch(const std::exception &ex) {
     ALOGD(LOGTAG"%s start Advertising exception  %s", __FUNCTION__, ex.what());
     return false;
@@ -1116,7 +1140,11 @@ bool GattsTest::UnregisterServer(string instance)
     if(!AdvSet_list.empty()){
       AdvertisingSetCallback *mAdvSetCB;
       mAdvSetCB = advCBInstanceMap[instanceId];
-      madvertiser->stopAdvertising(mAdvSetCB);
+      auto adv = gAdvInstanceMap.find(instanceId);
+      if (adv != gAdvInstanceMap.end())
+      {
+          adv->second->stopAdvertising(mAdvSetCB);
+      }
     }
     unordered_map <gattstestServerCallback*,GattServer*> ::iterator itr;
     for(itr = servCBInstanceMap.begin(); itr!= servCBInstanceMap.end(); ++itr) {
@@ -1134,10 +1162,14 @@ bool GattsTest::UnregisterServer(string instance)
     map <int,gattstestAdvertiserCallback*> ::iterator advcb_itr;
     for(advcb_itr = advCBInstanceMap.begin(); advcb_itr!= advCBInstanceMap.end(); ++advcb_itr) {
       ALOGD(LOGTAG"harish - test- adv cb instance mapped");
-      mAdvertisercallback = advcb_itr->second;
-      delete(mAdvertisercallback);
-      mAdvertisercallback = NULL;
-      advCBInstanceMap.erase(advcb_itr->first);
+      if (advcb_itr->first == instanceId)
+      {
+        mAdvertisercallback = advcb_itr->second;
+        delete(mAdvertisercallback);
+        mAdvertisercallback = NULL;
+        advCBInstanceMap.erase(advcb_itr->first);
+        break;
+      }
     }
     servInstanceMap.erase(instanceId);
     return true;
@@ -1157,7 +1189,13 @@ void GattsTest::StopAdvertisement(string instance)
   } else {
     AdvertisingSetCallback *mAdvSetCB;
     mAdvSetCB = advCBInstanceMap[instanceId];
-    madvertiser->stopAdvertising(mAdvSetCB);
+    auto adv = gAdvInstanceMap.find(instanceId);
+    if (adv != gAdvInstanceMap.end())
+    {
+        adv->second->stopAdvertising(mAdvSetCB);
+    } else {
+        fprintf(stdout,"Server instance value invalid, Please type a valid instance\n");
+    }
   }
 }
 
@@ -1328,10 +1366,10 @@ bool GattsTest::DisableGATTSTEST()
     mAdvertisercallback = at->second;
     delete(mAdvertisercallback);
     mAdvertisercallback = NULL;
-    advCBInstanceMap.erase(at->first);
   }
   advCBInstanceMap.clear();
   advSetMap.clear();
   DeviceMap.clear();
+  gAdvInstanceMap.clear();
   return true;
 }

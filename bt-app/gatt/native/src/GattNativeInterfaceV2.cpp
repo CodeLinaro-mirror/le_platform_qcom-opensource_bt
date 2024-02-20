@@ -17,6 +17,7 @@
  */
 
 #include "GattNativeInterfaceV2.hpp"
+#include "GattLibService.hpp"
 #include <hardware/bt_gatt.h>
 #include <hardware/bt_gatt_types.h>
 #include "ipc.hpp"
@@ -25,6 +26,7 @@
 
 namespace gatt {
 
+gatt::GattLibService *sGattLibService = gatt::GattLibService::getGatt();
 #define LOGTAG "GattNativeInterfaceV2"
 
 #define LOG_NDEBUG 0
@@ -768,6 +770,8 @@ static void track_adv_event_cb(btgatt_track_adv_info_t* p_adv_track_info) {
   event->blescanner_track_adv_event.p_adv_track_info.rssi_value = p_adv_track_info->rssi_value;
   event->blescanner_track_adv_event.p_adv_track_info.time_stamp = p_adv_track_info->time_stamp;
   event->blescanner_track_adv_event.p_adv_track_info.bd_addr = addr2Str(p_adv_track_info->bd_addr);
+  event->blescanner_track_adv_event.p_adv_track_info.adv_pkt_len = p_adv_track_info->adv_pkt_len;
+  event->blescanner_track_adv_event.p_adv_track_info.scan_rsp_len = p_adv_track_info->scan_rsp_len;
 
   if (p_adv_track_info->adv_pkt_len != 0) {
     event->blescanner_track_adv_event.p_adv_track_info.p_adv_pkt_data
@@ -807,7 +811,8 @@ static void scan_filter_cfg_cb(uint8_t client_if, uint8_t filt_type,
   event->blescanner_scan_filter_cfg_event.filt_type=filt_type;
   event->blescanner_scan_filter_cfg_event.avbl_space=avbl_space;
 
-  PostMessage(THREAD_ID_GATT, event);
+  // PostMessage(THREAD_ID_GATT, event);
+sGattLibService->HandleBleScannerScanFilterCfgEvent((BleScannerScanFilterCfgEvent *)event);
 }
 
 static void scan_filter_param_cb(uint8_t client_if, uint8_t avbl_space, uint8_t action,
@@ -824,7 +829,8 @@ static void scan_filter_param_cb(uint8_t client_if, uint8_t avbl_space, uint8_t 
   event->blescanner_scan_filter_param_event.client_if= client_if;
   event->blescanner_scan_filter_param_event.avbl_space=avbl_space;
 
-  PostMessage(THREAD_ID_GATT, event);
+//  PostMessage(THREAD_ID_GATT, event);
+ sGattLibService->HandleBleScannerScanFilterParamEvent((BleScannerScanFilterParamEvent *)event);
 }
 
 static void scan_filter_status_cb(uint8_t client_if, uint8_t action, uint8_t status) {

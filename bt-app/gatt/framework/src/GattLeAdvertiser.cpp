@@ -45,6 +45,9 @@ GattLeAdvertiser::~GattLeAdvertiser()
   if (sGattLeAdvertiser != NULL) {
     cleanup();
   }
+
+  delete(mAdvertisingSet);
+  mAdvertisingSet = NULL;
   sGattLeAdvertiser = NULL;
 }
 
@@ -303,18 +306,11 @@ void GattLeAdvertiser::startAdvertisingSet(AdvertisingSetParameters *parameters,
     throw new std::invalid_argument("duration out of range: " + duration);
   }
 
-  IAdvertisingSetCallback *cb = this;
   mCb = callback;
-
-  auto m = mCallback.find(callback);
-  if (m == mCallback.end()) {
-    mCallback.insert({{callback,this}});
-    cb = this;
-  }
 
   try {
     mGattLibService->startAdvertisingSet(parameters, advertiseData, scanResponse,
-      periodicParameters, periodicData, duration, maxExtendedAdvertisingEvents,cb);
+      periodicParameters, periodicData, duration, maxExtendedAdvertisingEvents, this);
   } catch (std::exception& e) {
     ALOGE(LOGTAG " Failed to start advertising set - %s ", e.what());
     postStartSetFailure(callback,
@@ -329,17 +325,10 @@ void GattLeAdvertiser::stopAdvertisingSet(AdvertisingSetCallback *callback)
     throw std::invalid_argument("callback cannot be null");
   }
 
-  auto tCb = mCallback.find(callback);
-  if (tCb == mCallback.end()) {
-    ALOGE(LOGTAG " stopAdvertisingSet() No callback ");
-    return;
-  }
-
-  mCallback.erase(callback);
   GattLibService *gatt;
   try {
     gatt = GattLibService::getGatt();
-    gatt->stopAdvertisingSet(tCb->second);
+    gatt->stopAdvertisingSet(this);
   } catch (std::exception& e) {
     ALOGE(LOGTAG " Failed to stop advertising - %s ", e.what());
   }
@@ -347,13 +336,7 @@ void GattLeAdvertiser::stopAdvertisingSet(AdvertisingSetCallback *callback)
 
 void GattLeAdvertiser::cleanup()
 {
-  mCb = NULL;
-  mCallback.clear();
-  for (auto adv_map:mAdvertisingSets) {
-    delete adv_map.second;
-  }
-  mAdvertisingSets.clear();
-  sGattLeAdvertiser = NULL;
+    return;
 }
 
 void GattLeAdvertiser::postStartSetFailure(AdvertisingSetCallback *callback,const int error)
@@ -376,124 +359,107 @@ void GattLeAdvertiser::onAdvertisingSetStarted(int advertiserId, int txPower, in
 
   if (status != AdvertisingSetCallback::ADVERTISE_SUCCESS) {
     mCb->onAdvertisingSetStarted(NULL, 0, status);
-    //mCallback.erase(callback);
     return;
   }
 
-  AdvertisingSet *advertisingSet = new AdvertisingSet(advertiserId);
+  if (mAdvertisingSet)
+  {
+    ALOGE(LOGTAG " onAdvertisingSetStarted() mAdvertisingSet is not NULL");
+  }
 
-  mAdvertisingSets.insert({{advertiserId, advertisingSet}});
-  mCb->onAdvertisingSetStarted(advertisingSet, txPower, status);
-  delete advertisingSet;
+  mAdvertisingSet = new AdvertisingSet(advertiserId);
+  mAdvertiserId = advertiserId;
+
+  mCb->onAdvertisingSetStarted(mAdvertisingSet, txPower, status);
 }
 
 void GattLeAdvertiser::onOwnAddressRead(int advertiserId, int addressType, string address)
 {
-  auto tAdvId = mAdvertisingSets.find(advertiserId);
-  if (tAdvId == mAdvertisingSets.end()) {
+  if (advertiserId != mAdvertiserId) {
     ALOGE(LOGTAG " onOwnAddressRead() Advertising Set not found");
     return;
   }
 
-  AdvertisingSet *advertisingSet = tAdvId->second;
-  mCb->onOwnAddressRead(advertisingSet, addressType, address);
+  mCb->onOwnAddressRead(mAdvertisingSet, addressType, address);
 }
 
 void GattLeAdvertiser::onAdvertisingSetStopped(int advertiserId)
 {
-  auto tAdvId = mAdvertisingSets.find(advertiserId);
-  if (tAdvId == mAdvertisingSets.end()) {
+  if (advertiserId != mAdvertiserId) {
     ALOGE(LOGTAG " onAdvertisingSetStopped() Advertising Set not found");
     return;
   }
 
-  AdvertisingSet *advertisingSet = tAdvId->second;
-  mCb->onAdvertisingSetStopped(advertisingSet);
-  mAdvertisingSets.erase(advertiserId);
-  //mCallback.erase(callback);
+  mCb->onAdvertisingSetStopped(mAdvertisingSet);
 }
 
 void GattLeAdvertiser::onAdvertisingEnabled(int advertiserId, bool enabled, int status)
 {
-  auto tAdvId = mAdvertisingSets.find(advertiserId);
-  if (tAdvId == mAdvertisingSets.end()) {
+  if (advertiserId != mAdvertiserId) {
     ALOGE(LOGTAG " onAdvertisingEnabled() Advertising Set not found");
     return;
   }
 
-  AdvertisingSet *advertisingSet = tAdvId->second;
-  mCb->onAdvertisingEnabled(advertisingSet, enabled, status);
+  mCb->onAdvertisingEnabled(mAdvertisingSet, enabled, status);
 }
 
 void GattLeAdvertiser::onAdvertisingDataSet(int advertiserId, int status)
 {
-  auto tAdvId = mAdvertisingSets.find(advertiserId);
-  if (tAdvId == mAdvertisingSets.end()) {
+  if (advertiserId != mAdvertiserId) {
     ALOGE(LOGTAG " onAdvertisingDataSet() Advertising Set not found");
     return;
   }
 
-  AdvertisingSet *advertisingSet = tAdvId->second;
-  mCb->onAdvertisingDataSet(advertisingSet, status);
+  mCb->onAdvertisingDataSet(mAdvertisingSet, status);
 }
 
 void GattLeAdvertiser::onScanResponseDataSet(int advertiserId, int status)
 {
-  auto tAdvId = mAdvertisingSets.find(advertiserId);
-  if (tAdvId == mAdvertisingSets.end()) {
+  if (advertiserId != mAdvertiserId) {
     ALOGE(LOGTAG " onScanResponseDataSet() Advertising Set not found");
     return;
   }
 
-  AdvertisingSet *advertisingSet = tAdvId->second;
-  mCb->onScanResponseDataSet(advertisingSet, status);
+  mCb->onScanResponseDataSet(mAdvertisingSet, status);
 }
 
 void GattLeAdvertiser::onAdvertisingParametersUpdated(int advertiserId, int txPower, int status)
 {
-  auto tAdvId = mAdvertisingSets.find(advertiserId);
-  if (tAdvId == mAdvertisingSets.end()) {
+  if (advertiserId != mAdvertiserId) {
     ALOGE(LOGTAG " onAdvertisingParametersUpdated() Advertising Set not found");
     return;
   }
 
-  AdvertisingSet *advertisingSet = tAdvId->second;
-  mCb->onAdvertisingParametersUpdated(advertisingSet, txPower, status);
+  mCb->onAdvertisingParametersUpdated(mAdvertisingSet, txPower, status);
 }
 
 void GattLeAdvertiser::onPeriodicAdvertisingParametersUpdated(int advertiserId, int status)
 {
-  auto tAdvId = mAdvertisingSets.find(advertiserId);
-  if (tAdvId == mAdvertisingSets.end()) {
+  if (advertiserId != mAdvertiserId) {
     ALOGE(LOGTAG " onPeriodicAdvertisingParametersUpdated() Advertising Set not found");
     return;
   }
 
-  AdvertisingSet *advertisingSet = tAdvId->second;
-  mCb->onPeriodicAdvertisingParametersUpdated(advertisingSet, status);
+  mCb->onPeriodicAdvertisingParametersUpdated(mAdvertisingSet, status);
 }
 
 void GattLeAdvertiser::onPeriodicAdvertisingDataSet(int advertiserId, int status)
 {
-  auto tAdvId = mAdvertisingSets.find(advertiserId);
-  if (tAdvId == mAdvertisingSets.end()) {
+  if (advertiserId != mAdvertiserId) {
     ALOGE(LOGTAG " onPeriodicAdvertisingDataSet() Advertising Set not found");
     return;
   }
 
-  AdvertisingSet *advertisingSet = tAdvId->second;
-  mCb->onPeriodicAdvertisingDataSet(advertisingSet, status);
+  mCb->onPeriodicAdvertisingDataSet(mAdvertisingSet, status);
 }
 
 void GattLeAdvertiser::onPeriodicAdvertisingEnabled(int advertiserId, bool enable, int status)
 {
-  auto tAdvId = mAdvertisingSets.find(advertiserId);
-  if (tAdvId == mAdvertisingSets.end()) {
+  if (advertiserId != mAdvertiserId) {
     ALOGE(LOGTAG " onPeriodicAdvertisingEnabled() Advertising Set not found");
     return;
   }
 
-  AdvertisingSet *advertisingSet = tAdvId->second;
-  mCb->onPeriodicAdvertisingEnabled(advertisingSet, enable, status);
+  mCb->onPeriodicAdvertisingEnabled(mAdvertisingSet, enable, status);
 }
 }

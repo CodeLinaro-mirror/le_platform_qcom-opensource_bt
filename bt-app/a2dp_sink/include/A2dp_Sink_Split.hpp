@@ -25,6 +25,11 @@
   * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
   * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
   * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  *
+  * Changes from Qualcomm Innovation Center are provided under the following license:
+  *
+  * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  * SPDX-License-Identifier: BSD-3-Clause-Clear
   */
 
 #ifndef A2DP_SINK_SPLIT_APP_H//to do
@@ -47,6 +52,9 @@
 #include "hardware/bt_av_vendor.h"
 #include "A2dp_Sink.hpp"
 #include "A2dp_Sink_Streaming.hpp"
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+#include "pa_routing_interface.h"
+#endif
 
 using namespace std;
 using std::list;
@@ -86,6 +94,9 @@ class A2dp_Sink_Split {
     void UpdateSupportedCodecs(uint8_t num_codecs);
     list<A2dp_Device> pA2dpDeviceList;
     ControlStatusType controlStatus;
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_interface_t *pa_routing_intf;
+#endif
 };
 
 #endif
