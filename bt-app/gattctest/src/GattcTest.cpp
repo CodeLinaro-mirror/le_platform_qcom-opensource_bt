@@ -865,7 +865,8 @@ bool GattcTest::EnableGATTCTEST()
     fprintf(stdout, "(%s) Enable GATTCTEST Initiated \n",__FUNCTION__);
     CopyClientUUID(&client_uuid);
     CopyGenUUID(&gen_uuid);
-    gattctest->RegisterClient();
+    return gattctest->RegisterClient();
+
 }
 
 bool GattcTest::DisableGATTCTEST()
@@ -877,6 +878,7 @@ bool GattcTest::DisableGATTCTEST()
               delete gattctest;
               gattctest = NULL;
           }
+      return true;
 }
 
 bool GattcTest::RegisterApp()
@@ -920,10 +922,10 @@ bool GattcTest::ClientSetAdvData(char *str)
     int               min_conn_interval = RSP_MIN_CI;
     int               max_conn_interval = RSP_MAX_CI;
 
-    app_gatt->set_adv_data(GetGATTCTESTClientAppData()->clientIf, SetScanRsp,
+    return (app_gatt->set_adv_data(GetGATTCTESTClientAppData()->clientIf, SetScanRsp,
                                                 IncludeName, IncludeTxPower, min_conn_interval,
                                                 max_conn_interval, 0,strlen(str), str,
-                                                strlen(str), str, 0,NULL);
+                                                strlen(str), str, 0,NULL) == BT_STATUS_SUCCESS);
 }
 
 void GattcTest::CleanUp(int server_if)
@@ -1028,6 +1030,7 @@ bool GattcTest::SendAlert(int alert_level)
     } else {
 	fprintf(stdout, " Matching Alert not found - dont send alert, try disc and connect again\n");
     }
+    return false;
 }
 
 bool GattcTest::SearchService(int conn_id)

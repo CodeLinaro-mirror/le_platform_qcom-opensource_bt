@@ -569,7 +569,7 @@ bool GattsTest::EnableGATTSTEST()
 bool GattsTest::DisableGATTSTEST()
 {
     fprintf(stdout, "(%s) Disable GATTSTEST Initiated",__FUNCTION__);
-    StopService();
+    return StopService();
 }
 
 bool GattsTest::RegisterApp()
@@ -616,10 +616,10 @@ bool GattsTest::ClientSetAdvData(char *str)
     int               min_conn_interval = GATTSTEST_MIN_CI;
     int               max_conn_interval = GATTSTEST_MAX_CI;
 
-    app_gatt->set_adv_data(GetGATTSTESTClientAppData()->clientIf, SetScanGattsTest,
+    return (app_gatt->set_adv_data(GetGATTSTESTClientAppData()->clientIf, SetScanGattsTest,
                                                 IncludeName, IncludeTxPower, min_conn_interval,
                                                 max_conn_interval, 0,strlen(str), str,
-                                                strlen(str), str, 0,NULL);
+                                                strlen(str), str, 0,NULL) == BT_STATUS_SUCCESS);
 }
 
 void GattsTest::CleanUp(int server_if)
