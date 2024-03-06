@@ -1028,6 +1028,32 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
     BtEvent *pControlRequest, *pReleaseControlReq;
     ALOGD(LOGTAG "state_audio_on_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
+        case HFP_CLIENT_API_DISCONNECT_REQ:
+            if (sBtHfpClientInterface != NULL) {
+                sBtHfpClientInterface->disconnect_audio(&pEvent->hfp_client_event.bd_addr);
+            }
+
+            bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
+            fprintf(stdout, "Disconnecting SCO/eSCO with device %s\n", str);
+            ALOGD(LOGTAG "Disconnecting SCO/eSCO with device %s", str);
+             // release control
+             pReleaseControlReq = new BtEvent;
+             pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
+             pReleaseControlReq->btamControlRelease.profile_id = PROFILE_ID_HFP_CLIENT;
+             PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
+
+             mcontrolStatus = STATUS_LOSS_TRANSIENT;
+             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
+             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
+             if (sBtHfpClientInterface != NULL) {
+                 sBtHfpClientInterface->disconnect(&pEvent->hfp_client_event.bd_addr);
+             }
+
+             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
+             fprintf(stdout, "Disconnecting with device %s\n", str);
+             ALOGD(LOGTAG "Disconnecting with device %s", str);
+             change_state(HFP_CLIENT_STATE_CONNECTING);
+             break;
         case HFP_CLIENT_API_DISCONNECT_AUDIO_REQ:
             if (sBtHfpClientInterface != NULL) {
                 sBtHfpClientInterface->disconnect_audio(&pEvent->hfp_client_event.bd_addr);
