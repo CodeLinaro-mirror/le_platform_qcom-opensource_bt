@@ -369,8 +369,14 @@ static void DisplayMenu(MenuType menu_type) {
             num_cmds = NO_OF_COMMANDS(SppClientMenu);
             break;
         case HFP_AG_MENU:
+            char pts_value[6];
+            osi_property_get("vendor.bt.pts.certification", pts_value, "false");
+            if (!(strcmp(pts_value,"true"))) {
+                num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
+           } else {
+                num_cmds  = 6;
+           }
             menu = &HfpAGMenu[0];
-            num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
             break;
         case HIDH_MENU:
             menu = &HidMenu[0];
