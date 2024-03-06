@@ -3556,6 +3556,7 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
     char *mode;
     bool is_valid_codec = true;
     BtEvent *pControlRequest, *pReleaseControlReq;
+    btrc_register_notification_t param;
     ALOGD(LOGTAG_A2DP "state_connected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SOURCE_API_CONNECT_REQ:
@@ -3616,12 +3617,45 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             break;
         case A2DP_SOURCE_AUDIO_STARTED:
             fprintf(stdout, "A2DP Source Audio state changes to: %d  \n",pEvent->event_id);
+            if (playStatus != BTRC_PLAYSTATE_PLAYING)
+            {
+               playStatus = BTRC_PLAYSTATE_PLAYING;
+               if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                   param.play_status = playStatus;
+                   mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                   sBtAvrcpTargetInterface->register_notification_rsp(
+                                    BTRC_EVT_PLAY_STATUS_CHANGED,
+                                    mPlayStatusNotiType, &param);
+               }
+            }
             break;
         case A2DP_SOURCE_AUDIO_SUSPENDED:
             fprintf(stdout, "A2DP Source Audio state changes to: %d  \n",pEvent->event_id);
+            if (playStatus != BTRC_PLAYSTATE_PAUSED)
+            {
+               playStatus = BTRC_PLAYSTATE_PAUSED;
+               if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                   param.play_status = playStatus;
+                   mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                   sBtAvrcpTargetInterface->register_notification_rsp(
+                                    BTRC_EVT_PLAY_STATUS_CHANGED,
+                                    mPlayStatusNotiType, &param);
+               }
+            }
             break;
         case A2DP_SOURCE_AUDIO_STOPPED:
             fprintf(stdout, "A2DP Source Audio state changes to: %d ", pEvent->event_id);
+            if (playStatus != BTRC_PLAYSTATE_STOPPED)
+            {
+               playStatus = BTRC_PLAYSTATE_STOPPED;
+               if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                   param.play_status = playStatus;
+                   mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                   sBtAvrcpTargetInterface->register_notification_rsp(
+                                    BTRC_EVT_PLAY_STATUS_CHANGED,
+                                    mPlayStatusNotiType, &param);
+               }
+            }
             break;
         case A2DP_SOURCE_CODEC_CONFIG_CB:
             memcpy(&mDevice, &pEvent->a2dpSourceEvent.bd_addr, sizeof(bt_bdaddr_t));
