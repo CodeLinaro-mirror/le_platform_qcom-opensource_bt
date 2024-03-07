@@ -698,6 +698,14 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
     BtEvent *pControlRequest, *pReleaseControlReq;
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_DISCONNECT_REQ:
+
+            if (mAudioMode == HFP_CLIENT_MODE_RINGTONE)
+            {
+                ALOGD("Audio Mode is ring tone, stop the ring tone");
+                fprintf(stdout, "Audio Mode is ring tone, stop the ring tone\n");
+                change_mode(HFP_CLIENT_MODE_NORMAL);
+                StopRingTone();
+            }
             // release control
             pReleaseControlReq = new BtEvent;
             pReleaseControlReq->btamControlRelease.event_id = BT_AM_RELEASE_CONTROL;
@@ -733,6 +741,12 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             peer_feat = 0;
             chld_feat = 0;
             mAudioWbs = false;
+            if (mAudioMode == HFP_CLIENT_MODE_RINGTONE)
+            {
+                ALOGD("Audio Mode is ring tone, stop the ring tone");
+                fprintf(stdout, "Audio Mode is ring tone, stop the ring tone\n");;
+                StopRingTone();
+            }
             change_mode(HFP_CLIENT_MODE_NORMAL);
             change_state(HFP_CLIENT_STATE_DISCONNECTED);
             break;
