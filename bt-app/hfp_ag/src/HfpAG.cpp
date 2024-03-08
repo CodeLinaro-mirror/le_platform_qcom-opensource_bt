@@ -20,7 +20,7 @@
 #include <map>
 #include <iostream>
 #include <vector>
-#include <string.h>
+#include <bsd/string.h>
 #include <hardware/bluetooth.h>
 #include <hardware/hardware.h>
 #include <hardware/bt_hf.h>
@@ -203,7 +203,7 @@ void dial_call_callback(char *number, bt_bdaddr_t* bd_addr) {
     if (number == NULL)
        pEvent->hfp_ag_event.str[0] = '\0';
     else
-       strncpy(pEvent->hfp_ag_event.str, number, strlen(number));
+       strlcpy(pEvent->hfp_ag_event.str, number, strlen(number));
 
     pEvent->hfp_ag_event.event_id = HFP_AG_DIAL_CALL_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
@@ -320,7 +320,7 @@ void bind_callback(char *at_string, bt_bdaddr_t* bd_addr) {
     fprintf(stdout, " bind_cmd_vendor_cb\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-    strncpy(pEvent->hfp_ag_event.str, at_string, strlen(at_string));
+    strlcpy(pEvent->hfp_ag_event.str, at_string, strlen(at_string));
     pEvent->hfp_ag_event.event_id = HFP_AG_BIND_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
 }
@@ -344,7 +344,7 @@ void bind_cmd_vendor_cb(char* hf_ind, bthf_vendor_bind_type_t type, bt_bdaddr_t*
     fprintf(stdout, " bind_cmd_vendor_cb\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-    strncpy(pEvent->hfp_ag_event.str, hf_ind, strlen(hf_ind));
+    strlcpy(pEvent->hfp_ag_event.str, hf_ind, strlen(hf_ind));
     pEvent->hfp_ag_event.arg1 = type;
     pEvent->hfp_ag_event.event_id = HFP_AG_BIND_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
@@ -356,7 +356,7 @@ void biev_cmd_vendor_cb(char* hf_ind_val, bt_bdaddr_t* bd_addr) {
     fprintf(stdout, " biev_cmd_vendor_cb\n");
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
-    strncpy(pEvent->hfp_ag_event.str, hf_ind_val, strlen(hf_ind_val));
+    strlcpy(pEvent->hfp_ag_event.str, hf_ind_val, strlen(hf_ind_val));
     pEvent->hfp_ag_event.event_id = HFP_AG_BIEV_CB;
     PostMessage(THREAD_ID_HFP_AG, pEvent);
 }
@@ -1822,15 +1822,15 @@ void Hfp_Ag::get_and_send_subscriber_number(bt_bdaddr_t *bd_addr) {
        ALOGD(LOGTAG, "getting subscriber info successful");
        if (sBtHfpAgInterface != NULL) {
            char phone_num_str[256];
-           strcpy(phone_num_str, "+CNUM: ,\"");
+           strlcpy(phone_num_str, "+CNUM: ,\"",strlen("+CNUM: ,\""));
 
            // dest buffer is 256 bytes length handle buffer overflow if phone number length is > 239
            if (get_phone_num_resp.phone_number_len > 239)
-               strncat(phone_num_str, get_phone_num_resp.phone_number, 239);
+               strlcat(phone_num_str, get_phone_num_resp.phone_number, 239);
            else
-               strcat(phone_num_str, get_phone_num_resp.phone_number);
+               strlcat(phone_num_str, get_phone_num_resp.phone_number,sizeof(phone_num_str));
 
-           strcat(phone_num_str, "\",145,,4");
+           strlcat(phone_num_str, "\",145,,4",strlen("\",145,,4"));
 
            sBtHfpAgInterface->formatted_at_response(phone_num_str, bd_addr);
            sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_OK, 0, bd_addr);
@@ -1906,7 +1906,7 @@ void Hfp_Ag::process_call_list(mcm_voice_call_record_t_v01 *calls, uint32_t num_
         // TODO: this needs to be revisited since RIL does not provide this info
         mCalls[i].mpty = BTHF_CALL_MPTY_TYPE_SINGLE;
         mCalls[i].numType = BTHF_CALL_ADDRTYPE_INTERNATIONAL; // TODO: cross check
-        strncpy(mCalls[i].number, call_record->number, sizeof(call_record->number));
+        strlcpy(mCalls[i].number, call_record->number, sizeof(call_record->number));
 
         if (mCalls[i].stat == BTHF_CALL_STATE_INCOMING ||
              mCalls[i].stat == BTHF_CALL_STATE_WAITING)
@@ -1965,13 +1965,13 @@ void Hfp_Ag::dial_call(char *number, bt_bdaddr_t *bd_addr) {
 
     // redial request
     if (strlen(number) == 0)
-        strncpy(dial_req.address, mLastDialledNumber, strlen(mLastDialledNumber));
+        strlcpy(dial_req.address, mLastDialledNumber, strlen(mLastDialledNumber));
     else {
         // remove trailing ';' if present
         if (number[strlen(number) - 1] == ';')
-            strncpy(dial_req.address, number, strlen(number) - 1);
+            strlcpy(dial_req.address, number, strlen(number) - 1);
         else
-            strncpy(dial_req.address, number, strlen(number));
+            strlcpy(dial_req.address, number, strlen(number));
     }
 
     ret_val = mcm_client_execute_command_async_ptr(mcm_client_hdl,
@@ -1995,9 +1995,9 @@ void Hfp_Ag::dial_call(char *number, bt_bdaddr_t *bd_addr) {
     mDiallingOut = true;
     // store the last dialled number
     if (number[strlen(number) - 1] == ';')
-        strncpy(dial_req.address, number, strlen(number) - 1);
+        strlcpy(dial_req.address, number, strlen(number) - 1);
     else
-        strncpy(dial_req.address, number, strlen(number));
+        strlcpy(dial_req.address, number, strlen(number));
 }
 
 uint32 Hfp_Ag::send_voice_cmd(mcm_voice_call_operation_t_v01 op) {
@@ -2344,10 +2344,10 @@ void Hfp_Ag::init_audio() {
    mNrec = BTHF_NREC_STOP;
 
    // set up voice path using amix commands
-   strcpy(cmd, "amix \'SEC_AUX_PCM_RX_Voice Mixer CSVoice\' 1");
+   strlcpy(cmd, "amix \'SEC_AUX_PCM_RX_Voice Mixer CSVoice\' 1",sizeof(cmd));
    system(cmd);
 
-   strcpy(cmd, "amix \'Voice_Tx Mixer SEC_AUX_PCM_TX_Voice\' 1");
+   strlcpy(cmd, "amix \'Voice_Tx Mixer SEC_AUX_PCM_TX_Voice\' 1",sizeof(cmd));
    system(cmd);
 #endif
 #if defined(BT_AUDIO_PAL_INTEGRATION)
@@ -2370,9 +2370,9 @@ void Hfp_Ag::set_audio_params() {
 
    // set sample rate using amix commands
    if (mWbsState == BTHF_WBS_YES)
-       strcpy(cmd, "amix \'AUX PCM SampleRate\' \'rate_16000\'");
+       strlcpy(cmd, "amix \'AUX PCM SampleRate\' \'rate_16000\'",sizeof(cmd));
    else
-       strcpy(cmd, "amix \'AUX PCM SampleRate\' \'rate_8000\'");
+       strlcpy(cmd, "amix \'AUX PCM SampleRate\' \'rate_8000\'",sizeof(cmd));
    system(cmd);
 #endif
 #if defined(BT_AUDIO_PAL_INTEGRATION)
@@ -2440,10 +2440,10 @@ void Hfp_Ag::teardown_sco_path() {
     ALOGD(LOGTAG, "%s: killing arec and aplay\n", __func__);
     fprintf(stdout, "%s: killing arec and aplay\n", __func__);
 
-    //strcpy(cmd, "killall -9 arec");
+    //strlcpy(cmd, "killall -9 arec",sizeof(cmd));
     //system(cmd);
 
-    //strcpy(cmd, "killall -9 aplay");
+    //strlcpy(cmd, "killall -9 aplay",sizeof(cmd));
     //system(cmd);
 #endif
 #if defined(BT_AUDIO_PAL_INTEGRATION)
@@ -2466,10 +2466,10 @@ void Hfp_Ag::release_audio() {
    char cmd[50];
 
    // set up voice path using amix commands
-   strcpy(cmd, "amix \'SEC_AUX_PCM_RX_Voice Mixer CSVoice\' 0");
+   strlcpy(cmd, "amix \'SEC_AUX_PCM_RX_Voice Mixer CSVoice\' 0",sizeof(cmd));
    system(cmd);
 
-   strcpy(cmd, "amix \'Voice_Tx Mixer SEC_AUX_PCM_TX_Voice\' 0");
+   strlcpy(cmd, "amix \'Voice_Tx Mixer SEC_AUX_PCM_TX_Voice\' 0",sizeof(cmd));
    system(cmd);
 #endif
 #if defined(BT_AUDIO_PAL_INTEGRATION)

@@ -21,7 +21,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <bsd/string.h>
 #include <algorithm>
 #include <sstream>
 #include <sys/stat.h>
@@ -1244,7 +1244,7 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_INCOMING_INDICATION;
             string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
-            strncpy(event->hfp_ag_event.str, user_cmd[TWO_PARAM], 20);
+            strlcpy(event->hfp_ag_event.str, user_cmd[TWO_PARAM], 20);
             event->hfp_ag_event.arg1 = atoi(user_cmd[THREE_PARAM]);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
@@ -1269,7 +1269,7 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case ADD_NUMBER:
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_ADD_NUMBER;
-            strncpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
+            strlcpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
         case DELETE_NUMBER:
@@ -1319,7 +1319,7 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
         case DIAL:
             event = new BtEvent;
             event->hfp_ag_event.event_id = HFP_AG_API_DIAL_REQ;
-            strncpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
+            strlcpy(event->hfp_ag_event.str, user_cmd[ONE_PARAM], 20);
             PostMessage (THREAD_ID_HFP_AG, event);
             break;
         case START_VR:

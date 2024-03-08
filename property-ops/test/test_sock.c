@@ -67,7 +67,7 @@
     //Init the unix socket
     memset(&sock_un, 0, sizeof(struct sockaddr_un));
     sock_un.sun_family = AF_UNIX; //UNIX Socket
-    strncpy(sock_un.sun_path, SOCKETNAME, strlen(SOCKETNAME));
+    strlcpy(sock_un.sun_path, SOCKETNAME, strlen(SOCKETNAME));
     len = sizeof(sock_un.sun_family) + strlen(sock_un.sun_path);
 
 
