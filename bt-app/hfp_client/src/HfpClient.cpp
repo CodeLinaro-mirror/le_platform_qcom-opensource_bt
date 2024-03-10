@@ -570,11 +570,7 @@ void Hfp_Client::HandleEnableClient(void) {
             ALOGE(LOGTAG "get profile interface failed, returning");
             return;
         }
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-        audio_out_device = (uint32_t)config_get_int(config,
-            CONFIG_DEFAULT_SECTION, "AudioOutDevice", 131072);
-        ALOGD(LOGTAG "Audio Out Device %d", audio_out_device);
-#endif
+
         change_state(HFP_CLIENT_STATE_DISCONNECTED);
         sBtHfpClientInterface->init(&sBluetoothHfpClientCallbacks);
         BtEvent *pEvent = new BtEvent;
@@ -1237,48 +1233,6 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
 
 void Hfp_Client::ConfigureRingTonePlayback() {
 
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-#if defined(USE_GST)
-   init_gst_pipeline(&gstbtringtoneobj, AUDIO_FORMAT_PCM_16_BIT,
-           8000, 1, AUDIO_OUTPUT_FLAG_DIRECT_PCM, "bt_hfp_client");
-#else
-   qahw_module_handle_t* audio_module;
-   audio_config_t config;
-   audio_io_handle_t handle = 0x7;
-   int ret = 0;
-
-   ALOGD(LOGTAG "ConfigureRingTonePlayback");
-   fprintf(stdout, "ConfigureRingTonePlayback\n");
-
-   if (pBTAM == NULL) {
-      ALOGD(LOGTAG "Audio Manager not initialized");
-      fprintf(stdout, "Audio Manager not initialized\n");
-      return;
-   }
-
-   config.offload_info.size = sizeof(audio_offload_info_t);
-   config.offload_info.sample_rate = 8000;
-   config.offload_info.format = AUDIO_FORMAT_PCM_16_BIT;
-   config.offload_info.version = AUDIO_OFFLOAD_INFO_VERSION_CURRENT;
-   // channel count 1 for mono
-   config.channel_mask = audio_channel_out_mask_from_count(1);
-   config.offload_info.channel_mask = audio_channel_out_mask_from_count(1);
-
-   audio_module = pBTAM->GetAudioDevice();
-   if(audio_module != NULL) {
-         // select speaker(2) as output device
-         ret = qahw_open_output_stream(audio_module, handle, audio_out_device,
-                 AUDIO_OUTPUT_FLAG_DIRECT_PCM,&config, &out_stream_ring_tone, "bt_hfp_client");
-   }
-   else {
-      fprintf(stdout, "ConfigureRingTonePlayback: audio_device is NULL\n");
-      ALOGD(LOGTAG " ConfigureRingTonePlayback: audio_device is NULL");
-   }
-#endif // USE_GST
-#else
-   ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-   fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
-#endif
 #ifdef BT_AUDIO_PAL_INTEGRATION
    int ret = 0;
    ALOGD(LOGTAG " %s: Initializing pulseaudio sink for ringtone playback", __func__);
@@ -1291,49 +1245,6 @@ void Hfp_Client::ConfigureRingTonePlayback() {
 // plays 1 sec tone
 void Hfp_Client::PlayRingTone() {
    ALOGD("%s:", __func__);
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-  int i, j, ret = 0;
-  qahw_out_buffer_t out_buf;
-#if defined(USE_GST)
-  play_gst_ringtone(&gstbtringtoneobj, ring_tone);
-#else
-  // 40msec of 8kz 16-bit mono = 40*8*2 = 640 bytes
-  uint8_t *buf = (uint8_t*)osi_malloc(640);
-
-  if (buf == NULL)
-  {
-     fprintf(stdout, "memory allocation for playing ringtone failed\n");
-     ALOGD("%s: memory allocation for playing ringtone failed", __func__);
-     return;
-  }
-
-  out_buf.buffer = buf;
-  out_buf.bytes = 640;
-
-  for(i = 0; i < 5; i++)
-  {
-     for(j = 0; j < 5; j++)
-     {
-        memcpy(buf, (void*)(ring_tone + j * 640), 640);
-
-        if ((pBTAM->GetAudioDevice() != NULL) && (out_stream_ring_tone != NULL)) {
-           ret = qahw_out_write(out_stream_ring_tone, &out_buf);
-           if (ret < 0) {
-               ALOGE(LOGTAG " %s: writing data to audio hal failed", __func__);
-               //break;
-           }
-        }
-     }
-  }
-
-  if (buf)
-     osi_free(buf);
-
-#endif // USE_GST
-#else
-   ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-   fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
-#endif
 #ifdef BT_AUDIO_PAL_INTEGRATION
   bool ret = false;
   char *buffer = (char*) osi_calloc(sizeof(ring_tone));
@@ -1353,22 +1264,6 @@ void Hfp_Client::PlayRingTone() {
 }
 
 void Hfp_Client::StopRingTone() {
-#if (defined BT_AUDIO_HAL_INTEGRATION)
-#if defined(USE_GST)
-    close_gst_pipeline(&gstbtringtoneobj);
-#else
-    int ret = 0;
-    qahw_module_handle_t* audio_module;
-    if (pBTAM != NULL) {
-        audio_module = pBTAM->GetAudioDevice();
-        if((audio_module != NULL) && (out_stream_ring_tone != NULL)) {
-            ALOGD(LOGTAG, " closing output stream for ring tone ");
-            ret = qahw_close_output_stream(out_stream_ring_tone);
-            out_stream_ring_tone = NULL;
-        }
-    }
-#endif // USE_GST
-#endif // BT_AUDIO_HAL_INTEGRATION
 #ifdef BT_AUDIO_PAL_INTEGRATION
     ALOGD(LOGTAG " %s:Deiniting the sink for ringtone playback", __func__);
     pa_routing_intf->pa_sink_deinit_fn();
@@ -1376,65 +1271,6 @@ void Hfp_Client::StopRingTone() {
 }
 
 void Hfp_Client::ConfigureAudio(bool enable) {
-
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-   qahw_module_handle_t* audio_module;
-   audio_config_t config;
-   audio_io_handle_t handle = 0x999;
-
-   ALOGD(LOGTAG "Configure Audio for enable/disable %d, wbs %d", enable, mAudioWbs);
-
-
-   if (pBTAM == NULL) {
-      ALOGD(LOGTAG "Audio Manager not initialized");
-      fprintf(stdout, "Audio Manager not initialized\n");
-      return;
-   }
-
-   config.channel_mask = audio_channel_out_mask_from_count(2);
-   config.format = AUDIO_FORMAT_PCM_16_BIT;
-   config.sample_rate = 8000;
-
-   audio_module = pBTAM->GetAudioDevice();
-   if(audio_module != NULL) {
-      if (enable) {
-         // select speaker(2) as output device
-         qahw_open_output_stream(audio_module, handle, audio_out_device, AUDIO_OUTPUT_FLAG_NONE,
-                                        &config, &out_stream, "bt_hfp_client");
-         ALOGD(LOGTAG " setting sample rate %s", (mAudioWbs ? "16000" : "8000"));
-         fprintf(stdout, " setting sample rate %s\n", (mAudioWbs ? "16000" : "8000"));
-         if (mAudioWbs)
-            qahw_set_parameters(audio_module, "hfp_set_sampling_rate=16000");
-         else
-            qahw_set_parameters(audio_module, "hfp_set_sampling_rate=8000");
-
-         fprintf(stdout, "setting hfp_enable to true\n");
-         ALOGD(LOGTAG " setting hfp_enable to true");
-         qahw_set_parameters(audio_module, "hfp_volume=15");
-         qahw_set_parameters(audio_module, "hfp_enable=true");
-      }
-      else
-      {
-         ALOGD(LOGTAG " setting hfp_enable to false");
-         qahw_set_parameters(audio_module, "hfp_enable=false");
-
-         if (out_stream != NULL) {
-            fprintf(stdout, "closing output stream for SCO/eSCO\n");
-            ALOGD(LOGTAG " Closing output stream for SCO/eSCO");
-            qahw_close_output_stream(out_stream);
-            out_stream = NULL;
-         }
-      }
-   }
-   else {
-      fprintf(stdout, "ConfigureAudio: audio_device is NULL\n");
-      ALOGD(LOGTAG " ConfigureAudio: audio_device is NULL");
-   }
-
-#else
-   ALOGD("%s: BT_AUDIO_HAL_INTEGRATION needs to be defined", __func__);
-   fprintf(stdout, "BT_AUDIO_HAL_INTEGRATION needs to be defined\n");
-#endif
 #ifdef BT_AUDIO_PAL_INTEGRATION
    if (pa_routing_intf) {
        int ret = -1;
@@ -1496,47 +1332,6 @@ void Hfp_Client::ConfigureAudio(bool enable) {
 }
 
 void Hfp_Client::ConfigureVolume(bthf_client_volume_type_t vol_type, int vol, bool mute_mic) {
-
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-   qahw_module_handle_t* audio_module;
-
-   ALOGD(LOGTAG "ConfigureVolume for %s vol level %d, mute_mic %d",
-           (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK)? "speaker" :"mic", vol, mute_mic);
-   fprintf(stdout, "ConfigureVolume for %s vol level %d, mute_mic %d\n",
-           (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK)? "speaker" :"mic", vol, mute_mic);
-
-   if (pBTAM == NULL) {
-      ALOGD(LOGTAG "Audio Manager not initialized");
-      fprintf(stdout, "Audio Manager not initialized\n");
-      return;
-   }
-
-   audio_module = pBTAM->GetAudioDevice();
-   if(audio_module == NULL || out_stream == NULL) {
-      ALOGD(LOGTAG "Audio is not configured for SCO");
-      fprintf(stdout, "Audio is not configured for SCO\n");
-      return;
-   }
-
-   if (vol_type == BTHF_CLIENT_VOLUME_TYPE_SPK) {
-      char buf[14];
-
-      if (vol <= 0)
-         qahw_set_parameters(audio_module, "hfp_volume=0");
-      else if (vol >=  15)
-         qahw_set_parameters(audio_module, "hfp_volume=15");
-      else {
-         sprintf(buf, "hfp_volume=%d", vol);
-         qahw_set_parameters(audio_module, buf);
-      }
-   }
-   else if (vol_type == BTHF_CLIENT_VOLUME_TYPE_MIC) {
-      //audio_module->set_mic_mute(audio_module, mute_mic);
-      fprintf(stdout, "Mute mic\n");
-      qahw_set_mic_mute(audio_module, mute_mic);
-   }
-
-#endif // BT_AUDIO_HAL_INTEGRATION
 #if defined(BT_AUDIO_PAL_INTEGRATION)
    int ret;
    char vol_cmd[25];
@@ -1601,15 +1396,6 @@ Hfp_Client :: Hfp_Client(const bt_interface_t *bt_interface, config_t *config) {
     mAudioWbs = false;
     peer_feat = 0;
     chld_feat = 0;
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-#if defined(USE_GST)
-    memset(&gstbtringtoneobj, 0 , sizeof(gstbtringtoneobj));
-#else
-    out_stream_ring_tone = NULL;
-#endif
-    this->config = config;
-    out_stream =  NULL;
-#endif // BT_AUDIO_HAL_INTEGRATION
 #if defined(BT_AUDIO_PAL_INTEGRATION)
     pa_routing_intf = pa_routing_intf_open();
     if (!pa_routing_intf) {
@@ -1625,14 +1411,6 @@ Hfp_Client :: Hfp_Client(const bt_interface_t *bt_interface, config_t *config) {
 
 Hfp_Client :: ~Hfp_Client() {
     mcontrolStatus = STATUS_LOSS_TRANSIENT;
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-#if defined(USE_GST)
-    close_gst_pipeline(&gstbtringtoneobj);
-#else
-    out_stream_ring_tone = NULL;
-#endif // USE_GST
-    out_stream =  NULL;
-#endif // BT_AUDIO_HAL_INTEGRATION
 #if defined(BT_AUDIO_PAL_INTEGRATION)
     if (pa_routing_intf) {
         pa_routing_intf_close(pa_routing_intf);

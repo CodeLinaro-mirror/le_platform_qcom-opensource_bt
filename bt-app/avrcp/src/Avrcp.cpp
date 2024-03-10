@@ -663,9 +663,6 @@ void Avrcp::SendPassThruCommandNative(uint8_t key_id, bt_bdaddr_t* addr, uint8_t
                     else {
                         pA2dpSinkStream->StartCompressAudioFeedTimer();
                     }
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-                    qahw_out_resume(pA2dpSinkStream->out_stream);
-#endif
                 }
             }
             BtEvent *pEvent = new BtEvent;
@@ -928,10 +925,6 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
                            else {
                                pA2dpSinkStream->StartCompressAudioFeedTimer();
                            }
-#if defined(BT_AUDIO_HAL_INTEGRATION)
-                           if (!guard_pause)
-                              qahw_out_resume(pA2dpSinkStream->out_stream);
-#endif
                         }
                     }
                 }

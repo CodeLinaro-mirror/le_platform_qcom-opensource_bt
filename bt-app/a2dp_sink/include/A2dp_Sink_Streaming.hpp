@@ -35,11 +35,6 @@
 #include <hardware/bluetooth.h>
 #include <hardware/bt_av.h>
 #include <pthread.h>
-#if (defined BT_AUDIO_HAL_INTEGRATION)
-#include "qahw_api.h"
-#include "qahw_defs.h"
-
-#endif
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
@@ -87,13 +82,6 @@ class A2dp_Sink_Streaming {
     alarm_t *pcm_data_fetch_timer;
     alarm_t *remote_suspend_wait_timer;
     alarm_t *compress_audio_feed_timer;
-#if (defined BT_AUDIO_HAL_INTEGRATION)
-    // structure for output stream
-    qahw_stream_handle_t *out_stream;
-    // structures used for loading A2DP HAL
-    qahw_module_handle_t *a2dp_input_device;
-    qahw_stream_handle_t *input_stream;
-#endif
 #if (defined USE_GST)
     uint8_t *gbuff;
 #endif

@@ -35,11 +35,6 @@
 #include <hardware/bluetooth.h>
 #include <hardware/bt_hf.h>
 #include <pthread.h>
-#if (defined BT_AUDIO_HAL_INTEGRATION)
-#include "qahw_api.h"
-#include "qahw_defs.h"
-
-#endif
 
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
