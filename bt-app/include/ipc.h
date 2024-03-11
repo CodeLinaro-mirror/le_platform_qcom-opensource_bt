@@ -814,14 +814,14 @@ typedef struct{
     BluetoothEventId event_id;
     int status;
     int clientIf;
-    bt_uuid_t *app_uuid;
+    bt_uuid_t app_uuid;
 } GattcRegisterAppEvent;
 
 typedef struct{
     BluetoothEventId event_id;
-    bt_bdaddr_t* bda;
+    bt_bdaddr_t bda;
     int rssi;
-    uint8_t* adv_data;
+    uint8_t adv_data;
 } GattcScanResultEvent;
 
 typedef struct{
@@ -829,7 +829,7 @@ typedef struct{
     int conn_id;
     int status;
     int clientIf;
-    bt_bdaddr_t* bda;
+    bt_bdaddr_t bda;
 } GattcOpenEvent;
 
 typedef struct{
@@ -837,7 +837,7 @@ typedef struct{
     int conn_id;
     int status;
     int clientIf;
-    bt_bdaddr_t* bda;
+    bt_bdaddr_t bda;
 } GattcCloseEvent;
 
 typedef struct{
@@ -849,15 +849,15 @@ typedef struct{
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
-    btgatt_srvc_id_t *srvc_id;
+    btgatt_srvc_id_t srvc_id;
 } GattcSearchResultEvent;
 
 typedef struct{
    BluetoothEventId event_id;
    int conn_id;
    int status;
-   btgatt_srvc_id_t *srvc_id;
-   btgatt_gatt_id_t *char_id;
+   btgatt_srvc_id_t srvc_id;
+   btgatt_gatt_id_t char_id;
    int char_prop;
 } GattcGetCharacteristicEvent;
 
@@ -865,17 +865,17 @@ typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_srvc_id_t *srvc_id;
-    btgatt_gatt_id_t *char_id;
-    btgatt_gatt_id_t *descr_id;
+    btgatt_srvc_id_t srvc_id;
+    btgatt_gatt_id_t char_id;
+    btgatt_gatt_id_t descr_id;
 } GattcGetDescriptorEvent;
 
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_srvc_id_t *srvc_id;
-    btgatt_srvc_id_t *incl_srvc_id;
+    btgatt_srvc_id_t srvc_id;
+    btgatt_srvc_id_t incl_srvc_id;
 } GattcGetIncludedServiceEvent;
 
 typedef struct{
@@ -883,28 +883,28 @@ typedef struct{
     int conn_id;
     int registered;
     int status;
-    btgatt_srvc_id_t *srvc_id;
-    btgatt_gatt_id_t *char_id;
+    btgatt_srvc_id_t srvc_id;
+    btgatt_gatt_id_t char_id;
 } GattcRegisterForNotificationEvent;
 
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
-    btgatt_notify_params_t *p_data;
+    btgatt_notify_params_t p_data;
 } GattcNotifyEvent;
 
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_read_params_t *p_data;
+    btgatt_read_params_t p_data;
 } GattcReadCharacteristicEvent;
 
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_write_params_t *p_data;
+    btgatt_write_params_t p_data;
 } GattcWriteCharacteristicEvent;
 
 typedef struct{
@@ -917,20 +917,20 @@ typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_read_params_t *p_data;
+    btgatt_read_params_t p_data;
 } GattcReadDescriptorEvent;
 
 typedef struct{
     BluetoothEventId event_id;
     int conn_id;
     int status;
-    btgatt_write_params_t *p_data;
+    btgatt_write_params_t p_data;
 } GattcWriteDescriptorEvent;
 
 typedef struct{
     BluetoothEventId event_id;
     int client_if;
-    bt_bdaddr_t* bda;
+    bt_bdaddr_t bda;
     int rssi;
     int status;
 } GattcRemoteRssiEvent;
@@ -1024,7 +1024,7 @@ typedef struct
     int report_format;
     int num_records;
     int data_len;
-    uint8_t *p_rep_data;
+    uint8_t p_rep_data;
 } GattcBatchscanReportsEvent;
 
 typedef struct
@@ -1036,7 +1036,7 @@ typedef struct
 typedef struct
 {
     BluetoothEventId event_id;
-    btgatt_track_adv_info_t *p_adv_track_info;
+    btgatt_track_adv_info_t p_adv_track_info;
 } GattcTrackAdvEventEvent;
 
 typedef struct
@@ -1055,7 +1055,7 @@ typedef struct {
     BluetoothEventId event_id;
     int status;
     int server_if;
-    bt_uuid_t *uuid;
+    bt_uuid_t uuid;
 } GattsRegisterAppEvent;
 
 typedef struct {
@@ -1063,14 +1063,14 @@ typedef struct {
     int conn_id;
     int server_if;
     int connected;
-    bt_bdaddr_t *bda;
+    bt_bdaddr_t bda;
 } GattsConnectionEvent;
 
 typedef struct {
     BluetoothEventId event_id;
     int status;
     int server_if;
-    btgatt_srvc_id_t *srvc_id;
+    btgatt_srvc_id_t srvc_id;
     int srvc_handle;
 } GattsServiceAddedEvent;
 
@@ -1088,7 +1088,7 @@ typedef struct
     BluetoothEventId event_id;
     int status;
     int server_if;
-    bt_uuid_t *char_id;
+    bt_uuid_t char_id;
     int srvc_handle;
     int char_handle;
 } GattsCharacteristicAddedEvent;
@@ -1098,7 +1098,7 @@ typedef struct
     BluetoothEventId event_id;
     int status;
     int server_if;
-    bt_uuid_t *descr_id;
+    bt_uuid_t descr_id;
     int srvc_handle;
     int descr_handle;
 } GattsDescriptorAddedEvent;
@@ -1132,7 +1132,7 @@ typedef struct
     BluetoothEventId event_id;
     int conn_id;
     int trans_id;
-    bt_bdaddr_t *bda;
+    bt_bdaddr_t bda;
     int attr_handle;
     int offset;
     bool is_long;
@@ -1143,13 +1143,13 @@ typedef struct
     BluetoothEventId event_id;
     int conn_id;
     int trans_id;
-    bt_bdaddr_t *bda;
+    bt_bdaddr_t bda;
     int attr_handle;
     int offset;
     int length;
     bool need_rsp;
     bool is_prep;
-    uint8_t* value;
+    uint8_t *value;
 } GattsRequestWriteEvent;
 
 typedef struct
@@ -1157,7 +1157,7 @@ typedef struct
     BluetoothEventId event_id;
     int conn_id;
     int trans_id;
-    bt_bdaddr_t *bda;
+    bt_bdaddr_t bda;
     int exec_write;
 } GattsRequestExecWriteEvent;
 
@@ -1188,6 +1188,7 @@ typedef struct
     int conn_id;
     int mtu;
 } GattsMTUchangedEvent;
+
 
 /* Remote start profile support */
 typedef struct {
