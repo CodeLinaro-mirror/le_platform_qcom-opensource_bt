@@ -114,6 +114,8 @@ int main (int argc, char *argv[]) {
     // initialize signal handler
     signal(SIGINT, SignalHandler);
 
+    system("killall -q -KILL wcnssfilter");
+
     ThreadInfo *main_thread = &threadInfo[THREAD_ID_MAIN];
 #ifndef USE_ANDROID_LOGGING
     openlog ("bt-app", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
@@ -1143,9 +1145,9 @@ static void SendEnableCmdToGap() {
 
         g_bt_app->status.enable_cmd = COMMAND_INPROGRESS;
         // Killing previous iteration filter if they still exists
-        system("killall -KILL wcnssfilter");
-        system("killall -KILL btsnoop");
-        system("killall -KILL qcbtdaemon");
+        system("killall -q -KILL wcnssfilter");
+        system("killall -q -KILL btsnoop");
+        system("killall -q -KILL qcbtdaemon");
         usleep(200);
 
         BtEvent *event = new BtEvent;
@@ -2031,7 +2033,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 // clearing bond_devices list and inquiry_list
                 bonded_devices.clear();
                 inquiry_list.clear();
-                system("killall -KILL wcnssfilter");
+                system("killall -q -KILL wcnssfilter");
                 usleep(200);
                 fprintf(stdout, " BT State is OFF\n");
                 if(exithandler_waitbtoff){
