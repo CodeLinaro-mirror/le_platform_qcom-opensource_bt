@@ -16,6 +16,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the
+ * following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
 #include <fcntl.h>
@@ -63,6 +67,9 @@
 #include "osi/include/properties.h"
 
 #include "utils.h"
+#ifdef SUPPORT_ESL_AP
+#include <hardware/vendor_ap.h>
+#endif
 
 #ifdef USE_GEN_GATT
 using namespace gatt;
@@ -3633,6 +3640,11 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             break;
 
         case MAIN_API_DISABLE:
+#ifdef SUPPORT_ESL_AP
+            if (ap_interface) {
+              ap_interface->deInit();
+            }
+#endif
             SendDisableCmdToGap();
             break;
 
@@ -3643,6 +3655,11 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             } else {
               ALOGD (LOGTAG " BT State is ON : %d",event->state_event.status);
               fprintf(stdout," BT State is ON\n");
+#ifdef SUPPORT_ESL_AP
+              if (ap_interface) {
+                ap_interface->init(bt_interface);
+              }
+#endif
 
               if (is_bt_enable_autotest){
                 if ((g_bt_app->status.enquiry_cmd != COMMAND_INPROGRESS) &&
@@ -3674,6 +3691,11 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             if (event->state_event.status == BT_STATE_ON) {
                 fprintf(stdout, " Error in disabling BT\n");
             } else {
+#ifdef SUPPORT_ESL_AP
+                if (ap_interface) {
+                  ap_interface->deInit();
+                }
+#endif
                 if (gattctest!= NULL) {
                   fprintf(stdout, " delete Gattctest\n");
                   delete gattctest;
@@ -4101,7 +4123,6 @@ bool BluetoothApp :: LoadBtStack (void) {
     return true;
 }
 
-
 void BluetoothApp :: UnLoadBtStack (void)
 {
     if (bt_interface) {
@@ -4115,11 +4136,47 @@ void BluetoothApp :: UnLoadBtStack (void)
     }
 }
 
+#ifdef SUPPORT_ESL_AP
+bool BluetoothApp :: LoadAp (void) {
+    hw_module_t *module;
+
+    if (hw_get_module (VENDOR_AP_MODULE_ID, (hw_module_t const **) &module)) {
+        ALOGE(LOGTAG "%s hw_get_module failed", VENDOR_AP_MODULE_ID);
+        return false;
+    }
+
+    if (module->methods->open(module, VENDOR_AP_MODULE_ID, &device_)) {
+        return false;
+    }
+
+    ap_device_ = (vendor_ap_device_t *) device_;
+    ap_interface = ap_device_->get_ap_interface ();
+    if (!ap_interface) {
+        ap_device_->common.close ((hw_device_t *) & ap_device_->common);
+        ap_device_ = NULL;
+        return false;
+    }
+    return true;
+}
+
+void BluetoothApp :: UnLoadAp (void)
+{
+    if (ap_interface) {
+        ap_interface->deInit ();
+        ap_interface = NULL;
+    }
+}
+#endif
+
 
 void BluetoothApp :: InitHandler (void) {
 
     if (!LoadBtStack())
         return;
+#ifdef SUPPORT_ESL_AP
+    if (!LoadAp())
+        ALOGE(LOGTAG "Can't load AP module");
+#endif
     // Starting GAP Thread
     threadInfo[THREAD_ID_GAP].thread_id = thread_new (
             threadInfo[THREAD_ID_GAP].thread_name);
@@ -4304,6 +4361,10 @@ void BluetoothApp :: InitHandler (void) {
 
 
 void BluetoothApp :: DeInitHandler (void) {
+
+#ifdef SUPPORT_ESL_AP
+    UnLoadAp ();
+#endif
     if(g_bt_app->bt_state == BT_STATE_ON) {
         UnLoadBtStack ();
     }
