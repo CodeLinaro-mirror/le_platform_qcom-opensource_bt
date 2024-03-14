@@ -99,6 +99,7 @@ thread_t *test_thread_id = NULL;
 static void SendDisableCmdToGap();
 static void SendEnableCmdToGap(void);
 static void SendDisableCmdToGap(void);
+static void SendCancelInquiryCmdToGap(void);
 /**
  * @brief main function
  *
@@ -1212,6 +1213,20 @@ static void SendDisableCmdToGap() {
         fprintf( stdout, "Currently BT is already OFF\n");
     }
 }
+
+static void SendCancelInquiryCmdToGap() {
+    if ((g_bt_app->status.stop_enquiry_cmd != COMMAND_INPROGRESS) &&
+         (g_bt_app->bt_discovery_state == BT_DISCOVERY_STARTED) &&
+             (g_bt_app->bt_state == BT_STATE_ON)) {
+        g_bt_app->status.stop_enquiry_cmd = COMMAND_INPROGRESS;
+        BtEvent *event = new BtEvent;
+        event->event_id = GAP_API_STOP_INQUIRY;
+        ALOGV (LOGTAG " Posting stop inquiry to GAP thread");
+        PostMessage (THREAD_ID_GAP, event);
+        usleep(1000);
+   }
+}
+
 static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *event = NULL;
 
@@ -1272,6 +1287,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
 
         case START_PAIR:
+	    SendCancelInquiryCmdToGap();
             if ((g_bt_app->status.pairing_cmd != COMMAND_INPROGRESS) &&
                 (g_bt_app->bt_state == BT_STATE_ON)) {
                 if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
@@ -2031,7 +2047,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 status.stop_enquiry_cmd = COMMAND_COMPLETE;
                 bt_discovery_state = BT_DISCOVERY_STOPPED;
                 // clearing bond_devices list and inquiry_list
-                bonded_devices.clear();
+                //bonded_devices.clear();
                 inquiry_list.clear();
                 system("killall -q -KILL wcnssfilter");
                 usleep(200);
