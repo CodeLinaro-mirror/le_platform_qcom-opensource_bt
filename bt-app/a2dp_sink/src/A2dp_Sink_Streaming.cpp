@@ -966,12 +966,12 @@ void A2dp_Sink_Streaming::SetStreamVol(int curr_audio_index)
 
 uint32_t A2dp_Sink_Streaming::ReadInputStream(uint8_t* data, uint32_t size)
 {
-
+    return 0;
 }
 
 uint32_t A2dp_Sink_Streaming::GetInputStreamBufferSize()
 {
-
+    return 0;
 }
 
 void A2dp_Sink_Streaming::OnDisconnected() {
