@@ -1070,6 +1070,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
              bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
              fprintf(stdout, "Disconnecting with device %s\n", str);
              ALOGD(LOGTAG "Disconnecting with device %s", str);
+              // changing client state
              change_state(HFP_CLIENT_STATE_CONNECTING);
              break;
         case HFP_CLIENT_API_DISCONNECT_AUDIO_REQ:
