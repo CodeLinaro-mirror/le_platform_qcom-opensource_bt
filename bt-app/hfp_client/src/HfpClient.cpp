@@ -1093,6 +1093,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             PostMessage(THREAD_ID_BT_AM, pReleaseControlReq);
 
             mcontrolStatus = STATUS_LOSS_TRANSIENT;
+            // changing client mode
             change_mode(HFP_CLIENT_MODE_NORMAL);
             change_state(HFP_CLIENT_STATE_CONNECTED);
 
