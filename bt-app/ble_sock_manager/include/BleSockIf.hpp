@@ -37,8 +37,8 @@
 
 #include <stdint.h>
 
-#define BLE_WBDS_SOCKET_NAME "/data/misc/bluetooth/ble_wbds_socket"
-#define BLE_GAP_SOCKET_NAME "/data/misc/bluetooth/ble_gap_socket"
+#define BLE_WBDS_SOCKET_NAME "/dev/socket/ble_wbds_socket"
+#define BLE_GAP_SOCKET_NAME "/dev/socket/ble_gap_socket"
 #define MAX_BOOTSTRAP_ADV_DATA_LEN 200
 #define MAX_SERVICE_DATA_LEN 200
 

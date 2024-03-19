@@ -39,6 +39,7 @@
 #include "ipc.hpp"
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 
 #define LOGTAG "BleSocketManager: "
 
@@ -329,6 +330,7 @@ int BleSocketManager:: WBDSSocketCreate(void) {
     wbds_listen_socket_local_ = -1;
     return -1;
   }
+  chmod(addr.sun_path, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP| S_IXGRP | S_IROTH | S_IXOTH);
 
   if (listen(wbds_listen_socket_local_, 1) < 0) {
     ALOGE (LOGTAG "%s : Failed to listen Local Socket: %s", __FUNCTION__, strerror(errno));
@@ -387,6 +389,7 @@ int BleSocketManager:: BleGapSocketCreate(void) {
     ble_gap_listen_socket_local_ = -1;
     return -1;
   }
+  chmod(addr.sun_path, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP| S_IXGRP | S_IROTH | S_IXOTH);
 
   if (listen(ble_gap_listen_socket_local_, 1) < 0) {
     ALOGE (LOGTAG "%s : Failed to listen Local Socket: %s", __FUNCTION__, strerror(errno));
