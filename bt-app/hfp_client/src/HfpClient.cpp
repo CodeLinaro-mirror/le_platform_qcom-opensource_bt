@@ -1058,6 +1058,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
 
              mcontrolStatus = STATUS_LOSS_TRANSIENT;
              mAudioWbs = false;
+             // setting client mode
              change_mode(HFP_CLIENT_MODE_NORMAL);
              ConfigureAudio(false);
              memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
