@@ -141,6 +141,10 @@ typedef struct {
     CommandStatus stop_enquiry_cmd;
     CommandStatus disable_cmd;
     CommandStatus pairing_cmd;
+#ifdef SUPPORT_ESL_AP
+    CommandStatus eslap_init_cmd;
+    CommandStatus eslap_deinit_cmd;
+#endif
 } UiCommandStatus;
 
 /**
@@ -370,6 +374,11 @@ typedef enum {
     SEND_HCI_COMMAND,
     CONFIGURE_WBS,
     BACK_TO_MAIN,
+#ifdef SUPPORT_ESL_AP
+    ESLAP_OPTION,
+    AP_INIT,
+    AP_DEINIT,
+#endif
     END,
 } CommandList;
 
@@ -406,7 +415,10 @@ typedef enum {
     SPP_SERVER_MENU,
     SPP_CLIENT_MENU,
     HFP_AG_MENU,
-    A2DP_SOURCE_MENU
+    A2DP_SOURCE_MENU,
+#ifdef SUPPORT_ESL_AP
+    ESLAP_MENU,
+#endif
 } MenuType;
 
 /**
@@ -483,6 +495,9 @@ UserMenuList MainMenu[] = {
     {A2DP_SOURCE,           "a2dp_source_menu", ZERO_PARAM,   "a2dp_source_menu"},
     {SPP_CLIENT_OPTION,     "spp_client_menu",  ZERO_PARAM,   "spp_client_menu"},
     {SPP_SERVER_OPTION,     "spp_server_menu",  ZERO_PARAM,   "spp_server_menu"},
+#ifdef SUPPORT_ESL_AP
+    {ESLAP_OPTION,          "eslap_menu",       ZERO_PARAM,   "eslap_menu"},
+#endif
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
 
@@ -824,6 +839,16 @@ UserMenuList HfpAGMenu[] = {
 #endif
     {BACK_TO_MAIN,          "main_menu",     ZERO_PARAM,   "main_menu"},
 };
+#ifdef SUPPORT_ESL_AP
+/**
+ * list of supported commands for ESLAP
+ */
+UserMenuList EslapMenu[] = {
+    {AP_INIT,               "init_ap",          ZERO_PARAM,    "init_ap"},
+    {AP_DEINIT,             "deinit_AP",        ZERO_PARAM,    "deinit_ap"},
+    {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
+};
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -949,6 +974,18 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
  */
 static void BtCmdHandler (void *context);
 
+#ifdef SUPPORT_ESL_AP
+/**
+ * @brief HandleEslapCommand
+ *
+ *  This function will handle all the commands in @ref EslapMenu
+ *
+ * @param[in] cmd_id It has command id from @ref CommandList
+ * @param[out] user_cmd It has parsed commands with arguments passed by user
+ * @return none
+ */
+static void HandleEslapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+#endif
 
 /**
  * @brief BtCmdHandler
@@ -972,7 +1009,12 @@ void BtMainMsgHandler (void *context);
  * socket interface. Perform action based on inputs.
  *
  */
-
+#ifdef SUPPORT_ESL_AP
+typedef enum {
+    AP_STATE_OFF, 
+    AP_STATE_ON
+} ap_state_t;
+#endif
 class BluetoothApp {
   private:
     config_t *config;
@@ -1023,13 +1065,13 @@ class BluetoothApp {
 #ifdef USE_BT_OBEX
     bool incoming_file_notification;
 #endif
-
     /**
      * structure object for standard Bluetooth DM interface
      */
     const bt_interface_t *bt_interface;
 #ifdef SUPPORT_ESL_AP
     const vendor_ap_interface_t *ap_interface;
+    ap_state_t ap_state;
 #endif
 
     reactor_object_t *listen_reactor_;
@@ -1116,6 +1158,16 @@ class BluetoothApp {
      * @return bt_state_t
      */
     bt_state_t GetState();
+#ifdef SUPPORT_ESL_AP
+        /**
+     * @brief GetAPState
+     *
+     *  This function will returns the current AP state
+     *
+     * @return ap_state_t
+     */
+    ap_state_t GetAPState();
+#endif
     /**
      * @brief HandleSspInput
      *
