@@ -63,7 +63,7 @@ void btgattc_register_app_cb(int status, int clientIf, bt_uuid_t *app_uuid)
     event->event_id = BTGATTC_REGISTER_APP_EVENT;
     event->gattc_register_app_event.status = status;
     event->gattc_register_app_event.clientIf = clientIf;
-    event->gattc_register_app_event.app_uuid = app_uuid;
+    memcpy(&event->gattc_register_app_event.app_uuid, app_uuid, sizeof(bt_uuid_t));
 
     PostMessage(THREAD_ID_GATT, event);
 }
@@ -81,9 +81,9 @@ void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data)
     CHECK_PARAM_VOID(event)
 
     event->event_id = BTGATTC_SCAN_RESULT_EVENT;
-    event->gattc_scan_result_event.bda = bda;
+    memcpy(&event->gattc_scan_result_event.bda, bda,sizeof(bt_bdaddr_t));
     event->gattc_scan_result_event.rssi= rssi;
-    event->gattc_scan_result_event.adv_data= adv_data;
+    memcpy(&event->gattc_scan_result_event.adv_data, adv_data,sizeof(uint8_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -100,7 +100,7 @@ void btgattc_open_cb(int conn_id, int status, int clientIf, bt_bdaddr_t* bda)
     event->gattc_open_event.status= status;
     event->gattc_open_event.clientIf= clientIf;
     event->gattc_open_event.conn_id= conn_id;
-    event->gattc_open_event.bda = bda;
+    memcpy(&event->gattc_open_event.bda, bda, sizeof(bt_bdaddr_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -117,7 +117,7 @@ void btgattc_close_cb(int conn_id, int status, int clientIf, bt_bdaddr_t* bda)
     event->gattc_close_event.status= status;
     event->gattc_close_event.clientIf= clientIf;
     event->gattc_close_event.conn_id= conn_id;
-    event->gattc_close_event.bda= bda;
+    memcpy(&event->gattc_close_event.bda, bda, sizeof(bt_bdaddr_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -148,8 +148,7 @@ void btgattc_search_result_cb(int conn_id, btgatt_srvc_id_t *srvc_id)
 
     event->event_id = BTGATTC_SEARCH_RESULT_EVENT;
     event->gattc_search_result_event.conn_id= conn_id;
-    event->gattc_search_result_event.srvc_id= (btgatt_srvc_id_t *) malloc (sizeof(btgatt_srvc_id_t));
-    memcpy(event->gattc_search_result_event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
+    memcpy(&event->gattc_search_result_event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
     PostMessage(THREAD_ID_GATT, event);
 
 }
@@ -161,6 +160,7 @@ void btgattc_get_characteristic_cb(int conn_id, int status,
 
     ALOGD(LOGTAG "(%s) status (%d) conn_id (%d)",__FUNCTION__,status, conn_id);
     fprintf(stdout,  "\nDiagnostic: (%s) status (%d) conn_id (%d) ++ \n",__FUNCTION__,status, conn_id);
+
 
     ALOGD(LOGTAG "srvc_id->id.uuid is \n");
     fprintf(stdout,  "\nDiagnostic: srvc_id->id.uuid is ++\n");
@@ -182,12 +182,8 @@ void btgattc_get_characteristic_cb(int conn_id, int status,
     event->gattc_get_characteristic_event.status= status;
     event->gattc_get_characteristic_event.conn_id= conn_id;
     event->gattc_get_characteristic_event.char_prop= char_prop;
-
-    event->gattc_get_characteristic_event.srvc_id= (btgatt_srvc_id_t *) malloc (sizeof(btgatt_srvc_id_t));
-    memcpy(event->gattc_get_characteristic_event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
-
-    event->gattc_get_characteristic_event.char_id= (btgatt_gatt_id_t *) malloc (sizeof(btgatt_gatt_id_t));
-    memcpy(event->gattc_get_characteristic_event.char_id, char_id, sizeof(btgatt_gatt_id_t));
+    memcpy(&event->gattc_get_characteristic_event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
+    memcpy(&event->gattc_get_characteristic_event.char_id, char_id, sizeof(btgatt_gatt_id_t));
 
     PostMessage(THREAD_ID_GATT, event);
     fprintf(stdout,  "\n(%s) Diagnostic: -- 1\n", __FUNCTION__);
@@ -218,9 +214,9 @@ void btgattc_get_descriptor_cb(int conn_id, int status,
     event->event_id = BTGATTC_GET_DESCRIPTOR_EVENT;
     event->gattc_get_descriptor_event.status= status;
     event->gattc_get_descriptor_event.conn_id= conn_id;
-    event->gattc_get_descriptor_event.srvc_id= srvc_id;
-    event->gattc_get_descriptor_event.char_id= char_id;
-    event->gattc_get_descriptor_event.descr_id= descr_id;
+    memcpy(&event->gattc_get_descriptor_event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
+    memcpy(&event->gattc_get_descriptor_event.char_id, char_id, sizeof(btgatt_gatt_id_t));
+    memcpy(&event->gattc_get_descriptor_event.descr_id, descr_id, sizeof(btgatt_gatt_id_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -237,8 +233,8 @@ void btgattc_get_included_service_cb(int conn_id, int status,
     event->event_id = BTGATTC_GET_INCLUDED_SERVICE_EVENT;
     event->gattc_get_included_service_event.status= status;
     event->gattc_get_included_service_event.conn_id= conn_id;
-    event->gattc_get_included_service_event.srvc_id= srvc_id;
-    event->gattc_get_included_service_event.incl_srvc_id= incl_srvc_id;
+    memcpy(&event->gattc_get_included_service_event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
+    memcpy(&event->gattc_get_included_service_event.incl_srvc_id, incl_srvc_id ,sizeof(btgatt_srvc_id_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -257,8 +253,8 @@ void btgattc_register_for_notification_cb(int conn_id, int registered,
     event->gattc_register_for_notification_event.status= status;
     event->gattc_register_for_notification_event.conn_id= conn_id;
     event->gattc_register_for_notification_event.registered= registered;
-    event->gattc_register_for_notification_event.srvc_id= srvc_id;
-    event->gattc_register_for_notification_event.char_id= char_id;
+    memcpy(&event->gattc_register_for_notification_event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
+    memcpy(&event->gattc_register_for_notification_event.char_id, char_id, sizeof(btgatt_gatt_id_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -273,7 +269,7 @@ void btgattc_notify_cb(int conn_id, btgatt_notify_params_t *p_data)
 
     event->event_id = BTGATTC_NOTIFY_EVENT;
     event->gattc_notify_event.conn_id= conn_id;
-    event->gattc_notify_event.p_data= p_data;
+    memcpy(&event->gattc_notify_event.p_data, p_data,sizeof(btgatt_notify_params_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -288,7 +284,7 @@ void btgattc_read_characteristic_cb(int conn_id, int status,
     event->event_id = BTGATTC_READ_CHARACTERISTIC_EVENT;
     event->gattc_read_characteristic_event.status= status;
     event->gattc_read_characteristic_event.conn_id= conn_id;
-    event->gattc_read_characteristic_event.p_data= p_data;
+    memcpy(&event->gattc_read_characteristic_event.p_data, p_data,sizeof(btgatt_read_params_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -305,7 +301,7 @@ void btgattc_write_characteristic_cb(int conn_id, int status,
     event->event_id = BTGATTC_WRITE_CHARACTERISTIC_EVENT;
     event->gattc_write_characteristic_event.status= status;
     event->gattc_write_characteristic_event.conn_id= conn_id;
-    event->gattc_write_characteristic_event.p_data= p_data;
+    memcpy(&event->gattc_write_characteristic_event.p_data, p_data, sizeof(btgatt_write_params_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -336,7 +332,7 @@ void btgattc_read_descriptor_cb(int conn_id, int status, btgatt_read_params_t *p
     event->event_id = BTGATTC_READ_DESCRIPTOR_EVENT;
     event->gattc_read_descriptor_event.status= status;
     event->gattc_read_descriptor_event.conn_id= conn_id;
-    event->gattc_read_descriptor_event.p_data= p_data;
+    memcpy(&event->gattc_read_descriptor_event.p_data, p_data,sizeof(btgatt_read_params_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -352,7 +348,7 @@ void btgattc_write_descriptor_cb(int conn_id, int status, btgatt_write_params_t 
     event->event_id = BTGATTC_WRITE_DESCRIPTOR_EVENT;
     event->gattc_write_descriptor_event.status= status;
     event->gattc_write_descriptor_event.conn_id= conn_id;
-    event->gattc_write_descriptor_event.p_data= p_data;
+    memcpy(&event->gattc_write_descriptor_event.p_data, p_data, sizeof(btgatt_write_params_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -369,7 +365,7 @@ void btgattc_remote_rssi_cb(int client_if,bt_bdaddr_t* bda, int rssi, int status
     event->gattc_remote_rssi_event.status = status;
     event->gattc_remote_rssi_event.client_if= client_if;
         event->gattc_remote_rssi_event.rssi= rssi;
-        event->gattc_remote_rssi_event.bda= bda;
+        memcpy(&event->gattc_remote_rssi_event.bda, bda, sizeof(bt_bdaddr_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -577,7 +573,7 @@ void btgattc_batchscan_reports_cb(int client_if, int status, int report_format,
     event->gattc_batchscan_reports_event.report_format = report_format;
     event->gattc_batchscan_reports_event.num_records= num_records;
     event->gattc_batchscan_reports_event.data_len= data_len;
-    event->gattc_batchscan_reports_event.p_rep_data= p_rep_data;
+    memcpy(&event->gattc_batchscan_reports_event.p_rep_data, p_rep_data,sizeof(uint8_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -605,7 +601,7 @@ void btgattc_track_adv_event_cb(btgatt_track_adv_info_t *p_adv_track_info)
     CHECK_PARAM_VOID(event)
 
     event->event_id = BTGATTC_TRACK_ADV_EVENT_EVENT;
-    event->gattc_track_adv_event_event.p_adv_track_info= p_adv_track_info;
+    memcpy(&event->gattc_track_adv_event_event.p_adv_track_info, p_adv_track_info,sizeof(btgatt_track_adv_info_t));
 
     PostMessage(THREAD_ID_GATT, event);
 
@@ -674,7 +670,7 @@ void btgatts_register_app_cb(int status, int server_if, bt_uuid_t *uuid)
     event->event_id = BTGATTS_REGISTER_APP_EVENT;
     event->gatts_register_app_event.status = status;
     event->gatts_register_app_event.server_if = server_if;
-    event->gatts_register_app_event.uuid = uuid;
+    memcpy(&event->gatts_register_app_event.uuid, uuid, sizeof(bt_uuid_t));
     PostMessage(THREAD_ID_GATT, event);
     ALOGD(LOGTAG "exiting btgatts_register_app_cb \n");
 }
@@ -697,7 +693,7 @@ void btgatts_connection_cb(int conn_id, int server_if, int connected, bt_bdaddr_
     event->gatts_connection_event.conn_id = conn_id;
     event->gatts_connection_event.server_if = server_if;
     event->gatts_connection_event.connected = connected;
-    event->gatts_connection_event.bda = bda;
+    memcpy(&event->gatts_connection_event.bda, bda, sizeof(bt_bdaddr_t));
     PostMessage(THREAD_ID_GATT, event);
 
 }
@@ -714,7 +710,7 @@ void btgatts_service_added_cb(int status, int server_if,
     event->event_id = BTGATTS_SERVICE_ADDED_EVENT;
     event->gatts_service_added_event.status = status;
     event->gatts_service_added_event.server_if = server_if;
-    event->gatts_service_added_event.srvc_id = srvc_id ;
+    memcpy(&event->gatts_service_added_event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t)) ;
     event->gatts_service_added_event.srvc_handle = srvc_handle ;
 
     PostMessage(THREAD_ID_GATT, event);
@@ -749,7 +745,7 @@ void btgatts_characteristic_added_cb(int status, int server_if, bt_uuid_t *char_
     event->event_id = BTGATTS_CHARACTERISTIC_ADDED_EVENT;
     event->gatts_characteristic_added_event.status = status;
     event->gatts_characteristic_added_event.server_if = server_if;
-    event->gatts_characteristic_added_event.char_id = char_id;
+    memcpy(&event->gatts_characteristic_added_event.char_id, char_id, sizeof(bt_uuid_t));
     event->gatts_characteristic_added_event.srvc_handle = srvc_handle ;
     event->gatts_characteristic_added_event.char_handle = char_handle ;
 
@@ -767,7 +763,7 @@ void btgatts_descriptor_added_cb(int status, int server_if, bt_uuid_t *descr_id,
     event->event_id = BTGATTS_DESCRIPTOR_ADDED_EVENT;
     event->gatts_descriptor_added_event.status = status;
     event->gatts_descriptor_added_event.server_if = server_if;
-    event->gatts_descriptor_added_event.descr_id  = descr_id ;
+    memcpy(&event->gatts_descriptor_added_event.descr_id, descr_id, sizeof(bt_uuid_t));
     event->gatts_descriptor_added_event.srvc_handle = srvc_handle ;
     event->gatts_descriptor_added_event.descr_handle = descr_handle ;
 
@@ -835,7 +831,7 @@ void btgatts_request_read_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int at
     event->event_id = BTGATTS_REQUEST_READ_EVENT;
     event->gatts_request_read_event.conn_id = conn_id;
     event->gatts_request_read_event.trans_id = trans_id;
-    event->gatts_request_read_event.bda = bda;
+    memcpy(&event->gatts_request_read_event.bda, bda, sizeof(bt_bdaddr_t));
     event->gatts_request_read_event.attr_handle = attr_handle;
     event->gatts_request_read_event.offset = offset;
     event->gatts_request_read_event.is_long = is_long ;
@@ -863,7 +859,7 @@ void btgatts_request_write_cb(int conn_id, int trans_id, bt_bdaddr_t *bda, int a
     event->event_id = BTGATTS_REQUEST_WRITE_EVENT;
     event->gatts_request_write_event.conn_id = conn_id;
     event->gatts_request_write_event.trans_id = trans_id;
-    event->gatts_request_write_event.bda = bda;
+    memcpy(&event->gatts_request_write_event.bda, bda,sizeof(bt_bdaddr_t));
     event->gatts_request_write_event.attr_handle = attr_handle;
     event->gatts_request_write_event.offset = offset;
     event->gatts_request_write_event.length = length;
@@ -896,7 +892,7 @@ void btgatts_request_exec_write_cb(int conn_id, int trans_id,
     event->event_id = BTGATTS_REQUEST_EXEC_WRITE_EVENT;
     event->gatts_request_exec_write_event.conn_id = conn_id;
     event->gatts_request_exec_write_event.trans_id = trans_id;
-    event->gatts_request_exec_write_event.bda = bda;
+    memcpy(&event->gatts_request_exec_write_event.bda, bda,sizeof(bt_bdaddr_t));
     event->gatts_request_exec_write_event.exec_write = exec_write;
 
     PostMessage(THREAD_ID_GATT, event);
@@ -1047,18 +1043,25 @@ void Gatt::HandleGattIpcMsg(BtIpcMsg *ipc_msg)
 void Gatt::HandleGattsRegisterAppEvent(GattsRegisterAppEvent *event)
 {
     ALOGD(LOGTAG  "(%s) server_if =%d status =%d uuid =%x \n ",__FUNCTION__, event->server_if,
-            event->status, event->uuid->uu);
+            event->status, event->uuid.uu);
 
     int itr;
     std::map<uint8_t *,BluetoothGattServerCallback *> ::iterator it;
 
     for (it = serverCbUuidMap.begin(); it != serverCbUuidMap.end(); ++it) {
-        if (it->first &&  event->uuid->uu) {
+        if (it->first &&  event->uuid.uu) {
            ALOGD(LOGTAG "checking \n");
+           for (itr = 0; itr < 16; itr++) {
+             ALOGD(LOGTAG " saved uuid is %d \n",it->first[itr]); 
+           }
+
+           for (itr = 0; itr < 16; itr++) {
+             ALOGD(LOGTAG " received uuid is %d \n",event->uuid.uu[itr]);
+           }
            itr = 0;
            for (itr = 0; itr < 16; itr++) {
-               ALOGD(LOGTAG " it->first is %d, uuid is %d \n",it->first[itr], event->uuid->uu[itr]);
-               if ( it->first[itr] == event->uuid->uu[itr]) {
+               ALOGD(LOGTAG " it->first is %d, uuid is %d \n",it->first[itr], event->uuid.uu[itr]);
+               if ( it->first[itr] == event->uuid.uu[itr]) {
                   continue;
                } else {
                  break;
@@ -1075,7 +1078,7 @@ void Gatt::HandleGattsRegisterAppEvent(GattsRegisterAppEvent *event)
      }
 
      if (it->second) {
-        it->second->gattServerRegisterAppCb(event->status,event->server_if,event->uuid);
+        it->second->gattServerRegisterAppCb(event->status,event->server_if,&event->uuid);
      } else {
         ALOGD(LOGTAG "Callback is null \n");
      }
@@ -1092,7 +1095,7 @@ void Gatt::HandleGattsConnectionEvent(GattsConnectionEvent *event)
 
     it = serverCbSifMap.find(event->server_if);
     if (it != serverCbSifMap.end()) {
-       it->second->btgatts_connection_cb(event->conn_id,event->server_if,event->connected, event->bda);
+       it->second->btgatts_connection_cb(event->conn_id,event->server_if,event->connected, &event->bda);
     } else {
        ALOGD(LOGTAG "Not found \n");
     }
@@ -1108,7 +1111,7 @@ void Gatt::HandleGattsServiceAddedEvent(GattsServiceAddedEvent *event)
     it = serverCbSifMap.find(event->server_if);
     if (it != serverCbSifMap.end()) {
        ALOGD(LOGTAG "found \n");
-       it->second->btgatts_service_added_cb(event->status,event->server_if,event->srvc_id, event->srvc_handle);
+       it->second->btgatts_service_added_cb(event->status,event->server_if,&event->srvc_id, event->srvc_handle);
     } else {
        ALOGD(LOGTAG "Not found \n");
     }
@@ -1126,7 +1129,7 @@ void Gatt::HandleGattsCharacteristicAddedEvent(GattsCharacteristicAddedEvent *ev
     it = serverCbSifMap.find(event->server_if);
     if(it != serverCbSifMap.end()) {
        ALOGD(LOGTAG "found \n");
-       it->second->btgatts_characteristic_added_cb(event->status,event->server_if,event->char_id, event->srvc_handle,event->char_handle);
+       it->second->btgatts_characteristic_added_cb(event->status,event->server_if,&event->char_id, event->srvc_handle,event->char_handle);
     } else {
        ALOGD(LOGTAG "Not found \n");
     }
@@ -1143,7 +1146,7 @@ void Gatt::HandleGattsDescriptorAddedEvent(GattsDescriptorAddedEvent *event)
     it = serverCbSifMap.find(event->server_if);
     if(it != serverCbSifMap.end()) {
        ALOGD(LOGTAG "found \n");
-       it->second->btgatts_descriptor_added_cb(event->status,event->server_if,event->descr_id, event->srvc_handle, event->descr_handle);
+       it->second->btgatts_descriptor_added_cb(event->status,event->server_if,&event->descr_id, event->srvc_handle, event->descr_handle);
     } else {
        ALOGD(LOGTAG "Not found \n");
     }
@@ -1200,8 +1203,8 @@ void Gatt::HandleGattsRequestWriteEvent(GattsRequestWriteEvent *event)
 {
     char c_address[32];
     snprintf(c_address,sizeof(c_address), "%02X:%02X:%02X:%02X:%02X:%02X",
-                event->bda->address[0], event->bda->address[1], event->bda->address[2],
-                event->bda->address[3], event->bda->address[4], event->bda->address[5]);
+                event->bda.address[0], event->bda.address[1], event->bda.address[2],
+                event->bda.address[3], event->bda.address[4], event->bda.address[5]);
 
     ALOGD(LOGTAG "server if is %d \n", ConnidServerifMap[event->conn_id]);
     std::map<int,BluetoothGattServerCallback *> ::iterator it;
@@ -1209,7 +1212,7 @@ void Gatt::HandleGattsRequestWriteEvent(GattsRequestWriteEvent *event)
     it = serverCbSifMap.find(ConnidServerifMap[event->conn_id]);
     if (it != serverCbSifMap.end()) {
         ALOGD(LOGTAG "found in the connection server map\n");
-        it->second->btgatts_request_write_cb(event->conn_id,event->trans_id, event->bda, event->attr_handle,
+        it->second->btgatts_request_write_cb(event->conn_id,event->trans_id, &event->bda, event->attr_handle,
                                     event->offset, event->length, event->need_rsp, event->is_prep,
                                     event->value);
     } else {
@@ -1229,7 +1232,7 @@ void Gatt::HandleGattsRequestReadEvent(GattsRequestReadEvent *event)
     it = serverCbSifMap.find(ConnidServerifMap[event->conn_id]);
     if (it != serverCbSifMap.end()) {
        ALOGD(LOGTAG "found \n");
-       it->second->btgatts_request_read_cb(event->conn_id, event->trans_id, event->bda, event->attr_handle,
+       it->second->btgatts_request_read_cb(event->conn_id, event->trans_id, &event->bda, event->attr_handle,
                                        event->offset, event->is_long);
     } else {
        ALOGD(LOGTAG "Not found \n");
@@ -1266,7 +1269,7 @@ void Gatt::HandleGattsRequestExecWriteEvent(GattsRequestExecWriteEvent *event)
     if (it != serverCbSifMap.end()) {
         ALOGD(LOGTAG "found \n");
         it->second->btgatts_request_exec_write_cb(event->conn_id, event->trans_id,
-                                               event->bda, event->exec_write);
+                                               &event->bda, event->exec_write);
     } else {
         ALOGD(LOGTAG "Not found \n");
     }
@@ -1336,12 +1339,12 @@ void Gatt::HandleGattcRegisterAppEvent(GattcRegisterAppEvent *event)
 
     for (it = clientCbUuidMap.begin(); it != clientCbUuidMap.end(); ++it) {
 
-         if (it->first &&  event->app_uuid->uu) {
+         if (it->first &&  event->app_uuid.uu) {
             ALOGD(LOGTAG "checking \n");
             itr = 0;
             for (itr = 0; itr < 16; itr++) {
-                ALOGD(LOGTAG " it->first is %d, uuid is %d \n",it->first[itr], event->app_uuid->uu[itr]);
-                if ( it->first[itr] == event->app_uuid->uu[itr]) {
+                ALOGD(LOGTAG " it->first is %d, uuid is %d \n",it->first[itr], event->app_uuid.uu[itr]);
+                if ( it->first[itr] == event->app_uuid.uu[itr]) {
                    continue;
                 } else {
                     break;
@@ -1358,7 +1361,7 @@ void Gatt::HandleGattcRegisterAppEvent(GattcRegisterAppEvent *event)
     }
 
     if (it->second) {
-       it->second->btgattc_client_register_app_cb(event->status,event->clientIf,event->app_uuid);
+       it->second->btgattc_client_register_app_cb(event->status,event->clientIf,&event->app_uuid);
     } else {
        ALOGD(LOGTAG "Callback is null \n");
     }
@@ -1376,7 +1379,7 @@ void Gatt::HandleGattcScanResultEvent (GattcScanResultEvent *event)
                  if(it2 != clientCbCifMap.end()) {
                    ALOGD(LOGTAG "found \n");
                     if ( it2->second) {
-                        it2->second->btgattc_scan_result_cb(event->bda,event->rssi,event->adv_data);
+                        it2->second->btgattc_scan_result_cb(&event->bda,event->rssi,&event->adv_data);
                     } else {
                         ALOGD(LOGTAG "Not found \n");
                     }
@@ -1398,7 +1401,7 @@ void Gatt::HandleGattcOpenEvent(GattcOpenEvent *event) {
     it = clientCbCifMap.find(event->clientIf);
     if(it != clientCbCifMap.end()) {
        ALOGD(LOGTAG "found \n");
-       it->second->btgattc_open_cb(event->conn_id, event->status, event->clientIf, event->bda);
+       it->second->btgattc_open_cb(event->conn_id, event->status, event->clientIf,&event->bda);
     } else {
        ALOGD(LOGTAG "Not found \n");
     }
@@ -1414,7 +1417,7 @@ void Gatt::HandleGattcCloseEvent(GattcCloseEvent *event)  {
     it = clientCbCifMap.find(event->clientIf);
     if(it != clientCbCifMap.end()) {
        ALOGD(LOGTAG "found \n");
-       it->second->btgattc_close_cb(event->conn_id, event->status, event->clientIf, event->bda);
+       it->second->btgattc_close_cb(event->conn_id, event->status, event->clientIf, &event->bda);
     } else {
        ALOGD(LOGTAG "Not found \n");
     }
@@ -1448,14 +1451,9 @@ void Gatt::HandleGattcSSearchResultEvent(GattcSearchResultEvent *event)  {
     it = clientCbCifMap.find(ConnidClientifMap[event->conn_id]);
     if(it != clientCbCifMap.end()) {
         ALOGD(LOGTAG "found \n");
-        it->second-> btgattc_search_result_cb(event->conn_id, event->srvc_id);
+        it->second->btgattc_search_result_cb(event->conn_id, &event->srvc_id);
     } else {
         ALOGD(LOGTAG "Not found \n");
-    }
-    if (event->srvc_id != NULL) {
-	ALOGD(LOGTAG  "** Freeing up SRVC ID \n");
-	fprintf (stdout, "Diagnostic(%s) Freeing up SRVC ID \n", __FUNCTION__ );
-        free (event->srvc_id);
     }
 }
 
@@ -1469,23 +1467,15 @@ void Gatt::HandleGattcGetCharacteristicsEvent(GattcGetCharacteristicEvent *event
     it = clientCbCifMap.find(ConnidClientifMap[event->conn_id]);
     if(it != clientCbCifMap.end()) {
        ALOGD(LOGTAG "found \n");
+       if(it->second != NULL) {
         it->second->btgattc_get_characteristic_cb(event->conn_id, event->status,
-               event->srvc_id, event->char_id,
+               &event->srvc_id, &event->char_id,
                event->char_prop);
+       }
     } else {
         ALOGD(LOGTAG "Not found \n");
     }
 
-    if (event->srvc_id != NULL) {
-	ALOGD(LOGTAG  "** Freeing up SRVC ID \n");
-	fprintf (stdout, "Diagnostic(%s) Freeing up SRVC ID \n", __FUNCTION__ );
-        free (event->srvc_id);
-    }
-    if (event->char_id != NULL) {
-	ALOGD(LOGTAG "** Freeing up char_id ID \n");
-	fprintf (stdout, "Diagnostic(%s) Freeing up char_id ID \n", __FUNCTION__ );
-        free (event->char_id);
-    }
 }
 
 void Gatt::HandleGattcGetDescriptorEvent(GattcGetDescriptorEvent *event)  {
@@ -1499,8 +1489,8 @@ void Gatt::HandleGattcGetDescriptorEvent(GattcGetDescriptorEvent *event)  {
      if(it != clientCbCifMap.end()) {
         ALOGD(LOGTAG "found \n");
         it->second->btgattc_get_descriptor_cb(event->conn_id, event->status,
-               event->srvc_id, event->char_id,
-               event->descr_id);
+               &event->srvc_id, &event->char_id,
+               &event->descr_id);
       } else {
          ALOGD(LOGTAG "Not found \n");
       }
@@ -1517,7 +1507,7 @@ void Gatt::HandleGattcGetIncludedServiceEvent(GattcGetIncludedServiceEvent *even
      if(it != clientCbCifMap.end()) {
        ALOGD(LOGTAG "found \n");
        it->second->btgattc_get_included_service_cb(event->conn_id, event->status,
-           event->srvc_id, event->incl_srvc_id);
+           &event->srvc_id, &event->incl_srvc_id);
      } else {
        ALOGD(LOGTAG "Not found \n");
      }
@@ -1533,8 +1523,8 @@ void Gatt::HandleGattcRegisterForNotificationEvent(GattcRegisterForNotificationE
        if(it != clientCbCifMap.end()) {
           ALOGD(LOGTAG "found \n");
            it->second->btgattc_register_for_notification_cb(event->conn_id, event->registered,
-                                      event->status, event->srvc_id,
-                                      event->char_id);
+                                      event->status, &event->srvc_id,
+                                      &event->char_id);
         } else {
            ALOGD(LOGTAG "Not found \n");
         }
@@ -1549,7 +1539,7 @@ void Gatt::HandleGattcNotifyEvent(GattcNotifyEvent *event)  {
       it = clientCbCifMap.find(ConnidClientifMap[event->conn_id]);
       if(it != clientCbCifMap.end()) {
         ALOGD(LOGTAG "found \n");
-        it->second->btgattc_notify_cb(event->conn_id, event->p_data);
+        it->second->btgattc_notify_cb(event->conn_id, &event->p_data);
       }  else {
         ALOGD(LOGTAG "Not found \n");
       }
@@ -1565,7 +1555,7 @@ void Gatt::HandleGattcReadCharacteristicEvent(GattcReadCharacteristicEvent *even
      if(it != clientCbCifMap.end()) {
         ALOGD(LOGTAG "found \n");
         it->second->btgattc_read_characteristic_cb(event->conn_id, event->status,
-                                                    event->p_data);
+                                                    &event->p_data);
      } else {
         ALOGD(LOGTAG "Not found \n");
      }
@@ -1581,7 +1571,7 @@ void Gatt::HandleGattcWriteCharacteristicEvent(GattcWriteCharacteristicEvent *ev
      if(it != clientCbCifMap.end()) {
         ALOGD(LOGTAG "found \n");
         it->second->btgattc_write_characteristic_cb(event->conn_id, event->status,
-                     event->p_data);
+                     &event->p_data);
      } else {
         ALOGD(LOGTAG "Not found \n");
      }
@@ -1597,7 +1587,7 @@ void Gatt::HandleGattcReadDescriptorEvent(GattcReadDescriptorEvent *event)  {
      it = clientCbCifMap.find(ConnidClientifMap[event->conn_id]);
      if(it != clientCbCifMap.end()) {
         ALOGD(LOGTAG "found \n");
-        it->second->btgattc_read_descriptor_cb(event->conn_id, event->status, event->p_data);
+        it->second->btgattc_read_descriptor_cb(event->conn_id, event->status, &event->p_data);
      } else {
         ALOGD(LOGTAG "Not found \n");
      }
@@ -1612,14 +1602,14 @@ void Gatt::HandleGattcWriteDescriptorEvent(GattcWriteDescriptorEvent *event)  {
      it = clientCbCifMap.find(ConnidClientifMap[event->conn_id]);
      if(it != clientCbCifMap.end()) {
         ALOGD(LOGTAG "found \n");
-        it->second->btgattc_write_descriptor_cb(event->conn_id, event->status, event->p_data);
+        it->second->btgattc_write_descriptor_cb(event->conn_id, event->status, &event->p_data);
      } else {
         ALOGD(LOGTAG "Not found \n");
      }
 }
 
 void Gatt::HandleGattcExecuteWriteEvent(GattcExecuteWriteEvent *event)  {
-     ALOGD(LOGTAG "(%s) conn_id (%d) event_id (%d) status (%d)\n",__FUNCTION__, event->conn_id,
+     ALOGD(LOGTAG "(%s) conn_id (%d) event_id (%d) status (%d)\n",__FUNCTION__, &event->conn_id,
                                 event->event_id, event->status);
 
       std::map<int,BluetoothGattClientCallback *> ::iterator it;
@@ -1641,7 +1631,7 @@ void Gatt::HandleGattcRemoteRssiEvent(GattcRemoteRssiEvent *event)  {
      it = clientCbCifMap.find(event->client_if);
      if(it != clientCbCifMap.end()) {
         ALOGD(LOGTAG "found \n");
-        it->second->btgattc_remote_rssi_cb(event->client_if,event->bda, event->rssi, event->status);
+        it->second->btgattc_remote_rssi_cb(event->client_if,&event->bda, event->rssi, event->status);
      } else {
         ALOGD(LOGTAG "Not found \n");
      }
@@ -1825,7 +1815,7 @@ void Gatt::HandleGattcBatchscanReportsEvent(GattcBatchscanReportsEvent *event)  
      if(it != clientCbCifMap.end()) {
         ALOGD(LOGTAG "found \n");
         it->second->btgattc_batchscan_reports_cb(event->client_if, event->status, event->report_format,
-                               event->num_records, event->data_len, event->p_rep_data);
+                               event->num_records, event->data_len, &event->p_rep_data);
         } else {
         ALOGD(LOGTAG "Not found \n");
         }
@@ -2041,14 +2031,17 @@ bt_status_t Gatt::scan( bool start, int client_if )
     if (gatt_interface) {
        return gatt_interface->client->scan( start );
     }
+    return BT_STATUS_FAIL;
 }
 
 btgatt_interface_t * Gatt::GetGattInterface()
 {
     if (gatt_interface)
        return gatt_interface;
-    else
+    else {
        ALOGD(LOGTAG "(%s) gatt interface is null",__FUNCTION__);
+       return NULL;
+    }
 }
 
 
@@ -2156,6 +2149,7 @@ bt_status_t Gatt::register_client( bt_uuid_t *client_uuid ) {
             if (gatt_interface) {
                 return gatt_interface->client->register_client(client_uuid);
             }
+	    return BT_STATUS_FAIL;
 }
 
 
@@ -2163,6 +2157,7 @@ bt_status_t Gatt::unregister_client(int client_if ) {
             if (gatt_interface) {
                 return gatt_interface->client->unregister_client(client_if);
             }
+	    return BT_STATUS_FAIL;
 }
 
 
@@ -2173,6 +2168,7 @@ bt_status_t Gatt::clientConnect( int client_if, const bt_bdaddr_t *bd_addr,
                return gatt_interface->client->connect( client_if, bd_addr, is_direct,
                                       transport );
             }
+	    return BT_STATUS_FAIL;
 }
 
 
@@ -2181,6 +2177,7 @@ bt_status_t Gatt::clientDisconnect( int client_if, const bt_bdaddr_t *bd_addr,
             if (gatt_interface) {
                 return gatt_interface->client->disconnect( client_if, bd_addr, conn_id);
             }
+	    return BT_STATUS_FAIL;
 }
 
 
@@ -2188,6 +2185,7 @@ bt_status_t Gatt::listen(int client_if, bool start) {
             if (gatt_interface) {
                 return gatt_interface->client->listen(client_if, start);
             }
+	    return BT_STATUS_FAIL;
 }
 
 
@@ -2195,6 +2193,7 @@ bt_status_t Gatt::refresh( int client_if, const bt_bdaddr_t *bd_addr ) {
             if (gatt_interface) {
                 return gatt_interface->client->refresh( client_if, bd_addr );
             }
+	    return BT_STATUS_FAIL;
 }
 
 
@@ -2202,6 +2201,7 @@ bt_status_t Gatt::search_service(int conn_id, bt_uuid_t *filter_uuid ) {
             if (gatt_interface) {
                 return gatt_interface->client->search_service(conn_id, filter_uuid );
             }
+	    return BT_STATUS_FAIL;
 }
 
 
@@ -2211,6 +2211,7 @@ bt_status_t Gatt::get_included_service( int conn_id, btgatt_srvc_id_t *srvc_id,
                 return gatt_interface->client->get_included_service( conn_id, srvc_id,
                 start_incl_srvc_id);
             }
+	    return BT_STATUS_FAIL;
 }
 
 bt_status_t Gatt::get_characteristic( int conn_id,
@@ -2219,6 +2220,7 @@ bt_status_t Gatt::get_characteristic( int conn_id,
             return gatt_interface->client->get_characteristic(conn_id, srvc_id,
             start_char_id);
         }
+	return BT_STATUS_FAIL;
 }
 
 
@@ -2229,6 +2231,7 @@ bt_status_t Gatt::get_descriptor( int conn_id,
             return gatt_interface->client->get_descriptor( conn_id,
                                    srvc_id, char_id, start_descr_id);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2240,6 +2243,7 @@ bt_status_t Gatt::read_characteristic( int conn_id,
             return gatt_interface->client->read_characteristic(conn_id,
                                    srvc_id, char_id, auth_req );
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2252,6 +2256,7 @@ bt_status_t Gatt::write_characteristic(int conn_id,
             return gatt_interface->client->write_characteristic(conn_id,
                  srvc_id, char_id, write_type, len, auth_req, p_value);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2263,6 +2268,7 @@ bt_status_t Gatt::read_descriptor(int conn_id,
             return gatt_interface->client->read_descriptor(conn_id,
                 srvc_id, char_id,descr_id,auth_req);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2275,6 +2281,7 @@ bt_status_t Gatt::write_descriptor(int conn_id, btgatt_srvc_id_t *srvc_id,
             return gatt_interface->client->write_descriptor( conn_id, srvc_id, char_id,
                    descr_id, write_type, len, auth_req,p_value);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2283,6 +2290,7 @@ bt_status_t Gatt::execute_write(int conn_id, int execute) {
         if (gatt_interface) {
             return gatt_interface->client->execute_write(conn_id, execute);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2294,6 +2302,7 @@ bt_status_t Gatt::register_for_notification( int client_if,
             return gatt_interface->client->register_for_notification(client_if,
                                 bd_addr, srvc_id, char_id);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2305,6 +2314,7 @@ bt_status_t Gatt::deregister_for_notification( int client_if,
             return gatt_interface->client->deregister_for_notification(client_if,
                                 bd_addr, srvc_id, char_id);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2313,6 +2323,7 @@ bt_status_t Gatt::read_remote_rssi( int client_if, const bt_bdaddr_t *bd_addr) {
         if (gatt_interface) {
             return gatt_interface->client->read_remote_rssi( client_if, bd_addr);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2321,6 +2332,7 @@ bt_status_t Gatt::scan_filter_param_setup(btgatt_filt_param_setup_t filt_param) 
         if (gatt_interface) {
             return gatt_interface->client->scan_filter_param_setup(filt_param);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2337,6 +2349,7 @@ bt_status_t Gatt::scan_filter_add_remove(int client_if, int action, int filt_typ
                    filt_index, company_id,company_id_mask, p_uuid,p_uuid_mask, bd_addr,
                     addr_type, data_len, p_data, mask_len, p_mask);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2345,6 +2358,7 @@ bt_status_t Gatt::scan_filter_clear(int client_if, int filt_index) {
         if (gatt_interface) {
             return gatt_interface->client->scan_filter_clear(client_if, filt_index);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2353,6 +2367,7 @@ bt_status_t Gatt::scan_filter_enable(int client_if, bool enable) {
         if (gatt_interface) {
             return gatt_interface->client->scan_filter_enable(client_if, enable);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2361,6 +2376,7 @@ int Gatt::get_device_type( const bt_bdaddr_t *bd_addr ) {
         if (gatt_interface) {
             return gatt_interface->client->get_device_type( bd_addr );
         }
+	return 0;
 
 }
 
@@ -2376,6 +2392,7 @@ bt_status_t Gatt::set_adv_data(int client_if, bool set_scan_rsp, bool include_na
                                    max_interval, appearance,manufacturer_len, manufacturer_data,
                                    service_data_len, service_data, service_uuid_len,service_uuid);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2384,6 +2401,7 @@ bt_status_t Gatt::configure_mtu(int conn_id, int mtu) {
         if (gatt_interface) {
             return gatt_interface->client->configure_mtu(conn_id, mtu);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2394,6 +2412,7 @@ bt_status_t Gatt::conn_parameter_update(const bt_bdaddr_t *bd_addr, int min_inte
             return gatt_interface->client->conn_parameter_update(bd_addr, min_interval,
                                 max_interval, latency, timeout) ;
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2402,6 +2421,7 @@ bt_status_t Gatt::set_scan_parameters(int client_if, int scan_interval, int scan
         if (gatt_interface) {
             return gatt_interface->client->set_scan_parameters(client_if, scan_interval, scan_window);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2412,6 +2432,7 @@ bt_status_t Gatt::multi_adv_enable(int client_if, int min_interval,int max_inter
             return gatt_interface->client->multi_adv_enable(client_if, min_interval,max_interval,adv_type,
                          chnl_map, tx_power, timeout_s);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2422,6 +2443,7 @@ bt_status_t Gatt::multi_adv_update(int client_if, int min_interval,int max_inter
             return gatt_interface->client->multi_adv_update(client_if, min_interval,max_interval,adv_type,
                             chnl_map, tx_power, timeout_s);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2435,6 +2457,7 @@ bt_status_t Gatt::multi_adv_set_inst_data(int client_if, bool set_scan_rsp, bool
                                 incl_txpower, appearance, manufacturer_len, manufacturer_data, service_data_len,
                                 service_data, service_uuid_len, service_uuid);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2443,6 +2466,7 @@ bt_status_t Gatt::multi_adv_disable(int client_if) {
         if (gatt_interface) {
             return gatt_interface->client->multi_adv_disable(client_if);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2453,6 +2477,7 @@ bt_status_t Gatt::batchscan_cfg_storage(int client_if, int batch_scan_full_max,
             return gatt_interface->client->batchscan_cfg_storage(client_if, batch_scan_full_max,
                                    batch_scan_trunc_max, batch_scan_notify_threshold);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2463,6 +2488,7 @@ bt_status_t Gatt::batchscan_enb_batch_scan(int client_if, int scan_mode,
             return gatt_interface->client->batchscan_enb_batch_scan(client_if, scan_mode,
                                    scan_interval, scan_window, addr_type, discard_rule);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2471,6 +2497,7 @@ bt_status_t Gatt::batchscan_dis_batch_scan(int client_if) {
         if (gatt_interface) {
             return gatt_interface->client->batchscan_dis_batch_scan(client_if);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2480,6 +2507,7 @@ bt_status_t Gatt::batchscan_read_reports(int client_if, int scan_mode) {
         if (gatt_interface) {
             return gatt_interface->client->batchscan_read_reports(client_if, scan_mode);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2488,6 +2516,7 @@ bt_status_t Gatt::test_command( int command, btgatt_test_params_t* params) {
         if (gatt_interface) {
             return gatt_interface->client->test_command( command, params);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2496,12 +2525,14 @@ bt_status_t Gatt:: register_server( bt_uuid_t *uuid ) {
    if (gatt_interface) {
        return gatt_interface->server->register_server(uuid);
    }
+   return BT_STATUS_FAIL;
 }
 
 bt_status_t Gatt:: unregister_server(int server_if ) {
         if (gatt_interface) {
             return gatt_interface->server->unregister_server(server_if);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2512,6 +2543,7 @@ bt_status_t Gatt:: serverConnect(int server_if, const bt_bdaddr_t *bd_addr,
             return gatt_interface->server->connect(server_if, bd_addr,
                                                 is_direct, transport);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2521,6 +2553,7 @@ bt_status_t Gatt:: serverDisconnect(int server_if, const bt_bdaddr_t *bd_addr,
         if (gatt_interface) {
             return gatt_interface->server->disconnect(server_if, bd_addr, conn_id);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2529,6 +2562,7 @@ bt_status_t Gatt:: add_service( int server_if, btgatt_srvc_id_t *srvc_id, int nu
         if (gatt_interface) {
             return gatt_interface->server->add_service(server_if, srvc_id, num_handles);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2537,6 +2571,7 @@ bt_status_t Gatt:: add_included_service( int server_if, int service_handle, int 
         if (gatt_interface) {
             return gatt_interface->server->add_included_service( server_if,service_handle, included_handle);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2547,6 +2582,7 @@ bt_status_t Gatt:: add_characteristic( int server_if,
             return gatt_interface->server->add_characteristic(server_if, service_handle, uuid,
                                                             properties, permissions);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2558,6 +2594,7 @@ bt_status_t Gatt:: add_descriptor(int server_if, int service_handle,
                                                         service_handle, uuid,
                                                         permissions);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2568,6 +2605,7 @@ bt_status_t Gatt:: start_service(int server_if, int service_handle,
             return gatt_interface->server->start_service(server_if,
                                                         service_handle, transport);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2577,6 +2615,7 @@ bt_status_t Gatt:: stop_service(int server_if, int service_handle) {
             return gatt_interface->server->stop_service(server_if,
                                                         service_handle);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2585,6 +2624,7 @@ bt_status_t Gatt:: delete_service(int server_if, int service_handle) {
         if (gatt_interface) {
             return gatt_interface->server->delete_service(server_if,service_handle);
         }
+	return BT_STATUS_FAIL;
 }
 
 
@@ -2595,6 +2635,7 @@ bt_status_t Gatt:: send_indication(int server_if, int attribute_handle,
             return gatt_interface->server->send_indication(server_if, attribute_handle,
                                            conn_id, len, confirm, p_value);
         }
+	return BT_STATUS_FAIL;
 
 }
 
@@ -2605,5 +2646,6 @@ bt_status_t Gatt:: send_response(int conn_id, int trans_id,
             return gatt_interface->server->send_response(conn_id, trans_id,
                                                          status, response);
         }
+	return BT_STATUS_FAIL;
 
 }

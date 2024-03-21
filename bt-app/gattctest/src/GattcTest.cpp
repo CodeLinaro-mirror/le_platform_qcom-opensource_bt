@@ -43,8 +43,8 @@
 
 #define COPYMAXLEN 200
 
-ServiceData *gattctestServData;
-ServiceData *gattctestAlertData;
+ServiceData *gattctestServData = NULL;
+ServiceData *gattctestAlertData = NULL;
 
 int testest;
 
@@ -75,7 +75,6 @@ static char *uuid_to_string(const bt_uuid_t *uuid, char *buf)
     int i = 16;
     int limit = 0;
     int j = 0;
-
     /* for bluetooth uuid only 32 bits */
     if (0 == memcmp(&uuid->uu, &(gen_uuid.uu),
     sizeof(bt_uuid_t) - 4)) {
@@ -84,36 +83,32 @@ static char *uuid_to_string(const bt_uuid_t *uuid, char *buf)
     if (uuid->uu[15] == 0 && uuid->uu[14] == 0)
     i = 14;
     }
-
     while (i-- > limit) {
     if (i == 11 || i == 9 || i == 7 || i == 5) {
     buf[j * 2 + shift] = '-';
     shift++;
     }
-
-    snprintf(buf + j * 2 + shift,COPYMAXLEN, "%02x", uuid->uu[i]);
+    snprintf(buf + j * 2 + shift, COPYMAXLEN, "%02x", uuid->uu[i]);
     ++j;
     }
-
     return buf;
 }
 
 
 /* service_id formating function */
 char *service_id_to_string(const btgatt_srvc_id_t *srvc_id, char *buf) {
-    char uuid_buf[UUID_STR_LEN];
-    snprintf(buf,COPYMAXLEN,"{%s,%d,%d}", uuid_to_string(&srvc_id->id.uuid,
-    uuid_buf),srvc_id->id.inst_id,srvc_id->is_primary);
-    return buf;
+   char uuid_buf[UUID_STR_LEN];
+   uuid_to_string(&srvc_id->id.uuid, uuid_buf);
+   snprintf(buf, SRVCID_STR_LEN,"{%s,%d,%d}", uuid_buf, srvc_id->id.inst_id,srvc_id->is_primary);
+   return buf;
 }
 
 
 static char *gatt_id_to_string(const btgatt_gatt_id_t *char_id, char *buf)
 {
     char uuid_buf[UUID_STR_LEN];
-
-    snprintf(buf,COPYMAXLEN, "{%s,%d}", uuid_to_string(&char_id->uuid, uuid_buf),
-    char_id->inst_id);
+    uuid_to_string(&char_id->uuid, uuid_buf);
+    snprintf(buf, CHARID_STR_LEN, "{%s,%d}", uuid_buf, char_id->inst_id);
     return buf;
 }
 
@@ -150,12 +145,15 @@ static char *read_param_to_string(const btgatt_read_params_t *data,
 {
     char srvc_id[SRVCID_STR_LEN];
     char char_id[CHARID_STR_LEN];
-    char descr_id[UUID_STR_LEN];
+    char descr_id[CHARID_STR_LEN];
     char value[HEX_VAL_STR_LEN];
+
+    service_id_to_string(&data->srvc_id, srvc_id);
+    gatt_id_to_string(&data->char_id, char_id);
+    desc_id_to_string(&data->descr_id, descr_id);
+
     snprintf(buf,COPYMAXLEN, "{srvc_id=%s, char_id=%s, descr_id=%s, val=%s value_type=%d, status=%d}",
-        service_id_to_string(&data->srvc_id, srvc_id),
-        gatt_id_to_string(&data->char_id, char_id),
-        desc_id_to_string(&data->descr_id, descr_id),
+        srvc_id, char_id, descr_id,
         raw_data_to_string(&data->value, value, 100),
         data->value_type, data->status);
     return buf;
@@ -169,24 +167,24 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         bool AlertServiceMatches;
 	bool srvcMatching;
     public:
-        bool foundAlertService() {
-	return AlertServiceMatches;  
-        }
     void btgattc_client_register_app_cb(int status,int client_if,bt_uuid_t *uuid) {
 
         fprintf(stdout,"gattctest btgattc_client_register_app_cb\n ");
 	AlertServiceMatches = false; 
         srvcMatching = false;
 
+        if(!gattctest) {
+            fprintf(stdout,"Client not initialized ... returning%s \n", __func__);
+            return;
+        }
+
         GattcRegisterAppEvent event;
         event.event_id = RSP_ENABLE_EVENT;
         event.status = status;
         event.clientIf = client_if;
-        if(!gattctest) {
-           fprintf(stdout,"Client not initialized ... returning%s \n", __func__);
-           return;
-        }
-	gattctest->SetGATTCTESTClientAppData(&event);
+        memcpy(&event.app_uuid,uuid,sizeof(bt_uuid_t));
+
+        gattctest->SetGATTCTESTClientAppData(&event);
     }
 
     void btgattc_scan_result_cb(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data) {
@@ -204,7 +202,7 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         event.event_id = BTGATTC_OPEN_EVENT;
         event.conn_id = conn_id;
         event.clientIf = clientIf;
-        event.bda = bda;
+        memcpy(&event.bda, bda, sizeof(bt_bdaddr_t));
 
         if (gattctest) {
             gattctest->SetGATTCTESTConnectionData(&event);
@@ -225,30 +223,43 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         if (gattctestAlertData != NULL ) {
             fprintf(stdout,"Diagnostic:(%s), freeing testAlert\n", __FUNCTION__);
             if (gattctestAlertData->srvc_id != NULL) {
-		free (gattctestAlertData->srvc_id);
-		gattctestAlertData->srvc_id = NULL;
-	    }
-	    if (gattctestAlertData->char_id != NULL) {
-		free (gattctestAlertData->char_id);
-		gattctestAlertData->char_id = NULL;
-	    }
-            free(gattctestAlertData);
-	    gattctestAlertData = NULL;
-	}
+                osi_free (gattctestAlertData->srvc_id);
+                gattctestAlertData->srvc_id = NULL;
+            }
+            if (gattctestAlertData->char_id != NULL) {
+                osi_free (gattctestAlertData->char_id);
+                gattctestAlertData->char_id = NULL;
+            }
+            if (gattctestAlertData->descr_id != NULL) {
+                osi_free (gattctestAlertData->descr_id);
+                gattctestAlertData->descr_id = NULL;
+            }
+            osi_free(gattctestAlertData);
+            gattctestAlertData = NULL;
+        }
         if (gattctestServData != NULL ) {
-            fprintf(stdout,"Diagnostic:(%s), freeing testServerData\n", __FUNCTION__);
+             fprintf(stdout,"Diagnostic:(%s), freeing testServerData\n", __FUNCTION__);
             if (gattctestServData->srvc_id != NULL) {
-		free (gattctestServData->srvc_id);
-		gattctestServData->srvc_id = NULL;
-	    }
-	    free(gattctestServData);
-	    gattctestServData = NULL;
-	}
+                osi_free (gattctestServData->srvc_id);
+                gattctestServData->srvc_id = NULL;
+            }
+            if (gattctestServData->char_id != NULL) {
+                osi_free (gattctestServData->char_id);
+                gattctestServData->char_id = NULL;
+            }
+            if (gattctestServData->descr_id != NULL) {
+                osi_free (gattctestServData->descr_id);
+                gattctestServData->descr_id = NULL;
+            }
+             osi_free(gattctestServData);
+             gattctestServData = NULL;
+        }
     }
 
     void btgattc_search_complete_cb(int conn_id, int status)
     {
         fprintf(stdout,"btgattc_search_complete_cb  conn_id %d, status %d \n ", conn_id,status);
+
 	if(srvcMatching == true && status == 0) {
            fprintf(stdout,"btgattc_search_complete_cb Match found - go for char search\n");
            gattctest->app_gatt->get_characteristic(gattctestServData->conn_id,gattctestServData->srvc_id,NULL);
@@ -258,13 +269,13 @@ class gattctestClientCallback : public BluetoothGattClientCallback
 	}
 
 	if (gattctestServData != NULL ) {
-           fprintf(stdout,"Diagnostic:(%s), freeing testServerData\n", __FUNCTION__);
+           fprintf(stdout,"Diagnostic:(%s), freeing testServerData..\n", __FUNCTION__);
 	   if (gattctestServData->srvc_id != NULL) {
-	       free (gattctestServData->srvc_id);
+	       osi_free (gattctestServData->srvc_id);
                gattctestServData->srvc_id = NULL;
 	   }
-	   free(gattctestServData);
-	   gattctestServData = NULL;
+          free(gattctestServData);
+          gattctestServData = NULL;
 	}
     }
 
@@ -281,8 +292,12 @@ class gattctestClientCallback : public BluetoothGattClientCallback
 	        return;
 	    }
             gattctestServData->conn_id = conn_id;
-            gattctestServData->srvc_id = (btgatt_srvc_id_t*) malloc(sizeof (btgatt_srvc_id_t));
-	    memcpy(gattctestServData->srvc_id, srvc_id, sizeof (btgatt_srvc_id_t));
+            gattctestServData->srvc_id = (btgatt_srvc_id_t*) osi_malloc(sizeof (btgatt_srvc_id_t));
+            if(gattctestServData->srvc_id == NULL) {
+                fprintf(stdout,"Could not allocate memory to gattctestServData->srvc_id\n");
+                return;
+            }
+            memcpy(gattctestServData->srvc_id, srvc_id, sizeof (btgatt_srvc_id_t));
 
             fprintf(stdout,"%s: Matching Service UUID in Search CB--\n", __func__);
 	} else {
@@ -293,72 +308,6 @@ class gattctestClientCallback : public BluetoothGattClientCallback
     }
 
 
-    bool CompareParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
-    {
-        CHECK_PARAM(uuid_dest)
-        CHECK_PARAM(uuid_src)
-
-        for (int i = 0; i < 16; i++) {
-            if(uuid_dest->uu[i] != uuid_src->uu[i]){
-            fprintf(stdout, "(%s) UUID Failed Matches\n",__FUNCTION__);
-                return false;
-        }
-        }
-        fprintf(stdout, "(%s) UUID Matches\n",__FUNCTION__);
-        return true;
-    }
-
-    bool MatchAlertServiceUUID(bt_uuid_t *suuid)
-    {
-        CHECK_PARAM(suuid)
-        bt_uuid_t uuid;
-        uuid.uu[15] = 0x00;
-        uuid.uu[14] = 0x00;
-        uuid.uu[13] = 0x18;
-        uuid.uu[12] = 0x02;
-        uuid.uu[11] = 0x00;
-        uuid.uu[10] =0x00;
-        uuid.uu[9] = 0x10;
-        uuid.uu[8] = 0x00;
-        uuid.uu[7] =0x80;
-        uuid.uu[6] = 0x00;
-        uuid.uu[5] = 0x00;
-        uuid.uu[4] = 0x80;
-        uuid.uu[3] = 0x5f;
-        uuid.uu[2] = 0x9b;
-        uuid.uu[1] = 0x34;
-        uuid.uu[0] = 0xfb;
-
-	fprintf(stdout, "(%s) Matching Service UUID\n", __FUNCTION__);
-        return CompareParams(&uuid, suuid);
-    }
-
-    bool MatchAlertCharUUID(bt_uuid_t *suuid)
-    {
-        CHECK_PARAM(suuid)
-        bt_uuid_t uuid;
-        uuid.uu[15] = 0x00;
-        uuid.uu[14] = 0x00;
-        uuid.uu[13] = 0x2a;
-        uuid.uu[12] = 0x06;
-        uuid.uu[11] = 0x00;
-        uuid.uu[10] =0x00;
-        uuid.uu[9] = 0x10;
-        uuid.uu[8] = 0x00;
-        uuid.uu[7] =0x80;
-        uuid.uu[6] = 0x00;
-        uuid.uu[5] = 0x00;
-        uuid.uu[4] = 0x80;
-        uuid.uu[3] = 0x5f;
-        uuid.uu[2] = 0x9b;
-        uuid.uu[1] = 0x34;
-        uuid.uu[0] = 0xfb;
-
-	fprintf(stdout, "(%s) Matching Char UUID\n", __FUNCTION__);
-        return CompareParams(&uuid, suuid);
-     }
-
-
     void btgattc_get_characteristic_cb(int conn_id, int status,
                                      btgatt_srvc_id_t *srvc_id, btgatt_gatt_id_t *char_id,
                                      int char_prop)
@@ -366,13 +315,13 @@ class gattctestClientCallback : public BluetoothGattClientCallback
     char srvc_id_buf[SRVCID_STR_LEN];
     char char_id_buf[CHARID_STR_LEN];
 
+    service_id_to_string(srvc_id, srvc_id_buf);
+    gatt_id_to_string(char_id, char_id_buf);
     fprintf(stdout,"%s: conn_id=%d status=%d srvc_id=%s char_id=%s, char_prop=%x ++ \n",
-       __func__, conn_id, status,
-    service_id_to_string(srvc_id, srvc_id_buf),
-    gatt_id_to_string(char_id, char_id_buf), char_prop);
+       __func__, conn_id, status, srvc_id_buf, char_id_buf, char_prop);
 
     if(AlertServiceMatches!= true ) {
-        gattctestAlertData = (ServiceData *) (malloc(sizeof(uint8_t)* sizeof(ServiceData)));
+        gattctestAlertData = (ServiceData *) (osi_malloc(sizeof(ServiceData)));
         if (gattctestAlertData == NULL ) {
 	    //if(srvc_id != NULL) { free(srvc_id); srvc_id = NULL; }
 	    //if(char_id != NULL) { free(char_id); char_id = NULL; }
@@ -389,7 +338,7 @@ class gattctestClientCallback : public BluetoothGattClientCallback
 	     fprintf(stdout,  "%02x", srvc_id->id.uuid.uu[j]);
          }
 
-        fprintf(stdout, "\Diagnostic: char_id->id.uuid is \n");
+        fprintf(stdout, "\n\Diagnostic: char_id->id.uuid is \n");
         for (int j = 0; j < sizeof(char_id->uuid); j++) {
              ALOGD(LOGTAG  "%02x", char_id->uuid.uu[j]);
              fprintf(stdout,  "%02x", char_id->uuid.uu[j]);
@@ -400,10 +349,18 @@ class gattctestClientCallback : public BluetoothGattClientCallback
             fprintf(stdout, "Saving the Alert Level details\n");
             gattctestAlertData->conn_id = conn_id;
 
-            gattctestAlertData->srvc_id = (btgatt_srvc_id_t*) malloc(sizeof(btgatt_srvc_id_t));
+            gattctestAlertData->srvc_id = (btgatt_srvc_id_t*) osi_malloc(sizeof(btgatt_srvc_id_t));
+            if (gattctestAlertData->srvc_id == NULL) {
+                fprintf(stdout,"Could not allocate memory to gattctestAlertData->srvc_id \n");
+                return;
+            }
             memcpy(gattctestAlertData->srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
 
-            gattctestAlertData->char_id = (btgatt_gatt_id_t*) malloc(sizeof(btgatt_gatt_id_t));
+            gattctestAlertData->char_id = (btgatt_gatt_id_t*) osi_malloc(sizeof(btgatt_gatt_id_t));
+            if (gattctestAlertData->char_id == NULL) {
+                fprintf(stdout,"Could not allocate memory to gattctestAlertData->char_id \n");
+                return;
+            }
             memcpy(gattctestAlertData->char_id, char_id, sizeof(btgatt_gatt_id_t));
             fprintf(stdout, "%s, Return 1  -- \n", __func__);
 	    return;
@@ -422,18 +379,27 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         char char_id_buf[CHARID_STR_LEN];
 
         gattctestServData->conn_id = conn_id;
-        gattctestServData->srvc_id = (btgatt_srvc_id_t*) malloc (sizeof(btgatt_srvc_id_t));
+        gattctestServData->srvc_id = (btgatt_srvc_id_t*) osi_malloc (sizeof(btgatt_srvc_id_t));
+        if (gattctestServData->srvc_id == NULL) {
+            fprintf(stdout,"Could not allocate memory to gattctestServData->srvc_id \n");
+            return;
+        }
         memcpy(gattctestServData->srvc_id,srvc_id, (sizeof(btgatt_srvc_id_t)));
 
-        gattctestServData->char_id = (btgatt_gatt_id_t*)malloc (sizeof(btgatt_gatt_id_t));
+        gattctestServData->char_id = (btgatt_gatt_id_t*)osi_malloc (sizeof(btgatt_gatt_id_t));
+        if (gattctestServData->char_id == NULL) {
+            fprintf(stdout,"Could not allocate memory to gattctestServData->char_id \n");
+            return;
+        }
         memcpy(gattctestServData->char_id, char_id, sizeof(btgatt_gatt_id_t));
-        gattctestServData->descr_id = descr_id;
+        memcpy(gattctestServData->descr_id, descr_id, sizeof(btgatt_gatt_id_t));
+
+        service_id_to_string(srvc_id, srvc_id_buf);
+        gatt_id_to_string(char_id, char_id_buf);
+        desc_id_to_string(descr_id, buf);
 
         fprintf(stdout,"%s: conn_id=%d status=%d srvc_id=%s char_id=%s, descr_id=%s\n",
-               __func__, conn_id, status,
-              service_id_to_string(srvc_id, srvc_id_buf),
-              gatt_id_to_string(char_id, char_id_buf),
-              desc_id_to_string(descr_id, buf));
+               __func__, conn_id, status, srvc_id_buf, char_id_buf, buf);
 
         if(status == 0) {
             fprintf(stdout, "%s, got descriptor successfully\n", __func__);
@@ -441,6 +407,12 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         } else {
             fprintf(stdout, "%s, All Descriptors fetched, no more descriptors\n",__func__);
         }
+    }
+
+    void btgattc_get_included_service_cb(int conn_id, int status,
+          btgatt_srvc_id_t *srvc_id, btgatt_srvc_id_t *incl_srvc_id)
+    {
+        UNUSED
     }
 
     void btgattc_register_for_notification_cb(int conn_id, int registered,
@@ -506,11 +478,6 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         UNUSED
     }
 
-    void btgattc_get_included_service_cb(int conn_id, int status,
-                                       btgatt_srvc_id_t *srvc_id, btgatt_srvc_id_t *incl_srvc_id)
-    {
-        UNUSED
-    }
 
     void btgattc_scan_filter_cfg_cb(int action, int client_if, int status, int filt_type, int avbl_space)
     {
@@ -584,6 +551,73 @@ class gattctestClientCallback : public BluetoothGattClientCallback
         UNUSED
     }
 
+    bool foundAlertService() {
+        return AlertServiceMatches;
+     }
+
+    bool CompareParams(bt_uuid_t *uuid_dest, bt_uuid_t *uuid_src)
+    {
+        CHECK_PARAM(uuid_dest)
+        CHECK_PARAM(uuid_src)
+        for (int i = 0; i < 16; i++) {
+               if(uuid_dest->uu[i] != uuid_src->uu[i]){
+	            fprintf(stdout, "(%s) UUID Failed Matches\n",__FUNCTION__);
+                    return false;
+	        }
+       }
+        fprintf(stdout, "(%s) UUID Matches\n",__FUNCTION__);
+        return true;
+    }
+
+    bool MatchAlertServiceUUID(bt_uuid_t *suuid)
+    {
+        CHECK_PARAM(suuid)
+        bt_uuid_t uuid;
+        uuid.uu[15] = 0x00;
+        uuid.uu[14] = 0x00;
+        uuid.uu[13] = 0x18;
+        uuid.uu[12] = 0x02;
+        uuid.uu[11] = 0x00;
+        uuid.uu[10] =0x00;
+        uuid.uu[9] = 0x10;
+        uuid.uu[8] = 0x00;
+        uuid.uu[7] =0x80;
+        uuid.uu[6] = 0x00;
+        uuid.uu[5] = 0x00;
+        uuid.uu[4] = 0x80;
+        uuid.uu[3] = 0x5f;
+        uuid.uu[2] = 0x9b;
+        uuid.uu[1] = 0x34;
+        uuid.uu[0] = 0xfb;
+
+	fprintf(stdout, "(%s) Matching Service UUID\n", __FUNCTION__);
+        return CompareParams(&uuid, suuid);
+    }
+
+    bool MatchAlertCharUUID(bt_uuid_t *suuid)
+    {
+        CHECK_PARAM(suuid)
+        bt_uuid_t uuid;
+        uuid.uu[15] = 0x00;
+        uuid.uu[14] = 0x00;
+        uuid.uu[13] = 0x2a;
+        uuid.uu[12] = 0x06;
+        uuid.uu[11] = 0x00;
+        uuid.uu[10] =0x00;
+        uuid.uu[9] = 0x10;
+        uuid.uu[8] = 0x00;
+        uuid.uu[7] =0x80;
+        uuid.uu[6] = 0x00;
+        uuid.uu[5] = 0x00;
+        uuid.uu[4] = 0x80;
+        uuid.uu[3] = 0x5f;
+        uuid.uu[2] = 0x9b;
+        uuid.uu[1] = 0x34;
+        uuid.uu[0] = 0xfb;
+
+        fprintf(stdout, "(%s) Matching Char UUID\n", __FUNCTION__);
+        return CompareParams(&uuid, suuid);
+     }	
 };
 
 class gattctestServerCallback :public BluetoothGattServerCallback
@@ -601,7 +635,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
           GattsRegisterAppEvent rev;
           rev.event_id = RSP_ENABLE_EVENT;
           rev.server_if = server_if;
-          rev.uuid = uuid;
+          memcpy(&rev.uuid, uuid,sizeof(bt_uuid_t));
           rev.status = status;
           fprintf(stdout," set gattctest data \n");
           gattctest->SetGATTCTESTAppData(&rev);
@@ -624,7 +658,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
           GattsServiceAddedEvent event;
            event.event_id =RSP_ENABLE_EVENT;
            event.server_if = server_if;
-           event.srvc_id = srvc_id;
+           memcpy(&event.srvc_id, srvc_id, sizeof(btgatt_srvc_id_t));
            event.srvc_handle = srvc_handle;
            gattctest->SetGATTCTESTSrvcData(&event);
            gattctest->AddCharacteristics();
@@ -647,7 +681,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
            GattsCharacteristicAddedEvent event;
            event.event_id =RSP_ENABLE_EVENT;
            event.server_if = server_if;
-           event.char_id = char_id;
+           memcpy(&event.char_id, char_id, sizeof(bt_uuid_t));
            event.srvc_handle = srvc_handle;
            event.char_handle = char_handle;
            gattctest->SetGATTCTESTCharacteristicData(&event);
@@ -665,7 +699,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
            GattsDescriptorAddedEvent event;
            event.event_id =RSP_ENABLE_EVENT;
            event.server_if = server_if;
-           event.descr_id= descr_id;
+           memcpy(&event.descr_id, descr_id,sizeof(bt_uuid_t));
            event.srvc_handle = srvc_handle;
            event.descr_handle= descr_handle;
            gattctest->SetGATTCTESTDescriptorData(&event);
@@ -699,14 +733,14 @@ class gattctestServerCallback :public BluetoothGattServerCallback
      if (gattctestAlertData != NULL ) {
          fprintf(stdout,"Diagnostic:(%s), freeing testAlert\n", __FUNCTION__);
          if (gattctestAlertData->srvc_id != NULL) {
-             free (gattctestAlertData->srvc_id);
+             osi_free (gattctestAlertData->srvc_id);
 	     gattctestAlertData->srvc_id = NULL;
 	 }
          if (gattctestAlertData->char_id != NULL) {
-	     free (gattctestAlertData->char_id);
+	     osi_free (gattctestAlertData->char_id);
 	     gattctestAlertData->char_id = NULL;
 	 }
-         free(gattctestAlertData);
+         osi_free(gattctestAlertData);
 	 gattctestAlertData = NULL;
       }
       if (gattctest) {
@@ -734,7 +768,7 @@ class gattctestServerCallback :public BluetoothGattServerCallback
        event.event_id = RSP_ENABLE_EVENT;
        event.conn_id = conn_id;
        event.trans_id = trans_id;
-       event.bda = bda;
+       memcpy(&event.bda, bda, sizeof(bt_uuid_t));
        event.attr_handle = attr_handle;
        event.offset = offset;
        event.length = length;
@@ -865,7 +899,8 @@ bool GattcTest::EnableGATTCTEST()
     fprintf(stdout, "(%s) Enable GATTCTEST Initiated \n",__FUNCTION__);
     CopyClientUUID(&client_uuid);
     CopyGenUUID(&gen_uuid);
-    gattctest->RegisterClient();
+    return gattctest->RegisterClient();
+
 }
 
 bool GattcTest::DisableGATTCTEST()
@@ -877,6 +912,7 @@ bool GattcTest::DisableGATTCTEST()
               delete gattctest;
               gattctest = NULL;
           }
+      return true;
 }
 
 bool GattcTest::RegisterApp()
@@ -920,10 +956,10 @@ bool GattcTest::ClientSetAdvData(char *str)
     int               min_conn_interval = RSP_MIN_CI;
     int               max_conn_interval = RSP_MAX_CI;
 
-    app_gatt->set_adv_data(GetGATTCTESTClientAppData()->clientIf, SetScanRsp,
+    return (app_gatt->set_adv_data(GetGATTCTESTClientAppData()->clientIf, SetScanRsp,
                                                 IncludeName, IncludeTxPower, min_conn_interval,
                                                 max_conn_interval, 0,strlen(str), str,
-                                                strlen(str), str, 0,NULL);
+                                                strlen(str), str, 0,NULL) == BT_STATUS_SUCCESS);
 }
 
 void GattcTest::CleanUp(int server_if)
@@ -1007,12 +1043,12 @@ bool GattcTest::SendAlert(int alert_level)
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
+    service_id_to_string(gattctestAlertData->srvc_id, srvc_id_buf);
+    gatt_id_to_string(gattctestAlertData->char_id, char_id_buf);
 
     if (gattctestClientCb->foundAlertService() == true) {
 	fprintf(stdout,"%s: conn_id=%d  srvc_id=%s char_id=%s\n",
-             __func__, gattctestAlertData->conn_id,
-             service_id_to_string(gattctestAlertData->srvc_id, srvc_id_buf),
-             gatt_id_to_string(gattctestAlertData->char_id, char_id_buf));
+             __func__, gattctestAlertData->conn_id, srvc_id_buf, char_id_buf);
 
         fprintf(stdout, "sending alert now alert level =%d \n", alert_level);
         if (alert_level == LOW_ALERT ) {
@@ -1028,6 +1064,7 @@ bool GattcTest::SendAlert(int alert_level)
     } else {
 	fprintf(stdout, " Matching Alert not found - dont send alert, try disc and connect again\n");
     }
+    return false;
 }
 
 bool GattcTest::SearchService(int conn_id)
@@ -1039,10 +1076,9 @@ bool GattcTest::SearchService(int conn_id)
      ALOGE(LOGTAG  "(%s) SearchService",__FUNCTION__);
 
     if(!gattctestServData) { //To be freed up at disconnect/off.
-        gattctestServData = (ServiceData *) (malloc(sizeof(uint8_t)* sizeof(ServiceData)));
+        gattctestServData = (ServiceData *) (osi_malloc(sizeof(ServiceData)));
         memset(gattctestServData, 0, sizeof(ServiceData));
     }
-
     return app_gatt->search_service(conn_id, NULL);
 }
 
@@ -1116,11 +1152,12 @@ bool GattcTest::AddService()
 bool GattcTest::DisconnectServer()
 {
     int server_if = GetGATTCTESTConnectionData()->clientIf;
-    bt_bdaddr_t * bda = GetGATTCTESTConnectionData()->bda;
+    bt_bdaddr_t bda;
+    memcpy(&bda, &(GetGATTCTESTConnectionData()->bda),sizeof(bt_bdaddr_t));
     int conn_id = GetGATTCTESTConnectionData()->conn_id;
     fprintf(stdout,  "(%s) Disconnecting interface (%d), connid (%d) ",__FUNCTION__,
             server_if, conn_id);
-    return app_gatt->serverDisconnect(server_if, bda, conn_id) == BT_STATUS_SUCCESS;
+    return app_gatt->serverDisconnect(server_if, &bda, conn_id) == BT_STATUS_SUCCESS;
 }
 
 bool GattcTest::DeleteService()
@@ -1142,7 +1179,7 @@ bool GattcTest::AddCharacteristics()
         return false;
     }
     bt_uuid_t char_uuid;
-    CopyParams(&char_uuid, &(GetGATTCTESTSrvcData()->srvc_id->id.uuid));
+    CopyParams(&char_uuid, &(GetGATTCTESTSrvcData()->srvc_id.id.uuid));
     int srvc_handle = GetGATTCTESTSrvcData()->srvc_handle;
     int server_if = GetGATTCTESTSrvcData()->server_if;
     fprintf(stdout,  "(%s) Adding Characteristics server_if (%d), srvc_handle (%d) \n",

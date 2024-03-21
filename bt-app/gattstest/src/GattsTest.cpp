@@ -47,6 +47,7 @@ class gattstestClientCallback : public BluetoothGattClientCallback
         event.event_id = GEN_GATT_EVENT;
         event.status = status;
         event.clientIf = client_if;
+        memcpy(&event.app_uuid,uuid,sizeof(bt_uuid_t));
         gattstest->SetGATTSTESTClientAppData(&event);
 
         gattstest->ClientSetAdvData("Remote Start Profile");
@@ -64,7 +65,7 @@ class gattstestClientCallback : public BluetoothGattClientCallback
 
    void btgattc_close_cb(int conn_id, int status, int clientIf, bt_bdaddr_t* bda)
    {
-        UNUSED
+       ALOGD(LOGTAG "btgattc_close_cb: conn_id = %d\n ", conn_id);
    }
 
    void btgattc_search_complete_cb(int conn_id, int status)
@@ -240,7 +241,7 @@ class gattstestServerCallback :public BluetoothGattServerCallback
             GattsRegisterAppEvent rev;
             rev.event_id = GEN_GATT_EVENT;
             rev.server_if = server_if;
-            rev.uuid = uuid;
+            memcpy(&rev.uuid, uuid, sizeof(bt_uuid_t));
             rev.status = status;
             fprintf(stdout," set gattstest data \n");
             gattstest->SetGATTSTESTAppData(&rev);
@@ -260,7 +261,7 @@ class gattstestServerCallback :public BluetoothGattServerCallback
         event.conn_id = conn_id;
         event.server_if = server_if;
         event.connected = connected;
-        event.bda = bda;
+        memcpy(&event.bda, bda, sizeof(bt_bdaddr_t));
 
         if (gattstest) {
             gattstest->SetGATTSTESTConnectionData(&event);
@@ -278,7 +279,7 @@ class gattstestServerCallback :public BluetoothGattServerCallback
             GattsServiceAddedEvent event;
             event.event_id =GEN_GATT_EVENT;
             event.server_if = server_if;
-            event.srvc_id = srvc_id;
+            memcpy(&event.srvc_id, srvc_id,sizeof(btgatt_srvc_id_t));
             event.srvc_handle = srvc_handle;
             gattstest->SetGATTSTESTSrvcData(&event);
             gattstest->AddCharacteristics();
@@ -301,7 +302,7 @@ class gattstestServerCallback :public BluetoothGattServerCallback
             GattsCharacteristicAddedEvent event;
             event.event_id =GEN_GATT_EVENT;
             event.server_if = server_if;
-            event.char_id = char_id;
+            memcpy(&event.char_id, char_id,sizeof(bt_uuid_t));
             event.srvc_handle = srvc_handle;
             event.char_handle = char_handle;
             gattstest->SetGATTSTESTCharacteristicData(&event);
@@ -319,7 +320,7 @@ class gattstestServerCallback :public BluetoothGattServerCallback
             GattsDescriptorAddedEvent event;
             event.event_id =GEN_GATT_EVENT;
             event.server_if = server_if;
-            event.descr_id= descr_id;
+            memcpy(&event.descr_id, descr_id,sizeof(bt_uuid_t));
             event.srvc_handle = srvc_handle;
             event.descr_handle= descr_handle;
             gattstest->SetGATTSTESTDescriptorData(&event);
@@ -375,7 +376,7 @@ class gattstestServerCallback :public BluetoothGattServerCallback
         event.event_id = GEN_GATT_EVENT;
         event.conn_id = conn_id;
         event.trans_id = trans_id;
-        event.bda = bda;
+        memcpy(&event.bda, bda, sizeof(bt_uuid_t));
         event.attr_handle = attr_handle;
         event.offset = offset;
         event.length = length;
@@ -429,9 +430,15 @@ GattsTest::GattsTest(btgatt_interface_t *gatt_itf, Gatt* gatt)
 
 GattsTest::~GattsTest()
 {
-    free(gattstestClientCb);
-    free(gattstestServerCb);
-    fprintf(stdout, "(%s) GATTSTEST DeInitialized\n",__FUNCTION__);
+    if(gattstestClientCb != NULL) {
+        delete(gattstestClientCb);
+        gattstestClientCb = NULL;
+    }
+    if(gattstestServerCb != NULL) {
+        delete(gattstestServerCb);
+        gattstestServerCb = NULL;
+    }
+    ALOGD(LOGTAG "(%s) GATTSTEST DeInitialized\n",__FUNCTION__);
     isClientRegistered = false;
     isServerRegistered = false;
 }
@@ -569,7 +576,7 @@ bool GattsTest::EnableGATTSTEST()
 bool GattsTest::DisableGATTSTEST()
 {
     fprintf(stdout, "(%s) Disable GATTSTEST Initiated",__FUNCTION__);
-    StopService();
+    return StopService();
 }
 
 bool GattsTest::RegisterApp()
@@ -616,10 +623,10 @@ bool GattsTest::ClientSetAdvData(char *str)
     int               min_conn_interval = GATTSTEST_MIN_CI;
     int               max_conn_interval = GATTSTEST_MAX_CI;
 
-    app_gatt->set_adv_data(GetGATTSTESTClientAppData()->clientIf, SetScanGattsTest,
+    return (app_gatt->set_adv_data(GetGATTSTESTClientAppData()->clientIf, SetScanGattsTest,
                                                 IncludeName, IncludeTxPower, min_conn_interval,
                                                 max_conn_interval, 0,strlen(str), str,
-                                                strlen(str), str, 0,NULL);
+                                                strlen(str), str, 0,NULL) == BT_STATUS_SUCCESS);
 }
 
 void GattsTest::CleanUp(int server_if)
@@ -729,12 +736,19 @@ bool GattsTest::AddService()
 
 bool GattsTest::DisconnectServer()
 {
+    int status;
     int server_if = GetGATTSTESTConnectionData()->server_if;
-    bt_bdaddr_t * bda = GetGATTSTESTConnectionData()->bda;
-    int conn_id = GetGATTSTESTConnectionData()->conn_id;
-    fprintf(stdout,  "(%s) Disconnecting interface (%d), connid (%d) ",__FUNCTION__,
-            server_if, conn_id);
-    return app_gatt->serverDisconnect(server_if, bda, conn_id) == BT_STATUS_SUCCESS;
+    bt_bdaddr_t bda;
+    memcpy(&bda, &(GetGATTSTESTConnectionData()->bda),sizeof(bt_bdaddr_t));
+    int server_conn_id = GetGATTSTESTConnectionData()->conn_id;
+    ALOGD(LOGTAG  "(%s) Disconnecting server interface (%d), connid (%d) ",__FUNCTION__,
+         server_if, server_conn_id);
+    status = app_gatt->serverDisconnect(server_if, &bda, server_conn_id);
+
+    if (status == BT_STATUS_SUCCESS)
+        return true;
+    else
+        return false;
 }
 
 bool GattsTest::DeleteService()
