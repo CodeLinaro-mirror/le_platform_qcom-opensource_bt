@@ -140,6 +140,8 @@ int main (int argc, char *argv[]) {
 
     // initialize signal handler
     signal(SIGINT, SignalHandler);
+    signal(SIGTERM, SignalHandler);
+    signal(SIGKILL, SignalHandler);
 
     ThreadInfo *main_thread = &threadInfo[THREAD_ID_MAIN];
 #ifndef USE_ANDROID_LOGGING
@@ -390,7 +392,7 @@ static void DisplayMenu(MenuType menu_type) {
 }
 
 static void SignalHandler(int sig) {
-    signal(SIGINT, SIG_IGN);
+    signal(sig, SIG_IGN);
     ExitHandler();
 }
 
