@@ -943,10 +943,17 @@ void Gap::ProcessEvent(BtEvent* event) {
             break;
 
         case GAP_API_SET_BDNAME:
-            SetBtName(&event->set_device_name_event.prop);
+        {
+            int ret=0;
+            ret = SetBtName(&event->set_device_name_event.prop);
+            if(!ret)
+                fprintf( stdout, "BT name is set to %s\n",(char *)event->set_device_name_event.prop.val);
+            else
+                fprintf( stdout, "Failed to set BT Name\n");
             config_set_string(config_,CONFIG_DEFAULT_SECTION,BT_LOCAL_DEV_NAME,(char *)event->set_device_name_event.prop.val);
             config_file_append(BT_LOCAL_DEV_NAME,config_,FILE_PATH);
             break;
+        }
 
         case GAP_API_SET_SCAN_MODE:
             SetScanMode(&event->set_scan_mode_event.prop);
