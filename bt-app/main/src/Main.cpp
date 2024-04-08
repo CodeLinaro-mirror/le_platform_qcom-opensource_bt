@@ -2110,6 +2110,8 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             break;
 
         case MAIN_EVENT_SSP_REQUEST:
+            SendCancelInquiryCmdToGap();
+
             memcpy(&ssp_data.bd_addr, &event->ssp_request_event.bd_addr,
                                             sizeof(bt_bdaddr_t));
             memcpy(&ssp_data.bd_name, &event->ssp_request_event.bd_name,
@@ -2127,6 +2129,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             break;
 
         case MAIN_EVENT_PIN_REQUEST:
+            SendCancelInquiryCmdToGap();
 
             memcpy(&pin_reply.bd_addr, &event->pin_request_event.bd_addr,
                                             sizeof(bt_bdaddr_t));
