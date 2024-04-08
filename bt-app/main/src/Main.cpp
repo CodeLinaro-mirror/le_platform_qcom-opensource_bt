@@ -988,6 +988,11 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
 
         case GATTCTEST_INIT:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
+                if (gattstest) {
+                   ALOGI (LOGTAG "  DisableGATTSTEST \n");
+                   gattstest->DisableGATTSTEST();
+                   sleep(3);
+                }
                 fprintf( stdout, "ENABLE GATTCTEST\n");
                 if (gattctest) {
                    fprintf(stdout,"gattctest already initialized \n");
@@ -1089,6 +1094,11 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
     switch (cmd_id) {
         case GATTSTEST_INIT:
             if ((g_bt_app->bt_state == BT_STATE_ON)) {
+               if (gattctest) {
+                  ALOGI (LOGTAG " DisableGATTCTEST \n");
+                  gattctest->DisableGATTCTEST();
+                  sleep(3);
+               }
                 fprintf( stdout, "ENABLE GATTSTEST\n");
                 if (gattstest) {
                    fprintf(stdout,"rsp already initialized \n");
