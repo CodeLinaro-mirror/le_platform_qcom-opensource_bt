@@ -383,7 +383,7 @@ static void DisplayMenu(MenuType menu_type) {
             if (!(strcmp(pts_value,"true"))) {
                 num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
            } else {
-                num_cmds  = 6;
+                num_cmds  = 7;
            }
             menu = &HfpAGMenu[0];
             break;
