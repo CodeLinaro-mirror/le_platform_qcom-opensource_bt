@@ -16,6 +16,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the
+ * following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
 
@@ -30,6 +34,9 @@
 #include <hardware/bluetooth.h>
 #include "include/ipc.hpp"
 #include "utils.h"
+#ifdef SUPPORT_ESL_AP
+#include <hardware/vendor_ap.h>
+#endif
 
 #ifdef USE_GEN_GATT
 #include "GattcTest.hpp"
@@ -992,11 +999,18 @@ class BluetoothApp {
     reactor_object_t *cmd_reactor_;
     struct hw_device_t *device_;
     bluetooth_device_t *bt_device_;
+#ifdef SUPPORT_ESL_AP
+    vendor_ap_device_t *ap_device_;
+#endif
     bool LoadConfigParameters(const char *config_path);
     void InitHandler();
     void DeInitHandler();
     bool LoadBtStack();
     void UnLoadBtStack();
+#ifdef SUPPORT_ESL_AP
+    bool LoadAp();
+    void UnLoadAp();
+#endif
     int LocalSocketCreate(void);
 
   public:
@@ -1014,6 +1028,9 @@ class BluetoothApp {
      * structure object for standard Bluetooth DM interface
      */
     const bt_interface_t *bt_interface;
+#ifdef SUPPORT_ESL_AP
+    const vendor_ap_interface_t *ap_interface;
+#endif
 
     reactor_object_t *listen_reactor_;
     reactor_object_t *accept_reactor_;
