@@ -805,6 +805,7 @@ UserMenuList HfpAGMenu[] = {
     {DESTROY_SCO_CONN,      "destroy_sco",   ONE_PARAM,    "destroy_sco<space><bt_address>"},
     {VOIP_CALL_IND,         "voip_call_ind",   ONE_PARAM,    "voip_call_ind<space><bt_address>"},
     {END_VOIP_CALL,         "end_voip_call",   ONE_PARAM,    "end_voip_call<space><bt_address>"},
+    {BACK_TO_MAIN,          "main_menu",     ZERO_PARAM,   "main_menu"},
     {ACCEPT_VOIP_CALL,      "acpt_voip_call",  ONE_PARAM,    "acpt_voip_call<space><bt_address>"},
     {INCOM_VOIP_CALL_IND,   "incom_voip_call_ind", THREE_PARAM, "incom_voip_call_ind<space>"
       "<bt_address><space><number><space><call_active> eg:phone number - phone_number provided in"
@@ -837,7 +838,6 @@ UserMenuList HfpAGMenu[] = {
     {SPK_VOL_CTRL,          "speaker_volume_control",   ONE_PARAM,   "speaker_volume_control<space><value>"},
     {SEND_DTMF,             "send_dtmf",   ONE_PARAM,    "send_dtmf<space><code>"},
 #endif
-    {BACK_TO_MAIN,          "main_menu",     ZERO_PARAM,   "main_menu"},
 };
 #ifdef SUPPORT_ESL_AP
 /**
