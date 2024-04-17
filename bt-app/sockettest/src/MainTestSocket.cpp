@@ -32,7 +32,7 @@ static int fd = -1;
 void SetupSocket() {
 
   struct sockaddr_un addr;
-  char sockName[200] = "/data/misc/bluetooth/ble_gap_socket";
+  char sockName[200] = "/dev/socket/ble_gap_socket";
   printf("%s", __func__);
 
   if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
