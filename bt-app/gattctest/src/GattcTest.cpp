@@ -1035,7 +1035,6 @@ bool GattcTest::Disconnect(const bt_bdaddr_t *bd_addr)
 
 bool GattcTest::SendAlert(int alert_level)
 {
-    char buf[UUID_STR_LEN];
     char srvc_id_buf[SRVCID_STR_LEN];
     char char_id_buf[CHARID_STR_LEN];
 
@@ -1043,23 +1042,27 @@ bool GattcTest::SendAlert(int alert_level)
         ALOGE(LOGTAG  "(%s) Gatt Interface Not present",__FUNCTION__);
         return false;
     }
-    service_id_to_string(gattctestAlertData->srvc_id, srvc_id_buf);
-    gatt_id_to_string(gattctestAlertData->char_id, char_id_buf);
 
     if (gattctestClientCb->foundAlertService() == true) {
+        service_id_to_string(gattctestAlertData->srvc_id, srvc_id_buf);
+        gatt_id_to_string(gattctestAlertData->char_id, char_id_buf);
+
 	fprintf(stdout,"%s: conn_id=%d  srvc_id=%s char_id=%s\n",
              __func__, gattctestAlertData->conn_id, srvc_id_buf, char_id_buf);
 
         fprintf(stdout, "sending alert now alert level =%d \n", alert_level);
         if (alert_level == LOW_ALERT ) {
             fprintf(stdout, "in LOW_ALERT %s\n", __func__);
-            return gattctest->app_gatt->write_characteristic(gattctestAlertData->conn_id,gattctestAlertData->srvc_id,gattctestAlertData->char_id,1,2,0,"00");
+            return gattctest->app_gatt->write_characteristic(gattctestAlertData->conn_id,
+			    gattctestAlertData->srvc_id,gattctestAlertData->char_id,1,2,0,"00");
         } else if (alert_level == MID_ALERT) {
             fprintf(stdout, "in MID_ALERT %s\n", __func__);
-            return app_gatt->write_characteristic(gattctestAlertData->conn_id,gattctestAlertData->srvc_id,gattctestAlertData->char_id,1,2,0,"01");
+            return app_gatt->write_characteristic(gattctestAlertData->conn_id,
+			    gattctestAlertData->srvc_id,gattctestAlertData->char_id,1,2,0,"01");
         } else if (alert_level == HIGH_ALERT) {
             fprintf(stdout, "in HIGH_ALERT %s\n", __func__);
-            return gattctest->app_gatt->write_characteristic(gattctestAlertData->conn_id,gattctestAlertData->srvc_id,gattctestAlertData->char_id,1,2,0,"02");
+            return gattctest->app_gatt->write_characteristic(gattctestAlertData->conn_id,
+			    gattctestAlertData->srvc_id,gattctestAlertData->char_id,1,2,0,"02");
         }
     } else {
 	fprintf(stdout, " Matching Alert not found - dont send alert, try disc and connect again\n");
