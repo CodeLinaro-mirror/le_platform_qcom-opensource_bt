@@ -1135,6 +1135,7 @@ void GattcTest :: gattRefresh(string bdaddr)
     ALOGE(LOGTAG "gattRefresh Failed");
     fprintf(stdout, "gattRefresh Failed\n");
   }
+  CliDevice->discoverServices();
 }
 
 void GattcTest :: gattrequestMtu(string bdaddr, int mtu_value)
