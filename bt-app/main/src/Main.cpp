@@ -4780,7 +4780,7 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     }
 
     if(is_a2dp_source_enabled_) {
-        osi_property_set("persist.bt.a2dp_offload_cap","sbc-aac");
+        osi_property_set("persist.bt.a2dp_offload_cap","sbc");
     }
     //checking for hfp client
     is_hfp_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
