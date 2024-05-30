@@ -750,12 +750,14 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
         case HFP_AG_VOIP_CALL_TERMINATION:
             EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
 #if defined(BT_AUDIO_PAL_INTEGRATION)
+        /*
         if (pa_routing_intf) {
            int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=false");
            if (ret) {
               ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
            }
         }
+        */
 #endif
             break;
         case HFP_AG_VOIP_CALL_INCOMING_INDICATION:
@@ -1049,12 +1051,14 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                  ALOGD("Failed HF set sco allowed, status: %d", status);
                else {
 #if defined(BT_AUDIO_PAL_INTEGRATION)
+            /*
                  if (pa_routing_intf) {
                     int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=true");
                     if (ret) {
                        ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
                     }
                  }
+            */
 #endif
                 sBtHfpAgInterface->connect_audio(&pEvent->hfp_ag_event.bd_addr);
 	       }
@@ -1580,12 +1584,14 @@ bool Hfp_Ag::VoipCallInd(bt_bdaddr_t *bd_addr) {
     }
     if(sBtHfpAgInterface != NULL) {
 #if defined(BT_AUDIO_PAL_INTEGRATION)
+        /*
         if (pa_routing_intf) {
            int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=true");
            if (ret) {
               ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
            }
         }
+        */
 #endif
         sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
                                               BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
@@ -1628,12 +1634,14 @@ bool Hfp_Ag::VoipCallIncomingInd(bt_bdaddr_t *bd_addr,char* number, int call_act
     }
     if(sBtHfpAgInterface != NULL) {
 #if defined(BT_AUDIO_PAL_INTEGRATION)
+        /*
         if (pa_routing_intf) {
            int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=true");
            if (ret) {
               ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
            }
         }
+        */
 #endif
         sBtHfpAgInterface->phone_state_change(call_active,0,BTHF_CALL_STATE_INCOMING,number,
                                               BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
@@ -2449,10 +2457,12 @@ void Hfp_Ag::teardown_sco_path() {
 #if defined(BT_AUDIO_PAL_INTEGRATION)
    if (pa_routing_intf) {
       release_audio();
+      /*
       int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=false");
       if (ret) {
          ALOGE(LOGTAG, "%s failed to reset A2dpSuspended flag\n", __func__);
       }
+      */
    }
 #endif
 }
