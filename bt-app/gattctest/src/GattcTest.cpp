@@ -544,17 +544,17 @@ void GattcTest::enableGattctest()
 GattcTest::~GattcTest()
 {
   if (gattctest != NULL) {
+    mScanner->stopScan(mscan_callback);
+    if (mscan_callback != NULL) {
+      delete(mscan_callback);
+      mscan_callback = NULL;
+    }
     gattctest->setting = NULL;
     settingMask = 0;
     if (gattctest->filters.size() > 0) {
       for (auto filter:gattctest->filters)
         delete filter;
       gattctest->filters.clear();
-    }
-    mScanner->stopScan(mscan_callback);
-    if (mscan_callback != NULL) {
-      delete(mscan_callback);
-      mscan_callback = NULL;
     }
     if (gattCliCallback != NULL) {
       delete(gattCliCallback);
@@ -1135,6 +1135,7 @@ void GattcTest :: gattRefresh(string bdaddr)
     ALOGE(LOGTAG "gattRefresh Failed");
     fprintf(stdout, "gattRefresh Failed\n");
   }
+  CliDevice->discoverServices();
 }
 
 void GattcTest :: gattrequestMtu(string bdaddr, int mtu_value)
@@ -1768,11 +1769,11 @@ void GattcTest :: stopScan()
 {
   ALOGD(LOGTAG "StopScan");
   fprintf(stdout, "stopping scan results\n");
+  mScanner->stopScan(mscan_callback);
   if (gattctest->setting) delete gattctest->setting;
   gattctest->setting = NULL;
   settingMask = 0;
   gattctest->filters.clear();
-  mScanner->stopScan(mscan_callback);
 }
 
 void GattcTest :: testBatchscan(int value)

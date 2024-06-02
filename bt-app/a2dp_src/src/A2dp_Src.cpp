@@ -3177,7 +3177,16 @@ void A2dp_Source::HandleDisableSource(void) {
    unregisterMediaPlayers();
    a2dpSrcCodecList.clear();
 #if defined(BT_AUDIO_PAL_INTEGRATION)
-   if (pa_routing_intf) {
+    if (pa_routing_intf) {
+        int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, false);
+        if (!ret) {
+            ALOGD(LOGTAG, " BT a2dp source disconnect success");
+            fprintf(stdout, "BT a2dp source disconnect success\n");
+        }
+        else {
+            ALOGD(LOGTAG, " BT a2dp source disconnect failed");
+            fprintf(stdout, "BT a2dp source disconnect failed\n");
+        }
        pa_routing_intf_close(pa_routing_intf);
        pa_routing_intf = NULL;
    }

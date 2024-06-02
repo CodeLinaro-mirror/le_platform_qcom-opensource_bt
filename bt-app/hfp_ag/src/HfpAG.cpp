@@ -2420,10 +2420,10 @@ void Hfp_Ag::setup_sco_path() {
          return;
       }
       if (mWbsState == BTHF_WBS_YES) {
-         ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_AG, "bt_wbs=on");
+         ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_AG, "hfp_sample_rate=16000");
       }
       else {
-         ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_AG, "bt_wbs=off");
+         ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_AG, "hfp_sample_rate=8000");
       }
 
       if (!ret) {
@@ -2448,12 +2448,8 @@ void Hfp_Ag::teardown_sco_path() {
 #endif
 #if defined(BT_AUDIO_PAL_INTEGRATION)
    if (pa_routing_intf) {
-      int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_AG, "bt_wbs=off");
-      if (ret) {
-         ALOGE(LOGTAG, "%s failed to reset wbs flag\n", __func__);
-      }
       release_audio();
-      ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=false");
+      int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=false");
       if (ret) {
          ALOGE(LOGTAG, "%s failed to reset A2dpSuspended flag\n", __func__);
       }

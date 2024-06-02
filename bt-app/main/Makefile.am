@@ -40,6 +40,7 @@ AM_CPPFLAGS += -I${BT_SOURCE}/btapp/bt-app \
                -I${BT_SOURCE}/stack/bluetooth_ext/vhal/include \
                -I${BT_SOURCE}/stack/system/bt \
                -I${BT_SOURCE}/stack/system/bt/include \
+               -I${BT_SOURCE}/stack/system/bt/stack/include \
                -I${BT_SOURCE}/stack/system/bt/include/hardware \
                -I${BT_SOURCE}/stack/system/bt/types \
                -I${BT_SOURCE}/btapp/bt-app/utils/include
