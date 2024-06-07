@@ -1262,6 +1262,11 @@ static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
             event = new BtEvent;
             event->hfp_client_event.event_id = HFP_CLIENT_API_MIC_VOL_CTRL_REQ;
             event->hfp_client_event.arg1 = atoi(user_cmd[ONE_PARAM]);
+            if(event->hfp_client_event.arg1 < 0 || event->hfp_client_event.arg1 > 15) {
+                fprintf( stdout, " Volume out of Range 0-15\n");
+                delete event;
+                break;
+            }
             PostMessage (THREAD_ID_HFP_CLIENT, event);
             break;
         case SPK_VOL_CTRL:
