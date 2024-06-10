@@ -473,6 +473,9 @@ void volume_change_cb (const bt_bdaddr_t* bd_addr, bthf_client_volume_type_t typ
        pEvent->hfp_client_event.event_id = HFP_CLIENT_API_MIC_VOL_CTRL_REQ;
 
    pEvent->hfp_client_event.arg1 = volume;
+   /* Trigger is from Remote side no need to send AT+VGS,
+    * so second argument set to flase */
+   pEvent->hfp_client_event.arg2 = false;
    PostMessage(THREAD_ID_HFP_CLIENT, pEvent);
 }
 
@@ -1008,7 +1011,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             }
             break;
         case HFP_CLIENT_API_SPK_VOL_CTRL_REQ:
-            if (sBtHfpClientInterface != NULL) {
+            if (sBtHfpClientInterface != NULL && pEvent->hfp_client_event.arg2 == true) {
                 sBtHfpClientInterface->volume_control(&mConnectedDevice, BTHF_CLIENT_VOLUME_TYPE_SPK,
                                           pEvent->hfp_client_event.arg1);
             }
@@ -1242,8 +1245,11 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
         case HFP_CLIENT_API_SPK_VOL_CTRL_REQ:
             if (sBtHfpClientInterface != NULL) {
                 ConfigureVolume(BTHF_CLIENT_VOLUME_TYPE_SPK, pEvent->hfp_client_event.arg1, false);
-                sBtHfpClientInterface->volume_control(&mConnectedDevice, BTHF_CLIENT_VOLUME_TYPE_SPK,
-                                          pEvent->hfp_client_event.arg1);
+                /* AT+VGS will be sent to remote only while processing API */
+                if (pEvent->hfp_client_event.arg2 == true) {
+                    sBtHfpClientInterface->volume_control(&mConnectedDevice, BTHF_CLIENT_VOLUME_TYPE_SPK,
+                                    pEvent->hfp_client_event.arg1);
+                }
             }
             break;
         case HFP_CLIENT_API_MIC_VOL_CTRL_REQ:
