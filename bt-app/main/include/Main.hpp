@@ -378,6 +378,7 @@ typedef enum {
     ESLAP_OPTION,
     AP_INIT,
     AP_DEINIT,
+    AP_CERT,
 #endif
     END,
 } CommandList;
@@ -393,6 +394,9 @@ typedef enum {
     FOUR_PARAM,
     FIVE_PARAM,
     SIX_PARAM,
+#ifdef SUPPORT_ESL_AP
+    TWENTY_PARAM = 20,
+#endif
 } MaxParamCount;
 
 typedef enum {
@@ -846,6 +850,7 @@ UserMenuList HfpAGMenu[] = {
 UserMenuList EslapMenu[] = {
     {AP_INIT,               "init_ap",          ZERO_PARAM,    "init_ap"},
     {AP_DEINIT,             "deinit_AP",        ZERO_PARAM,    "deinit_ap"},
+    {AP_CERT,               "cert",             TWENTY_PARAM,  "cert<space><sub_cmd><space>[parameter...], print help with no any parameter"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
 };
 #endif

@@ -134,6 +134,7 @@ ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,spl
 static void SendDisableCmdToGap();
 #ifdef SUPPORT_ESL_AP
 void HandleAPDeinitCmd(void);
+static uint8_t cert_cmd_parameter_count = 0;
 #endif
 /**
  * @brief main function
@@ -172,8 +173,6 @@ int main (int argc, char *argv[]) {
 #endif
     return 0;
 }
-
-
 
 static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
                                                           MenuType menu_type) {
@@ -296,18 +295,27 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
                 input_args[param_count++][COMMAND_ARG_SIZE - 1] = '\0';
             }
 
-            // consider command as other param
-            if(param_count == max_param + 1) {
-                if(temp_arg != NULL) {
-                    fprintf( stdout, " Maximum params reached\n");
+#ifdef SUPPORT_ESL_AP
+            if ((menu_type == ESLAP_MENU) && (menu[found_index].cmd_id == AP_CERT)) {
+                cert_cmd_parameter_count = param_count;
+                status = true;
+            } else {
+#endif
+                // consider command as other param
+                if(param_count == max_param + 1) {
+                    if(temp_arg != NULL) {
+                        fprintf( stdout, " Maximum params reached\n");
+                        fprintf( stdout, " Refer help: %s\n", menu[found_index].cmd_help);
+                    } else {
+                        status = true;
+                    }
+                } else if(param_count < max_param + 1) {
+                    fprintf( stdout, " Missing required parameters\n");
                     fprintf( stdout, " Refer help: %s\n", menu[found_index].cmd_help);
-                } else {
-                    status = true;
                 }
-            } else if(param_count < max_param + 1) {
-                fprintf( stdout, " Missing required parameters\n");
-                fprintf( stdout, " Refer help: %s\n", menu[found_index].cmd_help);
+#ifdef SUPPORT_ESL_AP
             }
+#endif
         } else {
             // to handle the paring inputs
             if(temp_arg != NULL) {
@@ -2599,6 +2607,14 @@ void HandleAPDeinitCmd(void) {
     }
 }
 
+void HandleAPCertCmd(char user_cmd[][COMMAND_ARG_SIZE]) {
+    if (g_bt_app->ap_state != AP_STATE_ON) {
+        fprintf( stdout, "please init AP first.\n");
+        return;
+    }
+    g_bt_app->ap_interface->cert(cert_cmd_parameter_count - CERT_CMD_PARAMETER_COUNT_MIN, &user_cmd[ONE_PARAM]);
+}
+
 static void HandleEslapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *event = NULL;
 
@@ -2612,6 +2628,9 @@ static void HandleEslapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
         case AP_DEINIT:
             HandleAPDeinitCmd();
+            break;
+        case AP_CERT:
+            HandleAPCertCmd(user_cmd);
             break;
         default:
             ALOGV (LOGTAG " Command not handled");
