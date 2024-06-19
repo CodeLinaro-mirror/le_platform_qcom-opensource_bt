@@ -536,63 +536,98 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
     switch (cmd_id) {
         case CONNECT:
         {
-            bt_bdaddr_t address;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &address);
-            if (!g_gap->IsDeviceBonded(address)) {
-                fprintf( stdout, " Please pair with the device before A2DPSink connection\n");
-                break;
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                bt_bdaddr_t address;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &address);
+                if (!g_gap->IsDeviceBonded(address)) {
+                   fprintf( stdout, " Please pair with the device before A2DPSink connection\n");
+                   break;
+                }
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                event->a2dpSinkEvent.event_id = A2DP_SINK_API_CONNECT_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
+                PostMessage (thread_id, event);
             }
-            event = new BtEvent;
-            memset(event, 0, sizeof(BtEvent));
-            event->a2dpSinkEvent.event_id = A2DP_SINK_API_CONNECT_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
-            PostMessage (thread_id, event);
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         }
         case DISCONNECT:
-            event = new BtEvent;
-            memset(event, 0, sizeof(BtEvent));
-            event->a2dpSinkEvent.event_id = A2DP_SINK_API_DISCONNECT_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
-            PostMessage (thread_id, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                event->a2dpSinkEvent.event_id = A2DP_SINK_API_DISCONNECT_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
+                PostMessage (thread_id, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case PLAY:
-            event = new BtEvent;
-            memset(event, 0, sizeof(BtEvent));
-            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_PLAY;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
-            PostMessage (THREAD_ID_AVRCP, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+                event->avrcpCtrlPassThruEvent.key_id = CMD_ID_PLAY;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
+                PostMessage (THREAD_ID_AVRCP, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case PAUSE:
-            event = new BtEvent;
-            memset(event, 0, sizeof(BtEvent));
-            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_PAUSE;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
-            PostMessage (THREAD_ID_AVRCP, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+                event->avrcpCtrlPassThruEvent.key_id = CMD_ID_PAUSE;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
+                PostMessage (THREAD_ID_AVRCP, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case STOP:
-            event = new BtEvent;
-            memset(event, 0, sizeof(BtEvent));
-            event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
-            event->avrcpCtrlPassThruEvent.key_id = CMD_ID_STOP;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
-            PostMessage (THREAD_ID_AVRCP, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_REQ;
+                event->avrcpCtrlPassThruEvent.key_id = CMD_ID_STOP;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->avrcpCtrlPassThruEvent.bd_addr);
+                PostMessage (THREAD_ID_AVRCP, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case AVDT_START:
-            event = new BtEvent;
-            memset(event, 0, sizeof(BtEvent));
-            event->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_START_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
-            PostMessage (thread_id, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                event->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_START_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
+                PostMessage (thread_id, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case AVDT_SUSPEND:
-            event = new BtEvent;
-            memset(event, 0, sizeof(BtEvent));
-            event->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_SUSPEND_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
-            PostMessage (thread_id, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                memset(event, 0, sizeof(BtEvent));
+                event->a2dpSinkEvent.event_id = A2DP_SINK_AUDIO_SUSPEND_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSinkEvent.bd_addr);
+                PostMessage (thread_id, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case ACCEPT:
             event = new BtEvent;
@@ -892,23 +927,33 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
     switch (cmd_id) {
         case CONNECT:
         {
-            bt_bdaddr_t address;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &address);
-            if (!g_gap->IsDeviceBonded(address)){
-                fprintf( stdout, " Please pair with the device before A2DPSource connection\n");
-                break;
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                bt_bdaddr_t address;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &address);
+                if (!g_gap->IsDeviceBonded(address)){
+                    fprintf( stdout, " Please pair with the device before A2DPSource connection\n");
+                    break;
+                }
+                event = new BtEvent;
+                event->a2dpSourceEvent.event_id = A2DP_SOURCE_API_CONNECT_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSourceEvent.bd_addr);
+                PostMessage (THREAD_ID_A2DP_SOURCE, event);
             }
-            event = new BtEvent;
-            event->a2dpSourceEvent.event_id = A2DP_SOURCE_API_CONNECT_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSourceEvent.bd_addr);
-            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         }
         case DISCONNECT:
-            event = new BtEvent;
-            event->a2dpSourceEvent.event_id = A2DP_SOURCE_API_DISCONNECT_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSourceEvent.bd_addr);
-            PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                event->a2dpSourceEvent.event_id = A2DP_SOURCE_API_DISCONNECT_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->a2dpSourceEvent.bd_addr);
+                PostMessage (THREAD_ID_A2DP_SOURCE, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case PLAY:
             event = new BtEvent;
@@ -1258,47 +1303,77 @@ static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     switch (cmd_id) {
         case CONNECT:
         {
-            bt_bdaddr_t address;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &address);
-            if (!g_gap->IsDeviceBonded(address)) {
-                fprintf( stdout, " Please pair with the device before HfpAG connection\n");
-                break;
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                bt_bdaddr_t address;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &address);
+                if (!g_gap->IsDeviceBonded(address)) {
+                    fprintf( stdout, " Please pair with the device before HfpAG connection\n");
+                    break;
+                }
+                event = new BtEvent;
+                event->hfp_ag_event.event_id = HFP_AG_API_CONNECT_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+                PostMessage (THREAD_ID_HFP_AG, event);
             }
-            event = new BtEvent;
-            event->hfp_ag_event.event_id = HFP_AG_API_CONNECT_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
-            PostMessage (THREAD_ID_HFP_AG, event);
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         }
         case DISCONNECT:
-            event = new BtEvent;
-            event->hfp_ag_event.event_id = HFP_AG_API_DISCONNECT_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
-            PostMessage (THREAD_ID_HFP_AG, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                event->hfp_ag_event.event_id = HFP_AG_API_DISCONNECT_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+                PostMessage (THREAD_ID_HFP_AG, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case CREATE_SCO_CONN:
-            event = new BtEvent;
-            event->hfp_ag_event.event_id = HFP_AG_API_CONNECT_AUDIO_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
-            PostMessage (THREAD_ID_HFP_AG, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                event->hfp_ag_event.event_id = HFP_AG_API_CONNECT_AUDIO_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+                PostMessage (THREAD_ID_HFP_AG, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case DESTROY_SCO_CONN:
-            event = new BtEvent;
-            event->hfp_ag_event.event_id = HFP_AG_API_DISCONNECT_AUDIO_REQ;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
-            PostMessage (THREAD_ID_HFP_AG, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                event->hfp_ag_event.event_id = HFP_AG_API_DISCONNECT_AUDIO_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+                PostMessage (THREAD_ID_HFP_AG, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case VOIP_CALL_IND:
-            event = new BtEvent;
-            event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_INDICATION;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
-            PostMessage (THREAD_ID_HFP_AG, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_INDICATION;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+                PostMessage (THREAD_ID_HFP_AG, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case END_VOIP_CALL:
-            event = new BtEvent;
-            event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_TERMINATION;
-            string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
-            PostMessage (THREAD_ID_HFP_AG, event);
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                event->hfp_ag_event.event_id = HFP_AG_VOIP_CALL_TERMINATION;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->hfp_ag_event.bd_addr);
+                PostMessage (THREAD_ID_HFP_AG, event);
+            }
+            else {
+               fprintf(stdout, "Invalid BT Address\n");
+            }
             break;
         case ACCEPT_VOIP_CALL:
             event = new BtEvent;
