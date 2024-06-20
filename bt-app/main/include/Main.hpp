@@ -604,10 +604,6 @@ UserMenuList A2dpSinkMenu[] = {
     {PLAY,                  "play",             ONE_PARAM,    "play<space><bt_address>"},
     {PAUSE,                 "pause",            ONE_PARAM,    "pause<space><bt_address>"},
     {STOP,                  "stop",             ONE_PARAM,    "stop<space><bt_address>"},
-    {AVDT_START,            "avdt_start",       ONE_PARAM,    "avdt_start<space><bt_address> -->split"},
-    {AVDT_SUSPEND,          "avdt_suspend",     ONE_PARAM,    "avdt_suspend<space><bt_address> -->split"},
-    {ACCEPT,                "accept",           ZERO_PARAM,   "accept   -->split"},
-    {REJECT,                "reject",           ZERO_PARAM,   "reject   -->split"},
     {REWIND,                "rewind",           ONE_PARAM,    "rewind<space><bt_address>"},
     {FASTFORWARD,           "fastforward",      ONE_PARAM,    "fastforward<space><bt_address>"},
     {FORWARD,               "forward",          ONE_PARAM,    "forward<space><bt_address>"},
@@ -636,6 +632,10 @@ UserMenuList A2dpSinkMenu[] = {
     {ADDTONOWPLAYING,  "addtonowplaying",  FOUR_PARAM,  "addtonowplaying<space><bt_address><space><scopeID><space><uID><space><uID_Counter>"},
     {SEARCH,  "search",  THREE_PARAM,  "search<space><bt_address><space><length><space><string>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
+    {AVDT_START,            "avdt_start",       ONE_PARAM,    "avdt_start<space><bt_address> -->split"},
+    {AVDT_SUSPEND,          "avdt_suspend",     ONE_PARAM,    "avdt_suspend<space><bt_address> -->split"},
+    {ACCEPT,                "accept",           ZERO_PARAM,   "accept   -->split"},
+    {REJECT,                "reject",           ZERO_PARAM,   "reject   -->split"},
 };
 
 /**

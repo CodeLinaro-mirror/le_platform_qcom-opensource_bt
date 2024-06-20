@@ -331,7 +331,7 @@ static void DisplayMenu(MenuType menu_type) {
 
     UserMenuList *menu = NULL;
     int index = 0, num_cmds = 0;
-
+    char pts_value[6];
     switch(menu_type) {
         case GAP_MENU:
             menu = &GapMenu[0];
@@ -365,7 +365,12 @@ static void DisplayMenu(MenuType menu_type) {
             break;
         case A2DP_SINK_MENU:
             menu = &A2dpSinkMenu[0];
-            num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
+            osi_property_get("vendor.bt.pts.certification", pts_value, "false");
+            if (!(strcmp(pts_value,"true"))) {
+                num_cmds  = NO_OF_COMMANDS(A2dpSinkMenu);
+            } else {
+                num_cmds  = 32;
+            }
             break;
         case A2DP_SOURCE_MENU:
             menu = &A2dpSourceMenu[0];
@@ -394,7 +399,6 @@ static void DisplayMenu(MenuType menu_type) {
             num_cmds = NO_OF_COMMANDS(SppClientMenu);
             break;
         case HFP_AG_MENU:
-            char pts_value[6];
             osi_property_get("vendor.bt.pts.certification", pts_value, "false");
             if (!(strcmp(pts_value,"true"))) {
                 num_cmds  = NO_OF_COMMANDS(HfpAGMenu);
