@@ -714,6 +714,11 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
             memset(event, 0, sizeof(BtEvent));
             event->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_VOL_CHANGED_NOTI_REQ;
             event->avrcpCtrlPassThruEvent.arg1 = atoi(user_cmd[ONE_PARAM]);
+            if(event->avrcpCtrlPassThruEvent.arg1 < 0 || event->avrcpCtrlPassThruEvent.arg1 > 15) {
+                fprintf( stdout, " Volume out of Range 0-15\n");
+                delete event;
+                break;
+            }
             PostMessage (THREAD_ID_AVRCP, event);
             break;
         case GET_CAP:
