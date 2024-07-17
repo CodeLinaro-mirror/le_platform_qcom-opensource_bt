@@ -68,7 +68,7 @@ using namespace gatt;
 #define PERIODIC_INTERVAL 200
 #define PHY_LE_1M 1
 #define PHY_LE_2M 2
-#define PHY_LE_CODED 3
+#define PHY_LE_CODED 4
 #define PROPERTY_READ 2
 #define SERVICE_LINE_MIN 0
 #define SERVICE_LINE_MAX 4
