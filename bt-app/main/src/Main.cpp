@@ -83,6 +83,7 @@ bool init_advertiser_file = 0;
 long onoff_count = 0;
 long onoff_index = 0;
 bool exithandler_waitbtoff = FALSE;
+bool isBT_ON = true;
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
@@ -445,9 +446,14 @@ static void ExitHandler(void) {
             // before proceeding to close the BT APP
             exithandler_waitbtoff = TRUE;
         } else if(g_bt_app->bt_state == BT_STATE_OFF){
-            // If BT is already Disabled just kill the BT APP.
-            fprintf (stdout, " \n BT is Already OFF, Just exiting APP\n");
-            kill(getpid(), SIGKILL);
+            // If BT enable command is still in process, wait for BT to turn on.
+            if (g_bt_app->status.enable_cmd == COMMAND_INPROGRESS){
+                isBT_ON = false;
+                fprintf( stdout, " Previous enable command is still in process\n");
+            }else{
+                fprintf (stdout, " \n BT is Already OFF, Just exiting APP\n");
+                kill(getpid(), SIGKILL);
+            }
         }
     }
 }
@@ -3927,13 +3933,16 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 }
               }
             }
-            if (is_bt_enable_test_menu_) {
-              event = new BtEvent;
-              event->event_id = MAIN_EVENT_TESTMENU_BT_ENABLED;
-              fprintf (stdout, " Posting testmenu_BT enabled event to main thread\n");
-              PostMessage (THREAD_ID_MAIN, event);
-            }
             status.enable_cmd = COMMAND_COMPLETE;
+            if(!isBT_ON){
+                isBT_ON=true;
+                ExitHandler();
+            } else if (is_bt_enable_test_menu_) {
+                event = new BtEvent;
+                event->event_id = MAIN_EVENT_TESTMENU_BT_ENABLED;
+                fprintf (stdout, " Posting testmenu_BT enabled event to main thread\n");
+                PostMessage (THREAD_ID_MAIN, event);
+            }
             break;
 
         case MAIN_EVENT_DISABLED:
