@@ -48,7 +48,9 @@ static Uuid uuidFromByte(uint8_t* uuidBytes, int uuidLen)
   } else {
     Uuid::UUID128Bit tmp;
     std::memcpy(&tmp[0], uuidBytes, uuidLen);
-    return Uuid::From128BitBE(uuidBytes);
+    //service uuid scan filter is storing in little endian, so scan record uuid
+    //also storing in little endian format.
+    return Uuid::From128BitLE(uuidBytes);
   }
 }
 
