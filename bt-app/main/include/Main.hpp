@@ -378,6 +378,7 @@ typedef enum {
     ESLAP_OPTION,
     AP_INIT,
     AP_DEINIT,
+    AP_CERT,
 #endif
     END,
 } CommandList;
@@ -393,6 +394,9 @@ typedef enum {
     FOUR_PARAM,
     FIVE_PARAM,
     SIX_PARAM,
+#ifdef SUPPORT_ESL_AP
+    TWENTY_PARAM = 20,
+#endif
 } MaxParamCount;
 
 typedef enum {
@@ -600,10 +604,6 @@ UserMenuList A2dpSinkMenu[] = {
     {PLAY,                  "play",             ONE_PARAM,    "play<space><bt_address>"},
     {PAUSE,                 "pause",            ONE_PARAM,    "pause<space><bt_address>"},
     {STOP,                  "stop",             ONE_PARAM,    "stop<space><bt_address>"},
-    {AVDT_START,            "avdt_start",       ONE_PARAM,    "avdt_start<space><bt_address> -->split"},
-    {AVDT_SUSPEND,          "avdt_suspend",     ONE_PARAM,    "avdt_suspend<space><bt_address> -->split"},
-    {ACCEPT,                "accept",           ZERO_PARAM,   "accept   -->split"},
-    {REJECT,                "reject",           ZERO_PARAM,   "reject   -->split"},
     {REWIND,                "rewind",           ONE_PARAM,    "rewind<space><bt_address>"},
     {FASTFORWARD,           "fastforward",      ONE_PARAM,    "fastforward<space><bt_address>"},
     {FORWARD,               "forward",          ONE_PARAM,    "forward<space><bt_address>"},
@@ -611,7 +611,7 @@ UserMenuList A2dpSinkMenu[] = {
     {POWER,                 "power",            ONE_PARAM,    "power<space><bt_address>"},
     {VOL_UP,                "volup",            ONE_PARAM,    "volup<space><bt_address>"},
     {VOL_DOWN,              "voldown",          ONE_PARAM,    "voldown<space><bt_address>"},
-    {VOL_CHANGED_NOTI,      "volchangednoti",   ONE_PARAM,    "volchangednoti<space><vol level>"},
+    {VOL_CHANGED_NOTI,      "volchangednoti",   ONE_PARAM,    "volchangednoti<space><vol level(0-15)>"},
     {MUTE,                  "mute",             ONE_PARAM,    "mute<space><bt_address>"},
     {CODEC_LIST,        "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"
         "param2,codec2,param1,param2,....>"},
@@ -632,6 +632,10 @@ UserMenuList A2dpSinkMenu[] = {
     {ADDTONOWPLAYING,  "addtonowplaying",  FOUR_PARAM,  "addtonowplaying<space><bt_address><space><scopeID><space><uID><space><uID_Counter>"},
     {SEARCH,  "search",  THREE_PARAM,  "search<space><bt_address><space><length><space><string>"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
+    {AVDT_START,            "avdt_start",       ONE_PARAM,    "avdt_start<space><bt_address> -->split"},
+    {AVDT_SUSPEND,          "avdt_suspend",     ONE_PARAM,    "avdt_suspend<space><bt_address> -->split"},
+    {ACCEPT,                "accept",           ZERO_PARAM,   "accept   -->split"},
+    {REJECT,                "reject",           ZERO_PARAM,   "reject   -->split"},
 };
 
 /**
@@ -662,7 +666,7 @@ UserMenuList A2dpSourceMenu[] = {
     {SET_REPEAT_VAL,     "avrcp_setrepeatval",  ONE_PARAM,     "avrcp_setrepeatval<space><val> (1 to 4)"},
     {SET_SHUFFLE_VAL,     "avrcp_setshuffleval",  ONE_PARAM,     "avrcp_setshuffleval<space><val>(1 to 3)"},
     {SET_SCAN_VAL,     "avrcp_setscanval",  ONE_PARAM,     "avrcp_setscanval<space><val> (1 to 3)"},
-    {SET_SCMST_CP_FLAG,     "set_scmst_cp_flag",TWO_PARAM,    "set_scmst_cp_flag<space><bd_addr><space><0/2> (0-Copyrighted 2-Content not protected) "},
+    {SET_SCMST_CP_FLAG,     "set_scmst_cp_flag",TWO_PARAM,    "set_scmst_cp_flag<space><bd_addr><space><0-2> (0-Copyrighted 1-Only Once 2-Content not protected) "},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
 };
 
@@ -846,6 +850,7 @@ UserMenuList HfpAGMenu[] = {
 UserMenuList EslapMenu[] = {
     {AP_INIT,               "init_ap",          ZERO_PARAM,    "init_ap"},
     {AP_DEINIT,             "deinit_AP",        ZERO_PARAM,    "deinit_ap"},
+    {AP_CERT,               "cert",             TWENTY_PARAM,  "cert<space><sub_cmd><space>[parameter...], print help with no any parameter"},
     {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,    "main_menu"},
 };
 #endif

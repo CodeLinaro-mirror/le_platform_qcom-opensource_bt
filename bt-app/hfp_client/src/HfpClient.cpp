@@ -473,6 +473,9 @@ void volume_change_cb (const bt_bdaddr_t* bd_addr, bthf_client_volume_type_t typ
        pEvent->hfp_client_event.event_id = HFP_CLIENT_API_MIC_VOL_CTRL_REQ;
 
    pEvent->hfp_client_event.arg1 = volume;
+   /* Trigger is from Remote side no need to send AT+VGS,
+    * so second argument set to flase */
+   pEvent->hfp_client_event.arg2 = false;
    PostMessage(THREAD_ID_HFP_CLIENT, pEvent);
 }
 
@@ -570,7 +573,7 @@ void Hfp_Client::HandleEnableClient(void) {
             ALOGE(LOGTAG "get profile interface failed, returning");
             return;
         }
-
+        memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
         change_state(HFP_CLIENT_STATE_DISCONNECTED);
         sBtHfpClientInterface->init(&sBluetoothHfpClientCallbacks);
         BtEvent *pEvent = new BtEvent;
@@ -658,6 +661,10 @@ void Hfp_Client::state_connecting_handler(BtEvent* pEvent) {
     char str[18];
     ALOGD(LOGTAG "state_connecting_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
+        case HFP_CLIENT_API_CONNECT_REQ:
+            ALOGE(LOGTAG,"Already in connecting_handler,Ignore request");
+            fprintf(stdout,"Already in connecting_handler,Ignore request\n");
+            break;
         case HFP_CLIENT_CONNECTING_CB:
         // intentional fall through
         case HFP_CLIENT_CONNECTED_CB:
@@ -697,7 +704,17 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
     char str[18];
     BtEvent *pControlRequest, *pReleaseControlReq;
     switch(pEvent->event_id) {
+        case HFP_CLIENT_API_CONNECT_REQ:
+            ALOGE(LOGTAG,"Already in connected_handler,Ignore Request");
+            fprintf(stdout,"Already in connected_handler,Ignore Request\n");
+            break;
         case HFP_CLIENT_API_DISCONNECT_REQ:
+            if (memcmp(&pEvent->hfp_client_event.bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
+                bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
+                ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+                fprintf(stdout, "Device not connected: %s\n", str);
+                break;
+            }
 
             if (mAudioMode == HFP_CLIENT_MODE_RINGTONE)
             {
@@ -760,6 +777,12 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
 
             break;
         case HFP_CLIENT_API_CONNECT_AUDIO_REQ:
+            if (memcmp(&pEvent->hfp_client_event.bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
+                bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
+                ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+                fprintf(stdout, "Device not connected: %s\n", str);
+                break;
+            }
             bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
             fprintf(stdout, "Connecting SCO/eSCO with device %s\n", str);
             ALOGD(LOGTAG "Connecting SCO/eSCO with device %s", str);
@@ -1008,7 +1031,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             }
             break;
         case HFP_CLIENT_API_SPK_VOL_CTRL_REQ:
-            if (sBtHfpClientInterface != NULL) {
+            if (sBtHfpClientInterface != NULL && pEvent->hfp_client_event.arg2 == true) {
                 sBtHfpClientInterface->volume_control(&mConnectedDevice, BTHF_CLIENT_VOLUME_TYPE_SPK,
                                           pEvent->hfp_client_event.arg1);
             }
@@ -1042,7 +1065,18 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
     BtEvent *pControlRequest, *pReleaseControlReq;
     ALOGD(LOGTAG "state_audio_on_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
+        case HFP_CLIENT_API_CONNECT_REQ:
+            ALOGE(LOGTAG,"Already in audio_on_handler,Ignore request");
+            fprintf(stdout,"Already in audio_on_handler,Ignore request\n");
+            break;
         case HFP_CLIENT_API_DISCONNECT_REQ:
+            if (memcmp(&pEvent->hfp_client_event.bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
+                bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
+                ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+                fprintf(stdout, "Device not connected: %s\n", str);
+                break;
+            }
+
             if (sBtHfpClientInterface != NULL) {
                 sBtHfpClientInterface->disconnect_audio(&pEvent->hfp_client_event.bd_addr);
             }
@@ -1074,6 +1108,12 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
              change_state(HFP_CLIENT_STATE_CONNECTING);
              break;
         case HFP_CLIENT_API_DISCONNECT_AUDIO_REQ:
+            if (memcmp(&pEvent->hfp_client_event.bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
+                bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
+                ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+                fprintf(stdout, "Device not connected: %s\n", str);
+                break;
+            }
             if (sBtHfpClientInterface != NULL) {
                 sBtHfpClientInterface->disconnect_audio(&pEvent->hfp_client_event.bd_addr);
             }
@@ -1242,8 +1282,11 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
         case HFP_CLIENT_API_SPK_VOL_CTRL_REQ:
             if (sBtHfpClientInterface != NULL) {
                 ConfigureVolume(BTHF_CLIENT_VOLUME_TYPE_SPK, pEvent->hfp_client_event.arg1, false);
-                sBtHfpClientInterface->volume_control(&mConnectedDevice, BTHF_CLIENT_VOLUME_TYPE_SPK,
-                                          pEvent->hfp_client_event.arg1);
+                /* AT+VGS will be sent to remote only while processing API */
+                if (pEvent->hfp_client_event.arg2 == true) {
+                    sBtHfpClientInterface->volume_control(&mConnectedDevice, BTHF_CLIENT_VOLUME_TYPE_SPK,
+                                    pEvent->hfp_client_event.arg1);
+                }
             }
             break;
         case HFP_CLIENT_API_MIC_VOL_CTRL_REQ:

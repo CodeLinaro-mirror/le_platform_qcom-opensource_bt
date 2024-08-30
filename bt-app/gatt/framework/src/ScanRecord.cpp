@@ -133,12 +133,15 @@ std::unordered_map<int, std::vector<uint8_t> > ScanRecord::getManufacturerSpecif
 
 std::vector<uint8_t> ScanRecord::getManufacturerSpecificData(int manufacturerId)
 {
-  auto map_ptr = mManufacturerSpecificData.find(manufacturerId);
-  if(map_ptr == mManufacturerSpecificData.end()) {
-    ALOGE(LOGTAG " getManufacturerSpecificData - manufacturerId not found");
-  }
-  return map_ptr->second;
+    auto map_ptr = mManufacturerSpecificData.find(manufacturerId);
+    if(map_ptr != mManufacturerSpecificData.end()) {
+        return map_ptr->second;
+    } else {
+        ALOGE(LOGTAG " getManufacturerSpecificData - manufacturerId not found");
+        return std::vector<uint8_t>(); // Return an empty vector if not found
+    }
 }
+
 
 std::unordered_map<Uuid, std::vector<uint8_t> > ScanRecord::getServiceData()
 {
@@ -147,14 +150,16 @@ std::unordered_map<Uuid, std::vector<uint8_t> > ScanRecord::getServiceData()
 
 std::vector<uint8_t> ScanRecord::getServiceData(Uuid serviceDataUuid)
 {
-  if(serviceDataUuid == Uuid::kEmpty) {
-    return {};
-  }
-  auto map_ptr = mServiceData.find(serviceDataUuid);
-  if(map_ptr == mServiceData.end()) {
-    ALOGE(LOGTAG " getServiceData - Service Data Uuid not found");
-  }
-  return map_ptr->second;
+    if(serviceDataUuid == Uuid::kEmpty) {
+        return {};
+    }
+    auto map_ptr = mServiceData.find(serviceDataUuid);
+    if(map_ptr != mServiceData.end()) {
+        return map_ptr->second;
+    } else {
+        ALOGE(LOGTAG " getServiceData - Service Data Uuid not found");
+        return std::vector<uint8_t>(); // Return an empty vector if not found
+    }
 }
 
 int ScanRecord::getTxPowerLevel()

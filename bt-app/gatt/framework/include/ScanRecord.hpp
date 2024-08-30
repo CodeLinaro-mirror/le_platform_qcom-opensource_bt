@@ -65,9 +65,9 @@ class ScanRecord final {
 
     const std::vector<Uuid> mServiceSolicitationUuids;
 
-    const std::unordered_map<int, std::vector<uint8_t> >& mManufacturerSpecificData;
+    const std::unordered_map<int, std::vector<uint8_t> > mManufacturerSpecificData;
 
-    const std::unordered_map<Uuid, std::vector<uint8_t> >& mServiceData;
+    const std::unordered_map<Uuid, std::vector<uint8_t> > mServiceData;
 
     // Transmission power level(in dB).
     const int mTxPowerLevel;
