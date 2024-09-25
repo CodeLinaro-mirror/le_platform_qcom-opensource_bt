@@ -24,6 +24,7 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
+#include <stdint.h>
 
 using namespace std;
 using std::string;
