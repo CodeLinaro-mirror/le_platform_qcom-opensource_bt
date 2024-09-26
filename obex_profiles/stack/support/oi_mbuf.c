@@ -638,7 +638,8 @@ const OI_BYTE * OI_MBUF_PeekBytes(OI_MBUF *mbuf,
         else {
             if (MBUF_INLINE == cell->disposition) {
                 *contigLen = cell->len - offset;
-                ret = &cell->buf.data[0] + offset;
+		if (offset < MBUF_INLINE_BUF_SIZE)
+		    ret = &cell->buf.data[0] + offset;
             }
             else if (MBUF_NESTED == cell->disposition) {
                 ret = OI_MBUF_PeekBytes(cell->buf.mcell.mbuf, offset, contigLen);
