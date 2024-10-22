@@ -75,4 +75,4 @@ libbtobex_la_CC = @CC@
 libbtobex_la_SOURCES = $(c_sources)
 libbtobex_la_CPPFLAGS = $(AM_CPPFLAGS)
 libbtobex_la_CFLAGS = $(AM_CFLAGS)
-libbtobex_la_LDFLAGS = $(AM_LDFLAGS) -static -lpthread -lm -ldl -lrt
+libbtobex_la_LDFLAGS = $(AM_LDFLAGS) -static -lpthread -lm -ldl -lrt -version-number @LT_VERSION_NUMBER@
