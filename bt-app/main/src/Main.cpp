@@ -2669,6 +2669,11 @@ static void SendDisableCmdToGap() {
 }
 
 #ifdef SUPPORT_ESL_AP
+//for AP post "AP exception to BT main thread", then deinit AP
+void PostMessageToBtMainThread(void *msg) {
+    PostMessage(THREAD_ID_MAIN, msg);
+}
+
 void HandleAPInitCmd(void) {
 
     if ((g_bt_app->status.eslap_init_cmd != COMMAND_INPROGRESS) &&
@@ -2678,7 +2683,7 @@ void HandleAPInitCmd(void) {
 
         g_bt_app->status.eslap_init_cmd = COMMAND_INPROGRESS;
         if (g_bt_app->ap_interface) {
-            if (g_bt_app->ap_interface->init(g_bt_app->bt_interface) == 0) {
+            if (g_bt_app->ap_interface->init(g_bt_app->bt_interface, PostMessageToBtMainThread) == 0) {
                 g_bt_app->status.eslap_init_cmd = COMMAND_COMPLETE;
                 g_bt_app->ap_state = AP_STATE_ON;
             } else {
@@ -4183,7 +4188,14 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             }
             break;
 #endif
-
+#ifdef SUPPORT_ESL_AP
+        case ESL_AP_EXCEPTION:
+            if ((g_bt_app->ap_state == AP_STATE_ON) && (g_bt_app->status.eslap_deinit_cmd != COMMAND_INPROGRESS)) {
+                fprintf(stdout, "\n ESL_AP_EXCEPTION\n");
+                HandleAPDeinitCmd();
+            }
+            break;
+#endif
         default:
             ALOGD (LOGTAG " Default Case");
             break;

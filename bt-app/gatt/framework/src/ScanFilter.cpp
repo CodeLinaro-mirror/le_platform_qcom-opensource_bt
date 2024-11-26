@@ -287,7 +287,7 @@ bool ScanFilter::matches(ScanResult *scanResult)
   }
   string device = scanResult->getDevice();
   // Device match.
-  if (!mDeviceAddress.empty()  && (!device.empty() || !caseInsCompare(mDeviceAddress,device))) {
+  if (!mDeviceAddress.empty()  && (device.empty() || !caseInsCompare(mDeviceAddress,device))) {
     return false;
   }
 

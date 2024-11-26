@@ -1409,7 +1409,7 @@ void Spp_Client::start_send_recv_threads()
 
     pthread_mutex_init(&client_send_data_mutex, NULL);
     pthread_cond_init(&start_client_send_data_cv, NULL);
-    if (pthread_create(&client_send_thread, NULL, spp_client_send_data_thread_func, NULL) != 0) {
+    if (pthread_create(&client_send_data_thread, NULL, spp_client_send_data_thread_func, NULL) != 0) {
         ALOGD(LOGTAG_SPP_CLIENT "!! ERROR !! Cannot create spp client send data thread!\n");
         return;
     }

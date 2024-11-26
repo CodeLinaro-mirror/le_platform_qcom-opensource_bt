@@ -15,6 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#include <stdint.h>
 #include "PeriodicScanManager.hpp"
 #include "GattNativeInterfaceV2.hpp"
 #include "ScanResult.hpp"
