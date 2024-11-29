@@ -87,7 +87,7 @@ int server_num;
 bool file_read = 0;
 long onoff_count = 0;
 long onoff_index = 0;
-
+bool exithandler_waitbtoff = FALSE;
 
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
@@ -444,27 +444,19 @@ static void SignalHandler(int sig) {
 
 static void ExitHandler(void) {
 
-    // post the disable message to GAP incase BT is on
-    if ( g_bt_app && g_bt_app->bt_state == BT_STATE_ON) {
-        SendDisableCmdToGap();
-        sleep(3);
-        //system("killall -KILL wcnssfilter");
-        usleep(200);
+    if ( g_bt_app) {
+        // post the disable message to GAP incase BT is on
+        if ( g_bt_app->bt_state == BT_STATE_ON) {
+            SendDisableCmdToGap();
+            // No need to wait here, wait for BT off(BT Disable event)
+            // before proceeding to close the BT App
+            exithandler_waitbtoff = TRUE;
+        } else if (g_bt_app->bt_state == BT_STATE_OFF) {
+            // If BT is already Disabled just kill the BT APP.
+            fprintf(stdout, "\n BT is Already OFF, Just exiting APP\n");
+            kill(getpid(), SIGKILL);
+        }
     }
-
-    // TODO to wait for complete turn off before proceeding
-
-    if (g_bt_app) {
-        BtEvent *event = new BtEvent;
-        event->event_id = MAIN_API_DEINIT;
-        g_bt_app->ProcessEvent (event);
-        delete event;
-        delete g_bt_app;
-        g_bt_app = NULL;
-    }
-
-    // stop the reactor for self exit of main thread
-    reactor_stop (thread_get_reactor (threadInfo[THREAD_ID_MAIN].thread_id));
 }
 
 static int GetArgsFromString(char cmdString[COMMAND_ARG_SIZE], uint8_t* nArgs){
@@ -3530,6 +3522,11 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
                 usleep(200);
                 ALOGD (LOGTAG " BT State is OFF : %d",bt_state);
                 fprintf(stdout, " BT State is OFF\n");
+                if(exithandler_waitbtoff) {
+                  // in exit scenario wait for BT disable once BT is disabled
+                  // kill the process to close the app
+                  kill(getpid(), SIGKILL);
+                }
             }
             if (is_bt_enable_test_menu_) {
               event = new BtEvent;
