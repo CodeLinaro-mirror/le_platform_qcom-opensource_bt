@@ -2374,8 +2374,9 @@ static void HandleGattsTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                 if (gattstest) {
                     fprintf(stdout,"StartAdvertisement \n");
                     string server_instance = user_cmd[ONE_PARAM];
+                    string advset_instance = user_cmd[TWO_PARAM];
                     if(file_read && (init_advertiser_file == true)) {
-                        bool result =gattstest->StartAdvertisement(server_instance);
+                        bool result =gattstest->StartAdvertisement(server_instance, advset_instance);
                         if(!result){
                             fprintf(stdout,"Advertisement has not started\n");
                         }
