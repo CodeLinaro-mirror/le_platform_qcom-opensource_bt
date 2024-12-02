@@ -63,7 +63,8 @@ using namespace gatt;
 #define ADV_CFG_FILE_PATH "/data/misc/bluetooth/AdvertiserConfigFile.txt"
 #define GATT_SUCCESS 0
 #define AUTO_CONNECT 0
-#define TRANSPORT 0
+#define AUTO_TRANSPORT 0
+#define LE_TRANSPORT 2
 #define MAX_SERVER_INSTANCE 20
 #define MAX_SERVICE_INSTANCE 5
 #define INVALID_VALUE -1
@@ -175,10 +176,10 @@ void gattstestServerCallback::onConnectionStateChange(string deviceAddress, int 
       mServer= ptr->second;
       if(dtr != DeviceMap.end()) {
       //Device Already exists do not add
-    } else {
-      DeviceMap.insert(pair <string,GattServer*> (deviceAddress,mServer));
-    }
-    mServer->connect(deviceAddress,AUTO_CONNECT);
+      } else {
+        DeviceMap.insert(pair <string,GattServer*> (deviceAddress,mServer));
+      }
+      mServer->connect(deviceAddress,AUTO_CONNECT);
     }
   } else if(newState == GattDevice::STATE_DISCONNECTED) {
     fprintf(stdout,"The device %s got disconnected \n", deviceAddress.c_str());
@@ -643,7 +644,7 @@ void GattsTest::AddServer()
     }
     fprintf(stdout,"Adding Server %d \n", num_of_server);
     ALOGD(LOGTAG"Adding Server Instance : %d", num_of_server);
-    mgattServer = new GattServer(g_gatt,TRANSPORT);
+    mgattServer = new GattServer(g_gatt,LE_TRANSPORT);
     servInstanceMap.insert(pair <int,GattServer*> (num_of_server,mgattServer));
     ALOGD(LOGTAG"Adding Server CallBack : %d ", num_of_server);
     gattstestServerCb = new gattstestServerCallback();
