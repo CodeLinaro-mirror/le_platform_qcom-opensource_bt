@@ -1082,6 +1082,9 @@ bool GattsTest::UnregisterServer(string instance)
       AdvertisingSetCallback *mAdvSetCB;
       mAdvSetCB = advCBInstanceMap[instanceId];
       madvertiser->stopAdvertising(mAdvSetCB);
+      delete(mAdvSetCB);
+      mAdvSetCB = NULL;
+      advCBInstanceMap.erase(instanceId);
     }
     unordered_map <gattstestServerCallback*,GattServer*> ::iterator itr;
     for(itr = servCBInstanceMap.begin(); itr!= servCBInstanceMap.end(); ++itr) {
@@ -1091,7 +1094,6 @@ bool GattsTest::UnregisterServer(string instance)
        }
     }
     servInstanceMap.erase(instanceId);
-    advCBInstanceMap.erase(instanceId);
     return true;
   } else {
     fprintf(stdout,"There are no more servers to unregister \n");
