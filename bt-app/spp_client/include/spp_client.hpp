@@ -108,6 +108,7 @@ class Spp_Client {
     int send_data(const char* Size, int &soc_fd);
     int receive_data(int &soc_fd);
     void process_connect_message();
+    void process_disconnect_message();
     void connect(bt_bdaddr_t baddr);
     void start_send_recv_threads();
     void sppcli_send_thread_handler();

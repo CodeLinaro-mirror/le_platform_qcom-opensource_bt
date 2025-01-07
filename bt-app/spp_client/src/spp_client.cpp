@@ -103,6 +103,11 @@ static pthread_t client_recv_data_thread = NULL;
 static pthread_mutex_t client_recv_data_mutex;
 static pthread_cond_t start_client_recv_data_cv;
 
+/* SPP client handle disconnect thread */
+static pthread_t client_handle_disconnect_thread = NULL;
+static pthread_mutex_t client_handle_disconnect_mutex;
+static pthread_cond_t start_client_handle_disconnect_cv;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -495,6 +500,7 @@ void Spp_Client::spp_client_write_thread_handler()
             ALOGD(LOGTAG_SPP_CLIENT "connection closed by the remote");
             RESET_CLI_SOCFD(listen_data_socfd);
             client_write_thread_stop_thread = true;
+            change_state(STATE_SPP_CLIENT_DISCONNECTED);
         }
         else
         {
@@ -789,6 +795,9 @@ void Spp_Client::process_connect_message()
                             pConnect_Sig->bd_addr.address[5]);
                             connctFlg=true;
         change_state(STATE_SPP_CLIENT_CONNECTED);
+        pthread_mutex_lock(&client_handle_disconnect_mutex);
+        pthread_cond_signal(&start_client_handle_disconnect_cv);
+        pthread_mutex_unlock(&client_handle_disconnect_mutex);
     }
 
     ALOGD(LOGTAG_SPP_CLIENT "\n [AKK_DEBUB] Out of while loop \n");
@@ -818,8 +827,98 @@ void Spp_Client::connect(bt_bdaddr_t baddr)
 
 }
 
+static void *spp_client_handle_disconnect_thread_func(void *in_param)
+{
+
+    pSppClient->process_disconnect_message();
+    return NULL;
+
+}
+
+void Spp_Client::process_disconnect_message()
+{
+
+    ALOGD(LOGTAG_SPP_CLIENT "process_disconnect_message");
+
+    char buffer[1024];
+    char ctrl_msgbuf[CMSG_SPACE(1)];
+    struct cmsghdr *pcmsg;
+    int* p_acc_fd = NULL;
+    struct sockaddr_storage src_addr;
+    sock_disconnect_signal_t *pDisconnect_Sig = NULL;
+    int i =0;
+
+    struct iovec iov[1];
+    iov[0].iov_base=buffer;
+    iov[0].iov_len=sizeof(buffer);
+
+    struct msghdr message;
+    message.msg_name=&src_addr;
+    message.msg_namelen=sizeof(src_addr);
+    message.msg_iov=iov;
+    message.msg_iovlen=1;
+    message.msg_control= ctrl_msgbuf;
+    message.msg_controllen= sizeof(ctrl_msgbuf);
+    while ( mClientState != STATE_SPP_CLIENT_INACTIVE )
+    {
+        /* Wait for SPP connected */
+        while ( mClientState != STATE_SPP_CLIENT_CONNECTED )
+            pthread_cond_wait(&start_client_handle_disconnect_cv,&client_handle_disconnect_mutex);
+        pthread_mutex_unlock(&client_handle_disconnect_mutex);
+
+        while ( mClientState == STATE_SPP_CLIENT_CONNECTED )
+        {
+            // Wait for sock_disconnect_signal_t message
+            int count = recvmsg(listen_data_socfd,&message,0);
+
+            if (count==-1)
+            {
+                ALOGD(LOGTAG_SPP_CLIENT "recvmsg returned -1");
+            }
+            else if (message.msg_flags&MSG_TRUNC)
+            {
+                ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB]MSG_TRUNC\n");
+            }
+            else if ( 0 == count )
+            {
+            ALOGE(LOGTAG_SPP_CLIENT "ERROR listen sockfd closed");
+            RESET_CLI_SOCFD(listen_data_socfd);
+            change_state(STATE_SPP_CLIENT_IDLE);
+            return;
+            }
+
+            if(count == 4)
+            {
+                for(i =0 ; i < count ; i++)
+                ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] Received SCN msg[%d]= %02X\n",i, buffer[i]);
+
+                memset(buffer,0,sizeof(buffer));
+                continue;
+            }
+
+            // Handle the sock_disconnect_signal - server channel and status is received.
+
+            ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] count=%d", (int)count);
+            ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB]Received sock_disconnect_signal_t");
+            pDisconnect_Sig = (sock_disconnect_signal_t *) buffer;
+
+            ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] size=%d", pDisconnect_Sig->size);
+            ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] channel=%d", pDisconnect_Sig->channel);
+            ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] status=%d", pDisconnect_Sig->status);
+            ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] apsync=%d", pDisconnect_Sig->apsync);
+
+            if(!pDisconnect_Sig->apsync)
+                change_state(STATE_SPP_CLIENT_DISCONNECTED);
+        }
+
+        ALOGD(LOGTAG_SPP_CLIENT "\n [AKK_DEBUB] Out of while loop \n");
+    }
+    pthread_mutex_destroy(&client_handle_disconnect_mutex);
+    pthread_cond_destroy(&start_client_handle_disconnect_cv);
+}
+
 void Spp_Client::HandleEnableClient(void) {
-    
+
     ALOGD(LOGTAG_SPP_CLIENT "HandleEnableClient ");
     BtEvent *pEvent = new BtEvent;
     pEvent->profile_start_event.status = true;
@@ -1022,6 +1121,7 @@ int Spp_Client::receive_file(const char* fname, int &soc_fd)
             ALOGD(LOGTAG_SPP_CLIENT "[AKK_DEBUB] connection closed by the remote");
             RESET_CLI_SOCFD(soc_fd);
             spp_client_write_thread_close();
+            change_state(STATE_SPP_CLIENT_DISCONNECTED);
         }
         else if(count < 0 || errno == ECONNRESET)
         {
@@ -1246,6 +1346,7 @@ int Spp_Client::receive_data(int &soc_fd)
         RESET_CLI_SOCFD(soc_fd);
         spp_client_write_thread_close();
         status = FAILED;
+        change_state(STATE_SPP_CLIENT_DISCONNECTED);
     }
     else if(count < 0 || errno==ECONNRESET)
     {
@@ -1418,6 +1519,13 @@ void Spp_Client::start_send_recv_threads()
     pthread_cond_init(&start_client_recv_data_cv, NULL);
     if (pthread_create(&client_recv_data_thread, NULL, spp_client_recv_data_thread_func, NULL) != 0) {
         ALOGD(LOGTAG_SPP_CLIENT "!! ERROR !! Cannot create spp client receive data thread!\n");
+        return;
+    }
+
+    pthread_mutex_init(&client_handle_disconnect_mutex, NULL);
+    pthread_cond_init(&start_client_handle_disconnect_cv, NULL);
+    if (pthread_create(&client_handle_disconnect_thread, NULL, spp_client_handle_disconnect_thread_func, NULL) != 0) {
+        ALOGD(LOGTAG_SPP_CLIENT "!! ERROR !! Cannot create spp client handle disconnect thread!\n");
         return;
     }
 
