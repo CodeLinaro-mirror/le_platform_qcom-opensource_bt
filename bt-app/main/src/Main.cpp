@@ -148,7 +148,21 @@ static uint8_t cert_cmd_parameter_count = 0;
  *
  */
 int main (int argc, char *argv[]) {
-
+#define MAX_LINE_LEN 256
+    int count = 0;
+    FILE *fp = popen("ps -ef | grep btap", "r");
+    if (fp) {
+        char buffer[MAX_LINE_LEN];
+        while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+            if (std::strstr(buffer, "btapp"))
+                count++;
+        }
+        pclose(fp);
+        if (count > 1) {
+            fprintf(stdout, " Another btapp is running\n");
+            return 0;
+        }
+    }
     // initialize signal handler
     signal(SIGINT, SignalHandler);
     signal(SIGTERM, SignalHandler);
@@ -426,6 +440,8 @@ static void DisplayMenu(MenuType menu_type) {
 }
 
 static void SignalHandler(int sig) {
+    fprintf (stdout, " btapp will exit for signal %d\n", sig);
+    printBtappState();
     signal(sig, SIG_IGN);
     ExitHandler();
 }
@@ -4377,10 +4393,12 @@ bool BluetoothApp :: LoadBtStack (void) {
 
     if (hw_get_module (BT_STACK_MODULE_ID, (hw_module_t const **) &module)) {
         ALOGE(LOGTAG "%s hw_get_module failed", BT_STACK_MODULE_ID);
+        fprintf(stdout, "%s hw_get_module failed\n", BT_STACK_MODULE_ID);
         return false;
     }
 
     if (module->methods->open (module, BT_STACK_MODULE_ID, &device_)) {
+        fprintf(stdout, "%s open failed\n", BT_STACK_MODULE_ID);
         return false;
     }
 
@@ -4389,6 +4407,7 @@ bool BluetoothApp :: LoadBtStack (void) {
     if (!bt_interface) {
         bt_device_->common.close ((hw_device_t *) & bt_device_->common);
         bt_device_ = NULL;
+        fprintf(stdout, "%s get_bluetooth_interface failed\n", BT_STACK_MODULE_ID);
         return false;
     }
     return true;
@@ -4413,10 +4432,12 @@ bool BluetoothApp :: LoadAp (void) {
 
     if (hw_get_module (VENDOR_AP_MODULE_ID, (hw_module_t const **) &module)) {
         ALOGE(LOGTAG "%s hw_get_module failed", VENDOR_AP_MODULE_ID);
+        fprintf(stdout, "%s hw_get_module failed\n", VENDOR_AP_MODULE_ID);
         return false;
     }
 
     if (module->methods->open(module, VENDOR_AP_MODULE_ID, &device_)) {
+        fprintf(stdout, "%s open failed\n", VENDOR_AP_MODULE_ID);
         return false;
     }
 
@@ -4425,6 +4446,7 @@ bool BluetoothApp :: LoadAp (void) {
     if (!ap_interface) {
         ap_device_->common.close ((hw_device_t *) & ap_device_->common);
         ap_device_ = NULL;
+        fprintf(stdout, "%s get_ap_interface failed\n", VENDOR_AP_MODULE_ID);
         return false;
     }
     return true;
@@ -4442,11 +4464,17 @@ void BluetoothApp :: UnLoadAp (void)
 
 void BluetoothApp :: InitHandler (void) {
 
-    if (!LoadBtStack())
+    if (!LoadBtStack()) {
+        fprintf(stdout, "Can't load Bt Stack\n");
+        kill(getpid(), SIGKILL);
         return;
+    }
 #ifdef SUPPORT_ESL_AP
-    if (!LoadAp())
+    if (!LoadAp()) {
         ALOGE(LOGTAG "Can't load AP module");
+        fprintf(stdout, "Can't load AP module\n");
+        kill(getpid(), SIGKILL);
+    }
 #endif
     // Starting GAP Thread
     threadInfo[THREAD_ID_GAP].thread_id = thread_new (
@@ -4869,6 +4897,7 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     config = config_new (configpath);
     if (!config) {
         ALOGE (LOGTAG " Unable to open config file");
+        fprintf(stdout, " Unable to open config file\n");
         return false;
     }
     is_bt_ext_ldo = config_get_bool (config, CONFIG_DEFAULT_SECTION,
@@ -4990,4 +5019,24 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
                                     BT_SPP_CLIENT_ENABLED, false);
 
     return true;
+}
+
+void printBtappState (void) {
+    if (g_bt_app) {
+        fprintf(stdout, " BT state:%d\n", g_bt_app->bt_state);
+#ifdef SUPPORT_ESL_AP
+        fprintf(stdout, " AP state:%d\n", g_bt_app->ap_state);
+#endif
+/*
+        fprintf(stdout, " enable_cmd state:%d\n", g_bt_app->status.enable_cmd);
+        fprintf(stdout, " disable_cmd state:%d\n", g_bt_app->status.disable_cmd);
+        fprintf(stdout, " enquiry_cmd state:%d\n", g_bt_app->status.enquiry_cmd);
+        fprintf(stdout, " stop_enquiry_cmd state:%d\n", g_bt_app->status.stop_enquiry_cmd);
+        fprintf(stdout, " pairing_cmd state:%d\n", g_bt_app->status.pairing_cmd);
+#ifdef SUPPORT_ESL_AP
+        fprintf(stdout, " eslap_init_cmd state:%d\n", g_bt_app->status.eslap_init_cmd);
+        fprintf(stdout, " eslap_deinit_cmd state:%d\n", g_bt_app->status.eslap_deinit_cmd);
+#endif
+*/
+    }
 }
