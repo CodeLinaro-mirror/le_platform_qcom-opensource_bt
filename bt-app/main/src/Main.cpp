@@ -2911,7 +2911,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                     default:
                         event->bond_device.transport = 0;
                         fprintf( stdout, " Invalid transport parameter, auto selecting \n");
-                        return;
+                        break;
                     }
                     PostMessage (THREAD_ID_GAP, event);
                 } else {
