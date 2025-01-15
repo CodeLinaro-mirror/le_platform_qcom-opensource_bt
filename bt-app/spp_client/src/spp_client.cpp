@@ -749,6 +749,7 @@ void Spp_Client::process_connect_message()
            ALOGE(LOGTAG_SPP_CLIENT "ERROR listen sockfd closed");
            RESET_CLI_SOCFD(listen_data_socfd);
            change_state(STATE_SPP_CLIENT_IDLE);
+           fprintf(stdout,"Connect failed, you can try to connect again\n");
            return;
         }
 
