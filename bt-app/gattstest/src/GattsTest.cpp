@@ -958,15 +958,11 @@ bool GattsTest::BuildAdvertisingData(int serverId, int advsetId) {
   ALOGD(LOGTAG"%s",__FUNCTION__);
   AdvertiseData::Builder builder = AdvertiseData::Builder().setIncludeDeviceName(true)
                                   .setIncludeTxPowerLevel(set->includeTxPowerflag);
-/*
   if (manufacturerId_list.size() < serverId) {
-    ALOGE(LOGTAG"%s Server in config file is less than %d", __FUNCTION__, serverId);
-    fprintf(stdout,"Server in config file is less than %d\n", serverId);
+    ALOGE(LOGTAG"%s Servers in config file is less than %d", __FUNCTION__, serverId);
+    fprintf(stdout,"Servers in config file is less than %d\n", serverId);
     return false;
   }
-  mManufacturerID = manufacturerId_list[serverId-1];
-  mManufacturerData = manufacturerData_list[serverId-1];
-*/
   mManufacturerID = manufacturerId_list[serverId-1];
   mManufacturerData = manufacturerData_list[serverId-1];
 
