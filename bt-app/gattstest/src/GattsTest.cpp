@@ -642,6 +642,11 @@ void GattsTest::AddServer()
          break;
       }
     }
+    if(num_of_server>manufacturerId_list.size()){
+        fprintf(stdout, "Cannot create more servers than the servers mentioned in config file\n");
+        ALOGD(LOGTAG"Server not created");
+        return ;
+    }
     fprintf(stdout,"Adding Server %d \n", num_of_server);
     ALOGD(LOGTAG"Adding Server Instance : %d", num_of_server);
     mgattServer = new GattServer(g_gatt,LE_TRANSPORT);
