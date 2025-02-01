@@ -871,7 +871,18 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_EVENT_DISABLE_TIMEOUT:
         case GAP_EVENT_ENABLE_TIMEOUT:
             ALOGD(LOGTAG " Killing the proces due to timeout %d", event->event_id);
-            fprintf(stderr, " Killing the proces due to timeout %d\n", event->event_id);
+            if (event->event_id == GAP_EVENT_ENABLE_TIMEOUT) {
+                fprintf(stdout, " Killing the proces due to gap enable timeout\n");
+            } else if (event->event_id == GAP_EVENT_DISABLE_TIMEOUT) {
+                fprintf(stdout, " Killing the proces due to gap disable timeout\n");
+            } else {
+                if (event->event_id == GAP_EVENT_PROFILE_START_TIMEOUT) {
+                    fprintf(stdout, " Killing the proces due to profile(ID:%d, status:%d) start timeout\n", event->profile_start_event.profile_id, event->profile_start_event.status);
+                } else {
+                    fprintf(stdout, " Killing the proces due to profile(ID:%d, status:%d) stop timeout\n", event->profile_start_event.profile_id, event->profile_start_event.status);
+                }
+            }
+            printBtappState();
             kill(getpid(), SIGKILL);
             break;
         case GAP_API_DISABLE:
@@ -1049,6 +1060,8 @@ void Gap::ProcessEvent(BtEvent* event) {
         case GAP_EVENT_SSR_CLEANUP:
             /* Audio related cleanup can be done here.*/
             ALOGD(LOGTAG " Killing the process after SSR_CLEANUP %d", event->event_id);
+            fprintf(stdout, " Killing the process after SSR_CLEANUP");
+            printBtappState();
             kill(getpid(), SIGKILL);
             break;
 
