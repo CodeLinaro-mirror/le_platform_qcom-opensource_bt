@@ -66,7 +66,7 @@
 /**
  * Maximum command length
  */
-#define COMMAND_SIZE        200
+#define COMMAND_SIZE        250
 
 /**
  * Maximum arguments count
@@ -504,7 +504,7 @@ UserMenuList GattsTestMenu[] = {
 UserMenuList GattcTestMenu[] = {
     {GATTCTEST_INIT,              "gattctest_init",       ZERO_PARAM,    "gattctest_init (only for Init time)"},
     {GATTCTEST_SCAN_SETTINGS,       "gattctest_scanset",    TWO_PARAM,    "gattctest_scanset<space><scan_type><space><value> \
-        eg: scanType: 0-NO_SET,1-SCAN_MODE,2-CB_Type,3-RESULT_TYPE,4-PHY,5-LEGACY,6-REPORT_DELAY,7-NUM_RESPONSE"},
+        eg: scanType: 0-NO_SET,1-SCAN_MODE,2-CB_Type,3-RESULT_TYPE,4-PHY(value: 1-LE PHY 1M, 3-LE Coded PHY, 255-All supported PHY),5-LEGACY,6-REPORT_DELAY,7-NUM_RESPONSE"},
     {GATTCTEST_SCAN_FILTER,       "gattctest_scanFilter",    TWO_PARAM,    "gattctest_scanFilter<space><filter_type><space><filter_Value> \
         eg: filterType: 0-NO_FILT,1-FILT_BD_ADDR,2-FILT_DEV_NAME,3-FILT_SRVC_UUID"},
     {GATTCTEST_SCANFILTER_MAN_DATA,       "gattctest_scanFilter_manData",    THREE_PARAM,    "gattctest_scanFilter_manData<space><manuId><space><ManuData><space><ManuMask>"},

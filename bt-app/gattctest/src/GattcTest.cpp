@@ -1763,12 +1763,13 @@ bool GattcTest :: scanSettings(int scanType, int value)
       case settingType::PHY_TYPE:
       {
         fprintf(stdout, "PHY_TYPE value : %d\n", value);
-        if (value == 255) {
+        if (isValidScanPhy(value)) {
           mPhy = value;
           settingMask |= (1 << PHY_TYPE_MASK);
+          ALOGD(LOGTAG "set scan PHY_TYPE: %d",value);
         } else {
-          ALOGE(LOGTAG "set the correct phy value(255)");
-          fprintf(stdout, "set the correct phy value(255)\n");
+          ALOGE(LOGTAG "%d PHY_TYPE value is not valid, set correct PHY_TYPE(1/3/255)",value);
+          fprintf(stdout, "PHY_TYPE value is not valid, set correct PHY_TYPE(1/3/255)\n");
           return false;
         }
         mscanSettings = settingType::PHY_TYPE;
@@ -1832,6 +1833,21 @@ bool GattcTest :: scanSettings(int scanType, int value)
   }
 
   return true;
+}
+
+bool GattcTest :: isValidScanPhy(int phyValue){
+  bool isValid = false;
+  switch(phyValue){
+    case GattDevice::PHY_LE_1M:
+    case GattDevice::PHY_LE_CODED:
+    case ScanSettings::PHY_LE_ALL_SUPPORTED:
+      isValid = true;
+      break;
+    default:
+      isValid = false;
+      break;
+  }
+  return isValid;
 }
 
 void GattcTest :: startScan()
