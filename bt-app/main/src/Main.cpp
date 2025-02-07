@@ -150,16 +150,15 @@ static uint8_t cert_cmd_parameter_count = 0;
 int main (int argc, char *argv[]) {
 #define MAX_LINE_LEN 256
     int count = 0;
-    FILE *fp = popen("ps -ef | grep btap", "r");
+    FILE *fp = popen("pgrep -f btapp", "r");
     if (fp) {
         char buffer[MAX_LINE_LEN];
         while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-            if (std::strstr(buffer, "btapp"))
-                count++;
+            count++;
         }
         pclose(fp);
         if (count > 1) {
-            fprintf(stdout, " Another btapp is running\n");
+            fprintf(stdout, " Another instance of btapp is already running\n");
             return 0;
         }
     }
