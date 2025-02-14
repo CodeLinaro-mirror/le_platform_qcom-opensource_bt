@@ -86,6 +86,7 @@ class Spp_Client {
     int kernel_sock_fd=0;
     int spp_max_frame_size = 0;
     bool tty_opened = false;
+    bool threads_started = false;
 
   public:
 
@@ -102,7 +103,7 @@ class Spp_Client {
     pthread_mutex_t lock;
     void HandleEnableClient();
     void HandleDisableClient();
-    SppClientState getState() { return mClientState; }
+    SppClientState getState();// { return mClientState; }
     int receive_file(const char* fname, int &soc_fd);
     int snd_file(const char* fname, int &soc_fd);
     int send_data(const char* Size, int &soc_fd);
