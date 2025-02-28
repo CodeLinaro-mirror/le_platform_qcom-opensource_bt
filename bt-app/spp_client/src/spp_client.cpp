@@ -164,16 +164,19 @@ static void *spp_client_send_thread_func(void *in_param)
     return NULL;
 }
 
-
 void Spp_Client::sppcli_send_thread_handler()
 {
-    while ( mClientState != STATE_SPP_CLIENT_INACTIVE )
+    while ( getState() != STATE_SPP_CLIENT_INACTIVE )
     {
         /* Wait for receive command from the user */
-        while ( mClientState != STATE_SPP_CLIENT_SEND_FILE )
+        pthread_mutex_lock(&client_send_mutex);
+        while ( getState() != STATE_SPP_CLIENT_SEND_FILE )
             pthread_cond_wait(&start_client_send_cv,&client_send_mutex);
         pthread_mutex_unlock(&client_send_mutex);
-
+        if (getState() == STATE_SPP_CLIENT_INACTIVE) {
+            ALOGD(LOGTAG_SPP_CLIENT "sppcli_send_thread_handler in STATE_SPP_CLIENT_INACTIVE state\n");
+            break;
+        }
         /* Send File */
         if(VALID_CLI_SOCFD(listen_data_socfd))
         {
@@ -211,13 +214,15 @@ static void *spp_client_recv_thread_func(void *in_param)
 
 void Spp_Client::sppcli_recv_thread_handler()
 {
-    while ( mClientState != STATE_SPP_CLIENT_INACTIVE )
+    while ( getState() != STATE_SPP_CLIENT_INACTIVE )
     {
         /* Wait for receive command from the user */
-        while ( mClientState != STATE_SPP_CLIENT_RECEIVE_FILE )
+        pthread_mutex_lock(&client_recv_mutex);
+        while ( getState() != STATE_SPP_CLIENT_RECEIVE_FILE )
             pthread_cond_wait(&start_client_recv_cv,&client_recv_mutex);
         pthread_mutex_unlock(&client_recv_mutex);
-
+        if (getState() == STATE_SPP_CLIENT_INACTIVE)
+            break;
         /* Receive File */
         int status = receive_file(file_name.c_str(),listen_data_socfd);
         if(status != SUCCESS)
@@ -247,13 +252,17 @@ static void *spp_client_send_data_thread_func(void *in_param)
 
 void Spp_Client::sppcli_send_data_thread_handler()
 {
-    while ( mClientState != STATE_SPP_CLIENT_INACTIVE )
+    while ( getState() != STATE_SPP_CLIENT_INACTIVE )
     {
         /* Wait for receive command from the user */
-        while ( mClientState != STATE_SPP_CLIENT_SEND_DATA )
+        pthread_mutex_lock(&client_send_data_mutex);
+        while ( getState() != STATE_SPP_CLIENT_SEND_DATA )
             pthread_cond_wait(&start_client_send_data_cv,&client_send_data_mutex);
         pthread_mutex_unlock(&client_send_data_mutex);
-
+        if (getState() == STATE_SPP_CLIENT_INACTIVE) {
+            ALOGD(LOGTAG_SPP_CLIENT "sppcli_send_data_thread_handler in STATE_SPP_CLIENT_INACTIVE state, break to end thread.\n");
+            break;
+        }
         /* Send data */
         if(VALID_CLI_SOCFD(listen_data_socfd))
         {
@@ -293,13 +302,15 @@ static void *spp_client_recv_data_thread_func(void *in_param)
 
 void Spp_Client::sppcli_recv_data_thread_handler()
 {
-    while ( mClientState != STATE_SPP_CLIENT_INACTIVE )
+    while ( getState() != STATE_SPP_CLIENT_INACTIVE )
     {
         /* Wait for receive command from the user */
-        while ( mClientState != STATE_SPP_CLIENT_RECEIVE_DATA )
+        pthread_mutex_lock(&client_recv_data_mutex);
+        while ( getState() != STATE_SPP_CLIENT_RECEIVE_DATA )
             pthread_cond_wait(&start_client_recv_data_cv,&client_recv_data_mutex);
         pthread_mutex_unlock(&client_recv_data_mutex);
-
+        if (getState() == STATE_SPP_CLIENT_INACTIVE)
+            break;
         /* Receive data */
         int status = receive_data(listen_data_socfd);
         if(status != SUCCESS)
@@ -730,7 +741,7 @@ void Spp_Client::process_connect_message()
     message.msg_control= ctrl_msgbuf;
     message.msg_controllen= sizeof(ctrl_msgbuf);
 
-    while ( mClientState == STATE_SPP_CLIENT_CONNECTING )
+    while ( getState() == STATE_SPP_CLIENT_CONNECTING )
     {
 
         // Wait for sock_connect_signal_t message
@@ -738,7 +749,7 @@ void Spp_Client::process_connect_message()
 
         if (count==-1)
         {
-            ALOGD(LOGTAG_SPP_CLIENT "recvmsg returned -1");
+            ALOGD(LOGTAG_SPP_CLIENT "recvmsg returned -1(%s)", strerror(errno));
         }
         else if (message.msg_flags&MSG_TRUNC)
         {
@@ -749,6 +760,7 @@ void Spp_Client::process_connect_message()
            ALOGE(LOGTAG_SPP_CLIENT "ERROR listen sockfd closed");
            RESET_CLI_SOCFD(listen_data_socfd);
            change_state(STATE_SPP_CLIENT_IDLE);
+           fprintf(stdout,"Connect failed, you can try to connect again\n");
            return;
         }
 
@@ -931,18 +943,35 @@ void Spp_Client::HandleEnableClient(void) {
 
 void Spp_Client::HandleDisableClient(void) {
 
-   change_state(STATE_SPP_CLIENT_INACTIVE);
+    ALOGD(LOGTAG_SPP_CLIENT "HandleDisableClient ");
+    change_state(STATE_SPP_CLIENT_INACTIVE);
+    //trigger to exit threads
+    pthread_mutex_lock(&client_send_mutex);
+    pthread_cond_signal(&start_client_send_cv);
+    pthread_mutex_unlock(&client_send_mutex);
 
-   BtEvent *pEvent = new BtEvent;
-   pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
-   pEvent->profile_stop_event.profile_id = PROFILE_ID_SPP_CLIENT;
-   pEvent->profile_stop_event.status = true;
-   PostMessage(THREAD_ID_GAP, pEvent);
+    pthread_mutex_lock(&client_recv_mutex);
+    pthread_cond_signal(&start_client_recv_cv);
+    pthread_mutex_unlock(&client_recv_mutex);
+
+    pthread_mutex_lock(&client_send_data_mutex);
+    pthread_cond_signal(&start_client_send_data_cv);
+    pthread_mutex_unlock(&client_send_data_mutex);
+
+    pthread_mutex_lock(&client_recv_data_mutex);
+    pthread_cond_signal(&start_client_recv_data_cv);
+    pthread_mutex_unlock(&client_recv_data_mutex);
+
+    BtEvent *pEvent = new BtEvent;
+    pEvent->profile_stop_event.event_id = PROFILE_EVENT_STOP_DONE;
+    pEvent->profile_stop_event.profile_id = PROFILE_ID_SPP_CLIENT;
+    pEvent->profile_stop_event.status = true;
+    PostMessage(THREAD_ID_GAP, pEvent);
 }
 
 void Spp_Client::ProcessEvent(BtEvent* pEvent) {
 
-    switch(mClientState) {
+    switch(getState()) {
 
         case STATE_SPP_CLIENT_INACTIVE:
             state_inactive_handler(pEvent);
@@ -1042,7 +1071,8 @@ void Spp_Client::state_active_handler(BtEvent* pEvent) {
         case SPP_CLI_CONNECT:
             {
                 //start the threads
-                start_send_recv_threads();
+                if (!threads_started)
+                    start_send_recv_threads();
                 connect(pEvent->spp_cli_event.bd_addr);
             }
             break;
@@ -1153,7 +1183,6 @@ int Spp_Client::snd_file(const char* fname, int &soc_fd)
     std::chrono::high_resolution_clock::time_point startTime,endTime;
 
     ALOGD(LOGTAG_SPP_CLIENT "--> snd_file, fname=%s, soc_fd=%d\n", fname, soc_fd);
-
 
     ifstream snd_file(fname,ios::in | ios::binary);
 
@@ -1425,7 +1454,7 @@ void Spp_Client::state_connected_handler(BtEvent* pEvent) {
 
 void Spp_Client::state_send_receive_handler(BtEvent* pEvent) {
 
-    if(mClientState == STATE_SPP_CLIENT_SEND_FILE)
+    if(getState() == STATE_SPP_CLIENT_SEND_FILE)
     {
         ALOGD(LOGTAG_SPP_CLIENT " SPP-CLI 'SEND' state, Processing event %s", dump_message(pEvent->event_id));
     }
@@ -1448,7 +1477,7 @@ void Spp_Client::state_send_receive_handler(BtEvent* pEvent) {
 
         default:
         {
-            if(mClientState == STATE_SPP_CLIENT_SEND_FILE)
+            if(getState() == STATE_SPP_CLIENT_SEND_FILE)
             {
                 fprintf(stdout, "Event not processed in 'SEND' state %d ", pEvent->event_id);
             }
@@ -1491,7 +1520,6 @@ void Spp_Client::state_disconnected_handler(BtEvent* pEvent) {
 
 void Spp_Client::start_send_recv_threads()
 {
-
     ALOGD(LOGTAG_SPP_CLIENT "--> start_send_recv_threads");
 
     pthread_mutex_init(&client_recv_mutex, NULL);
@@ -1528,13 +1556,13 @@ void Spp_Client::start_send_recv_threads()
         ALOGD(LOGTAG_SPP_CLIENT "!! ERROR !! Cannot create spp client handle disconnect thread!\n");
         return;
     }
-
+    threads_started = true;
     ALOGD(LOGTAG_SPP_CLIENT "<-- start_send_recv_threads");
 
 }
 
 void Spp_Client::change_state(SppClientState mState) {
-   ALOGD(LOGTAG_SPP_CLIENT " current State = %d, new state = %d", mClientState, mState);
+   ALOGD(LOGTAG_SPP_CLIENT " current State = %d, new state = %d", getState(), mState);
    pthread_mutex_lock(&lock);
    mClientState = mState;
    switch(mClientState)
@@ -1561,6 +1589,14 @@ void Spp_Client::change_state(SppClientState mState) {
    }
    pthread_mutex_unlock(&lock);
    ALOGD(LOGTAG_SPP_CLIENT " state changed to %d ", mState);
+}
+
+SppClientState Spp_Client::getState(void) {
+   SppClientState state = STATE_SPP_CLIENT_INACTIVE;
+   pthread_mutex_lock(&lock);
+   state = mClientState;
+   pthread_mutex_unlock(&lock);
+   return state;
 }
 
 Spp_Client :: Spp_Client(const bt_interface_t *bt_interface, config_t *config) {
