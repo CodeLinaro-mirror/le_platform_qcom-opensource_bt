@@ -101,6 +101,9 @@ class GattClient : public IClientCallback, public GattClientCallback {
      /** A GATT operation completed successfully */
      static const int GATT_SUCCESS = 0;
 
+    /** GATT read/write operation is invalide handle */
+    static const int GATT_INVALID_HANDLE = 1;
+
     /** GATT read operation is not permitted */
     static const int GATT_READ_NOT_PERMITTED = 0x2;
 

@@ -110,7 +110,7 @@ class GattcTest {
         void startScan();
         void list_conn_devices();
         bool reqConnPri(string bdaddr, int conn_priority);
-        bool reliableWrite(string bdaddr, int instanceId);
+        bool reliableWrite(string bdaddr, int instanceId, int length);
         bool scanFilter(int filterType, string value);
         bool scanSettings(int scanType, int value);
         void scanFilterManuData(int manuId, string manuData, string manuMask);

@@ -2341,7 +2341,7 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     }
                     fprintf(stdout,"Reliablewrite Characteristic \n");
                     gattctest->reliableWrite(user_cmd[ONE_PARAM],
-                        atoi(user_cmd[TWO_PARAM]));
+                        atoi(user_cmd[TWO_PARAM]), atoi(user_cmd[THREE_PARAM]));
                } else {
                     fprintf(stdout,"Do the GATTCINIT first\n");
                }
