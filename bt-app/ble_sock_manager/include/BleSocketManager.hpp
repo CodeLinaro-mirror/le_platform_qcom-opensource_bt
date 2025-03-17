@@ -38,6 +38,7 @@
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
 #include "osi/include/reactor.h"
+#include "osi/include/compat.h"
 #include <hardware/bluetooth.h>
 #include <condition_variable>
 

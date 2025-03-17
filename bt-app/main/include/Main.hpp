@@ -26,6 +26,7 @@
 #include "osi/include/reactor.h"
 #include "osi/include/alarm.h"
 #include "osi/include/config.h"
+#include "osi/include/compat.h"
 #include "gap/include/Gap.hpp"
 #include <hardware/bluetooth.h>
 #include "include/ipc.hpp"
