@@ -24,6 +24,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <stdint.h>
 #include "IPeriodicAdvertisingCallback.hpp"
 using namespace std;
 namespace gatt {

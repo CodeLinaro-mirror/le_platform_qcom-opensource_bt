@@ -43,6 +43,7 @@
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
 #include "osi/include/config.h"
+#include "osi/include/compat.h"
 #include "ipc.hpp"
 
 #ifdef USE_GLIB
