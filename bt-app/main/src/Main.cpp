@@ -85,6 +85,8 @@ long onoff_index = 0;
 bool exithandler_waitbtoff = FALSE;
 bool isBT_ON = true;
 
+bool is_pts_test_enabled_ = false; // used to help test certficatoin cases
+
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
 extern A2dp_Sink_Split *pA2dpSinkSplit;
@@ -5017,6 +5019,10 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //Check for SPP client
     is_spp_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_SPP_CLIENT_ENABLED, false);
+
+    // checking for PTS test enable
+    is_pts_test_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+        PTS_TEST_ENABLED, false);
 
     return true;
 }
