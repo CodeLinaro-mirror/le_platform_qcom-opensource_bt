@@ -2351,6 +2351,11 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                                              (btrc_status_t)p_param->status, p_param->uid_counter,
                                              p_param->item_count, p_param->p_item_list);
                     pCurMedia = pMediaList.begin();
+
+                    if(is_pts_test_enabled_) {
+                        printf("Media items in media list:");
+                        showMediaItem ();
+                    }
                 }
 
                 osi_free(pEvent->avrcpTargetEvent.buf_ptr);
