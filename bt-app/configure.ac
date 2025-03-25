@@ -91,5 +91,6 @@ AC_CONFIG_FILES([Makefile\
     osi/Makefile\
     utils/Makefile\
     main/Makefile\
+    gap/Makefile\
     gatt/Makefile])
 AC_OUTPUT

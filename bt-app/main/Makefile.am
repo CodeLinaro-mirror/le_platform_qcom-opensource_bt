@@ -39,6 +39,11 @@ AM_CPPFLAGS += -I$(top_srcdir)/ \
                -I$(top_srcdir)/include \
                -I$(top_srcdir)/sdp_client/include \
                -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
+               -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
+               -I${WORKSPACE}/vendor/qcom/opensource/bluetooth_ext/vhal/include \
+               -I${WORKSPACE}/vendor/qcom/opensource/system/bt \
+               -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
+               -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
                -I$(top_srcdir)/utils/include \
                -I$(top_srcdir)/ble_sock_manager/include
 
@@ -66,13 +71,9 @@ if AUDIO_HAL_SUPPORTED
 AM_CPPFLAGS += -DBT_AUDIO_HAL_INTEGRATION
 endif
 
-cpp_sources = ../utils/src/utils.cc \
-            src/ipc.cpp \
+cpp_sources = src/ipc.cpp \
             src/Main.cpp \
             ../hid/src/Hid.cpp \
-            ../gap/src/Gap.cpp \
-            ../gap/src/AdapterProperties.cpp \
-            ../gap/src/RemoteDevices.cpp \
             ../sdp_client/src/SdpClient.cpp\
             ../a2dp_sink/src/A2dp_Sink.cpp \
             ../a2dp_sink/src/A2dp_Sink_Split.cpp \
@@ -103,9 +104,9 @@ cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
 endif
 
 if USE_GST
-requiredlibs = ../osi/libgstbtapposi.la ../utils/libgstbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
+requiredlibs = ../osi/libgstbtapposi.la ../utils/libgstbtappuuid.la  ../gap/libgstbtappgap.la  -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
 else
-requiredlibs = ../osi/libbtapposi.la ../utils/libbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
+requiredlibs = ../osi/libbtapposi.la ../utils/libbtappuuid.la  ../gap/libbtappgap.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
 endif
 
 if USE_GEN_GATT
