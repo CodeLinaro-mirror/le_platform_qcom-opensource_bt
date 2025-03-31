@@ -118,6 +118,7 @@ const char *BT_ENABLE_EXT_POWER    = "BtEnableExtPower";
 const char *BT_ENABLE_FW_SNOOP     = "BtEnableFWSnoop";
 const char *BT_ENABLE_SOC_LOG      = "BtEnableSocLog";
 const char *BT_HID_ENABLED         = "BtHidEnable";
+const char *PTS_TEST_ENABLED       = "PTSTestEnable";
 /**
  * The Configuration file path
  */

@@ -43,6 +43,7 @@ extern thread_t *g_pan_thread;
 extern thread_t *g_gatt_thread;
 extern thread_t *g_pbapc_thread;
 
+extern bool is_pts_test_enabled_;
 // TODO: move this to bitbake
 //#define BT_MODEM_INTEGRATION 0
 
