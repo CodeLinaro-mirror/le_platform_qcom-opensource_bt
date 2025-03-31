@@ -212,7 +212,7 @@ void dial_call_callback(char *number, bt_bdaddr_t* bd_addr) {
 void dtmf_cmd_callback(char dtmf, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " dtmf_cmd_callback");
-    fprintf(stdout, " dtmf_cmd_callback\n");
+    fprintf(stdout, " dtmf_cmd_callback receive DTMF code %c\n", dtmf);
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.arg1 = dtmf;
