@@ -145,6 +145,8 @@ class ScanManager {
         ScanManager *sManager;
         GattDevice *mGattDevice;
 
+        int getScanPhyMask(int phy);
+
       public:
         PhyInfo* getPhyInfo(std::unordered_set<ScanClient*> cList);
         int numRegularScanClients();

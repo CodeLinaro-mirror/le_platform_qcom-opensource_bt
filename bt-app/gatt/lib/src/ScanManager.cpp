@@ -479,23 +479,38 @@ ScanManager::PhyInfo* ScanManager::ScanNative::getPhyInfo(std::unordered_set<Sca
   PhyInfo *result = NULL;
   int curScanSettingLE1M = INT_MIN;
   int curScanSettingLECoded = INT_MIN;
-  int curScanPhy = GattDevice::PHY_LE_1M;
-  int aggregateScanPhy = GattDevice::PHY_LE_1M;
+  int curScanPhyMask = GattDevice::PHY_LE_1M_MASK;
+  int aggregateScanPhy = 0;
   for (ScanClient *client : cList) {
     // Get the most aggresive scan mode for each PHY
-    curScanPhy = client->settings->getPhy();
-    if (((curScanPhy & GattDevice::PHY_LE_1M)== GattDevice::PHY_LE_1M) &&
+    curScanPhyMask = getScanPhyMask(client->settings->getPhy());
+    if (((curScanPhyMask & GattDevice::PHY_LE_1M_MASK) == GattDevice::PHY_LE_1M_MASK) &&
             (client->settings->getScanMode() > curScanSettingLE1M)) {
       curScanSettingLE1M = client->settings->getScanMode();
     }
-    if (((curScanPhy & GattDevice::PHY_LE_CODED)== GattDevice::PHY_LE_CODED) &&
+    if (((curScanPhyMask & GattDevice::PHY_LE_CODED_MASK) == GattDevice::PHY_LE_CODED_MASK) &&
             (client->settings->getScanMode() > curScanSettingLECoded)) {
       curScanSettingLECoded = client->settings->getScanMode();
     }
-    aggregateScanPhy |= client->settings->getPhy();
+    aggregateScanPhy |= curScanPhyMask;
   }
+  if(aggregateScanPhy == 0)
+    aggregateScanPhy = GattDevice::PHY_LE_1M_MASK;
   result = new PhyInfo(aggregateScanPhy, curScanSettingLE1M, curScanSettingLECoded);
   return result;
+}
+
+int ScanManager::ScanNative::getScanPhyMask(int phy){
+  switch(phy){
+    case GattDevice::PHY_LE_1M:
+      return GattDevice::PHY_LE_1M_MASK;
+    case GattDevice::PHY_LE_CODED:
+      return GattDevice::PHY_LE_CODED_MASK;
+    case ScanSettings::PHY_LE_ALL_SUPPORTED:
+      return GattDevice::PHY_LE_1M_MASK | GattDevice::PHY_LE_CODED_MASK;
+    default:
+      return GattDevice::PHY_LE_1M_MASK;
+  }
 }
 
 bool ScanManager::ScanNative::startRegularScan(ScanClient *client)
