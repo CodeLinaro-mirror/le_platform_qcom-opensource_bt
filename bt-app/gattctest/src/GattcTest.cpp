@@ -82,6 +82,7 @@ mRemoteDev mDeviceMap("", NULL);
 
 GattLeScanner* mScanner = NULL;
 ScanSettings *setting = NULL;
+static int reliableWrite_len = 0;
 
 enum ReliableWriteState
 {
@@ -242,15 +243,33 @@ class gattctestClientCallback:public GattClientCallback
 
       /* MTU change notification */
       if (status == GattClient::GATT_SUCCESS) {
-        ALOGE(LOGTAG "write characteristic uid %s, value:%s success",
+        ALOGE(LOGTAG "write characteristic uuid %s, value:%s success",
             uid.ToString().c_str(), value);
-        fprintf(stdout, "write characteristic uid %s, value:%s"
-            "== success\n", uid.ToString().c_str(), characteristic->getStringValue(0).c_str());
-        fprintf(stdout,"owrite characteristic uid %s, value: ", uid.ToString().c_str());
+        fprintf(stdout,"write characteristic uuid %s, value:", uid.ToString().c_str());
         for(int i=0; i < characteristic->getValueLength(); i++) {
-          fprintf(stdout, " %d", *value++);
+          fprintf(stdout, "%d", *value++);
         }
         fprintf(stdout, "== success\n");
+      } else if (status ==
+          GattClient::GATT_INVALID_HANDLE) {
+        fprintf(stdout, "write characteristic: error %d "
+              "GATT_INVALID_HANDLE\n", status);
+        ALOGE(LOGTAG "write characteristic: GATT_INVALID_HANDLE");
+      } else if (status ==
+          GattClient::GATT_WRITE_NOT_PERMITTED) {
+        fprintf(stdout, "write characteristic: error %d "
+              "GATT_WRITE_NOT_PERMITTED\n", status);
+        ALOGE(LOGTAG "write characteristic: GATT_WRITE_NOT_PERMITTED");
+      } else if (status ==
+          GattClient::GATT_INVALID_OFFSET) {
+        fprintf(stdout, "write characteristic: error %d "
+              "GATT_INVALID_OFFSET\n", status);
+        ALOGE(LOGTAG "write characteristic: GATT_INVALID_OFFSET");
+      } else if (status ==
+          GattClient::GATT_INSUFFICIENT_AUTHENTICATION) {
+        fprintf(stdout, "write characteristic: error %d "
+              "GATT_INSUFFICIENT_AUTHENTICATION\n", status);
+        ALOGE(LOGTAG "write characteristic: GATT_INSUFFICIENT_AUTHENTICATION");
       } else {
         ALOGE(LOGTAG "Failed to write characteristic: %d", status);
         fprintf(stdout,"Failed to write characteristic: %d\n", status);
@@ -286,14 +305,14 @@ class gattctestClientCallback:public GattClientCallback
               "write successfully finished");
             fprintf(stdout, "Sending prepare write after 1st prepare "
               "write successfully finished\n");
-            uint8_t tmp_ch[10] = {0};
+            uint8_t tmp_ch[512] = {0};
             int i;
-            for (i = 0; i < 10; i++)
+            for (i = 0; i < reliableWrite_len - reliableWrite_len/2; i++)
               tmp_ch[i] = PREPARE_WRITE_NEXT_DATA;
             std::string s;
             s.assign(tmp_ch, tmp_ch + sizeof(tmp_ch));
             fprintf(stdout, "string write is %s\n", s.c_str());
-            characteristic->setValue(tmp_ch, sizeof(tmp_ch)/sizeof(tmp_ch[0]));
+            characteristic->setValue(tmp_ch, reliableWrite_len - reliableWrite_len/2);
             int status = gattc->writeCharacteristic(*characteristic);
             if (status) {
               fprintf(stdout, "write success\n");
@@ -413,6 +432,18 @@ class gattctestClientCallback:public GattClientCallback
           ReliableWriteState::RELIABLE_WRITE_NONE) {
         if (status == GattClient::GATT_SUCCESS) {
           ALOGD(LOGTAG "Reliable write completed");
+        } else if (status == GattClient::GATT_INVALID_OFFSET) {
+          ALOGD(LOGTAG "Reliable write completed GATT_INVALID_OFFSET");
+          fprintf(stdout, "Reliable write complete GATT_INVALID_OFFSET\n");
+        } else if (status == GattClient::GATT_INVALID_HANDLE) {
+          ALOGD(LOGTAG "Reliable write completed GATT_INVALID_HANDLE");
+          fprintf(stdout, "Reliable write complete GATT_INVALID_HANDLE\n");
+        } else if (status == GattClient::GATT_WRITE_NOT_PERMITTED) {
+          ALOGD(LOGTAG "Reliable write completed GATT_WRITE_NOT_PERMITTED");
+          fprintf(stdout, "Reliable write complete GATT_WRITE_NOT_PERMITTED\n");
+        } else if (status == GattClient::GATT_WRITE_NOT_PERMITTED) {
+          ALOGD(LOGTAG "Reliable write completed GATT_INSUFFICIENT_AUTHENTICATION");
+          fprintf(stdout, "Reliable write complete GATT_INSUFFICIENT_AUTHENTICATION\n");
         } else {
           ALOGE(LOGTAG "Reliable write complete fail %d", status);
           fprintf(stdout, "Reliable write complete fail %d\n",
@@ -1238,10 +1269,17 @@ Function:reliableWrite
 Purpose: It tests, prepare write, abort reliablewrites,
 executewrites framework API's.
 */
-bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
+bool GattcTest ::reliableWrite(string bdaddr, int instanceid, int length)
 {
-  ALOGD(LOGTAG "Reliable Write");
-  fprintf(stdout, "Reliable write\n");
+  ALOGD(LOGTAG "Reliable Write length = %d", length);
+  fprintf(stdout, "Reliable write length = %d\n", length);
+
+  if ((length > 1024) || (length < 1)) {
+    ALOGD(LOGTAG "Reliable Write length = %d, should be 1~1024", length);
+    fprintf(stdout, "Reliable write length = %d, should be 1~1024\n", length);
+    return false;
+  }
+  reliableWrite_len = length;
 
   if (!mDeviceMap.containsDevice(bdaddr)) {
     ALOGE(LOGTAG "Device not found on Map");
@@ -1273,15 +1311,17 @@ bool GattcTest ::reliableWrite(string bdaddr, int instanceid)
       Writing some default value to tmp buffer to test the
       prepare write and execute write scenario.
      */
-    uint8_t tmp_ch[10];
-    int i;
-    for (i = 0; i < 10; i++)
+    uint8_t tmp_ch[512];
+    int length_tmp = reliableWrite_len/2;
+    if (length_tmp == 0)
+        length_tmp = 1;
+    for (int i = 0; i < length_tmp; i++)
       tmp_ch[i] = PREPARE_WRITE_DATA;
-    characteristic->setValue(tmp_ch, sizeof(tmp_ch)/sizeof(tmp_ch[0]));
+    characteristic->setValue(tmp_ch, length_tmp);
 
     if (mExecReliableWrite == ReliableWriteState::RELIABLE_WRITE_NONE) {
-      mExecReliableWrite =
-        ReliableWriteState::RELIABLE_WRITE_WRITE_1ST_DATA;
+      mExecReliableWrite = (length_tmp == 1)?(ReliableWriteState::RELIABLE_WRITE_WRITE_2ND_DATA):
+                                             (ReliableWriteState::RELIABLE_WRITE_WRITE_1ST_DATA);
     } else {
       mExecReliableWrite =
         ReliableWriteState::RELIABLE_WRITE_BAD_RESP;
