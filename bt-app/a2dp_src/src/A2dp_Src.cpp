@@ -485,6 +485,31 @@ btav_a2dp_codec_config_t codec_config = {
 std::sort(a2dpSrcCodecList.begin(), a2dpSrcCodecList.end(), compareByPriority);
 }
 
+static const char* pass_through_cmd_id_to_str(uint8_t cmd_id) {
+    switch (cmd_id) {
+        case CMD_ID_PLAY:
+                return "CMD_ID_PLAY";
+        case CMD_ID_PAUSE:
+                return "CMD_ID_PAUSE";
+        case CMD_ID_STOP:
+                return "CMD_ID_STOP";
+        case CMD_ID_REWIND:
+                return "CMD_ID_REWIND";
+        case CMD_ID_FORWARD:
+                return "CMD_ID_FORWARD";
+        case CMD_ID_BACKWARD:
+                return "CMD_ID_BACKWARD";
+        case CMD_ID_FF:
+                return "CMD_ID_FASTFORWARD";
+        case CMD_ID_VOL_DOWN:
+                return "CMD_ID_VOL_DOWN";
+        case CMD_ID_VOL_UP:
+                return "CMD_ID_VOL_UP";
+        default:
+                return "unknown";
+    }
+}
+
 /* This function is used for testing purpose. Parses string which represents codec list*/
 static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs){
     int i = 0, j = 0, k = 0;
@@ -1443,7 +1468,8 @@ static void btavrcp_target_passthrough_cmd_callback(int id, int key_state, bt_bd
         BtEvent *event = new BtEvent;
         event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
         /*As there is no player impl available at this point hence STOP/PAUSE has got same functionality*/
-        if(id == CMD_ID_PAUSE)
+        /*Note: There is no need to convert the command type when testing certification tests.*/
+        if(id == CMD_ID_PAUSE && !is_pts_test_enabled_)
             id = CMD_ID_STOP;
         event->avrcpTargetEvent.key_id = id;
         PostMessage (THREAD_ID_A2DP_SOURCE, event);
@@ -2889,6 +2915,8 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             break;
         case A2DP_SOURCE_AUDIO_CMD_REQ:{
             key_id = pEvent->avrcpTargetEvent.key_id;
+            if(is_pts_test_enabled_)
+                fprintf(stdout, "receive the %s(Note: This only represents the receipt of the command, not the actual effect.)\n", pass_through_cmd_id_to_str(key_id));
             if (!mAvrcpConnected || (memcmp(&mConnectedAvrcpDevice, &mConnectedDevice,
                            sizeof(bt_bdaddr_t)) != 0)) {
                 ALOGD(LOGTAG_AVRCP " No Active connection. Bail out!! ");
