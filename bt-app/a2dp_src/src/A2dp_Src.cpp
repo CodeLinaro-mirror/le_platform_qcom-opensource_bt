@@ -1930,6 +1930,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
     btrc_player_attr_t p_attr[BTRC_MAX_APP_SETTINGS];
     uint8_t *attr_values = NULL;
     uint8_t key_id;
+    static list<MediaInfo>::iterator pCurMedia = pMediaList.begin();
 
     switch(pEvent->avrcpTargetEvent.event_id) {
         case AVRCP_TARGET_USE_BIGGER_METADATA:
@@ -2293,10 +2294,11 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                                              &(pEvent->avrcpTargetEvent.bd_addr),
                                              (btrc_status_t)p_param->status, p_param->uid_counter,
                                              p_param->item_count, p_param->p_item_list);
+                    break;
                 }
 
-                if (pMediaList.size() > 0) {
-                    list<MediaInfo>::iterator p = pMediaList.begin();
+                if (pMediaList.size() > 0 && pCurMedia != pMediaList.end()) {
+                    list<MediaInfo>::iterator p = pCurMedia;
                     mediaEntry = (char*)osi_malloc(p->RetrieveMediaEntryLength()*sizeof(char));
                     mediaEntry = p->RetrieveMediaItemEntry();
                     int length = p->RetrieveMediaEntryLength();
@@ -2337,11 +2339,20 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     checkLength += folderItemLengths[count];
                     ALOGD(LOGTAG_AVRCP "checkLength = %u countTotalBytes = %u strlen = %d ",
                                       checkLength,countTotalBytes,str_len);
+                    ++pCurMedia;
+                    sBtAvrcpTargetInterface->get_folder_items_list_rsp(
+                        &(pEvent->avrcpTargetEvent.bd_addr),
+                        (btrc_status_t)p_param->status, p_param->uid_counter,
+                        p_param->item_count, p_param->p_item_list);
+                } else {
+                    p_param->status = BTRC_STS_INV_RANGE;
+                    sBtAvrcpTargetInterface->get_folder_items_list_rsp(
+                                             &(pEvent->avrcpTargetEvent.bd_addr),
+                                             (btrc_status_t)p_param->status, p_param->uid_counter,
+                                             p_param->item_count, p_param->p_item_list);
+                    pCurMedia = pMediaList.begin();
                 }
-                sBtAvrcpTargetInterface->get_folder_items_list_rsp(
-                                  &(pEvent->avrcpTargetEvent.bd_addr),
-                                  (btrc_status_t)p_param->status, p_param->uid_counter,
-                                  p_param->item_count, p_param->p_item_list);
+
                 osi_free(pEvent->avrcpTargetEvent.buf_ptr);
                 osi_free(folderitem);
                 osi_free(folderItems);
