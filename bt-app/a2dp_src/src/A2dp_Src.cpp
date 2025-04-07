@@ -799,6 +799,16 @@ void registerMediaPlayers () {
     ALOGD(LOGTAG_AVRCP "Exit registerMediaPlayers()");
 }
 
+void showMediaItem () {
+    list<MediaInfo>::iterator p = pA2dpSource->pMediaList.begin();
+    list<MediaInfo>::iterator p_end = pA2dpSource->pMediaList.end();
+    while (p != p_end) {
+        fprintf(stdout,"%s ",p->mDisplayableName);
+        p++;
+    }
+    fprintf(stdout,"\n");
+}
+
 void A2dp_Source::unregisterMediaPlayers () {
     ALOGD(LOGTAG_AVRCP "unregisterMediaPlayers()");
     pMediaPlayerList.clear();
@@ -2588,15 +2598,20 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                         mUidChangedNotiType, &param);
             }
             break;
-        case AVRCP_TARGET_NOW_PLAYING_CONTENT_CHANGED:
+        case AVRCP_TARGET_NOW_PLAYING_CONTENT_CHANGED:{
             ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_NOW_PLAYING_CONTENT_CHANGED");
+            if(is_pts_test_enabled_) {
+                pA2dpSource->pMediaList.push_back(MediaInfo (mediaUid3,BTRC_ITEM_MEDIA, 0x006A, 6, "abcNew", 0));
+                fprintf(stdout,"add the new media(abcNew) to now playing list, the new now playing list is:\n");
+                showMediaItem ();
+            }
             if (mNowPlayingContentChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
                 mNowPlayingContentChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
                 sBtAvrcpTargetInterface->register_notification_rsp(
                         BTRC_EVT_NOW_PLAYING_CONTENT_CHANGED,
                         mNowPlayingContentChangedNotiType, &param);
             }
-            break;
+            } break;
         case AVRCP_TARGET_GET_ELE_ATTR:
             num_attr = pEvent->avrcpTargetEvent.arg1;
             if (pEvent->avrcpTargetEvent.buf_ptr == NULL) {
