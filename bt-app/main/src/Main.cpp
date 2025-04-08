@@ -152,7 +152,7 @@ static uint8_t cert_cmd_parameter_count = 0;
 int main (int argc, char *argv[]) {
 #define MAX_LINE_LEN 256
     int count = 0;
-    FILE *fp = popen("pgrep -f btapp", "r");
+    FILE *fp = popen("pgrep btapp", "r");
     if (fp) {
         char buffer[MAX_LINE_LEN];
         while (fgets(buffer, sizeof(buffer), fp) != NULL) {
