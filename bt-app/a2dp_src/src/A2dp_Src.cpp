@@ -2109,6 +2109,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                         p_param->p_item_list[count].player.name[countTemp] =
                         folderItems[countTotalBytes]; countTotalBytes++;
                     }
+                     p_param->p_item_list[count].player.name[countTemp] ='\0'; //null terminator
                     /*To check if byte feeding went well*/
                     checkLength += folderItemLengths[count];
                     ALOGD(LOGTAG_AVRCP "checkLength = %u countTotalBytes = %u", checkLength,
