@@ -796,6 +796,7 @@ void registerMediaPlayers () {
     pA2dpSource->pMediaList.push_back(MediaInfo (mediaUid2,
             BTRC_ITEM_MEDIA, 0x006A, 6, Media1, 0));
 
+    fprintf(stdout, "register player:%s \n" , playerName1);
     ALOGD(LOGTAG_AVRCP "Exit registerMediaPlayers()");
 }
 
