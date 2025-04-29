@@ -3070,7 +3070,11 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                 if(pEvent->avrcpTargetEvent.arg3 ==0)
                     sBtAvrcpTargetInterface->change_path_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)BTRC_STS_INV_DIRN, 0);
                 else if(uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid1) && (uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid2)))
-                    sBtAvrcpTargetInterface->change_path_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)BTRC_STS_INV_DIRECTORY, 0);
+                    /*AVRCP/TG/MCN/CB/BI-04-C requires TG should sent "Does Not Exist" error code to PTS when an invalid  folder uid is requested*/
+                    if(is_pts_test_enabled_)
+                        sBtAvrcpTargetInterface->change_path_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)BTRC_STS_INV_ITEM, 0);
+                    else
+                        sBtAvrcpTargetInterface->change_path_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)BTRC_STS_INV_DIRECTORY, 0);
                 else if((!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid1)
                     ||(!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid2)))&&(pEvent->avrcpTargetEvent.arg3 ==1)){
                     is_empty_folder = (uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid2))? 0:1;
