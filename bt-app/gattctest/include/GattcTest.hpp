@@ -117,6 +117,7 @@ class GattcTest {
         bool reqConnPri(string bdaddr, int conn_priority);
         bool reliableWrite(string bdaddr, int instanceId);
         bool scanFilter(int filterType, string value);
+        bool isValidScanPhy(int value);
         bool scanSettings(int scanType, int value);
         void scanFilterManuData(int manuId, string manuData, string manuMask);
         bool createPeriodicSync(string bdaddr);

@@ -3144,10 +3144,16 @@ void GattLibService::HandleGattAdapterPropertyEvent(GattAdapterPropertyEvent *ev
 void GattLibService::HandleBleBatchScanTimeoutEvent(BleScannerBatchscantimeoutEvent *event)
 {
   ScanManager *sM = (ScanManager*)event->scanmanager;
-
+  ScanClient *client = NULL;
+  std::unordered_set<ScanClient*> mBSclient;
   for(std::unordered_set<ScanClient*>::iterator it = sM->getBatchScanQueue().begin();
             it != sM->getBatchScanQueue().end(); ++it){
-    sM->flushBatchScanResults(*it);
+    client = *it;
+    mBSclient = sM->getBatchScanQueue();
+
+    if (mBSclient.count(client) > 0) {
+      sM->flushBatchScanResults(*it);
+    }
   }
 }
 
