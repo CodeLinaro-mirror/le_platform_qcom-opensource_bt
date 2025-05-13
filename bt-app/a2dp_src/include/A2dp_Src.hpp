@@ -47,6 +47,9 @@
 #include "ipc.hpp"
 #include "utils.h"
 #include <list>
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+#include "pa_routing_interface.h"
+#endif
 
 using std::list;
 using std::string;
@@ -238,6 +241,9 @@ class A2dp_Source {
     list<FolderInfo> pFolderList;
     list<MediaInfo> pMediaList;
     void unregisterMediaPlayers();
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_interface_t *pa_routing_intf;
+#endif
 };
 
 #endif

@@ -12,10 +12,10 @@ AM_CPPFLAGS = -I$(top_srcdir)  \
               -I$(top_srcdir)/utils/include
 
 AM_CPPFLAGS += @LIBCHROME_CFLAGS@
-if AUDIO_PAL_SUPPORTED
+#if AUDIO_PAL_SUPPORTED
 AM_CPPFLAGS += -DBT_AUDIO_PAL_INTEGRATION
 AM_CPPFLAGS += @PABTAUDIO_CFLAGS@
-endif
+#endif
 
 cpp_sources = src/uuid.cc
 cpp_sources += src/pa_routing_interface.cc

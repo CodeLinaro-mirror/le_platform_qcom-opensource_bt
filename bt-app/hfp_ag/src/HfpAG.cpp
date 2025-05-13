@@ -51,6 +51,10 @@ qahw_stream_handle_t* out_stream_plb_test;
 qahw_stream_handle_t* in_handle_record;
 #endif
 
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+static uint32_t g_rate = 8000;
+static bool sco_connect = false;
+#endif
 
 char playback_test[] =
 {
@@ -692,6 +696,27 @@ void Hfp_Ag::configurescoaudio(bool enable) {
 #endif
 }
 
+void Hfp_Ag::clear_audio_params(){
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+  teardown_sco_path();
+  return;
+#endif
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
+  teardown_sco_path();
+#endif
+  stop_record = true;
+  stop_playback = true;
+  if (record_tid != NULL) {
+    pthread_join(record_tid, NULL);
+    record_tid = NULL;
+  }
+  if (playback_tid != NULL) {
+    pthread_join(playback_tid, NULL);
+    playback_tid = NULL;
+  }
+  configurescoaudio(false);
+}
+
 static void *start_playback(void *in_param) {
 #if defined(BT_AUDIO_HAL_INTEGRATION)
     qahw_module_handle_t* audio_module;
@@ -899,7 +924,7 @@ void Hfp_Ag::HandleEnableAg(void) {
         init_modem();
 #endif
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
+#if defined(BT_ALSA_AUDIO_INTEGRATION) || defined(BT_AUDIO_PAL_INTEGRATION)
         init_audio();
 #endif
         BtEvent *pEvent = new BtEvent;
@@ -1164,6 +1189,16 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_VOIP_CALL_TERMINATION:
             EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (pa_routing_intf) {
+              int ret = pa_routing_intf->pa_bt_set_param_fn(
+                  PA_BT_A2DP_SOURCE, "A2dpSuspended=false");
+              if (ret) {
+                ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n",
+                      __func__);
+              }
+            }
+#endif
             break;
         case HFP_AG_VOIP_CALL_INCOMING_INDICATION:
             VoipCallIncomingInd(&pEvent->hfp_ag_event.bd_addr,pEvent->hfp_ag_event.str,
@@ -1433,11 +1468,22 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG "Connecting SCO/eSCO with device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
-               bt_status_t status = sBtHfpAgInterface->set_sco_allowed(true);
-               if (status != BT_STATUS_SUCCESS)
-                 ALOGD("Failed HF set sco allowed, status: %d", status);
-               else
+              bt_status_t status = sBtHfpAgInterface->set_sco_allowed(true);
+              if (status != BT_STATUS_SUCCESS)
+                ALOGD("Failed HF set sco allowed, status: %d", status);
+              else {
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+                if (pa_routing_intf) {
+                  int ret = pa_routing_intf->pa_bt_set_param_fn(
+                      PA_BT_A2DP_SOURCE, "A2dpSuspended=true");
+                  if (ret) {
+                    ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n",
+                          __func__);
+                  }
+                }
+#endif
                 sBtHfpAgInterface->connect_audio(&pEvent->hfp_ag_event.bd_addr);
+              }
             }
             break;
         case HFP_AG_AUDIO_STATE_CONNECTED_CB:
@@ -1447,10 +1493,13 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG "SCO/eSCO connected with device %s, codec %s", str,
                 ((mWbsState == BTHF_WBS_YES)? "WBS": "NBS"));
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
+#if defined(BT_ALSA_AUDIO_INTEGRATION) || defined(BT_AUDIO_PAL_INTEGRATION)
             setup_sco_path();
 #endif
             change_state(HFP_AG_STATE_AUDIO_ON);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            break;
+#endif
 
             stop_record = false;
             stop_playback = false;
@@ -1556,7 +1605,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
 
             // disconnect SCO, clean up SCO
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
+#if defined(BT_ALSA_AUDIO_INTEGRATION) || defined(BT_AUDIO_PAL_INTEGRATION)
             teardown_sco_path();
 #endif
             if (sBtHfpAgInterface != NULL) {
@@ -1954,15 +2003,27 @@ bool Hfp_Ag::VoipCallInd(bt_bdaddr_t *bd_addr) {
         return false;
     }
     if(sBtHfpAgInterface != NULL) {
-        sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_DIALING,"",
-                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
-        usleep(20000);
-        sBtHfpAgInterface->phone_state_change(0,0,BTHF_CALL_STATE_ALERTING,"",
-                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
-        usleep(20000);
-        sBtHfpAgInterface->phone_state_change(1,0,BTHF_CALL_STATE_IDLE,"",
-                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
-        return true;
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+      if (pa_routing_intf) {
+        int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE,
+                                                      "A2dpSuspended=true");
+        if (ret) {
+          ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
+        }
+      }
+#endif
+      sBtHfpAgInterface->phone_state_change(0, 0, BTHF_CALL_STATE_DIALING, "",
+                                            BTHF_CALL_ADDRTYPE_INTERNATIONAL,
+                                            bd_addr);
+      usleep(20000);
+      sBtHfpAgInterface->phone_state_change(0, 0, BTHF_CALL_STATE_ALERTING, "",
+                                            BTHF_CALL_ADDRTYPE_INTERNATIONAL,
+                                            bd_addr);
+      usleep(20000);
+      sBtHfpAgInterface->phone_state_change(1, 0, BTHF_CALL_STATE_IDLE, "",
+                                            BTHF_CALL_ADDRTYPE_INTERNATIONAL,
+                                            bd_addr);
+      return true;
     }
     return false;
 }
@@ -1994,9 +2055,19 @@ bool Hfp_Ag::VoipCallIncomingInd(bt_bdaddr_t *bd_addr,char* number, int call_act
         return false;
     }
     if(sBtHfpAgInterface != NULL) {
-        sBtHfpAgInterface->phone_state_change(call_active,0,BTHF_CALL_STATE_INCOMING,number,
-                                              BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
-        return true;
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+      if (pa_routing_intf) {
+        int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE,
+                                                      "A2dpSuspended=true");
+        if (ret) {
+          ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
+        }
+      }
+#endif
+      sBtHfpAgInterface->phone_state_change(
+          call_active, 0, BTHF_CALL_STATE_INCOMING, number,
+          BTHF_CALL_ADDRTYPE_INTERNATIONAL, bd_addr);
+      return true;
     }
     return false;
 }
@@ -2659,8 +2730,9 @@ void Hfp_Ag::release_modem() {
 }
 #endif
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
+
 void Hfp_Ag::init_audio() {
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
    char cmd[50];
    mWbsState = BTHF_WBS_NO;
    mNrec = BTHF_NREC_STOP;
@@ -2671,9 +2743,18 @@ void Hfp_Ag::init_audio() {
 
    strcpy(cmd, "amix \'Voice_Tx Mixer SEC_AUX_PCM_TX_Voice\' 1");
    system(cmd);
+#endif
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+   mWbsState = BTHF_WBS_NO;
+   g_rate = 8000;
+   mNrec = BTHF_NREC_STOP;
+
+   ALOGD(LOGTAG, "%s: init for PA", __func__);
+#endif
 }
 
 void Hfp_Ag::set_audio_params() {
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
    char cmd[50];
 
    ALOGD(LOGTAG, "%s: setting sample rate %s\n", __func__,
@@ -2687,9 +2768,19 @@ void Hfp_Ag::set_audio_params() {
    else
        strcpy(cmd, "amix \'AUX PCM SampleRate\' \'rate_8000\'");
    system(cmd);
+   #endif
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+   if (mWbsState == BTHF_WBS_YES) {
+     g_rate = 16000;
+   } else {
+     g_rate = 8000;
+   }
+   ALOGD(LOGTAG, "%s: set params for PA rate:%d", __func__, g_rate);
+#endif
 }
 
 void Hfp_Ag::setup_sco_path() {
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
    char cmd[50];
 
    ALOGD(LOGTAG, "%s: starting arec and aplay\n", __func__);
@@ -2706,34 +2797,85 @@ void Hfp_Ag::setup_sco_path() {
    sprintf(cmd, "arec -D hw:0,2 -P -R%s -C 1 &",
               (mWbsState == BTHF_WBS_YES ? "16000" : "8000"));
    system(cmd);
+#endif
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+   set_audio_params();
+   if (pa_routing_intf) {
+     int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_HFP_AG, true);
+     if (!ret) {
+       fprintf(stdout, "BT connect is success for AG SCO usecase\n");
+       ALOGD(LOGTAG " BT connect is success for AG SCO usecase");
+       sco_connect = true;
+     } else {
+       fprintf(stdout, "BT connect failed for AG SCO usecase !!\n");
+       ALOGE(LOGTAG " BT connect failed for AG SCO usecase !!\n");
+       return;
+     }
+     if (mWbsState == BTHF_WBS_YES) {
+       ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_AG, "bt_wbs=on");
+     } else {
+       ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_AG, "bt_wbs=off");
+     }
+
+     if (!ret) {
+       ALOGD(LOGTAG " set param- wbs state success\n");
+     }
+   }
+#endif
 }
 
 void Hfp_Ag::teardown_sco_path() {
-    char cmd[50];
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
+  char cmd[50];
 
-    ALOGD(LOGTAG, "%s: killing arec and aplay\n", __func__);
-    fprintf(stdout, "%s: killing arec and aplay\n", __func__);
+  ALOGD(LOGTAG, "%s: killing arec and aplay\n", __func__);
+  fprintf(stdout, "%s: killing arec and aplay\n", __func__);
 
-    strcpy(cmd, "killall -9 arec");
-    system(cmd);
+  strcpy(cmd, "killall -9 arec");
+  system(cmd);
 
-    strcpy(cmd, "killall -9 aplay");
-    system(cmd);
-
+  strcpy(cmd, "killall -9 aplay");
+  system(cmd);
+#endif
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+  if (pa_routing_intf) {
+    int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_HFP_AG, "bt_wbs=off");
+    if (ret) {
+      ALOGE(LOGTAG, "%s failed to reset wbs flag\n", __func__);
+    }
+    release_audio();
+    ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE,
+                                              "A2dpSuspended=false");
+    if (ret) {
+      ALOGE(LOGTAG, "%s failed to reset A2dpSuspended flag\n", __func__);
+    }
+  }
+#endif
 }
 
 void Hfp_Ag::release_audio() {
-   char cmd[50];
+#if defined(BT_ALSA_AUDIO_INTEGRATION)
+  char cmd[50];
 
-   // set up voice path using amix commands
-   strcpy(cmd, "amix \'SEC_AUX_PCM_RX_Voice Mixer CSVoice\' 0");
-   system(cmd);
+  // set up voice path using amix commands
+  strcpy(cmd, "amix \'SEC_AUX_PCM_RX_Voice Mixer CSVoice\' 0");
+  system(cmd);
 
-   strcpy(cmd, "amix \'Voice_Tx Mixer SEC_AUX_PCM_TX_Voice\' 0");
-   system(cmd);
+  strcpy(cmd, "amix \'Voice_Tx Mixer SEC_AUX_PCM_TX_Voice\' 0");
+  system(cmd);
+#endif
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+  if (pa_routing_intf && sco_connect) {
+    int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_HFP_AG, false);
+    if (ret) {
+      ALOGE(LOGTAG, "%s failed to disconnect\n", __func__);
+    } else {
+      sco_connect = false;
+    }
+  }
+#endif
 }
 
-#endif
 
 void Hfp_Ag::process_at_bind(BtEvent* pEvent) {
    char *at_string;
@@ -2774,9 +2916,23 @@ Hfp_Ag :: Hfp_Ag(const bt_interface_t *bt_interface, config_t *config) {
 
     memset(mHfIndHfList, 0, sizeof(mHfIndHfList));
     memset(mHfIndAgList, 0, sizeof(mHfIndAgList));
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_intf = pa_routing_intf_open();
+    if (!pa_routing_intf) {
+      ALOGE(LOGTAG " pa_routing_intf_open failed !!");
+    } else {
+      ALOGD(LOGTAG " pa_routing_intf_open success !!");
+    }
+#endif
 }
 
 Hfp_Ag :: ~Hfp_Ag() {
     mcontrolStatus = STATUS_LOSS_TRANSIENT;
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    if (pa_routing_intf) {
+      pa_routing_intf_close(pa_routing_intf);
+    }
+    pa_routing_intf = NULL;
+#endif
     pthread_mutex_destroy(&lock);
 }
