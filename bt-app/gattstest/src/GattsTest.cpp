@@ -1034,6 +1034,20 @@ bool GattsTest::BuildAdvertisingData(int instance) {
       std::vector<uint8_t> vec(service_data.begin(), service_data.end());
       builder.addServiceData(mUuid,vec);
     }
+  } else if (is_pts_test_enabled_) { // add service uuid and manufacture AD type in legacy adv for PTS test case.
+    temp= service_list[SERVICE_1][instance -1];
+    if(!temp->s_uuid.empty()) {
+      mUuid = btapp::Uuid::FromString(temp->s_uuid);
+      builder.addServiceUuid(mUuid);
+    }
+    if(mManufacturerID != "" && mManufacturerData != "" ) {
+      int id=0;
+      istringstream(mManufacturerID) >> id;
+      ALOGD(LOGTAG"ManufacturerID: %d", id);
+      ALOGD(LOGTAG"Manufacturer Data: %s", mManufacturerData.c_str());
+      std::vector<uint8_t> vec(mManufacturerData.begin(), mManufacturerData.end());
+      builder.addManufacturerData(id,vec);
+    }
   }
   mAdvertiseData = builder.build();
   ALOGD(LOGTAG"AdvertiseData IncludeDevicename: %d IncludeTxPowerLevel: %d ",

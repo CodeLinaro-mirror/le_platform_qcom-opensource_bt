@@ -212,7 +212,7 @@ void dial_call_callback(char *number, bt_bdaddr_t* bd_addr) {
 void dtmf_cmd_callback(char dtmf, bt_bdaddr_t* bd_addr) {
     BtEvent *pEvent = new BtEvent;
     ALOGD(LOGTAG " dtmf_cmd_callback");
-    fprintf(stdout, " dtmf_cmd_callback\n");
+    fprintf(stdout, " dtmf_cmd_callback receive DTMF code %c\n", dtmf);
 
     memcpy(&pEvent->hfp_ag_event.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
     pEvent->hfp_ag_event.arg1 = dtmf;
@@ -806,12 +806,14 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY %s", str);
             if(sBtHfpAgInterface != NULL) {
               if (pEvent->hfp_ag_event.arg1 == 0){
+                network_state = BTHF_NETWORK_STATE_NOT_AVAILABLE;
                 fprintf(stdout, " network not avaialble \n ");
                 ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY ");
                 sBtHfpAgInterface->device_status_notification(BTHF_NETWORK_STATE_NOT_AVAILABLE,
                                 BTHF_SERVICE_TYPE_HOME, pEvent->hfp_ag_event.arg2,
                                 pEvent->hfp_ag_event.arg3, &pEvent->hfp_ag_event.bd_addr);
               } else if (pEvent->hfp_ag_event.arg1 == 1){
+                network_state = BTHF_NETWORK_STATE_AVAILABLE;
                 fprintf(stdout, " network avaialble \n ");
                 ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY ");
                 sBtHfpAgInterface->device_status_notification(BTHF_NETWORK_STATE_AVAILABLE,
@@ -899,10 +901,10 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             if (sBtHfpAgInterface != NULL) {
 #if defined(BT_MODEM_INTEGRATION)
                 // we already have active/held/ringing call, call setup info. send it to stack
-                sBtHfpAgInterface->cind_response(1, mNumActiveCalls, mNumHeldCalls,
+                sBtHfpAgInterface->cind_response(network_state, mNumActiveCalls, mNumHeldCalls,
                                     mCallSetupState, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
 #else
-                sBtHfpAgInterface->cind_response(1, mActiveCallsNum, mHeldCallsNum,
+                sBtHfpAgInterface->cind_response(network_state, mActiveCallsNum, mHeldCallsNum,
                                     BTHF_CALL_STATE_IDLE, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
 #endif
             }
@@ -1271,12 +1273,14 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY %s", str);
             if(sBtHfpAgInterface != NULL) {
               if (pEvent->hfp_ag_event.arg1 == 0){
+                network_state = BTHF_NETWORK_STATE_NOT_AVAILABLE;
                 fprintf(stdout, " network not avaialble \n ");
                 ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY ");
                 sBtHfpAgInterface->device_status_notification(BTHF_NETWORK_STATE_NOT_AVAILABLE,
                                         BTHF_SERVICE_TYPE_HOME, pEvent->hfp_ag_event.arg2,
                                         pEvent->hfp_ag_event.arg3, &pEvent->hfp_ag_event.bd_addr);
               } else if (pEvent->hfp_ag_event.arg1 == 1) {
+                network_state = BTHF_NETWORK_STATE_AVAILABLE;
                 fprintf(stdout, " network avaialble \n ");
                 ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY ");
                 sBtHfpAgInterface->device_status_notification(BTHF_NETWORK_STATE_AVAILABLE,
@@ -1366,10 +1370,10 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             if (sBtHfpAgInterface != NULL) {
 #if defined(BT_MODEM_INTEGRATION)
                 // we already have active/held/ringing call, call setup info. send it to stack
-                sBtHfpAgInterface->cind_response(1, mNumActiveCalls, mNumHeldCalls,
+                sBtHfpAgInterface->cind_response(network_state, mNumActiveCalls, mNumHeldCalls,
                                 mCallSetupState, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
 #else
-                sBtHfpAgInterface->cind_response(1, mActiveCallsNum, mHeldCallsNum,
+                sBtHfpAgInterface->cind_response(network_state, mActiveCallsNum, mHeldCallsNum,
                             BTHF_CALL_STATE_IDLE, 5, 0, 5, &pEvent->hfp_ag_event.bd_addr);
 #endif
             }
@@ -2522,6 +2526,8 @@ void Hfp_Ag::change_state(HfpAgState mState) {
    if (mState == HFP_AG_STATE_DISCONNECTED) {
        mWbsState = BTHF_WBS_NO;
        mNrec = BTHF_NREC_STOP;
+   } else if (mState == HFP_AG_STATE_CONNECTED) {
+       network_state = BTHF_NETWORK_STATE_AVAILABLE;
    }
 }
 

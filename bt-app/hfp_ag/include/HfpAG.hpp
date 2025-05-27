@@ -191,6 +191,7 @@ class Hfp_Ag {
 #if defined(BT_AUDIO_PAL_INTEGRATION)
     pa_routing_interface_t *pa_routing_intf;
 #endif
+    int network_state;
   public:
     Hfp_Ag(const bt_interface_t *bt_interface, config_t *config);
     ~Hfp_Ag();

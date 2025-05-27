@@ -118,6 +118,7 @@ const char *BT_ENABLE_EXT_POWER    = "BtEnableExtPower";
 const char *BT_ENABLE_FW_SNOOP     = "BtEnableFWSnoop";
 const char *BT_ENABLE_SOC_LOG      = "BtEnableSocLog";
 const char *BT_HID_ENABLED         = "BtHidEnable";
+const char *PTS_TEST_ENABLED       = "PTSTestEnable";
 /**
  * The Configuration file path
  */
@@ -585,7 +586,7 @@ UserMenuList GattcTestMenu[] = {
     {GATTCTEST_GETSERVICES,           "gattctest_getservices",    ONE_PARAM,    "gattctest_getservices<space><bt_address>"},
     {GATTCTEST_REQCONN_PRI,           "gattctest_reqconn_pri",    TWO_PARAM,    "gattctest_reqconn_pri<space><bt_address><space><priority 0/1/2>"},
     {GATTCTEST_GETCHARID,           "gattctest_getcharid",    TWO_PARAM,    "gattctest_getcharid<space><bt_address><space><instanceid>"},
-    {GATTCTEST_RELIABLEWRITE,       "gattctest_reliablewrite",    TWO_PARAM,    "gattctest_reliablewrite<space><bt_address><space><instanceid>"},
+    {GATTCTEST_RELIABLEWRITE,       "gattctest_reliablewrite",    THREE_PARAM,    "gattctest_reliablewrite<space><bt_address><space><instanceid><space><length>"},
     {GATTCTEST_GETDESCID,           "gattctest_getdescid",    TWO_PARAM,    "gattctest_getdescid<space><bt_address><space><instanceid>"},
     {GATTCTEST_GETSRVC,           "gattctest_getsrvc",    THREE_PARAM,    "gattctest_getsrvc<space><bt_address><space><UUID><space><INSTANCEID>"},
     {GATTCTEST_RDWRDESC,       "gattctest_RdWrDesc",    FIVE_PARAM,    "gattctest_RdWrDesc<space><bt_address><space><R-2/W-1><space><value><space><INSTANCEID><space><value length>"},

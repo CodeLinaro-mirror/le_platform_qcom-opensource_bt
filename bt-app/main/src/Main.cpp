@@ -85,6 +85,8 @@ long onoff_index = 0;
 bool exithandler_waitbtoff = FALSE;
 bool isBT_ON = true;
 
+bool is_pts_test_enabled_ = false; // used to help test certficatoin cases
+
 extern Gap *g_gap;
 extern A2dp_Sink *pA2dpSink;
 extern A2dp_Sink_Split *pA2dpSinkSplit;
@@ -150,7 +152,7 @@ static uint8_t cert_cmd_parameter_count = 0;
 int main (int argc, char *argv[]) {
 #define MAX_LINE_LEN 256
     int count = 0;
-    FILE *fp = popen("pgrep -f btapp", "r");
+    FILE *fp = popen("pgrep btapp", "r");
     if (fp) {
         char buffer[MAX_LINE_LEN];
         while (fgets(buffer, sizeof(buffer), fp) != NULL) {
@@ -2341,7 +2343,7 @@ static void HandleGattcTestCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
                     }
                     fprintf(stdout,"Reliablewrite Characteristic \n");
                     gattctest->reliableWrite(user_cmd[ONE_PARAM],
-                        atoi(user_cmd[TWO_PARAM]));
+                        atoi(user_cmd[TWO_PARAM]), atoi(user_cmd[THREE_PARAM]));
                } else {
                     fprintf(stdout,"Do the GATTCINIT first\n");
                }
@@ -5016,6 +5018,10 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //Check for SPP client
     is_spp_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_SPP_CLIENT_ENABLED, false);
+
+    // checking for PTS test enable
+    is_pts_test_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
+        PTS_TEST_ENABLED, false);
 
     return true;
 }

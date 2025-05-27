@@ -485,6 +485,31 @@ btav_a2dp_codec_config_t codec_config = {
 std::sort(a2dpSrcCodecList.begin(), a2dpSrcCodecList.end(), compareByPriority);
 }
 
+static const char* pass_through_cmd_id_to_str(uint8_t cmd_id) {
+    switch (cmd_id) {
+        case CMD_ID_PLAY:
+                return "CMD_ID_PLAY";
+        case CMD_ID_PAUSE:
+                return "CMD_ID_PAUSE";
+        case CMD_ID_STOP:
+                return "CMD_ID_STOP";
+        case CMD_ID_REWIND:
+                return "CMD_ID_REWIND";
+        case CMD_ID_FORWARD:
+                return "CMD_ID_FORWARD";
+        case CMD_ID_BACKWARD:
+                return "CMD_ID_BACKWARD";
+        case CMD_ID_FF:
+                return "CMD_ID_FASTFORWARD";
+        case CMD_ID_VOL_DOWN:
+                return "CMD_ID_VOL_DOWN";
+        case CMD_ID_VOL_UP:
+                return "CMD_ID_VOL_UP";
+        default:
+                return "unknown";
+    }
+}
+
 /* This function is used for testing purpose. Parses string which represents codec list*/
 static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs){
     int i = 0, j = 0, k = 0;
@@ -771,7 +796,18 @@ void registerMediaPlayers () {
     pA2dpSource->pMediaList.push_back(MediaInfo (mediaUid2,
             BTRC_ITEM_MEDIA, 0x006A, 6, Media1, 0));
 
+    fprintf(stdout, "register player:%s \n" , playerName1);
     ALOGD(LOGTAG_AVRCP "Exit registerMediaPlayers()");
+}
+
+void showMediaItem () {
+    list<MediaInfo>::iterator p = pA2dpSource->pMediaList.begin();
+    list<MediaInfo>::iterator p_end = pA2dpSource->pMediaList.end();
+    while (p != p_end) {
+        fprintf(stdout,"%s ",p->mDisplayableName);
+        p++;
+    }
+    fprintf(stdout,"\n");
 }
 
 void A2dp_Source::unregisterMediaPlayers () {
@@ -1443,7 +1479,8 @@ static void btavrcp_target_passthrough_cmd_callback(int id, int key_state, bt_bd
         BtEvent *event = new BtEvent;
         event->avrcpTargetEvent.event_id = A2DP_SOURCE_AUDIO_CMD_REQ;
         /*As there is no player impl available at this point hence STOP/PAUSE has got same functionality*/
-        if(id == CMD_ID_PAUSE)
+        /*Note: There is no need to convert the command type when testing certification tests.*/
+        if(id == CMD_ID_PAUSE && !is_pts_test_enabled_)
             id = CMD_ID_STOP;
         event->avrcpTargetEvent.key_id = id;
         PostMessage (THREAD_ID_A2DP_SOURCE, event);
@@ -1930,6 +1967,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
     btrc_player_attr_t p_attr[BTRC_MAX_APP_SETTINGS];
     uint8_t *attr_values = NULL;
     uint8_t key_id;
+    static list<MediaInfo>::iterator pCurMedia = pMediaList.begin();
 
     switch(pEvent->avrcpTargetEvent.event_id) {
         case AVRCP_TARGET_USE_BIGGER_METADATA:
@@ -2293,10 +2331,11 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                                              &(pEvent->avrcpTargetEvent.bd_addr),
                                              (btrc_status_t)p_param->status, p_param->uid_counter,
                                              p_param->item_count, p_param->p_item_list);
+                    break;
                 }
 
-                if (pMediaList.size() > 0) {
-                    list<MediaInfo>::iterator p = pMediaList.begin();
+                if (pMediaList.size() > 0 && pCurMedia != pMediaList.end()) {
+                    list<MediaInfo>::iterator p = pCurMedia;
                     mediaEntry = (char*)osi_malloc(p->RetrieveMediaEntryLength()*sizeof(char));
                     mediaEntry = p->RetrieveMediaItemEntry();
                     int length = p->RetrieveMediaEntryLength();
@@ -2337,11 +2376,25 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                     checkLength += folderItemLengths[count];
                     ALOGD(LOGTAG_AVRCP "checkLength = %u countTotalBytes = %u strlen = %d ",
                                       checkLength,countTotalBytes,str_len);
+                    ++pCurMedia;
+                    sBtAvrcpTargetInterface->get_folder_items_list_rsp(
+                        &(pEvent->avrcpTargetEvent.bd_addr),
+                        (btrc_status_t)p_param->status, p_param->uid_counter,
+                        p_param->item_count, p_param->p_item_list);
+                } else {
+                    p_param->status = BTRC_STS_INV_RANGE;
+                    sBtAvrcpTargetInterface->get_folder_items_list_rsp(
+                                             &(pEvent->avrcpTargetEvent.bd_addr),
+                                             (btrc_status_t)p_param->status, p_param->uid_counter,
+                                             p_param->item_count, p_param->p_item_list);
+                    pCurMedia = pMediaList.begin();
+
+                    if(is_pts_test_enabled_) {
+                        printf("Media items in media list:");
+                        showMediaItem ();
+                    }
                 }
-                sBtAvrcpTargetInterface->get_folder_items_list_rsp(
-                                  &(pEvent->avrcpTargetEvent.bd_addr),
-                                  (btrc_status_t)p_param->status, p_param->uid_counter,
-                                  p_param->item_count, p_param->p_item_list);
+
                 osi_free(pEvent->avrcpTargetEvent.buf_ptr);
                 osi_free(folderitem);
                 osi_free(folderItems);
@@ -2551,15 +2604,20 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                         mUidChangedNotiType, &param);
             }
             break;
-        case AVRCP_TARGET_NOW_PLAYING_CONTENT_CHANGED:
+        case AVRCP_TARGET_NOW_PLAYING_CONTENT_CHANGED:{
             ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_NOW_PLAYING_CONTENT_CHANGED");
+            if(is_pts_test_enabled_) {
+                pA2dpSource->pMediaList.push_back(MediaInfo (mediaUid3,BTRC_ITEM_MEDIA, 0x006A, 6, "abcNew", 0));
+                fprintf(stdout,"add the new media(abcNew) to now playing list, the new now playing list is:\n");
+                showMediaItem ();
+            }
             if (mNowPlayingContentChangedNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
                 mNowPlayingContentChangedNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
                 sBtAvrcpTargetInterface->register_notification_rsp(
                         BTRC_EVT_NOW_PLAYING_CONTENT_CHANGED,
                         mNowPlayingContentChangedNotiType, &param);
             }
-            break;
+            } break;
         case AVRCP_TARGET_GET_ELE_ATTR:
             num_attr = pEvent->avrcpTargetEvent.arg1;
             if (pEvent->avrcpTargetEvent.buf_ptr == NULL) {
@@ -2878,6 +2936,8 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             break;
         case A2DP_SOURCE_AUDIO_CMD_REQ:{
             key_id = pEvent->avrcpTargetEvent.key_id;
+            if(is_pts_test_enabled_)
+                fprintf(stdout, "receive the %s(Note: This only represents the receipt of the command, not the actual effect.)\n", pass_through_cmd_id_to_str(key_id));
             if (!mAvrcpConnected || (memcmp(&mConnectedAvrcpDevice, &mConnectedDevice,
                            sizeof(bt_bdaddr_t)) != 0)) {
                 ALOGD(LOGTAG_AVRCP " No Active connection. Bail out!! ");
@@ -3010,7 +3070,11 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                 if(pEvent->avrcpTargetEvent.arg3 ==0)
                     sBtAvrcpTargetInterface->change_path_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)BTRC_STS_INV_DIRN, 0);
                 else if(uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid1) && (uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid2)))
-                    sBtAvrcpTargetInterface->change_path_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)BTRC_STS_INV_DIRECTORY, 0);
+                    /*AVRCP/TG/MCN/CB/BI-04-C requires TG should sent "Does Not Exist" error code to PTS when an invalid  folder uid is requested*/
+                    if(is_pts_test_enabled_)
+                        sBtAvrcpTargetInterface->change_path_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)BTRC_STS_INV_ITEM, 0);
+                    else
+                        sBtAvrcpTargetInterface->change_path_rsp(&(pEvent->avrcpTargetEvent.bd_addr), (btrc_status_t)BTRC_STS_INV_DIRECTORY, 0);
                 else if((!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid1)
                     ||(!uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid2)))&&(pEvent->avrcpTargetEvent.arg3 ==1)){
                     is_empty_folder = (uid_cmp(pEvent->avrcpTargetEvent.buf_ptr, folderUid2))? 0:1;

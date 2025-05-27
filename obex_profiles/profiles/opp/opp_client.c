@@ -103,6 +103,9 @@ typedef struct {
 
 static void AbortCfm(OI_OBEXCLI_CONNECTION_HANDLE connectionId);
 
+/**
+ * DeferredPushOpenCfm
+ */
 static void DeferredPushOpenCfm(OI_OPP_HANDLE handle,
                                const OI_OBEX_UNICODE *name,
                                const OI_CHAR *type,
