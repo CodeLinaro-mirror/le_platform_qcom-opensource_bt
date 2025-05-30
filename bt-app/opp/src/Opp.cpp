@@ -179,6 +179,38 @@ static uint8_t OPP_FORMAT_ALL [] = {
     OPP_FORMAT_ANY_TYPE_OF_OBJ
 };
 
+static const FILE_TYPE_DATA file_type_data[] = {
+	{"ics", "text/calendar"},
+	{"vcs", "text/x-vcalendar"},
+	{"vcf", "text/x-vcard"},
+	{"vnt", "text/x-vnote"},
+	{"vmg", "text/x-vmsg"},
+	{"jpeg", "image/jpeg"},
+	{"tiff", "image/tiff"},
+	{"gif", "image/gif"},
+	{"jpg", "image/jpeg"},
+	{"bmp", "image/jpeg"},
+	{"mp3", "audio/mpeg"},
+	{"mp4", "video/mpeg"},
+	{"mpeg", "video/mpeg"},
+	{"qt", "video/qt"},
+	{"txt", "text/plain"},
+	{"pdf", "application/pdf"},
+	{"ppt", "application/vnd.ms-powerpoint"},
+	{"pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"},
+	{"xls", "application/vnd.ms-excel"},
+	{"xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+	{"doc", "application/msword"},
+	{"docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+	{"html", "text/html"},
+	{"xml", "application/xml"},
+	{"exe", "application/octet-stream"},
+	{"zip", "application/zip"},
+	{"tar.gz", "application/x-tar"},
+	{"tgz", "application/x-tar"},
+	{"apk", "application/vnd.android.package-archive"},
+};
+
 /* ****************************************************************************
  *
  *                      virtual object filing system
@@ -198,7 +230,9 @@ void read_config_file(char* config_filename) {
 
     ALOGV(LOGTAG " read_config_file: Opening %s\n", config_filename);
     if (( fp = fopen(config_filename, "r")) == NULL) {
-        ALOGE(LOGTAG  " Failed to open config file %s", config_filename);
+        ALOGE(LOGTAG  " Failed to open config file %s, and use default", config_filename);
+        opp.numOfEntries = sizeof(file_type_data)/sizeof(file_type_data[0]);
+        memcpy(opp.fileTypeData, file_type_data, sizeof(file_type_data));
         return;
     }
 
