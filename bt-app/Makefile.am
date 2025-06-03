@@ -13,4 +13,4 @@ install-data-hook:
 AM_CPPFLAGS = -DUSE_ANDROID_LOGGING -DUSE_BT_OBEX -DUSE_LIBHW_AOSP -DUSE_GEN_GATT
 common_LDFLAGS = -llog
 
-SUBDIRS = osi utils gatt main
+SUBDIRS = osi utils gatt gap main
