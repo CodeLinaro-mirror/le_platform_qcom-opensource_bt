@@ -67,7 +67,7 @@
 #include "osi/include/properties.h"
 
 #include "utils.h"
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 #include <hardware/vendor_ap.h>
 #endif
 
@@ -135,7 +135,7 @@ extern "C"
 
 ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,split
 static void SendDisableCmdToGap();
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 void HandleAPDeinitCmd(void);
 static uint8_t cert_cmd_parameter_count = 0;
 #endif
@@ -276,7 +276,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &HidMenu[0];
             num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
         case ESLAP_MENU:
             menu = &EslapMenu[0];
             num_cmds  = NO_OF_COMMANDS(EslapMenu);
@@ -311,7 +311,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
                 input_args[param_count++][COMMAND_ARG_SIZE - 1] = '\0';
             }
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
             if ((menu_type == ESLAP_MENU) && (menu[found_index].cmd_id == AP_CERT)) {
                 cert_cmd_parameter_count = param_count;
                 status = true;
@@ -329,7 +329,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
                     fprintf( stdout, " Missing required parameters\n");
                     fprintf( stdout, " Refer help: %s\n", menu[found_index].cmd_help);
                 }
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
             }
 #endif
         } else {
@@ -427,7 +427,7 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &HidMenu[0];
             num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
         case ESLAP_MENU:
             menu = &EslapMenu[0];
             num_cmds  = NO_OF_COMMANDS(EslapMenu);
@@ -451,7 +451,7 @@ static void ExitHandler(void) {
     if ( g_bt_app ) {
         // post the disable message to GAP incase BT is on
         if(g_bt_app->bt_state == BT_STATE_ON) {
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
             if(g_bt_app->ap_state == AP_STATE_ON) {
                 HandleAPDeinitCmd();
             } else if(g_bt_app->ap_state == AP_STATE_OFF){
@@ -1620,7 +1620,7 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             ALOGV (LOGTAG " Self exit of Main thread");
             ExitHandler();
             break;
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
         case ESLAP_OPTION:
             menu_type = ESLAP_MENU;
             DisplayMenu(menu_type);
@@ -2685,7 +2685,7 @@ static void SendDisableCmdToGap() {
     }
 }
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 //for AP post "AP exception to BT main thread", then deinit AP
 void PostMessageToBtMainThread(void *msg) {
     PostMessage(THREAD_ID_MAIN, msg);
@@ -2793,7 +2793,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
 
         case BT_DISABLE:
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
             HandleAPDeinitCmd();
 #endif
             SendDisableCmdToGap();
@@ -3727,7 +3727,7 @@ static void BtCmdHandler (void *context) {
             case HIDH_MENU:
                 HandleHIDCommand(cmd_id,user_cmd );
                 break;
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
             case ESLAP_MENU:
                 HandleEslapCommand(cmd_id,user_cmd);
                 break;
@@ -3925,7 +3925,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             break;
 
         case MAIN_API_DISABLE:
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
             HandleAPDeinitCmd();
 #endif
             SendDisableCmdToGap();
@@ -4205,7 +4205,7 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             }
             break;
 #endif
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
         case ESL_AP_EXCEPTION:
             if ((g_bt_app->ap_state == AP_STATE_ON) && (g_bt_app->status.eslap_deinit_cmd != COMMAND_INPROGRESS)) {
                 fprintf(stdout, "\n ESL_AP_EXCEPTION\n");
@@ -4359,7 +4359,7 @@ bt_state_t BluetoothApp:: GetState() {
     return bt_state;
 }
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 ap_state_t BluetoothApp:: GetAPState() {
     return ap_state;
 }
@@ -4427,7 +4427,7 @@ void BluetoothApp :: UnLoadBtStack (void)
     }
 }
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 bool BluetoothApp :: LoadAp (void) {
     hw_module_t *module;
 
@@ -4470,7 +4470,7 @@ void BluetoothApp :: InitHandler (void) {
         kill(getpid(), SIGKILL);
         return;
     }
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     if (!LoadAp()) {
         ALOGE(LOGTAG "Can't load AP module");
         fprintf(stdout, "Can't load AP module\n");
@@ -4662,7 +4662,7 @@ void BluetoothApp :: InitHandler (void) {
 
 void BluetoothApp :: DeInitHandler (void) {
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     UnLoadAp ();
 #endif
     if(g_bt_app->bt_state == BT_STATE_ON) {
@@ -5029,7 +5029,7 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
 void printBtappState (void) {
     if (g_bt_app) {
         fprintf(stdout, " BT state:%d\n", g_bt_app->bt_state);
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
         fprintf(stdout, " AP state:%d\n", g_bt_app->ap_state);
 #endif
 /*
@@ -5038,7 +5038,7 @@ void printBtappState (void) {
         fprintf(stdout, " enquiry_cmd state:%d\n", g_bt_app->status.enquiry_cmd);
         fprintf(stdout, " stop_enquiry_cmd state:%d\n", g_bt_app->status.stop_enquiry_cmd);
         fprintf(stdout, " pairing_cmd state:%d\n", g_bt_app->status.pairing_cmd);
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
         fprintf(stdout, " eslap_init_cmd state:%d\n", g_bt_app->status.eslap_init_cmd);
         fprintf(stdout, " eslap_deinit_cmd state:%d\n", g_bt_app->status.eslap_deinit_cmd);
 #endif

@@ -34,7 +34,7 @@
 #include <hardware/bluetooth.h>
 #include "include/ipc.hpp"
 #include "utils.h"
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 #include <hardware/vendor_ap.h>
 #endif
 
@@ -142,7 +142,7 @@ typedef struct {
     CommandStatus stop_enquiry_cmd;
     CommandStatus disable_cmd;
     CommandStatus pairing_cmd;
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     CommandStatus eslap_init_cmd;
     CommandStatus eslap_deinit_cmd;
 #endif
@@ -375,7 +375,7 @@ typedef enum {
     SEND_HCI_COMMAND,
     CONFIGURE_WBS,
     BACK_TO_MAIN,
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     ESLAP_OPTION,
     AP_INIT,
     AP_DEINIT,
@@ -395,7 +395,7 @@ typedef enum {
     FOUR_PARAM,
     FIVE_PARAM,
     SIX_PARAM,
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     TWENTY_PARAM = 20,
 #endif
 } MaxParamCount;
@@ -421,7 +421,7 @@ typedef enum {
     SPP_CLIENT_MENU,
     HFP_AG_MENU,
     A2DP_SOURCE_MENU,
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     ESLAP_MENU,
 #endif
 } MenuType;
@@ -500,7 +500,7 @@ UserMenuList MainMenu[] = {
     {A2DP_SOURCE,           "a2dp_source_menu", ZERO_PARAM,   "a2dp_source_menu"},
     {SPP_CLIENT_OPTION,     "spp_client_menu",  ZERO_PARAM,   "spp_client_menu"},
     {SPP_SERVER_OPTION,     "spp_server_menu",  ZERO_PARAM,   "spp_server_menu"},
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     {ESLAP_OPTION,          "eslap_menu",       ZERO_PARAM,   "eslap_menu"},
 #endif
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
@@ -844,7 +844,7 @@ UserMenuList HfpAGMenu[] = {
     {SEND_DTMF,             "send_dtmf",   ONE_PARAM,    "send_dtmf<space><code>"},
 #endif
 };
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 /**
  * list of supported commands for ESLAP
  */
@@ -980,7 +980,7 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
  */
 static void BtCmdHandler (void *context);
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 /**
  * @brief HandleEslapCommand
  *
@@ -1015,7 +1015,7 @@ void BtMainMsgHandler (void *context);
  * socket interface. Perform action based on inputs.
  *
  */
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 typedef enum {
     AP_STATE_OFF, 
     AP_STATE_ON
@@ -1047,7 +1047,7 @@ class BluetoothApp {
     reactor_object_t *cmd_reactor_;
     struct hw_device_t *device_;
     bluetooth_device_t *bt_device_;
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     vendor_ap_device_t *ap_device_;
 #endif
     bool LoadConfigParameters(const char *config_path);
@@ -1055,7 +1055,7 @@ class BluetoothApp {
     void DeInitHandler();
     bool LoadBtStack();
     void UnLoadBtStack();
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     bool LoadAp();
     void UnLoadAp();
 #endif
@@ -1075,7 +1075,7 @@ class BluetoothApp {
      * structure object for standard Bluetooth DM interface
      */
     const bt_interface_t *bt_interface;
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     const vendor_ap_interface_t *ap_interface;
     ap_state_t ap_state;
 #endif
@@ -1164,7 +1164,7 @@ class BluetoothApp {
      * @return bt_state_t
      */
     bt_state_t GetState();
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
         /**
      * @brief GetAPState
      *
