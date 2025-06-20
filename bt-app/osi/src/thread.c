@@ -37,6 +37,8 @@
 
 #include <sys/syscall.h>
 
+#define strlcpy g_strlcpy
+
 struct thread_t {
   bool is_joined;
   pthread_t pthread;

@@ -9,7 +9,8 @@ AM_CFLAGS = -Wall \
             -D__GLIBC__
 
 AM_CPPFLAGS = -I${WORKSPACE}/qcom-opensource/bt/bt-app \
-               -I${WORKSPACE}/qcom-opensource/bt/bt-app/osi/include
+               -I${WORKSPACE}/qcom-opensource/bt/bt-app/osi/include \
+               -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include
 
 c_sources = \
     src/alarm.c \

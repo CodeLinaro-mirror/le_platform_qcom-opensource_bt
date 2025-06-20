@@ -29,6 +29,7 @@ AM_CPPFLAGS += -I${WORKSPACE}/qcom-opensource/bt/bt-app \
                -I${WORKSPACE}/qcom-opensource/bt/gatt/include \
                -I${WORKSPACE}/qcom-opensource/bt/bt-app/sdp_client/include \
                -I${WORKSPACE}/system/media/audio/include \
+               -I${WORKSPACE}/system/core/include \
                -I${WORKSPACE}/hardware/qcom/audio/qahw_api/inc \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/hal/include \
                -I${WORKSPACE}/vendor/qcom/opensource/bluetooth/vhal/include \
@@ -72,13 +73,13 @@ c_sources +=  ../pbap_client/src/PbapClient.cpp \
               ../opp/src/Opp.cpp
 endif
 
-if USE_GST
-requiredlibs = ../osi/libgstbtapposi.la -lpthread -lm -ldl -lrt -lhardware
+if USE_BTVENDORHAL
+ requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lbtvendorhal -lgengatt -lcutils
 else
-requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware
+requiredlibs = ../osi/libbtapposi.la -lpthread -lm -ldl -lrt -lhardware -lgengatt -lcutils
 endif
 
-requiredlibs += $(SYS_LIB)/libgengatt.la
+
 if AUDIO_HAL_SUPPORTED
 requiredlibs += $(SYS_LIB)/libqahw.la
 endif

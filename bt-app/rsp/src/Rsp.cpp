@@ -621,12 +621,14 @@ bool Rsp::EnableRSP()
     fprintf(stdout," set rsp data \n");
     SetRSPAttrData(&rev);
     RegisterApp();
+    return true;
 }
 
 bool Rsp::DisableRSP()
 {
     fprintf(stdout, "(%s) Disable RSP Initiated",__FUNCTION__);
     StopService();
+    return true;
 }
 
 bool Rsp::RegisterApp()
@@ -681,6 +683,7 @@ bool Rsp::ClientSetAdvData(char *str)
                                                 IncludeName, IncludeTxPower, min_conn_interval,
                                                 max_conn_interval, 0,strlen(str), str,
                                                 strlen(str), str, 0,NULL);
+    return true;
 }
 
 void Rsp::CleanUp(int server_if)
