@@ -277,9 +277,9 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
 #ifdef SUPPORT_VENDOR_AP
-        case ESLAP_MENU:
-            menu = &EslapMenu[0];
-            num_cmds  = NO_OF_COMMANDS(EslapMenu);
+        case VENDORAP_MENU:
+            menu = &VendorapMenu[0];
+            num_cmds  = NO_OF_COMMANDS(VendorapMenu);
             break;
 #endif
         case MAIN_MENU:
@@ -312,7 +312,7 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             }
 
 #ifdef SUPPORT_VENDOR_AP
-            if ((menu_type == ESLAP_MENU) && (menu[found_index].cmd_id == AP_CERT)) {
+            if ((menu_type == VENDORAP_MENU) && (menu[found_index].cmd_id == AP_CERT)) {
                 cert_cmd_parameter_count = param_count;
                 status = true;
             } else {
@@ -428,9 +428,9 @@ static void DisplayMenu(MenuType menu_type) {
             num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
 #ifdef SUPPORT_VENDOR_AP
-        case ESLAP_MENU:
-            menu = &EslapMenu[0];
-            num_cmds  = NO_OF_COMMANDS(EslapMenu);
+        case VENDORAP_MENU:
+            menu = &VendorapMenu[0];
+            num_cmds  = NO_OF_COMMANDS(VendorapMenu);
             break;
 #endif
     }
@@ -1621,8 +1621,8 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             ExitHandler();
             break;
 #ifdef SUPPORT_VENDOR_AP
-        case ESLAP_OPTION:
-            menu_type = ESLAP_MENU;
+        case VENDORAP_OPTION:
+            menu_type = VENDORAP_MENU;
             DisplayMenu(menu_type);
             break;
 #endif
@@ -2693,26 +2693,26 @@ void PostMessageToBtMainThread(void *msg) {
 
 void HandleAPInitCmd(void) {
 
-    if ((g_bt_app->status.eslap_init_cmd != COMMAND_INPROGRESS) &&
-        (g_bt_app->status.eslap_deinit_cmd != COMMAND_INPROGRESS) &&
+    if ((g_bt_app->status.vendorap_init_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->status.vendorap_deinit_cmd != COMMAND_INPROGRESS) &&
         (g_bt_app->bt_state == BT_STATE_ON) &&
         (g_bt_app->ap_state == AP_STATE_OFF)) {
 
-        g_bt_app->status.eslap_init_cmd = COMMAND_INPROGRESS;
+        g_bt_app->status.vendorap_init_cmd = COMMAND_INPROGRESS;
         if (g_bt_app->ap_interface) {
             if (g_bt_app->ap_interface->init(g_bt_app->bt_interface, PostMessageToBtMainThread) == 0) {
-                g_bt_app->status.eslap_init_cmd = COMMAND_COMPLETE;
+                g_bt_app->status.vendorap_init_cmd = COMMAND_COMPLETE;
                 g_bt_app->ap_state = AP_STATE_ON;
             } else {
-                g_bt_app->status.eslap_init_cmd = COMMAND_COMPLETE;
+                g_bt_app->status.vendorap_init_cmd = COMMAND_COMPLETE;
                 g_bt_app->ap_state = AP_STATE_OFF;
                 fprintf( stdout, "AP init failed\n");
             }
         }
 
-    } else if ( g_bt_app->status.eslap_init_cmd == COMMAND_INPROGRESS ) {
+    } else if ( g_bt_app->status.vendorap_init_cmd == COMMAND_INPROGRESS ) {
         fprintf( stdout, "AP init is already in process\n");
-    } else if ( g_bt_app->status.eslap_deinit_cmd == COMMAND_INPROGRESS ) {
+    } else if ( g_bt_app->status.vendorap_deinit_cmd == COMMAND_INPROGRESS ) {
         fprintf( stdout, "Previous ap init is still in progress\n");
     } else if ( g_bt_app->bt_state != BT_STATE_ON ) {
         fprintf( stdout, "Currently BT is not ON, enable BT first\n");
@@ -2723,24 +2723,24 @@ void HandleAPInitCmd(void) {
 
 void HandleAPDeinitCmd(void) {
 
-    if ((g_bt_app->status.eslap_deinit_cmd != COMMAND_INPROGRESS) &&
-        (g_bt_app->status.eslap_init_cmd != COMMAND_INPROGRESS) &&
+    if ((g_bt_app->status.vendorap_deinit_cmd != COMMAND_INPROGRESS) &&
+        (g_bt_app->status.vendorap_init_cmd != COMMAND_INPROGRESS) &&
         (g_bt_app->ap_state == AP_STATE_ON)) {
 
-        g_bt_app->status.eslap_deinit_cmd = COMMAND_INPROGRESS;
+        g_bt_app->status.vendorap_deinit_cmd = COMMAND_INPROGRESS;
         if (g_bt_app->ap_interface) {
             if (g_bt_app->ap_interface->deInit() == 0) {
-                g_bt_app->status.eslap_deinit_cmd = COMMAND_COMPLETE;
+                g_bt_app->status.vendorap_deinit_cmd = COMMAND_COMPLETE;
                 g_bt_app->ap_state = AP_STATE_OFF;
             } else {
-                g_bt_app->status.eslap_deinit_cmd = COMMAND_COMPLETE;
+                g_bt_app->status.vendorap_deinit_cmd = COMMAND_COMPLETE;
                 g_bt_app->ap_state = AP_STATE_ON; //state????
                 fprintf( stdout, "AP deinit failed\n");
             }
         }
-    } else if (g_bt_app->status.eslap_deinit_cmd == COMMAND_INPROGRESS) {
+    } else if (g_bt_app->status.vendorap_deinit_cmd == COMMAND_INPROGRESS) {
         fprintf( stdout, " deinit AP command is already in process\n");
-    } else if (g_bt_app->status.eslap_init_cmd == COMMAND_INPROGRESS) {
+    } else if (g_bt_app->status.vendorap_init_cmd == COMMAND_INPROGRESS) {
         fprintf( stdout, " Previous AP init command is still in process\n");
     } else {
         fprintf( stdout, "Currently AP is already OFF\n");
@@ -2755,7 +2755,7 @@ void HandleAPCertCmd(char user_cmd[][COMMAND_ARG_SIZE]) {
     g_bt_app->ap_interface->cert(cert_cmd_parameter_count - CERT_CMD_PARAMETER_COUNT_MIN, &user_cmd[ONE_PARAM]);
 }
 
-static void HandleEslapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+static void HandleVendorapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *event = NULL;
 
     switch (cmd_id) {
@@ -3728,8 +3728,8 @@ static void BtCmdHandler (void *context) {
                 HandleHIDCommand(cmd_id,user_cmd );
                 break;
 #ifdef SUPPORT_VENDOR_AP
-            case ESLAP_MENU:
-                HandleEslapCommand(cmd_id,user_cmd);
+            case VENDORAP_MENU:
+                HandleVendorapCommand(cmd_id,user_cmd);
                 break;
 #endif
         }
@@ -4206,9 +4206,9 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             break;
 #endif
 #ifdef SUPPORT_VENDOR_AP
-        case ESL_AP_EXCEPTION:
-            if ((g_bt_app->ap_state == AP_STATE_ON) && (g_bt_app->status.eslap_deinit_cmd != COMMAND_INPROGRESS)) {
-                fprintf(stdout, "\n ESL_AP_EXCEPTION\n");
+        case VENDOR_AP_EXCEPTION:
+            if ((g_bt_app->ap_state == AP_STATE_ON) && (g_bt_app->status.vendorap_deinit_cmd != COMMAND_INPROGRESS)) {
+                fprintf(stdout, "\n VENDOR_AP_EXCEPTION\n");
                 HandleAPDeinitCmd();
             }
             break;
@@ -5039,8 +5039,8 @@ void printBtappState (void) {
         fprintf(stdout, " stop_enquiry_cmd state:%d\n", g_bt_app->status.stop_enquiry_cmd);
         fprintf(stdout, " pairing_cmd state:%d\n", g_bt_app->status.pairing_cmd);
 #ifdef SUPPORT_VENDOR_AP
-        fprintf(stdout, " eslap_init_cmd state:%d\n", g_bt_app->status.eslap_init_cmd);
-        fprintf(stdout, " eslap_deinit_cmd state:%d\n", g_bt_app->status.eslap_deinit_cmd);
+        fprintf(stdout, " vendorap_init_cmd state:%d\n", g_bt_app->status.vendorap_init_cmd);
+        fprintf(stdout, " vendorap_deinit_cmd state:%d\n", g_bt_app->status.vendorap_deinit_cmd);
 #endif
 */
     }

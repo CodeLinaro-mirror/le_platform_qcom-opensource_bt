@@ -143,8 +143,8 @@ typedef struct {
     CommandStatus disable_cmd;
     CommandStatus pairing_cmd;
 #ifdef SUPPORT_VENDOR_AP
-    CommandStatus eslap_init_cmd;
-    CommandStatus eslap_deinit_cmd;
+    CommandStatus vendorap_init_cmd;
+    CommandStatus vendorap_deinit_cmd;
 #endif
 } UiCommandStatus;
 
@@ -376,7 +376,7 @@ typedef enum {
     CONFIGURE_WBS,
     BACK_TO_MAIN,
 #ifdef SUPPORT_VENDOR_AP
-    ESLAP_OPTION,
+    VENDORAP_OPTION,
     AP_INIT,
     AP_DEINIT,
     AP_CERT,
@@ -422,7 +422,7 @@ typedef enum {
     HFP_AG_MENU,
     A2DP_SOURCE_MENU,
 #ifdef SUPPORT_VENDOR_AP
-    ESLAP_MENU,
+    VENDORAP_MENU,
 #endif
 } MenuType;
 
@@ -501,7 +501,7 @@ UserMenuList MainMenu[] = {
     {SPP_CLIENT_OPTION,     "spp_client_menu",  ZERO_PARAM,   "spp_client_menu"},
     {SPP_SERVER_OPTION,     "spp_server_menu",  ZERO_PARAM,   "spp_server_menu"},
 #ifdef SUPPORT_VENDOR_AP
-    {ESLAP_OPTION,          "eslap_menu",       ZERO_PARAM,   "eslap_menu"},
+    {VENDORAP_OPTION,       "vendorap_menu",    ZERO_PARAM,   "vendorap_menu"},
 #endif
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
@@ -846,9 +846,9 @@ UserMenuList HfpAGMenu[] = {
 };
 #ifdef SUPPORT_VENDOR_AP
 /**
- * list of supported commands for ESLAP
+ * list of supported commands for VENDORAP
  */
-UserMenuList EslapMenu[] = {
+UserMenuList VendorapMenu[] = {
     {AP_INIT,               "init_ap",          ZERO_PARAM,    "init_ap"},
     {AP_DEINIT,             "deinit_AP",        ZERO_PARAM,    "deinit_ap"},
     {AP_CERT,               "cert",             TWENTY_PARAM,  "cert<space><sub_cmd><space>[parameter...], print help with no any parameter"},
@@ -982,15 +982,15 @@ static void BtCmdHandler (void *context);
 
 #ifdef SUPPORT_VENDOR_AP
 /**
- * @brief HandleEslapCommand
+ * @brief HandleVendorapCommand
  *
- *  This function will handle all the commands in @ref EslapMenu
+ *  This function will handle all the commands in @ref VendorapMenu
  *
  * @param[in] cmd_id It has command id from @ref CommandList
  * @param[out] user_cmd It has parsed commands with arguments passed by user
  * @return none
  */
-static void HandleEslapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
+static void HandleVendorapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]);
 #endif
 
 /**

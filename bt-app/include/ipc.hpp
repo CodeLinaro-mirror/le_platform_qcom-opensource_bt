@@ -64,7 +64,7 @@ extern bool is_pts_test_enabled_;
 #define SPP_MSG_BASE            (8000)
 #define HID_API_MSG_BASE        (9000)
 #ifdef SUPPORT_VENDOR_AP
-#define ESL_AP_MSG_BASE         (1000000)
+#define VENDOR_AP_MSG_BASE         (1000000)
 #endif
 
 #define AUDIO_MANAGER_MSG_BASE  (250)
@@ -642,7 +642,7 @@ typedef enum {
     SPP_CLI_START_THREADS,
 
 #ifdef SUPPORT_VENDOR_AP
-    ESL_AP_EXCEPTION = ESL_AP_MSG_BASE,
+    VENDOR_AP_EXCEPTION = VENDOR_AP_MSG_BASE,
 #endif
 } BluetoothEventId;
 
