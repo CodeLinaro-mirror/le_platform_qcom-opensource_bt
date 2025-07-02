@@ -13,13 +13,20 @@ AM_CPPFLAGS = -I${BT_SOURCE}/btapp/bt-app \
 
 
 AM_CPPFLAGS += @LIBCHROME_CFLAGS@
+
+if BT_AUDIO_ENABLE
 #if AUDIO_PAL_SUPPORTED
 AM_CPPFLAGS += -DBT_AUDIO_PAL_INTEGRATION
 AM_CPPFLAGS += @PABTAUDIO_CFLAGS@
 #endif
+endif
 
 cpp_sources = src/uuid.cc
+
+if BT_AUDIO_ENABLE
 cpp_sources += src/pa_routing_interface.cc
+AM_CPPFLAGS += -DBT_AUDIO_ENABLE
+endif
 
 requiredlibs = -lchrome
 

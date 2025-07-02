@@ -30,7 +30,7 @@
 #include "PeriodicAdvertiseParameters.hpp"
 #include "IAdvertisingSetCallback.hpp"
 #include "AdvertisingSetParameters.hpp"
-#include "log.h"
+#include "osi/include/log.h"
 #include "GattLibService.hpp"
 #include "AdvertisingSet.hpp"
 

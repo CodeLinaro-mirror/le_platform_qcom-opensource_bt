@@ -31,7 +31,7 @@
 #include<iostream>
 #include <mutex>
 #include<list>
-#include "log.h"
+#include "osi/include/log.h"
 #include "utils/include/uuid.h"
 
 using namespace std;

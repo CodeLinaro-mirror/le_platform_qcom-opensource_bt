@@ -74,19 +74,24 @@ cpp_sources = ../utils/src/utils.cc \
             ../gap/src/AdapterProperties.cpp \
             ../gap/src/RemoteDevices.cpp \
             ../sdp_client/src/SdpClient.cpp\
-            ../a2dp_sink/src/A2dp_Sink.cpp \
+            ../gattctest/src/GattcTest.cpp \
+            ../pan/src/Pan.cpp \
+            ../spp_server/src/spp_server.cpp \
+            ../spp_client/src/spp_client.cpp \
+            ../gattstest/src/GattsTest.cpp
+
+
+if BT_AUDIO_ENABLE
+cpp_sources = ../a2dp_sink/src/A2dp_Sink.cpp \
             ../a2dp_sink/src/A2dp_Sink_Split.cpp \
             ../a2dp_src/src/A2dp_Src.cpp \
             ../a2dp_sink/src/A2dp_Sink_Streaming.cpp \
             ../avrcp/src/Avrcp.cpp \
             ../audio_manager/src/Audio_Manager.cpp \
             ../hfp_client/src/HfpClient.cpp \
-            ../hfp_ag/src/HfpAG.cpp \
-            ../gattctest/src/GattcTest.cpp \
-            ../pan/src/Pan.cpp \
-            ../spp_server/src/spp_server.cpp \
-            ../spp_client/src/spp_client.cpp \
-            ../gattstest/src/GattsTest.cpp
+            ../hfp_ag/src/HfpAG.cpp
+AM_CPPFLAGS += -DBT_AUDIO_ENABLE
+endif
 
 if USE_GEN_GATT
 cpp_sources += ../rsp/src/Rsp.cpp
@@ -99,9 +104,9 @@ cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
 endif
 
 if USE_GST
-requiredlibs = ../osi/libgstbtapposi.la ../utils/libgstbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils
+requiredlibs = ../osi/libgstbtapposi.la ../utils/libgstbtappuuid.la -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lcutils -lbtutils -llog
 else
-requiredlibs = ../osi/libbtapposi.la ../utils/libbtappuuid.la -lpthread -lbttypes -lbtvendorhal
+requiredlibs = ../osi/libbtapposi.la ../utils/libbtappuuid.la -lpthread -lbttypes -lbtvendorhal -lcutils -lbtutils -llog
 endif
 
 if USE_GEN_GATT
@@ -126,7 +131,7 @@ if USE_GST
 else
  btapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
  btapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
- btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@ -lpropertyvault
+ btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
 endif
 
 else

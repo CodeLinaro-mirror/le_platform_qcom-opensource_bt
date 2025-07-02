@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "log.h"
+#include "osi/include/log.h"
 #include "utils/include/uuid.h"
 #include <unordered_map>
 #include <sstream>

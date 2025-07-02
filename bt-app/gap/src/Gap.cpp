@@ -1117,7 +1117,10 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         this->profile_config[profile_id].start_status = false;
         this->profile_config[profile_id].stop_status = false;
 
-        if(profile_id == PROFILE_ID_BT_AM)
+        if (profile_id == PROFILE_ID_GATT)
+            this->profile_config[profile_id].thread_id = THREAD_ID_GATT;
+#ifdef BT_AUDIO_ENABLE
+        else if(profile_id == PROFILE_ID_BT_AM)
             this->profile_config[profile_id].thread_id = THREAD_ID_BT_AM;
         else if(profile_id == PROFILE_ID_A2DP_SINK){
             if(is_a2dp_split_sink_enabled)
@@ -1129,10 +1132,9 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
             this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SOURCE;
         else if(profile_id == PROFILE_ID_HFP_CLIENT)
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_CLIENT;
+#endif
         else if (profile_id == PROFILE_ID_PAN)
             this->profile_config[profile_id].thread_id = THREAD_ID_PAN;
-        else if (profile_id == PROFILE_ID_GATT)
-            this->profile_config[profile_id].thread_id = THREAD_ID_GATT;
         else if (profile_id == PROFILE_ID_SDP_CLIENT)
             this->profile_config[profile_id].thread_id = THREAD_ID_SDP_CLIENT;
 #ifdef USE_BT_OBEX
@@ -1141,10 +1143,12 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         else if (profile_id == PROFILE_ID_OPP)
             this->profile_config[profile_id].thread_id = THREAD_ID_OPP;
 #endif
+#ifdef BT_AUDIO_ENABLE
         else if(profile_id == PROFILE_ID_HFP_AG)
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_AG;
         else if(profile_id == PROFILE_ID_AVRCP)
             this->profile_config[profile_id].thread_id = THREAD_ID_AVRCP;
+#endif
         else if(profile_id == PROFILE_ID_HID)
             this->profile_config[profile_id].thread_id = THREAD_ID_HID;
         else if(profile_id == PROFILE_ID_SPP_SERVER)
@@ -1152,6 +1156,7 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         else if(profile_id == PROFILE_ID_SPP_CLIENT)
             this->profile_config[profile_id].thread_id = THREAD_ID_SPP_CLIENT;
     }
+#ifdef BT_AUDIO_ENABLE
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED_STRING, false);
 
@@ -1172,6 +1177,7 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         (this->profile_config[PROFILE_ID_HFP_AG].is_enabled)) {
         this->profile_config[PROFILE_ID_BT_AM].is_enabled = true;
     }
+#endif
 
     this->profile_config[PROFILE_ID_PAN].is_enabled = config_get_bool (config,
                      CONFIG_DEFAULT_SECTION, BT_PAN_ENABLED, false);

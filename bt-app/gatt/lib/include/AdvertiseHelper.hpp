@@ -22,7 +22,7 @@
 #pragma once
 
 #include "AdvertiseData.hpp"
-#include "log.h"
+#include "osi/include/log.h"
 #include <string>
 
 using namespace std;

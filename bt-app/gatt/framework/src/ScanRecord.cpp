@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include <vector>
 #include <exception>
-#include "log.h"
+#include "osi/include/log.h"
 
 #define LOGTAG "ScanRecord"
 

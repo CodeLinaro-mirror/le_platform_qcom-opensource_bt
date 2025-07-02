@@ -33,7 +33,7 @@
 #include <mutex>
 #include <string>
 #include <algorithm>
-#include "log.h"
+#include "osi/include/log.h"
 #include "utils/include/uuid.h"
 
 using namespace std;

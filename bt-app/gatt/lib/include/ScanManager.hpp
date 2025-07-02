@@ -37,7 +37,7 @@
 #include <unordered_map>
 #include <vector>
 #include <utility>
-#include "log.h"
+#include "osi/include/log.h"
 #include "hardware/bt_common_types.h"
 #include <hardware/bluetooth.h>
 #include "utils/include/uuid.h"

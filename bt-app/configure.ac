@@ -34,6 +34,24 @@ if test "x$with_chrome_includes" != "xno"; then
    CFLAGS="${CFLAGS} -I${chrome_incdir}"
 fi
 
+AC_ARG_ENABLE([audio],
+  [AS_HELP_STRING([--enable-audio], [Enable audio support])],
+  [case "${enableval}" in
+      yes) audio=true ;;
+      no)  audio=false ;;
+      *) AC_MSG_ERROR([bad value ${enableval} for --enable-audio]) ;;
+  esac],[audio=false])
+
+
+if test "x$audio" = "xtrue"; then
+   PKG_CHECK_MODULES([PABTAUDIO], [pabtaudio])
+   AC_SUBST([PABTAUDIO_CFLAGS])
+
+   PKG_CHECK_MODULES([AROUTE], [audioroute])
+   AC_SUBST([AROUTE_CFLAGS])
+fi
+
+
 #PKG_CHECK_MODULES([BLUETOOTHEXT], [bluetoothExt])
 #AC_SUBST([BLUETOOTHEXT_CFLAGS])
 #AC_SUBST([BLUETOOTHEXT_LIBS])
@@ -45,12 +63,6 @@ AC_SUBST([LIBCHROME_LIBS])
 #PKG_CHECK_MODULES([OBEX], [obex])
 #AC_SUBST([OBEX_CFLAGS])
 #AC_SUBST([OBEX_LIBS])
-
-PKG_CHECK_MODULES([PABTAUDIO], [pabtaudio])
-AC_SUBST([PABTAUDIO_CFLAGS])
-
-PKG_CHECK_MODULES([AROUTE], [audioroute])
-AC_SUBST([AROUTE_CFLAGS])
 
 AC_ARG_WITH([glib],
      AC_HELP_STRING([--with-glib],
@@ -123,7 +135,7 @@ AC_ARG_ENABLE(target,
   [TARGET=none]
 )
 
-
+AM_CONDITIONAL([BT_AUDIO_ENABLE], [test "x$audio" = "xtrue"])
 AC_DEFINE([BT_AUDIO_PAL_INTEGRATION], [1], [BT_AUDIO_PAL_INTEGRATION Macro])
 AC_DEFINE([AUDIO_PAL_SUPPORTED], [1], [AUDIO_PAL_SUPPORTED Macro])
 AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$TARGET" = "xapq8009" -o "x$TARGET" = "xapq8017" -o "x$TARGET" = "xapq8096" -o "x$TARGET" = "xapq8053" -o "x$TARGET" = "xapq8098" -o "x$TARGET" = "xqcs405" -o "x$TARGET" = "xqcs40x" -o "x$TARGET" = "xsdmsteppe" -o "x$TARGET" = "xqrb5165" -o "x$TARGET" = "xqrbx210"])

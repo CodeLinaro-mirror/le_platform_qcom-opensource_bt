@@ -20,7 +20,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "log.h"
+#include "osi/include/log.h"
 #include "ipc.hpp"
 #include "GattCharacteristic.hpp"
 #include "GattDescriptor.hpp"

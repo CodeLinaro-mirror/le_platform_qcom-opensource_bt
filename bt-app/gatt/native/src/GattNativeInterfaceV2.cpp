@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
+#include <base/bind.h>
 #include "GattNativeInterfaceV2.hpp"
 #include "GattLibService.hpp"
 #include <hardware/bt_gatt.h>
 #include <hardware/bt_gatt_types.h>
 #include "ipc.hpp"
 #include <hardware/bluetooth.h>
-#include <base/bind.h>
 
 namespace gatt {
 

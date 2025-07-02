@@ -20,7 +20,7 @@
 #define HANDLE_MAP_HPP_
 #pragma once
 
-#include "log.h"
+#include "osi/include/log.h"
 #include "utils/include/uuid.h"
 #include<unordered_map>
 #include<vector>

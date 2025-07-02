@@ -26,7 +26,7 @@
 #include <string>
 #include <mutex>
 #include "CallbackInfo.hpp"
-#include "log.h"
+#include "osi/include/log.h"
 #include <iostream>
 #include <iterator>
 #include <cmath>
