@@ -98,20 +98,28 @@ extern bool is_pts_test_enabled_;
 typedef enum {
     THREAD_ID_MAIN = 0,
     THREAD_ID_GAP,
+#ifdef BT_AUDIO_ENABLE
     THREAD_ID_A2DP_SINK,
     THREAD_ID_A2DP_SINK_SPLIT,
     THREAD_ID_HFP_CLIENT,
+#endif
     THREAD_ID_PAN,
+#ifdef USE_GEN_GATT
     THREAD_ID_GATT,
+#endif
+#ifdef BT_AUDIO_ENABLE
     THREAD_ID_BT_AM,
+#endif
     THREAD_ID_SDP_CLIENT,
 #ifdef USE_BT_OBEX
     THREAD_ID_PBAP_CLIENT,
     THREAD_ID_OPP,
 #endif
+#ifdef BT_AUDIO_ENABLE
     THREAD_ID_HFP_AG,
     THREAD_ID_A2DP_SOURCE,
     THREAD_ID_AVRCP,
+#endif
     THREAD_ID_HID,
     THREAD_ID_SPP_CLIENT,
     THREAD_ID_SPP_SERVER,

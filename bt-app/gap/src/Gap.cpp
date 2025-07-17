@@ -756,7 +756,7 @@ void Gap::ProcessEvent(BtEvent* event) {
                 if(profile_config[profile_id].is_enabled) {
                   bt_event = new BtEvent;
                   bt_event->event_id = PROFILE_API_START;
-                  ALOGD(LOGTAG " sending start to Profile %d Profile name = %s",
+                  ALOGD(LOGTAG " sending start to Profile id: %d name: %s",
                     profile_id, profile_config[profile_id].name);
                   PostMessage(profile_config[profile_id].thread_id, bt_event);
                 }
@@ -849,11 +849,13 @@ void Gap::ProcessEvent(BtEvent* event) {
               bt_event = new BtEvent;
               bt_event->event_id = BT_AM_DISABLE_DONE;
               PostMessage(THREAD_ID_GAP, bt_event);
+#ifdef BT_AUDIO_ENABLE
             } else {
               ALOGD(LOGTAG " All profiles stopped, Disable Audio Manager");
               bt_event = new BtEvent;
               bt_event->event_id = BT_AM_DISABLE_REQ;
               PostMessage(THREAD_ID_BT_AM, bt_event);
+#endif
             }
             break;
 
@@ -1117,44 +1119,74 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         this->profile_config[profile_id].start_status = false;
         this->profile_config[profile_id].stop_status = false;
 
-        if (profile_id == PROFILE_ID_GATT)
+        if (profile_id == PROFILE_ID_GATT) {
             this->profile_config[profile_id].thread_id = THREAD_ID_GATT;
-#ifdef BT_AUDIO_ENABLE
-        else if(profile_id == PROFILE_ID_BT_AM)
-            this->profile_config[profile_id].thread_id = THREAD_ID_BT_AM;
-        else if(profile_id == PROFILE_ID_A2DP_SINK){
-            if(is_a2dp_split_sink_enabled)
-                this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK_SPLIT;
-            else
-                this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK;
+            strlcpy(this->profile_config[profile_id].name, "Gatt", 248);
         }
-        else if(profile_id == PROFILE_ID_A2DP_SOURCE)
+#ifdef BT_AUDIO_ENABLE
+        else if(profile_id == PROFILE_ID_BT_AM) {
+            this->profile_config[profile_id].thread_id = THREAD_ID_BT_AM;
+            strlcpy(this->profile_config[profile_id].name, "BT_AUDIO_MANAGER", 248);
+        }
+        else if(profile_id == PROFILE_ID_A2DP_SINK){
+            if(is_a2dp_split_sink_enabled) {
+                this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK_SPLIT;
+                strlcpy(this->profile_config[profile_id].name, "A2dp_Sink_Split", 248);
+            }
+            else {
+                this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SINK;
+                strlcpy(this->profile_config[profile_id].name, "A2dp_Sink", 248);
+            }
+        }
+        else if(profile_id == PROFILE_ID_A2DP_SOURCE) {
             this->profile_config[profile_id].thread_id = THREAD_ID_A2DP_SOURCE;
-        else if(profile_id == PROFILE_ID_HFP_CLIENT)
+            strlcpy(this->profile_config[profile_id].name, "A2dp_Source", 248);
+        }
+        else if(profile_id == PROFILE_ID_HFP_CLIENT) {
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_CLIENT;
+            strlcpy(this->profile_config[profile_id].name, "Hfp_Client", 248);
+        }
 #endif
-        else if (profile_id == PROFILE_ID_PAN)
+        else if (profile_id == PROFILE_ID_PAN) {
             this->profile_config[profile_id].thread_id = THREAD_ID_PAN;
-        else if (profile_id == PROFILE_ID_SDP_CLIENT)
+            strlcpy(this->profile_config[profile_id].name, "Pan", 248);
+        }
+        else if (profile_id == PROFILE_ID_SDP_CLIENT) {
             this->profile_config[profile_id].thread_id = THREAD_ID_SDP_CLIENT;
+            strlcpy(this->profile_config[profile_id].name, "Sdp_Client", 248);
+        }
 #ifdef USE_BT_OBEX
-        else if (profile_id == PROFILE_ID_PBAP_CLIENT)
+        else if (profile_id == PROFILE_ID_PBAP_CLIENT) {
             this->profile_config[profile_id].thread_id = THREAD_ID_PBAP_CLIENT;
-        else if (profile_id == PROFILE_ID_OPP)
+            strlcpy(this->profile_config[profile_id].name, "Pbap_Client", 248);
+        }
+        else if (profile_id == PROFILE_ID_OPP) {
             this->profile_config[profile_id].thread_id = THREAD_ID_OPP;
+            strlcpy(this->profile_config[profile_id].name, "Opp", 248);
+        }
 #endif
 #ifdef BT_AUDIO_ENABLE
-        else if(profile_id == PROFILE_ID_HFP_AG)
+        else if(profile_id == PROFILE_ID_HFP_AG) {
             this->profile_config[profile_id].thread_id = THREAD_ID_HFP_AG;
-        else if(profile_id == PROFILE_ID_AVRCP)
+            strlcpy(this->profile_config[profile_id].name, "Hfp_AG", 248);
+        }
+        else if(profile_id == PROFILE_ID_AVRCP) {
             this->profile_config[profile_id].thread_id = THREAD_ID_AVRCP;
+            strlcpy(this->profile_config[profile_id].name, "Avrcp", 248);
+        }
 #endif
-        else if(profile_id == PROFILE_ID_HID)
+        else if(profile_id == PROFILE_ID_HID) {
             this->profile_config[profile_id].thread_id = THREAD_ID_HID;
-        else if(profile_id == PROFILE_ID_SPP_SERVER)
+            strlcpy(this->profile_config[profile_id].name, "HID", 248);
+        }
+        else if(profile_id == PROFILE_ID_SPP_SERVER) {
             this->profile_config[profile_id].thread_id = THREAD_ID_SPP_SERVER;
-        else if(profile_id == PROFILE_ID_SPP_CLIENT)
+            strlcpy(this->profile_config[profile_id].name, "SPP_Server", 248);
+        }
+        else if(profile_id == PROFILE_ID_SPP_CLIENT) {
             this->profile_config[profile_id].thread_id = THREAD_ID_SPP_CLIENT;
+            strlcpy(this->profile_config[profile_id].name, "SPP_Client", 248);
+        }
     }
 #ifdef BT_AUDIO_ENABLE
     this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
