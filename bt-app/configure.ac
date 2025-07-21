@@ -75,11 +75,18 @@ AC_ARG_WITH([gengatt],
 
 AM_CONDITIONAL(USE_GEN_GATT, test "x${with_gengatt}" = "xyes")
 
+AC_ARG_WITH([gst-audio-sink],
+	    AC_HELP_STRING([--with-gst-audio-sink],
+			   [enable gst audio sink, building with GStreamer audio sink support]))
+
+AM_CONDITIONAL(USE_GST_AUDIO_SINK, test "x${with_gst_audio_sink}" = "xyes")
+
 AC_ARG_ENABLE(target,
   [AS_HELP_STRING([--enable-target=TARGET], [Specify the target product to build])],
   [TARGET=$enableval],
   [TARGET=none]
 )
+AC_DEFINE([ENABLE_GST_AUDIO_SINK], [1], [ENABLE_GST_AUDIO_SINK Macro])
 AM_CONDITIONAL([AUDIO_HAL_SUPPORTED], [test "x$TARGET" = "xapq8009" -o "x$TARGET" = "xapq8017" -o "x$TARGET" = "xapq8096" -o "x$TARGET" = "xapq8053" -o "x$TARGET" = "xapq8098" -o "x$TARGET" = "xqcs405" -o "x$TARGET" = "xqcs40x" -o "x$TARGET" = "xqrb5165" -o "x$TARGET" = "xqrbx210" -o "x$TARGET" = "xqcs6490"])
 AM_CONDITIONAL([RB5_AUDIO_HAL], [test "x$TARGET" = "xqrb5165" -o "x$TARGET" = "xqcs6490"])
 AM_CONDITIONAL([USE_BLE_SOCKET_MANAGER], [test "x$TARGET" = "xsxr2130"])
