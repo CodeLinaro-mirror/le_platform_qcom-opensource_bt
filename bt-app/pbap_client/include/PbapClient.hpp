@@ -47,7 +47,7 @@
 
 #ifdef USE_GLIB
 #include <glib.h>
-#define strlcpy g_strlcpy
+//#define strlcpy g_strlcpy
 #endif
 
 extern const char *BT_PBAP_CLIENT_ENABLED;

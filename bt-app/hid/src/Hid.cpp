@@ -180,7 +180,7 @@ static void connection_state_cb(bt_bdaddr_t *bd_addr, bthh_connection_state_t st
         case BTHH_CONN_STATE_FAILED_NO_BTHID_DRIVER:
         case BTHH_CONN_STATE_FAILED_GENERIC:
         case BTHH_CONN_STATE_UNKNOWN:
-            printf("Unknown State of Hid Connection");
+            printf("Unknown State of Hid Connection\n");
         break;
         default:
         break;
@@ -219,7 +219,7 @@ static void virtual_unplug_cb(bt_bdaddr_t *bd_addr, bthh_status_t hh_status) {
     char str[18];
     BtEvent *pEvent = new BtEvent;
     pEvent->hid_profile_event.event_id = HID_API_DISCONNECT_REQ;
-    printf("virtual unplug");
+    printf("virtual unplug\n");
     if(hh_status !=   BTHH_OK )
         return;
     bdaddr_to_string(bd_addr, str, 18);
@@ -243,7 +243,7 @@ static void cfg_mtu_cb(const RawAddress& bda, uint16_t mtu, uint8_t hh_status) {
     ALOGD(LOGTAG "cfg_mtu_cb: bda %s mtu %d",bda.ToString().c_str(), mtu);
     if(hh_status !=   BTHH_OK )
         return;
-    fprintf(stdout, "cfg_mtu_cb: bda %s mtu %d",bda.ToString().c_str(), mtu);
+    fprintf(stdout, "cfg_mtu_cb: bda %s mtu %d\n",bda.ToString().c_str(), mtu);
 }
 
 static void conn_params_cb(const RawAddress& bda, uint16_t interval,
@@ -252,7 +252,7 @@ static void conn_params_cb(const RawAddress& bda, uint16_t interval,
                   bda.ToString().c_str(), interval, latency, timeout);
     if(hh_status !=   BTHH_OK )
         return;
-    fprintf(stdout, "conn_params_cb: bda %s interval %d latency %d timeout %d",
+    fprintf(stdout, "conn_params_cb: bda %s interval %d latency %d timeout %d\n",
                               bda.ToString().c_str(), interval, latency, timeout);
 
 }
@@ -294,38 +294,38 @@ static void raw_hid_data_cb(const RawAddress& bda, uint8_t* rpt, uint16_t len,
 
     if(*(rpt_data) == 0 && *(rpt_data+1) == 0 && *(rpt_data+2) == 0){
         ALOGD(LOGTAG " raw_hid_data_cb : KEYPRESS RELEASE");
-        fprintf(stdout,"KEYPRESS RELEASE");
+        fprintf(stdout,"KEYPRESS RELEASE\n");
     }
     else if (*(rpt_data) == 16 && *(rpt_data+1) == 0 && *(rpt_data+2) == 0){
         if(!toggle_play_pause){
             toggle_play_pause = true;
             ALOGD(LOGTAG " raw_hid_data_cb : PLAY");
-            fprintf(stdout,"PLAY");
+            fprintf(stdout,"PLAY\n");
         }else{
             toggle_play_pause = false;
             ALOGD(LOGTAG " raw_hid_data_cb : PAUSE");
-            fprintf(stdout,"PAUSE");
+            fprintf(stdout,"PAUSE\n");
         }
     }
     else if(*(rpt_data) == 32 && *(rpt_data+1) == 0 && *(rpt_data+2) == 0){
         if(!toggle_mute){
             ALOGD(LOGTAG " raw_hid_data_cb : MUTE");
-            fprintf(stdout,"MUTE");
+            fprintf(stdout,"MUTE\n");
             toggle_mute = true;
         }
         else{
             ALOGD(LOGTAG " raw_hid_data_cb : UNMUTE");
-            fprintf(stdout,"UNMUTE");
+            fprintf(stdout,"UNMUTE\n");
             toggle_mute = false;
         }
     }
     else if(*(rpt_data) == 128 && *(rpt_data+1) == 0 && *(rpt_data+2) == 0){
         ALOGD(LOGTAG " raw_hid_data_cb : VOL DOWN");
-        fprintf(stdout,"VOL DOWN");
+        fprintf(stdout,"VOL DOWN\n");
     }
     else if(*(rpt_data) == 64 && *(rpt_data+1) == 0 && *(rpt_data+2) == 0){
         ALOGD(LOGTAG " raw_hid_data_cb : VOL UP");
-        fprintf(stdout,"VOL UP");
+        fprintf(stdout,"VOL UP\n");
     }
     else{
         ALOGD(LOGTAG " raw_hid_data_cb : Unknown Cmd");
@@ -451,7 +451,7 @@ void HidH::ProcessDisconnectRequest(BtEvent* pEvent) {
     }
     else
     {
-        printf("Not in Hid List..Issue Disconnect");
+        printf("Not in Hid List..Issue Disconnect\n");
         if (sBluetoothHidInterface != NULL) {
             sBluetoothHidInterface->disconnect(&pEvent->hid_profile_event.bd_addr);
         }
@@ -475,13 +475,13 @@ void HidH::ProcessHidRequest(BtEvent* pEvent){
                     ALOGD(LOGTAG "Sending Disconnect for device %s", str);
                     break;
                 case HID_API_GET_PROTOCOL_REQ:
-                    printf("Get Protocol Mode to %d ",pEvent->hid_profile_event.protocolMode);
+                    printf("Get Protocol Mode to %d \n",pEvent->hid_profile_event.protocolMode);
                     if (sBluetoothHidInterface != NULL) {
                         sBluetoothHidInterface->get_protocol(&pEvent->hid_profile_event.bd_addr,(bthh_protocol_mode_t)pEvent->hid_profile_event.protocolMode);
                     }
                     break;
                 case HID_API_SET_PROTOCOL_REQ:
-                    printf("Set Protocol Mode to %d ",pEvent->hid_profile_event.protocolMode);
+                    printf("Set Protocol Mode to %d \n",pEvent->hid_profile_event.protocolMode);
                     if (sBluetoothHidInterface != NULL) {
                         sBluetoothHidInterface->set_protocol(&pEvent->hid_profile_event.bd_addr,(bthh_protocol_mode_t)pEvent->hid_profile_event.protocolMode);
                     }

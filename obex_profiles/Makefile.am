@@ -11,7 +11,7 @@ AM_CFLAGS = -Wall \
         -DOI_USE_NATIVE_MALLOC \
         -DOI_USE_NATIVE_MEMCPY \
         -DOI_OBEX_OVER_L2CAP \
-        -I${BT_SOURCE}hal/include/ \
+        -I${BT_SOURCE}/bt_audio/hal/include/ \
         -I${BT_SOURCE}/stack/system/bt/include/ \
         -I${BT_SOURCE}/stack/bluetooth_ext/vhal/include \
         -I${BT_SOURCE}/btapp/obex_profiles/include \

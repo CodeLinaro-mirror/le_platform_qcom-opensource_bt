@@ -45,7 +45,7 @@
 
 #ifdef USE_GLIB
 #include <glib.h>
-#define strlcpy g_strlcpy
+//#define strlcpy g_strlcpy
 #endif
 
 #define MAX_LENGTH_INTERFACE_NAME 10
