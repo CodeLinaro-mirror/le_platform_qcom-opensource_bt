@@ -1902,7 +1902,13 @@ void GattcTest :: startScan()
     mScanner->startScan(gattctest->filters, gattctest->setting,
         mscan_callback);
   } else {
-    mScanner->startScan(mscan_callback);
+    if ((gattctest != NULL) && gattctest->filters.size() > 0) {
+    ScanSettings::Builder builder = ScanSettings::Builder();
+    gattctest->setting = builder.build();
+    mScanner->startScan(gattctest->filters, gattctest->setting, mscan_callback);
+    } else {
+      mScanner->startScan(mscan_callback);
+    }
   }
 }
 
