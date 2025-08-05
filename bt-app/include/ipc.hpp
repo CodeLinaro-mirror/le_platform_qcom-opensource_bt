@@ -16,11 +16,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear
- *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
 #pragma once
@@ -123,6 +121,9 @@ typedef enum {
     THREAD_ID_HID,
     THREAD_ID_SPP_CLIENT,
     THREAD_ID_SPP_SERVER,
+#ifdef USE_BT_CTE
+    THREAD_ID_CTE,
+#endif
     THREAD_ID_MAX,
 } ThreadIdType;
 
@@ -645,6 +646,15 @@ typedef enum {
     SPP_CLI_SEND_DATA,
     SPP_CLI_RECV_DATA,
     SPP_CLI_START_THREADS,
+#ifdef USE_BT_CTE
+    CTE_READ_ANTENNA_REQ,
+    CTE_SET_ADV_TX_PARA_REQ,
+    CTE_ENABLE_ADV_TX_REQ,
+    CTE_DISABLE_ADV_TX_REQ,
+    CTE_SET_CONN_TX_PARA_REQ,
+    CTE_ENABLE_CONN_TX_REQ,
+    CTE_DISABLE_CONN_TX_REQ,
+#endif
 } BluetoothEventId;
 
 typedef struct {
@@ -1723,6 +1733,16 @@ typedef struct {
     bool                accept;
 } SppServerEvent;
 
+#ifdef USE_BT_CTE
+typedef struct {
+    BluetoothEventId    event_id;
+    bt_bdaddr_t         bd_addr;
+    int                 adv_id;
+    int                 cte_length;
+    int                 cte_count;
+} CteEvent;
+#endif
+
 /**
   * @brief BT IPC message between qcbtdaemon & btapp
   */
@@ -1920,6 +1940,9 @@ typedef union {
     PbapClientEvent                         pbap_client_event;
     OppEvent                                opp_event;
 #endif
+#ifdef USE_BT_CTE
+    CteEvent                                cte_event;
+#endif
     SppClientEvent                          spp_cli_event;
     SppServerEvent                          spp_srv_event;
     HIDProfileEvent                         hid_profile_event;
@@ -1989,6 +2012,9 @@ void BtAvrcpMsgHandler(void *msg);
 #ifdef USE_BT_OBEX
 void BtPbapClientMsgHandler(void *context);
 void BtOppMsgHandler(void *context);
+#endif
+#ifdef USE_BT_CTE
+void BtCteMsgHandler(void *context);
 #endif
 void BtSppClientMsgHandler(void *msg);
 void BtSppServerMsgHandler(void *msg);

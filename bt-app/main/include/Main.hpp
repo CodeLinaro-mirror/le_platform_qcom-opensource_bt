@@ -16,9 +16,8 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the
- * following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
@@ -269,6 +268,17 @@ typedef enum {
     SPPSERVER_SEND_DATA,
     SPPSERVER_RECV_DATA,
 
+#ifdef USE_BT_CTE
+    CTE_OPTION,
+    CTE_READ_ANTENNA,
+    CTE_SET_ADV_TX_PARA,
+    CTE_ENABLE_ADV_TX,
+    CTE_DISABLE_ADV_TX,
+    CTE_SET_CONN_TX_PARA,
+    CTE_ENABLE_CONN_TX,
+    CTE_DISABLE_CONN_TX,
+#endif
+
 #ifdef USE_GEN_GATT
     GATTCTEST_OPTION,
     GATTCTEST_INIT,
@@ -405,6 +415,9 @@ typedef enum {
     SPP_CLIENT_MENU,
     HFP_AG_MENU,
     A2DP_SOURCE_MENU,
+#ifdef USE_BT_CTE
+    CTE_MENU,
+#endif
 } MenuType;
 
 /**
@@ -481,6 +494,9 @@ UserMenuList MainMenu[] = {
     {A2DP_SOURCE,           "a2dp_source_menu", ZERO_PARAM,   "a2dp_source_menu"},
     {SPP_CLIENT_OPTION,     "spp_client_menu",  ZERO_PARAM,   "spp_client_menu"},
     {SPP_SERVER_OPTION,     "spp_server_menu",  ZERO_PARAM,   "spp_server_menu"},
+#ifdef USE_BT_CTE
+    {CTE_OPTION,            "cte_menu",         ZERO_PARAM,   "cte_menu"},
+#endif
     {MAIN_EXIT,             "exit",             ZERO_PARAM,   "exit"},
 };
 
@@ -777,6 +793,28 @@ UserMenuList SppServerMenu[] = {
     {SPPSERVER_RECV_DATA,            "recv_data",           ZERO_PARAM,  "recv_data"},
     {BACK_TO_MAIN,                 "main_menu",            ZERO_PARAM, "main_menu"},
 };
+
+#ifdef USE_BT_CTE
+/**
+ * list of supported commands for CTE Menu
+ */
+UserMenuList CteMenu[] = {
+    {CTE_READ_ANTENNA,       "read_antenna_info",                ZERO_PARAM,  "read_antenna_info"},
+    {CTE_SET_ADV_TX_PARA,    "set_connectionless_tx_parameters", THREE_PARAM, "set_connectionless_tx_parameters"
+        "<space><advertiser_id><space><length><space><count>   eg: set_connectionless_tx_parameters 0 2 1 "},
+    {CTE_ENABLE_ADV_TX,      "enable_connectionless_tx",         ONE_PARAM,   "enable_connectionless_tx<space><advertiser_id>"
+        "   eg: enable_connectionless_tx 0 "},
+    {CTE_DISABLE_ADV_TX,    "disable_connectionless_tx",        ONE_PARAM,   "disable_connectionless_tx<space><advertiser_id>"
+        "   eg: disable_connectionless_tx 0 "},
+    {CTE_SET_CONN_TX_PARA,   "set_connection_tx_parameters",     ONE_PARAM,   "set_connection_tx_parameters<space><bt_address>"
+        "   eg: set_connection_tx_parameters 7c:70:db:1b:22:35 "},
+    {CTE_ENABLE_CONN_TX,     "enable_connection_tx",             ONE_PARAM,   "enable_connection_tx<space><bt_address>"
+        "   eg: enable_connection_tx 7c:70:db:1b:22:35 "},
+    {CTE_DISABLE_CONN_TX,    "disable_connection_tx",            ONE_PARAM,   "disable_connection_tx<space><bt_address>"
+        "   eg: disable_connection_tx 7c:70:db:1b:22:35 "},
+    {BACK_TO_MAIN,           "main_menu",                        ZERO_PARAM,  "main_menu"},
+};
+#endif
 
 /**
  * list of supported commands for HFP_AG Menu
