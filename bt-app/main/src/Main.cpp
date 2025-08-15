@@ -67,9 +67,6 @@
 #include "osi/include/properties.h"
 
 #include "utils.h"
-#ifdef SUPPORT_VENDOR_AP
-#include <hardware/vendor_ap.h>
-#endif
 
 #ifdef USE_GEN_GATT
 using namespace gatt;
@@ -135,10 +132,6 @@ extern "C"
 
 ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,split
 static void SendDisableCmdToGap();
-#ifdef SUPPORT_VENDOR_AP
-void HandleAPDeinitCmd(void);
-static uint8_t cert_cmd_parameter_count = 0;
-#endif
 /**
  * @brief main function
  *
@@ -276,12 +269,6 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &HidMenu[0];
             num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
-#ifdef SUPPORT_VENDOR_AP
-        case VENDORAP_MENU:
-            menu = &VendorapMenu[0];
-            num_cmds  = NO_OF_COMMANDS(VendorapMenu);
-            break;
-#endif
         case MAIN_MENU:
         // fallback to default main menu
         default:
@@ -311,27 +298,18 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
                 input_args[param_count++][COMMAND_ARG_SIZE - 1] = '\0';
             }
 
-#ifdef SUPPORT_VENDOR_AP
-            if ((menu_type == VENDORAP_MENU) && (menu[found_index].cmd_id == AP_CERT)) {
-                cert_cmd_parameter_count = param_count;
-                status = true;
-            } else {
-#endif
-                // consider command as other param
-                if(param_count == max_param + 1) {
-                    if(temp_arg != NULL) {
-                        fprintf( stdout, " Maximum params reached\n");
-                        fprintf( stdout, " Refer help: %s\n", menu[found_index].cmd_help);
-                    } else {
-                        status = true;
-                    }
-                } else if(param_count < max_param + 1) {
-                    fprintf( stdout, " Missing required parameters\n");
+            // consider command as other param
+            if(param_count == max_param + 1) {
+                if(temp_arg != NULL) {
+                    fprintf( stdout, " Maximum params reached\n");
                     fprintf( stdout, " Refer help: %s\n", menu[found_index].cmd_help);
+                } else {
+                    status = true;
                 }
-#ifdef SUPPORT_VENDOR_AP
+            } else if(param_count < max_param + 1) {
+                fprintf( stdout, " Missing required parameters\n");
+                fprintf( stdout, " Refer help: %s\n", menu[found_index].cmd_help);
             }
-#endif
         } else {
             // to handle the paring inputs
             if(temp_arg != NULL) {
@@ -427,12 +405,6 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &HidMenu[0];
             num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
-#ifdef SUPPORT_VENDOR_AP
-        case VENDORAP_MENU:
-            menu = &VendorapMenu[0];
-            num_cmds  = NO_OF_COMMANDS(VendorapMenu);
-            break;
-#endif
     }
     fprintf (stdout, " \n***************** Menu *******************\n");
     for (index = 0; index < num_cmds; index++)
@@ -451,13 +423,6 @@ static void ExitHandler(void) {
     if ( g_bt_app ) {
         // post the disable message to GAP incase BT is on
         if(g_bt_app->bt_state == BT_STATE_ON) {
-#ifdef SUPPORT_VENDOR_AP
-            if(g_bt_app->ap_state == AP_STATE_ON) {
-                HandleAPDeinitCmd();
-            } else if(g_bt_app->ap_state == AP_STATE_OFF){
-                fprintf (stdout, " \n AP is Already OFF\n");
-            }
-#endif
             SendDisableCmdToGap();
             // No need to wait here, wait for BT turn off(BT Disable event)
             // before proceeding to close the BT APP
@@ -1620,12 +1585,6 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             ALOGV (LOGTAG " Self exit of Main thread");
             ExitHandler();
             break;
-#ifdef SUPPORT_VENDOR_AP
-        case VENDORAP_OPTION:
-            menu_type = VENDORAP_MENU;
-            DisplayMenu(menu_type);
-            break;
-#endif
          default:
             ALOGV (LOGTAG " Command not handled");
             break;
@@ -2685,100 +2644,6 @@ static void SendDisableCmdToGap() {
     }
 }
 
-#ifdef SUPPORT_VENDOR_AP
-//for AP post "AP exception to BT main thread", then deinit AP
-void PostMessageToBtMainThread(void *msg) {
-    PostMessage(THREAD_ID_MAIN, msg);
-}
-
-void HandleAPInitCmd(void) {
-
-    if ((g_bt_app->status.vendorap_init_cmd != COMMAND_INPROGRESS) &&
-        (g_bt_app->status.vendorap_deinit_cmd != COMMAND_INPROGRESS) &&
-        (g_bt_app->bt_state == BT_STATE_ON) &&
-        (g_bt_app->ap_state == AP_STATE_OFF)) {
-
-        g_bt_app->status.vendorap_init_cmd = COMMAND_INPROGRESS;
-        if (g_bt_app->ap_interface) {
-            if (g_bt_app->ap_interface->init(g_bt_app->bt_interface, PostMessageToBtMainThread) == 0) {
-                g_bt_app->status.vendorap_init_cmd = COMMAND_COMPLETE;
-                g_bt_app->ap_state = AP_STATE_ON;
-            } else {
-                g_bt_app->status.vendorap_init_cmd = COMMAND_COMPLETE;
-                g_bt_app->ap_state = AP_STATE_OFF;
-                fprintf( stdout, "AP init failed\n");
-            }
-        }
-
-    } else if ( g_bt_app->status.vendorap_init_cmd == COMMAND_INPROGRESS ) {
-        fprintf( stdout, "AP init is already in process\n");
-    } else if ( g_bt_app->status.vendorap_deinit_cmd == COMMAND_INPROGRESS ) {
-        fprintf( stdout, "Previous ap init is still in progress\n");
-    } else if ( g_bt_app->bt_state != BT_STATE_ON ) {
-        fprintf( stdout, "Currently BT is not ON, enable BT first\n");
-    } else {
-        fprintf( stdout, "Currently AP is already ON\n");
-    }
-}
-
-void HandleAPDeinitCmd(void) {
-
-    if ((g_bt_app->status.vendorap_deinit_cmd != COMMAND_INPROGRESS) &&
-        (g_bt_app->status.vendorap_init_cmd != COMMAND_INPROGRESS) &&
-        (g_bt_app->ap_state == AP_STATE_ON)) {
-
-        g_bt_app->status.vendorap_deinit_cmd = COMMAND_INPROGRESS;
-        if (g_bt_app->ap_interface) {
-            if (g_bt_app->ap_interface->deInit() == 0) {
-                g_bt_app->status.vendorap_deinit_cmd = COMMAND_COMPLETE;
-                g_bt_app->ap_state = AP_STATE_OFF;
-            } else {
-                g_bt_app->status.vendorap_deinit_cmd = COMMAND_COMPLETE;
-                g_bt_app->ap_state = AP_STATE_ON; //state????
-                fprintf( stdout, "AP deinit failed\n");
-            }
-        }
-    } else if (g_bt_app->status.vendorap_deinit_cmd == COMMAND_INPROGRESS) {
-        fprintf( stdout, " deinit AP command is already in process\n");
-    } else if (g_bt_app->status.vendorap_init_cmd == COMMAND_INPROGRESS) {
-        fprintf( stdout, " Previous AP init command is still in process\n");
-    } else {
-        fprintf( stdout, "Currently AP is already OFF\n");
-    }
-}
-
-void HandleAPCertCmd(char user_cmd[][COMMAND_ARG_SIZE]) {
-    if (g_bt_app->ap_state != AP_STATE_ON) {
-        fprintf( stdout, "please init AP first.\n");
-        return;
-    }
-    g_bt_app->ap_interface->cert(cert_cmd_parameter_count - CERT_CMD_PARAMETER_COUNT_MIN, &user_cmd[ONE_PARAM]);
-}
-
-static void HandleVendorapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
-    BtEvent *event = NULL;
-
-    switch (cmd_id) {
-        case BACK_TO_MAIN:
-            menu_type = MAIN_MENU;
-            DisplayMenu(menu_type);
-            break;
-        case AP_INIT:
-            HandleAPInitCmd();
-            break;
-        case AP_DEINIT:
-            HandleAPDeinitCmd();
-            break;
-        case AP_CERT:
-            HandleAPCertCmd(user_cmd);
-            break;
-        default:
-            ALOGV (LOGTAG " Command not handled");
-            break;
-    }
-}
-#endif
-
 static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     BtEvent *event = NULL;
 
@@ -2793,9 +2658,6 @@ static void HandleGapCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
 
         case BT_DISABLE:
-#ifdef SUPPORT_VENDOR_AP
-            HandleAPDeinitCmd();
-#endif
             SendDisableCmdToGap();
 
             break;
@@ -3727,11 +3589,6 @@ static void BtCmdHandler (void *context) {
             case HIDH_MENU:
                 HandleHIDCommand(cmd_id,user_cmd );
                 break;
-#ifdef SUPPORT_VENDOR_AP
-            case VENDORAP_MENU:
-                HandleVendorapCommand(cmd_id,user_cmd);
-                break;
-#endif
         }
    } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
                         (!strcasecmp (user_cmd[ZERO_PARAM], "yes") ||
@@ -3925,9 +3782,6 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             break;
 
         case MAIN_API_DISABLE:
-#ifdef SUPPORT_VENDOR_AP
-            HandleAPDeinitCmd();
-#endif
             SendDisableCmdToGap();
             break;
 
@@ -4205,14 +4059,6 @@ void BluetoothApp :: ProcessEvent (BtEvent * event) {
             }
             break;
 #endif
-#ifdef SUPPORT_VENDOR_AP
-        case VENDOR_AP_EXCEPTION:
-            if ((g_bt_app->ap_state == AP_STATE_ON) && (g_bt_app->status.vendorap_deinit_cmd != COMMAND_INPROGRESS)) {
-                fprintf(stdout, "\n VENDOR_AP_EXCEPTION\n");
-                HandleAPDeinitCmd();
-            }
-            break;
-#endif
         default:
             ALOGD (LOGTAG " Default Case");
             break;
@@ -4359,11 +4205,6 @@ bt_state_t BluetoothApp:: GetState() {
     return bt_state;
 }
 
-#ifdef SUPPORT_VENDOR_AP
-ap_state_t BluetoothApp:: GetAPState() {
-    return ap_state;
-}
-#endif
 void BluetoothApp:: PrintInquiryList() {
     ALOGI(LOGTAG " PrintInquiryList");
     fprintf(stdout, "\n**************************** Inquiry List \
@@ -4427,41 +4268,6 @@ void BluetoothApp :: UnLoadBtStack (void)
     }
 }
 
-#ifdef SUPPORT_VENDOR_AP
-bool BluetoothApp :: LoadAp (void) {
-    hw_module_t *module;
-
-    if (hw_get_module (VENDOR_AP_MODULE_ID, (hw_module_t const **) &module)) {
-        ALOGE(LOGTAG "%s hw_get_module failed", VENDOR_AP_MODULE_ID);
-        fprintf(stdout, "%s hw_get_module failed\n", VENDOR_AP_MODULE_ID);
-        return false;
-    }
-
-    if (module->methods->open(module, VENDOR_AP_MODULE_ID, &device_)) {
-        fprintf(stdout, "%s open failed\n", VENDOR_AP_MODULE_ID);
-        return false;
-    }
-
-    ap_device_ = (vendor_ap_device_t *) device_;
-    ap_interface = ap_device_->get_ap_interface ();
-    if (!ap_interface) {
-        ap_device_->common.close ((hw_device_t *) & ap_device_->common);
-        ap_device_ = NULL;
-        fprintf(stdout, "%s get_ap_interface failed\n", VENDOR_AP_MODULE_ID);
-        return false;
-    }
-    return true;
-}
-
-void BluetoothApp :: UnLoadAp (void)
-{
-    if (ap_interface) {
-        ap_interface->deInit ();
-        ap_interface = NULL;
-    }
-}
-#endif
-
 
 void BluetoothApp :: InitHandler (void) {
 
@@ -4470,13 +4276,6 @@ void BluetoothApp :: InitHandler (void) {
         kill(getpid(), SIGKILL);
         return;
     }
-#ifdef SUPPORT_VENDOR_AP
-    if (!LoadAp()) {
-        ALOGE(LOGTAG "Can't load AP module");
-        fprintf(stdout, "Can't load AP module\n");
-        kill(getpid(), SIGKILL);
-    }
-#endif
     // Starting GAP Thread
     threadInfo[THREAD_ID_GAP].thread_id = thread_new (
             threadInfo[THREAD_ID_GAP].thread_name);
@@ -4661,10 +4460,6 @@ void BluetoothApp :: InitHandler (void) {
 
 
 void BluetoothApp :: DeInitHandler (void) {
-
-#ifdef SUPPORT_VENDOR_AP
-    UnLoadAp ();
-#endif
     if(g_bt_app->bt_state == BT_STATE_ON) {
         UnLoadBtStack ();
     }
@@ -5029,19 +4824,12 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
 void printBtappState (void) {
     if (g_bt_app) {
         fprintf(stdout, " BT state:%d\n", g_bt_app->bt_state);
-#ifdef SUPPORT_VENDOR_AP
-        fprintf(stdout, " AP state:%d\n", g_bt_app->ap_state);
-#endif
 /*
         fprintf(stdout, " enable_cmd state:%d\n", g_bt_app->status.enable_cmd);
         fprintf(stdout, " disable_cmd state:%d\n", g_bt_app->status.disable_cmd);
         fprintf(stdout, " enquiry_cmd state:%d\n", g_bt_app->status.enquiry_cmd);
         fprintf(stdout, " stop_enquiry_cmd state:%d\n", g_bt_app->status.stop_enquiry_cmd);
         fprintf(stdout, " pairing_cmd state:%d\n", g_bt_app->status.pairing_cmd);
-#ifdef SUPPORT_VENDOR_AP
-        fprintf(stdout, " vendorap_init_cmd state:%d\n", g_bt_app->status.vendorap_init_cmd);
-        fprintf(stdout, " vendorap_deinit_cmd state:%d\n", g_bt_app->status.vendorap_deinit_cmd);
-#endif
 */
     }
 }
