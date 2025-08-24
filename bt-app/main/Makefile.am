@@ -13,48 +13,48 @@ AM_CFLAGS += -DOI_CPU_TYPE=19
 endif
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CPPFLAGS += -I${BT_SOURCE}/btapp/bt-app \
-               -I${BT_SOURCE}/btapp/bt-app/utils/include \
-               -I${BT_SOURCE}/btapp/bt-app/audio_manager/include \
-               -I${BT_SOURCE}/btapp/bt-app/a2dp_sink/include \
-               -I${BT_SOURCE}/btapp/bt-app/avrcp/include \
-               -I${BT_SOURCE}/btapp/bt-app/a2dp_src/include \
-               -I${BT_SOURCE}/btapp/bt-app/osi/include \
-               -I${BT_SOURCE}/btapp/bt-app/gap/include \
-               -I${BT_SOURCE}/btapp/bt-app/pan/include \
-               -I${BT_SOURCE}/btapp/bt-app/hid/include \
-               -I${BT_SOURCE}/btapp/bt-app/rsp/include \
-               -I${BT_SOURCE}/btapp/bt-app/gatt/native/include \
-               -I${BT_SOURCE}/btapp/bt-app/gatt/framework/include \
-               -I${BT_SOURCE}/btapp/bt-app/gatt/lib/include \
-               -I${BT_SOURCE}/btapp/bt-app/gattctest/include \
-               -I${BT_SOURCE}/btapp/bt-app/gattstest/include \
-               -I${BT_SOURCE}/btapp/bt-app/main/include \
-               -I${BT_SOURCE}/btapp/bt-app/hfp_client/include \
-               -I${BT_SOURCE}/btapp/bt-app/hfp_ag/include \
-               -I${BT_SOURCE}/btapp/bt-app/include \
-               -I${BT_SOURCE}/btapp/bt-app/sdp_client/include \
-               -I${BT_SOURCE}/btapp/bt-app/spp_client/include \
-               -I${BT_SOURCE}/btapp/bt-app/spp_server/include \
-               -I${BT_SOURCE}/bt_audio/hal/include \
-               -I${BT_SOURCE}/stack/bluetooth_ext/vhal/include \
-               -I${BT_SOURCE}/stack/system/bt \
-               -I${BT_SOURCE}/stack/system/bt/include \
-               -I${BT_SOURCE}/stack/system/bt/stack/include \
-               -I${BT_SOURCE}/stack/system/bt/include/hardware \
-               -I${BT_SOURCE}/stack/system/bt/types \
-               -I${BT_SOURCE}/btapp/bt-app/utils/include
+AM_CPPFLAGS += -I${BT_SOURCE}/bt-app \
+               -I${BT_SOURCE}/bt-app/utils/include \
+               -I${BT_SOURCE}/bt-app/audio_manager/include \
+               -I${BT_SOURCE}/bt-app/a2dp_sink/include \
+               -I${BT_SOURCE}/bt-app/avrcp/include \
+               -I${BT_SOURCE}/bt-app/a2dp_src/include \
+               -I${BT_SOURCE}/bt-app/osi/include \
+               -I${BT_SOURCE}/bt-app/gap/include \
+               -I${BT_SOURCE}/bt-app/pan/include \
+               -I${BT_SOURCE}/bt-app/hid/include \
+               -I${BT_SOURCE}/bt-app/rsp/include \
+               -I${BT_SOURCE}/bt-app/gatt/native/include \
+               -I${BT_SOURCE}/bt-app/gatt/framework/include \
+               -I${BT_SOURCE}/bt-app/gatt/lib/include \
+               -I${BT_SOURCE}/bt-app/gattctest/include \
+               -I${BT_SOURCE}/bt-app/gattstest/include \
+               -I${BT_SOURCE}/bt-app/main/include \
+               -I${BT_SOURCE}/bt-app/hfp_client/include \
+               -I${BT_SOURCE}/bt-app/hfp_ag/include \
+               -I${BT_SOURCE}/bt-app/include \
+               -I${BT_SOURCE}/bt-app/sdp_client/include \
+               -I${BT_SOURCE}/bt-app/spp_client/include \
+               -I${BT_SOURCE}/bt-app/spp_server/include \
+               -I${STAGING_INCDIR}/bt_audio/hal/include \
+               -I${STAGING_INCDIR}/bluetooth \
+               -I${STAGING_INCDIR}/bluetooth/include \
+               -I${STAGING_INCDIR}/bluetooth/stack/include \
+               -I${STAGING_INCDIR}/bluetooth/include/hardware \
+               -I${STAGING_INCDIR}/bluetooth/types \
+               -I${STAGING_INCDIR}/fluoride \
+               -I${BT_SOURCE}/bt-app/utils/include
 
 if USE_BT_OBEX
 AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
-               -I${BT_SOURCE}/btapp/bt-app/pbap_client/include \
-               -I${BT_SOURCE}/btapp/bt-app/opp/include \
-               -I${BT_SOURCE}/btapp/obex_profiles/include \
-               -I${BT_SOURCE}/btapp/obex_profiles/include/profiles \
-               -I${BT_SOURCE}/btapp/obex_profiles/profiles/obex \
-               -I${BT_SOURCE}/btapp/obex_profiles/sdk/include \
-               -I${BT_SOURCE}/btapp/obex_profiles/sdk/include/profiles \
-               -I${BT_SOURCE}/btapp/obex_profiles/sdk/oem
+               -I${BT_SOURCE}/bt-app/pbap_client/include \
+               -I${BT_SOURCE}/bt-app/opp/include \
+               -I${BT_SOURCE}/obex_profiles/include \
+               -I${BT_SOURCE}/obex_profiles/include/profiles \
+               -I${BT_SOURCE}/obex_profiles/profiles/obex \
+               -I${BT_SOURCE}/obex_profiles/sdk/include \
+               -I${BT_SOURCE}/obex_profiles/sdk/include/profiles \
+               -I${BT_SOURCE}/obex_profiles/sdk/oem
 endif
 
 AM_CPPFLAGS += @AROUTE_CFLAGS@
