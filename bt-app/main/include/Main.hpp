@@ -204,6 +204,7 @@ typedef enum {
     SET_REPEAT_VAL,
     SET_SHUFFLE_VAL,
     SET_SCAN_VAL,
+    SET_SCMST_CP_FLAG,
     BIGGER_METADATA,
     PAN_OPTION,
     CONNECTED_LIST,
@@ -588,31 +589,45 @@ UserMenuList A2dpSinkMenu[] = {
  * list of supported commands for A2DP_SOURCE Menu
  */
 UserMenuList A2dpSourceMenu[] = {
-    {CONNECT,               "connect",          ONE_PARAM,    "connect<space><bt_address>"},
-    {DISCONNECT,            "disconnect",       ONE_PARAM,    "disconnect<space><bt_address>"},
-    {PLAY,                  "start",            ZERO_PARAM,   "start"},
-    {PAUSE,                 "suspend",          ZERO_PARAM,   "suspend"},
-    {STOP,                  "stop",             ZERO_PARAM,   "stop"},
-    {AVDT_START,            "avdt_start",       ZERO_PARAM,   "avdt_start"},
-    {AVDT_SUSPEND,          "avdt_suspend",     ZERO_PARAM,   "avdt_suspend"},
-    {MODE_CHANGE,           "aptx_adaptive_mode",TWO_PARAM,   "aptx_adaptive_mode<space><bd_addr><space><0/1> eg: aptx_adaptive_mode 00:02:5b:00:ff:0e 0 (0-HQ, 1-LL)"},
-    {TRACK_CHANGE,          "trackchange",      ZERO_PARAM,   "trackchange"},
-    {NOW_PLAYING_CONTENT_CHANGED,"now_playing_content_changed",  ZERO_PARAM,   "now_playing_content_changed"},
-    {SET_ABS_VOL,           "setabsolutevol",   ONE_PARAM,
-            "setabsolutevol<space><volstep>  eg: setabsolutevol 10 (range 0-15)"},
-    {SEND_VOL_UP_DOWN,      "sendvolupdown",    ONE_PARAM,
-            "sendvolupdown<space><1/0>  eg: sendvolupdown 1 (1-up, 0-down)"},
-  /*  {ADDR_PLAYER_CHANGE,    "addrplayerchange", ONE_PARAM,
-            "addrplayerchange<space><1/0>  eg: addrplayerchange 1 "},*/
-    {AVAIL_PLAYER_CHANGE,   "availplayerchange",ZERO_PARAM,   "availplayerchange"},
-    {BIGGER_METADATA,       "biggermetadata",   ZERO_PARAM,   "biggermetadata"},
-    {CODEC_LIST,            "codec_list",       ONE_PARAM,  "codec_list<space><codec1,param1,"
-        "param2,param3....,codec2,param1,param2,param3....>"},
-    {SET_EQUALIZER_VAL,     "setequalizerval",  ONE_PARAM,     "setequalizerval<space><val> (1/2)"},
-    {SET_REPEAT_VAL,     "setrepeatval",  ONE_PARAM,     "setrepeatval<space><val> (1 to 4)"},
-    {SET_SHUFFLE_VAL,     "setshuffleval",  ONE_PARAM,     "setshuffleval<space><val>(1 to 3)"},
-    {SET_SCAN_VAL,     "setscanval",  ONE_PARAM,     "setscanval<space><val> (1 to 3)"},
-    {BACK_TO_MAIN,          "main_menu",        ZERO_PARAM,   "main_menu"},
+    {CONNECT, "connect", ONE_PARAM, "connect<space><bt_address>"},
+    {DISCONNECT, "disconnect", ONE_PARAM, "disconnect<space><bt_address>"},
+    /*    {PLAY,                  "start",            ZERO_PARAM,   "start"},
+        {PAUSE,                 "suspend",          ZERO_PARAM,   "suspend"},
+        {STOP,                  "stop",             ZERO_PARAM,   "stop"},
+        {AVDT_START,            "avdt_start",       ZERO_PARAM,   "avdt_start"},
+        {AVDT_SUSPEND,          "avdt_suspend",     ZERO_PARAM, "avdt_suspend"},
+        {MODE_CHANGE,           "aptx_adaptive_mode",TWO_PARAM,
+       "aptx_adaptive_mode<space><bd_addr><space><0/1> eg: aptx_adaptive_mode
+       00:02:5b:00:ff:0e 0 (0-HQ, 1-LL)"}, */
+    {CODEC_LIST, "codec_list", ONE_PARAM,
+     "codec_list<space><codec1,param1,"
+     "param2....,codec2,param1,param2....>"},
+    {TRACK_CHANGE, "avrcp_trackchange", ZERO_PARAM, "avrcp_trackchange"},
+    {NOW_PLAYING_CONTENT_CHANGED, "avrcp_now_playing_content_changed",
+     ZERO_PARAM, "avrcp_now_playing_content_changed"},
+    {SET_ABS_VOL, "avrcp_setabsolutevol", ONE_PARAM,
+     "avrcp_setabsolutevol<space><volstep>  eg: setabsolutevol 10 (range "
+     "0-15)"},
+    {SEND_VOL_UP_DOWN, "avrcp_sendvolupdown", ONE_PARAM,
+     "avrcp_sendvolupdown<space><1/0>  eg: sendvolupdown 1 (1-up, 0-down)"},
+    /*  {ADDR_PLAYER_CHANGE,    "addrplayerchange", ONE_PARAM,
+              "addrplayerchange<space><1/0>  eg: addrplayerchange 1 "},*/
+    {AVAIL_PLAYER_CHANGE, "avrcp_availplayerchange", ZERO_PARAM,
+     "avrcp_availplayerchange"},
+    {BIGGER_METADATA, "avrcp_biggermetadata", ZERO_PARAM,
+     "avrcp_biggermetadata info:enables bigger avrcp metadata"},
+    {SET_EQUALIZER_VAL, "avrcp_setequalizerval", ONE_PARAM,
+     "avrcp_setequalizerval<space><val> (1/2)"},
+    {SET_REPEAT_VAL, "avrcp_setrepeatval", ONE_PARAM,
+     "avrcp_setrepeatval<space><val> (1 to 4)"},
+    {SET_SHUFFLE_VAL, "avrcp_setshuffleval", ONE_PARAM,
+     "avrcp_setshuffleval<space><val>(1 to 3)"},
+    {SET_SCAN_VAL, "avrcp_setscanval", ONE_PARAM,
+     "avrcp_setscanval<space><val> (1 to 3)"},
+    {SET_SCMST_CP_FLAG, "set_scmst_cp_flag", TWO_PARAM,
+     "set_scmst_cp_flag<space><bd_addr><space><0/2> (0-Copyrighted 2-Content "
+     "not protected) "},
+    {BACK_TO_MAIN, "main_menu", ZERO_PARAM, "main_menu"},
 };
 
 /**

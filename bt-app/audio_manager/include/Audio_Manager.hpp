@@ -34,21 +34,16 @@
 #include <string>
 #include <pthread.h>
 
+#include "ipc.hpp"
+#include "osi/include/config.h"
 #include "osi/include/log.h"
 #include "osi/include/thread.h"
-#include "osi/include/config.h"
-#include "ipc.hpp"
-
-#if (defined(BT_AUDIO_HAL_INTEGRATION))
-#include "qahw_api.h"
-#include "qahw_defs.h"
-#endif
 
 #define MAX_PROFILE_ENTRIES 2
 
 typedef struct {
-    ProfileIdType profile_id;
-    ControlRequestType control_status;
+   ProfileIdType profile_id;
+   ControlRequestType control_status;
 } ControlStackEntry;
 
 class BT_Audio_Manager {
@@ -72,10 +67,6 @@ class BT_Audio_Manager {
     char* dump_message(BluetoothEventId event_id);
     void LoadAudioHal();
     void UnloadAudioHal();
-#if (defined BT_AUDIO_HAL_INTEGRATION)
-    qahw_module_handle_t* GetAudioDevice();
-    qahw_module_handle_t *qahw_mod_handle;
-#endif
 };
 
 #endif

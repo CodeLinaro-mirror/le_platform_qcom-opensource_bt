@@ -51,6 +51,7 @@
 
 #define LOGTAG_A2DP "A2DP_SRC "
 #define LOGTAG_AVRCP "AVRCP_TG "
+#define LOGTAG "A2DP_SRC_PA "
 
 using namespace std;
 using std::list;
@@ -201,6 +202,8 @@ static std::vector<btav_a2dp_codec_config_t> a2dpSrcCodecList;
 #define SBC_PARAM_LEN 8
 #define NON_SBC_PARAM_LEN 3
 
+#define A2DP_AAC_MIN_BITRATE 64000       // 64 kbps
+
 static const char * valid_codecs[] = {
     "sbc",
     "aac",
@@ -227,7 +230,7 @@ static const char * valid_freq[] = {
     "192",
 };
 
-static uint8_t valid_freq_values[] = {
+static uint16_t valid_freq_values[] = {
   BTAV_A2DP_CODEC_SAMPLE_RATE_44100,
   BTAV_A2DP_CODEC_SAMPLE_RATE_48000,
   BTAV_A2DP_CODEC_SAMPLE_RATE_88200,
@@ -301,6 +304,11 @@ static const char * valid_sbc_bitpool[] = {
 };
 
 
+static const char * valid_vbrSupported[] = {
+    "0",
+    "128",
+};
+
 /******************************************************************************
  * This structure defines the A2DP Sink variable.
  */
@@ -331,6 +339,8 @@ const A2DP_SRC_VARIABLE variable_list[] = {
       valid_sbc_allocation, _ARRAYSIZE(valid_sbc_allocation) },
     { "sbc bitpool", "Valid SBC Bitpool to Use",
       valid_sbc_bitpool, _ARRAYSIZE(valid_sbc_bitpool) },
+    { "aac vbr support", "Valid vbr support to Use",
+      valid_vbrSupported, _ARRAYSIZE(valid_vbrSupported) },
 };
 
 /******************************************************************************
@@ -571,6 +581,55 @@ static bool A2dpCodecList(char *codec_param_list, int *num_codec_configs){
                 }
                 break;
             case BTAV_A2DP_CODEC_INDEX_SOURCE_AAC:
+                /* check number of parameters passed are ok or not */
+                if (j + NON_SBC_PARAM_LEN > codec_params_list_size + 1) {
+                    fprintf(stdout, "Invalid Codec Parameters passed\n");
+                    return false;
+                }
+                i = find_str_in_list(output_list[j], valid_freq,
+                    _ARRAYSIZE(valid_freq));
+                if (i >= _ARRAYSIZE(valid_freq)) {
+                    fprintf(stdout, "Invalid %s codec Sampling Freq: %s\n", valid_codecs[codec_config.codec_type], output_list[j]);
+                    print_help(&variable_list[1]);
+                    return false;
+                }
+                codec_config.sample_rate = static_cast<btav_a2dp_codec_sample_rate_t>(valid_freq_values[i]);
+                j++;
+                i = find_str_in_list(output_list[j], valid_bits_per_sample,
+                    _ARRAYSIZE(valid_bits_per_sample));
+                if (i >= _ARRAYSIZE(valid_bits_per_sample)) {
+                    fprintf(stdout, "Invalid %s Bits per sample: %s\n", valid_codecs[codec_config.codec_type], output_list[j]);
+                    print_help(&variable_list[2]);
+                    return false;
+                }
+                codec_config.bits_per_sample = static_cast<btav_a2dp_codec_bits_per_sample_t>(valid_bits_per_sample_values[i]);
+                j++;
+                i = find_str_in_list(output_list[j], valid_channel,
+                    _ARRAYSIZE(valid_channel));
+                if (i >= _ARRAYSIZE(valid_channel)) {
+                    fprintf(stdout, "Invalid %s codec Channel Mode: %s\n", valid_codecs[codec_config.codec_type], output_list[j]);
+                    print_help(&variable_list[3]);
+                    return false;
+                }
+                codec_config.channel_mode = static_cast<btav_a2dp_codec_channel_mode_t>(valid_channel_values[i]);
+                j++;
+                i = find_str_in_list(output_list[j], valid_vbrSupported,
+                    _ARRAYSIZE(valid_vbrSupported));
+                if (i >= _ARRAYSIZE(valid_vbrSupported)) {
+                    fprintf(stdout, "Invalid %s vbrSupported Mode: %s\n", valid_codecs[codec_config.codec_type], output_list[j]);
+                    print_help(&variable_list[8]);
+                    return false;
+                }
+                codec_config.variableBitRateSupport = atoi(output_list[j]);
+                j++;
+                i = atoi(output_list[j]);
+                if (i < A2DP_AAC_MIN_BITRATE) {
+                    fprintf(stdout, "Invalid %s bit rate : %s try above 64 kbps \n", valid_codecs[codec_config.codec_type], output_list[j]);
+                    return false;
+                }
+                codec_config.bitRate = i;
+                j++;
+                break;
             case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX:
             case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_HD:
             case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE:
@@ -3356,6 +3415,9 @@ void A2dp_Source::HandleEnableSource(void) {
         registerMediaPlayers();
     }
     a2dp_sink_relay_data_list = list_new(NULL);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_intf = NULL;
+#endif
 }
 
 void A2dp_Source::HandleDisableSource(void) {
@@ -3388,6 +3450,13 @@ void A2dp_Source::HandleDisableSource(void) {
        a2dp_sink_relay_data_list = NULL;
    }
    unregisterMediaPlayers();
+   a2dpSrcCodecList.clear();
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+   if (pa_routing_intf) {
+     pa_routing_intf_close(pa_routing_intf);
+     pa_routing_intf = NULL;
+   }
+#endif
 }
 
 void A2dp_Source::ProcessEvent(BtEvent* pEvent) {
@@ -3526,6 +3595,25 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
                 break;
             }
             BtA2dpOpenOutputStream();
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (!pa_routing_intf) {
+              pa_routing_intf = pa_routing_intf_open();
+              if (!pa_routing_intf) {
+                ALOGE(LOGTAG_A2DP, " pa_routing_intf_open failed!!!");
+              } else {
+                ALOGD(LOGTAG_A2DP, " pa_routing_intf_open success!!!");
+                int ret =
+                    pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, true);
+                if (!ret) {
+                  ALOGD(LOGTAG_A2DP, " BT a2dp source connect success");
+                  fprintf(stdout, "BT a2dp source connect success\n");
+                } else {
+                  ALOGD(LOGTAG_A2DP, " BT a2dp source connect failed");
+                  fprintf(stdout, "BT a2dp source connect failed\n");
+                }
+              }
+            }
+#endif
             break;
         default:
             fprintf(stdout, "Event not processed in disconnected state %d ", pEvent->event_id);
@@ -3555,6 +3643,25 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
                 break;
             }
             BtA2dpOpenOutputStream();
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (!pa_routing_intf) {
+              pa_routing_intf = pa_routing_intf_open();
+              if (!pa_routing_intf) {
+                ALOGE(LOGTAG_A2DP, " pa_routing_intf_open failed!!!");
+              } else {
+                ALOGD(LOGTAG_A2DP, " pa_routing_intf_open success!!!");
+                int ret =
+                    pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, true);
+                if (!ret) {
+                  ALOGD(LOGTAG_A2DP, " BT a2dp source connect success");
+                  fprintf(stdout, "BT a2dp source connect success\n");
+                } else {
+                  ALOGD(LOGTAG_A2DP, " BT a2dp source connect failed");
+                  fprintf(stdout, "BT a2dp source connect failed\n");
+                }
+              }
+            }
+#endif
             break;
         case A2DP_SOURCE_DISCONNECTED_CB:
             fprintf(stdout, "A2DP Source DisConnected \n");
@@ -3569,6 +3676,21 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             change_state(STATE_A2DP_SOURCE_DISCONNECTED);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (pa_routing_intf) {
+              int ret =
+                  pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, false);
+              if (!ret) {
+                ALOGD(LOGTAG_A2DP, " BT a2dp source disconnect success");
+                fprintf(stdout, "BT a2dp source disconnect success\n");
+              } else {
+                ALOGD(LOGTAG_A2DP, " BT a2dp source disconnect failed");
+                fprintf(stdout, "BT a2dp source disconnect failed\n");
+              }
+              pa_routing_intf_close(pa_routing_intf);
+              pa_routing_intf = NULL;
+            }
+#endif
             break;
         case A2DP_SOURCE_API_CONNECT_REQ:
             bdaddr_to_string(&mConnectingDevice, str, 18);
@@ -3705,6 +3827,7 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
     char *mode;
     bool is_valid_codec = true;
     BtEvent *pControlRequest, *pReleaseControlReq;
+    btrc_register_notification_t param;
     ALOGD(LOGTAG_A2DP "state_connected_handler Processing event %s", dump_message(pEvent->event_id));
     switch(pEvent->event_id) {
         case A2DP_SOURCE_API_CONNECT_REQ:
@@ -3743,6 +3866,21 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
             fprintf(stdout, "A2DP Source DisConnected \n");
             change_state(STATE_A2DP_SOURCE_DISCONNECTED);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+            if (pa_routing_intf) {
+              int ret =
+                  pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, false);
+              if (!ret) {
+                ALOGD(LOGTAG, " BT a2dp source disconnect success");
+                fprintf(stdout, "BT a2dp source disconnect success\n");
+              } else {
+                ALOGD(LOGTAG, " BT a2dp source disconnect failed");
+                fprintf(stdout, "BT a2dp source disconnect failed\n");
+              }
+              pa_routing_intf_close(pa_routing_intf);
+              pa_routing_intf = NULL;
+            }
+#endif
             break;
         case A2DP_SOURCE_DISCONNECTING_CB:
             fprintf(stdout, "A2DP Source DisConnecting \n");
@@ -3750,12 +3888,39 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             break;
         case A2DP_SOURCE_AUDIO_STARTED:
             fprintf(stdout, "A2DP Source Audio state changes to: %d  \n",pEvent->event_id);
+            if (playStatus != BTRC_PLAYSTATE_PLAYING) {
+              playStatus = BTRC_PLAYSTATE_PLAYING;
+              if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                param.play_status = playStatus;
+                mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                sBtAvrcpTargetInterface->register_notification_rsp(
+                    BTRC_EVT_PLAY_STATUS_CHANGED, mPlayStatusNotiType, &param);
+              }
+            }
             break;
         case A2DP_SOURCE_AUDIO_SUSPENDED:
             fprintf(stdout, "A2DP Source Audio state changes to: %d  \n",pEvent->event_id);
+            if (playStatus != BTRC_PLAYSTATE_PAUSED) {
+              playStatus = BTRC_PLAYSTATE_PAUSED;
+              if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                param.play_status = playStatus;
+                mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                sBtAvrcpTargetInterface->register_notification_rsp(
+                    BTRC_EVT_PLAY_STATUS_CHANGED, mPlayStatusNotiType, &param);
+              }
+            }
             break;
         case A2DP_SOURCE_AUDIO_STOPPED:
             fprintf(stdout, "A2DP Source Audio state changes to: %d ", pEvent->event_id);
+            if (playStatus != BTRC_PLAYSTATE_STOPPED) {
+              playStatus = BTRC_PLAYSTATE_STOPPED;
+              if (mPlayStatusNotiType == BTRC_NOTIFICATION_TYPE_INTERIM) {
+                param.play_status = playStatus;
+                mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_CHANGED;
+                sBtAvrcpTargetInterface->register_notification_rsp(
+                    BTRC_EVT_PLAY_STATUS_CHANGED, mPlayStatusNotiType, &param);
+              }
+            }
             break;
         case A2DP_SOURCE_CODEC_CONFIG_CB:
             memcpy(&mDevice, &pEvent->a2dpSourceEvent.bd_addr, sizeof(bt_bdaddr_t));
@@ -3975,6 +4140,12 @@ A2dp_Source :: ~A2dp_Source() {
     mAbsVolRemoteSupported = false;
     TRACK_IS_SELECTED = 0L;
     pthread_mutex_destroy(&lock);
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    if (pa_routing_intf) {
+      pa_routing_intf_close(pa_routing_intf);
+      pa_routing_intf = NULL;
+    }
+#endif
 }
 
 MediaPlayerInfo :: MediaPlayerInfo(short playerId, char majorPlayerType, int playerSubType,
