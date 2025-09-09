@@ -35,6 +35,8 @@
 #include <hardware/hardware.h>
 #include <iostream>
 #include <iomanip>
+#include <pwd.h>
+#include <grp.h>
 #include "Main.hpp"
 #include "SdpClient.hpp"
 #include "A2dp_Sink.hpp"
@@ -125,6 +127,41 @@ extern "C"
 ThreadIdType thread_id = THREAD_ID_MAX; //thread id to handle sink non-split,split
 static void SendDisableCmdToGap();
 
+int btapp_add_sgroup_radio(void)
+{
+	struct passwd *pw = NULL;
+	gid_t s_gids[64];
+	gid_t radio_gid = -1;
+	int n, err = 0;
+
+	pw = getpwnam("radio");
+	if (!pw) {
+		err = errno;
+		perror("ADD_SGROUP_RADIO getpwnam");
+		goto out;
+	}
+	radio_gid = pw->pw_gid;
+
+	memset(s_gids, 0x00, sizeof(s_gids));
+	n = getgroups(64, s_gids);
+	if (n < 0) {
+		err = errno;
+		perror("ADD_SGROUP_RADIO getgroups");
+		goto out;
+	}
+
+	s_gids[n] = radio_gid;
+	n++;
+	err = setgroups(n, s_gids);
+	if (err < 0) {
+		err = errno;
+		perror("ADD_SGROUP_RADIO setgroups");
+		goto out;
+	}
+
+out:
+	return err ? -err : 0;
+}
 /**
  * @brief main function
  *
@@ -136,6 +173,8 @@ static void SendDisableCmdToGap();
  *
  */
 int main (int argc, char *argv[]) {
+
+    btapp_add_sgroup_radio();
 
     // initialize signal handler
     signal(SIGINT, SignalHandler);
