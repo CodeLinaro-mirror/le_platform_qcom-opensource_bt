@@ -117,6 +117,12 @@ if test "x$with_lib_path" != "xno"; then
    SYS_LIB=${std_libdir}
 fi
 
+AC_ARG_WITH([btcte],
+     AC_HELP_STRING([--with-btcte],
+        [enable btcte, building BT-APP which uses BTCte]))
+
+AM_CONDITIONAL(USE_BT_CTE, test "x${with_btcte}" = "xyes")
+
 AC_ARG_WITH([btobex],
      AC_HELP_STRING([--with-btobex],
         [enable btobex, building BT-APP which uses BTOBEX]))

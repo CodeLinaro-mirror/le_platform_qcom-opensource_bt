@@ -481,6 +481,21 @@ void GattClient::onConnectionUpdated(string address, int interval, int latency,
   }
 }
 
+void GattClient::onServiceChanged(string address)
+{
+
+  ALOGD(LOGTAG " onServiceChanged() - Device %s", address.c_str());
+
+  if (!caseInsCompare(address, mDeviceAddress)) {
+    ALOGE( LOGTAG "onServiceChanged() address mis-match");
+    return;
+  }
+
+  if (mCallback != NULL) {
+      mCallback->onServiceChanged(this);
+  }
+}
+
 GattClient::~GattClient()
 {
   if ( mService != NULL) {

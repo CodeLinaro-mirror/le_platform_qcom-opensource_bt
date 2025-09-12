@@ -25,6 +25,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include <algorithm>
@@ -391,7 +395,10 @@ class gattstestAdvertiserCallback  :public AdvertisingSetCallback
         num_of_advertiser++;
         ALOGD(LOGTAG"Advertising Set Success");
         fprintf(stdout,"onAdvertisingSetStarted - Success \n");
-        ALOGD(LOGTAG"AdvertiserID: %d", advertisingSet->getAdvertiserId());
+        ALOGD(LOGTAG"Advertising_Handle: %d", advertisingSet->getAdvertiserId());
+        fprintf(stdout, "\n*****************Advertising Started*******************\n");
+        fprintf(stdout, " Advertising_Handle is %d\n", advertisingSet->getAdvertiserId());
+        fprintf(stdout, "*****************FINISH*******************\n");
         advSetMap.insert(pair <int,AdvertisingSet*> (num_of_advertiser,advertisingSet));
       break;
       case AdvertisingSetCallback::ADVERTISE_FAILED_ALREADY_STARTED:
@@ -474,7 +481,7 @@ class gattstestAdvertiserCallback  :public AdvertisingSetCallback
 
   void onOwnAddressRead (AdvertisingSet *advertisingSet, int addressType, string address)
   {
-    ALOGD(LOGTAG"onOwnAddressRead  addressType: %d  address: %s advertiser id: %d", addressType, 
+    ALOGD(LOGTAG"onOwnAddressRead  addressType: %d  address: %s advertiser id: %d", addressType,
                                                 address.c_str(), advertisingSet->getAdvertiserId());
   }
 
@@ -1104,6 +1111,7 @@ bool GattsTest::SetPeriodicAdvertisingParameters(int instance)
                       .setInterval(periodic_interval)
                       .build();
 
+    fprintf(stdout,"SetPeriodicAdvertisingParameters \n");
     ALOGD(LOGTAG"SetPeriodicAdvertisingParameters:: IncludeTxPower: %d interval %d",
               mPeriodicParams->getIncludeTxPower() ,mPeriodicParams->getInterval());
   } else {

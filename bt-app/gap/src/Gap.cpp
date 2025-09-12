@@ -14,6 +14,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include <list>
@@ -34,6 +38,9 @@
 #include "oi_obex_lower.h"
 #include "oi_wrapper.h"
 #include "oi_osinterface.h"
+#endif
+#ifdef USE_BT_CTE
+#include "Cte.hpp"
 #endif
 
 const char *BT_LOCAL_DEV_NAME = "BtLocalDeviceName";
@@ -299,8 +306,39 @@ static void vendor_hci_event_recv_cb(uint8_t event_code, uint8_t *buf, uint8_t l
         fprintf(stdout, "%02x ", buf[i - 2]);
         i++;
     }
-    fprintf(stdout, "\n#### end ####\n");
 
+    fprintf(stdout, "\n#### end ####\n\n");
+
+#ifdef USE_BT_CTE
+    uint8_t num_packets;
+    uint16_t opcode;
+    uint8_t * pp = buf;
+    if (event_code == 0x0e && len == 8) {
+        UINT8_FROM_STREAM(num_packets, pp);
+        UINT16_FROM_STREAM(opcode, pp);
+        if (opcode == HCI_BLE_READ_ANTENNA) {
+            uint8_t status, switch_sampling_rates, num_antenna, max_patten_length, max_cte_length;
+            UINT8_FROM_STREAM(status, pp);
+            UINT8_FROM_STREAM(switch_sampling_rates, pp);
+            UINT8_FROM_STREAM(num_antenna, pp);
+            UINT8_FROM_STREAM(max_patten_length, pp);
+            UINT8_FROM_STREAM(max_cte_length, pp);
+            fprintf(stdout, "\n*****************Antenna Information*******************\n");
+            fprintf(stdout, " Read result                     :  %s\n",
+                                (status == BT_STATUS_SUCCESS) ? "SUCCESS" : "FAIL");
+            fprintf(stdout, " AoD switching support           :  %s\n",
+                                (switch_sampling_rates & (1 << 0))? "YES" : "NO");
+            fprintf(stdout, " AoD sampling support            :  %s\n",
+                                (switch_sampling_rates & (1 << 1))? "YES" : "NO");
+            fprintf(stdout, " AoA switching/sampling support  :  %s\n",
+                                (switch_sampling_rates & (1 << 2))? "YES" : "NO");
+            fprintf(stdout, " Num_Antenna                     :  %d\n", num_antenna);
+            fprintf(stdout, " Max_Switching_Pattern_Length    :  %d\n", max_patten_length);
+            fprintf(stdout, " Max_CTE_Length                  :  %d\n", max_cte_length);
+            fprintf(stdout, "*****************FINISH*******************\n");
+        }
+    }
+#endif
     return;
 }
 
@@ -386,6 +424,7 @@ static void DidInfoCb(tSDP_DI_GET_RECORD di_rec) {
      fprintf(stdout, "\n*****************FINISH*******************\n");
 
 }
+
 static btvendor_callbacks_t sVendorCallbacks = {
     sizeof(sVendorCallbacks),
     NULL,
@@ -649,6 +688,10 @@ void Gap::ReadClock(int whichClock, bt_bdaddr_t bd_addr) {
     else {
        fprintf( stdout, " Bluetooth read clock command failed:%d\n", status);
     }
+}
+
+const btvendor_interface_t *Gap::GetVendorInterface(void) {
+    return sBtVendorInterface;
 }
 
 void Gap::ProcessEvent(BtEvent* event) {

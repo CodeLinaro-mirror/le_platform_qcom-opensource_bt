@@ -16,6 +16,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
 #include "ipc.hpp"
@@ -51,6 +54,9 @@ ThreadInfo threadInfo[THREAD_ID_MAX] = {
     { NULL ,    THREAD_ID_HID,         &BtHidMsgHandler,         "HID_Thread" } ,
     { NULL ,    THREAD_ID_SPP_CLIENT,  &BtSppClientMsgHandler,   "Spp_Client_Thread" } ,
     { NULL ,    THREAD_ID_SPP_SERVER,  &BtSppServerMsgHandler,   "Spp_Server_Thread" } ,
+#ifdef USE_BT_CTE
+    { NULL ,    THREAD_ID_CTE,         &BtCteMsgHandler,         "Cte_Thread" } ,
+#endif
 };
 
 void PostMessage(ThreadIdType thread_type, void *msg) {

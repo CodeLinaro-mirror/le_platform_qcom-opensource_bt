@@ -57,6 +57,11 @@ AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
                -I${BT_SOURCE}/obex_profiles/sdk/oem
 endif
 
+if USE_BT_CTE
+AM_CPPFLAGS += -DUSE_BT_CTE \
+               -I${BT_SOURCE}/bt-app/cte/include
+endif
+
 AM_CPPFLAGS += @AROUTE_CFLAGS@
 if AUDIO_HAL_SUPPORTED
 AM_CPPFLAGS += -DBT_AUDIO_HAL_INTEGRATION
@@ -82,7 +87,7 @@ cpp_sources = ../utils/src/utils.cc \
 
 
 if BT_AUDIO_ENABLE
-cpp_sources = ../a2dp_sink/src/A2dp_Sink.cpp \
+cpp_sources += ../a2dp_sink/src/A2dp_Sink.cpp \
             ../a2dp_sink/src/A2dp_Sink_Split.cpp \
             ../a2dp_src/src/A2dp_Src.cpp \
             ../a2dp_sink/src/A2dp_Sink_Streaming.cpp \
@@ -101,6 +106,10 @@ endif
 if USE_BT_OBEX
 cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
               ../opp/src/Opp.cpp
+endif
+
+if USE_BT_CTE
+cpp_sources +=  ../cte/src/Cte.cpp
 endif
 
 if USE_GST
