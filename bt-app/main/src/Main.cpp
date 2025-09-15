@@ -16,9 +16,8 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the
- * following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
@@ -64,6 +63,10 @@
 #include "PbapClient.hpp"
 #include "Opp.hpp"
 #endif
+#ifdef USE_BT_CTE
+#include "Cte.hpp"
+#endif
+
 #include "osi/include/compat.h"
 #include "osi/include/properties.h"
 
@@ -109,6 +112,9 @@ extern const char *BT_OBEX_ENABLED;
 #endif
 extern Spp_Server *pSppServer;
 extern Spp_Client *pSppClient;
+#ifdef USE_BT_CTE
+extern Cte *g_cte;
+#endif
 
 static BluetoothApp *g_bt_app = NULL;
 extern ThreadInfo threadInfo[THREAD_ID_MAX];
@@ -273,6 +279,12 @@ static bool HandleUserInput (int *cmd_id, char input_args[][COMMAND_ARG_SIZE],
             menu = &HidMenu[0];
             num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
+#ifdef USE_BT_CTE
+        case CTE_MENU:
+            menu = &CteMenu[0];
+            num_cmds  = NO_OF_COMMANDS(CteMenu);
+        break;
+#endif
         case MAIN_MENU:
         // fallback to default main menu
         default:
@@ -409,6 +421,12 @@ static void DisplayMenu(MenuType menu_type) {
             menu = &HidMenu[0];
             num_cmds  = NO_OF_COMMANDS(HidMenu);
             break;
+#ifdef USE_BT_CTE
+        case CTE_MENU:
+            menu = &CteMenu[0];
+            num_cmds  = NO_OF_COMMANDS(CteMenu);
+            break;
+#endif
     }
     fprintf (stdout, " \n***************** Menu *******************\n");
     for (index = 0; index < num_cmds; index++)
@@ -1592,6 +1610,12 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
                 menu_type = HIDH_MENU;
             DisplayMenu(menu_type);
             break;
+#ifdef USE_BT_CTE
+        case CTE_OPTION:
+            menu_type = CTE_MENU;
+            DisplayMenu(menu_type);
+            break;
+#endif
         case MAIN_EXIT:
             ALOGV (LOGTAG " Self exit of Main thread");
             ExitHandler();
@@ -3335,6 +3359,91 @@ static void HandleOppCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
     }
 }
 #endif
+
+#ifdef USE_BT_CTE
+static void HandleCteCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
+
+    long num;
+    char *end;
+    int index = 0;
+    BtEvent *event = NULL;
+
+    if (g_bt_app && g_bt_app->bt_state != BT_STATE_ON) {
+        ALOGE(LOGTAG "BT not switched on, can't handle CTE commands");
+        return;
+    }
+
+    switch (cmd_id) {
+        case CTE_READ_ANTENNA:
+            event = new BtEvent;
+            event->cte_event.event_id = CTE_READ_ANTENNA_REQ;
+            PostMessage (THREAD_ID_CTE, event);
+            break;
+        case CTE_SET_ADV_TX_PARA:
+            event = new BtEvent;
+            event->cte_event.event_id = CTE_SET_ADV_TX_PARA_REQ;
+            event->cte_event.adv_id = atoi(user_cmd[ONE_PARAM]);
+            event->cte_event.cte_length = atoi(user_cmd[TWO_PARAM]);
+            event->cte_event.cte_count = atoi(user_cmd[THREE_PARAM]);
+            PostMessage (THREAD_ID_CTE, event);
+            break;
+        case CTE_ENABLE_ADV_TX:
+            event = new BtEvent;
+            event->cte_event.event_id = CTE_ENABLE_ADV_TX_REQ;
+            event->cte_event.adv_id = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_CTE, event);
+            break;
+        case CTE_DISABLE_ADV_TX:
+            event = new BtEvent;
+            event->cte_event.event_id = CTE_DISABLE_ADV_TX_REQ;
+            event->cte_event.adv_id = atoi(user_cmd[ONE_PARAM]);
+            PostMessage (THREAD_ID_CTE, event);
+            break;
+        case CTE_SET_CONN_TX_PARA:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                event->cte_event.event_id = CTE_SET_CONN_TX_PARA_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->cte_event.bd_addr);
+                PostMessage (THREAD_ID_CTE, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
+            break;
+        case CTE_ENABLE_CONN_TX:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                event->cte_event.event_id = CTE_ENABLE_CONN_TX_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->cte_event.bd_addr);
+                PostMessage (THREAD_ID_CTE, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
+            break;
+        case CTE_DISABLE_CONN_TX:
+            if (string_is_bdaddr(user_cmd[ONE_PARAM])) {
+                event = new BtEvent;
+                event->cte_event.event_id = CTE_DISABLE_CONN_TX_REQ;
+                string_to_bdaddr(user_cmd[ONE_PARAM], &event->cte_event.bd_addr);
+                PostMessage (THREAD_ID_CTE, event);
+            }
+            else {
+                fprintf(stdout, "Invalid BT Address\n");
+            }
+            break;
+        case BACK_TO_MAIN:
+            menu_type = MAIN_MENU;
+            DisplayMenu(menu_type);
+            break;
+
+        default:
+        ALOGV (LOGTAG " Command not handled: %d", cmd_id);
+        break;
+    }
+}
+#endif
+
 static void HandleSppClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
 
     BtEvent *event = NULL;
@@ -3604,6 +3713,11 @@ static void BtCmdHandler (void *context) {
             case HIDH_MENU:
                 HandleHIDCommand(cmd_id,user_cmd );
                 break;
+#ifdef USE_BT_CTE
+            case CTE_MENU:
+                HandleCteCommand(cmd_id,user_cmd );
+                break;
+#endif
         }
    } else if (g_bt_app->ssp_notification && user_cmd[0][0] &&
                         (!strcasecmp (user_cmd[ZERO_PARAM], "yes") ||
@@ -4455,6 +4569,14 @@ void BluetoothApp :: InitHandler (void) {
             pSppServer = new Spp_Server(bt_interface, config);
     }
 
+#ifdef USE_BT_CTE
+    threadInfo[THREAD_ID_CTE].thread_id = thread_new (
+        threadInfo[THREAD_ID_CTE].thread_name);
+
+    if (threadInfo[THREAD_ID_CTE].thread_id)
+        g_cte = new Cte(bt_interface, config);
+#endif
+
     // Enable Command line input
     if (is_user_input_enabled_) {
         cmd_reactor_ = reactor_register (thread_get_reactor
@@ -4634,6 +4756,15 @@ void BluetoothApp :: DeInitHandler (void) {
             if (g_opp!= NULL)
                 delete g_opp;
         }
+    }
+#endif
+
+#ifdef USE_BT_CTE
+    // Stop Cte Thread
+    if (threadInfo[THREAD_ID_CTE].thread_id != NULL) {
+        thread_free (threadInfo[THREAD_ID_CTE].thread_id);
+        if (g_cte!= NULL)
+            delete g_cte;
     }
 #endif
 

@@ -14,6 +14,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #ifndef GAP_APP_HPP
@@ -336,7 +340,7 @@ class Gap {
      * @return none
      */
     void SetAFHChannels(unsigned char map[10]);
-	/**
+    /**
      * @brief SendHCICommand
      *
      * This function send HCI raw cmd for by calling stack provided API
@@ -346,6 +350,15 @@ class Gap {
      */
     void SendHCICommand(uint8_t *cmd_ptr);
     void ReadClock(int whichClock, bt_bdaddr_t bd_addr);
+    /**
+     * @brief GetVendorInterface
+     *
+     * This function get interface if bt vendor
+     *
+     * @param none
+     * @return const btvendor_interface_t
+     */
+    const btvendor_interface_t *GetVendorInterface(void);
 };
 
 #endif
