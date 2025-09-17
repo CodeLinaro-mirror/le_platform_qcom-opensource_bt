@@ -85,6 +85,10 @@ const unsigned char g_avrcpcontroller_uuid[16] = {0x00, 0x00, 0x11, 0x0E, 0x00, 
 const unsigned char g_avrcptarget_uuid[16] = {0x00, 0x00, 0x11, 0x0C, 0x00, 0x00,
                  0x10, 0x00, 0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB};
 
+typedef enum {
+    ROLE_SINK = 0,
+    ROLE_SRC
+} role_t;
 
 typedef struct {
     ProfileIdType profile_id;
@@ -146,6 +150,8 @@ class Gap {
     int supported_profiles_count;
 
     bool is_user_input_enabled_;
+
+    bool is_dynamic_role_switch_enabled_;
 
 #ifdef USE_BT_OBEX
     bool is_obex_enabled_;
@@ -244,6 +250,8 @@ class Gap {
     void HandlePinReply(PINReplyEvent *event);
   public:
     Gap(const bt_interface_t *bt_interface, config_t *config);
+    void EnableRoleBasedProfiles();
+    static const char* roleToString(role_t role);
     ~Gap();
     alarm_t *profile_startup_timer;
     alarm_t *profile_stop_timer;
@@ -362,6 +370,8 @@ class Gap {
                               sd_bus_message *reply, void *userdata,
                               sd_bus_error *ret_error);
     static int sd_setBtName(sd_bus_message *value, void *userdata, sd_bus_error *ret_error);
+    static int sd_switchRole(sd_bus_message *m, void *userdata, sd_bus_error *ret_error);
+    static int sd_getRole(sd_bus_message *m, void *userdata, sd_bus_error *ret_error);
 };
 
 #endif
