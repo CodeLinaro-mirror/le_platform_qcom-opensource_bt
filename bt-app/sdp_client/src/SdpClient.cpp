@@ -147,7 +147,7 @@ SdpClient :: ~SdpClient()
 }
 
 void sdp_search_timer_expired(void *context) {
-    ALOGD(LOGTAG, " sdp_search_timer_expired");
+    ALOGD(LOGTAG " sdp_search_timer_expired");
 
     BtEvent *event = new BtEvent;
     event->event_id = SDP_CLIENT_SEARCH_TIMEOUT;
@@ -250,7 +250,7 @@ bool SdpClient :: HandleEnableSdpClient() {
 
     sdp_search_timer = NULL;
     if( !(sdp_search_timer = alarm_new())) {
-        ALOGE(LOGTAG, " unable to create sdp_search_timer");
+        ALOGE(LOGTAG " unable to create sdp_search_timer");
         return false;
     }
 

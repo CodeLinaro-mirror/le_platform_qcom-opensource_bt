@@ -754,7 +754,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
         if (pa_routing_intf) {
            int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=false");
            if (ret) {
-              ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
+              ALOGE(LOGTAG "%s failed to set A2dpSuspended flag\n", __func__);
            }
         }
         */
@@ -915,7 +915,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                uint32 ret_val = 0;
                ret_val = process_chld(pEvent->hfp_ag_event.arg1);
                if (ret_val != MCM_SUCCESS_V01) {
-                   ALOGE(LOGTAG, "error processing chld %d", pEvent->hfp_ag_event.arg1);
+                   ALOGE(LOGTAG "error processing chld %d", pEvent->hfp_ag_event.arg1);
                    fprintf(stdout, "error processing chld %d", pEvent->hfp_ag_event.arg1);
                }
 
@@ -1057,7 +1057,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                  if (pa_routing_intf) {
                     int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=true");
                     if (ret) {
-                       ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
+                       ALOGE(LOGTAG "%s failed to set A2dpSuspended flag\n", __func__);
                     }
                  }
             */
@@ -1159,7 +1159,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             }
             break;
         default:
-            ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
+            ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 }
@@ -1384,7 +1384,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
                uint32 ret_val = 0;
                ret_val = process_chld(pEvent->hfp_ag_event.arg1);
                if (ret_val != MCM_SUCCESS_V01) {
-                   ALOGE(LOGTAG, "error processing chld %d", pEvent->hfp_ag_event.arg1);
+                   ALOGE(LOGTAG "error processing chld %d", pEvent->hfp_ag_event.arg1);
                    fprintf(stdout, "error processing chld %d", pEvent->hfp_ag_event.arg1);
                }
 
@@ -1568,7 +1568,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             }
             break;
         default:
-            ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
+            ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 }
@@ -1579,10 +1579,10 @@ void Hfp_Ag::ConfigureAudio(bool enable) {
 
 bool Hfp_Ag::VoipCallInd(bt_bdaddr_t *bd_addr) {
     char str[18];
-    ALOGD(LOGTAG, "%s", __func__);
+    ALOGD(LOGTAG "%s", __func__);
     if(memcmp(bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
         bdaddr_to_string(bd_addr, str, 18);
-        ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+        ALOGE(LOGTAG "%s, Device not connected: %s", __func__,str);
         fprintf(stdout, "Device not connected: %s\n", str);
         return false;
     }
@@ -1592,7 +1592,7 @@ bool Hfp_Ag::VoipCallInd(bt_bdaddr_t *bd_addr) {
         if (pa_routing_intf) {
            int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=true");
            if (ret) {
-              ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
+              ALOGE(LOGTAG "%s failed to set A2dpSuspended flag\n", __func__);
            }
         }
         */
@@ -1612,10 +1612,10 @@ bool Hfp_Ag::VoipCallInd(bt_bdaddr_t *bd_addr) {
 
 bool Hfp_Ag::EndVoipCall(bt_bdaddr_t *bd_addr) {
     char str[18];
-    ALOGD(LOGTAG, "%s", __func__);
+    ALOGD(LOGTAG "%s", __func__);
     if(memcmp(bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
         bdaddr_to_string(bd_addr, str, 18);
-        ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+        ALOGE(LOGTAG "%s, Device not connected: %s", __func__,str);
         fprintf(stdout, "Device not connected: %s\n", str);
         return false;
     }
@@ -1629,10 +1629,10 @@ bool Hfp_Ag::EndVoipCall(bt_bdaddr_t *bd_addr) {
 
 bool Hfp_Ag::VoipCallIncomingInd(bt_bdaddr_t *bd_addr,char* number, int call_active) {
     char str[18];
-    ALOGD(LOGTAG, "%s", __func__);
+    ALOGD(LOGTAG "%s", __func__);
     if(memcmp(bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
         bdaddr_to_string(bd_addr, str, 18);
-        ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+        ALOGE(LOGTAG "%s, Device not connected: %s", __func__,str);
         fprintf(stdout, "Device not connected: %s\n", str);
         return false;
     }
@@ -1642,7 +1642,7 @@ bool Hfp_Ag::VoipCallIncomingInd(bt_bdaddr_t *bd_addr,char* number, int call_act
         if (pa_routing_intf) {
            int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=true");
            if (ret) {
-              ALOGE(LOGTAG, "%s failed to set A2dpSuspended flag\n", __func__);
+              ALOGE(LOGTAG "%s failed to set A2dpSuspended flag\n", __func__);
            }
         }
         */
@@ -1656,10 +1656,10 @@ bool Hfp_Ag::VoipCallIncomingInd(bt_bdaddr_t *bd_addr,char* number, int call_act
 
 bool Hfp_Ag::AcceptVoipCall(bt_bdaddr_t *bd_addr) {
     char str[18];
-    ALOGD(LOGTAG, "%s", __func__);
+    ALOGD(LOGTAG "%s", __func__);
     if(memcmp(bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
         bdaddr_to_string(bd_addr, str, 18);
-        ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+        ALOGE(LOGTAG "%s, Device not connected: %s", __func__,str);
         fprintf(stdout, "Device not connected: %s\n", str);
         return false;
     }
@@ -1673,10 +1673,10 @@ bool Hfp_Ag::AcceptVoipCall(bt_bdaddr_t *bd_addr) {
 
 bool Hfp_Ag::SwapVoipCall(bt_bdaddr_t *bd_addr) {
     char str[18];
-    ALOGD(LOGTAG, "%s", __func__);
+    ALOGD(LOGTAG "%s", __func__);
     if(memcmp(bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
         bdaddr_to_string(bd_addr, str, 18);
-        ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+        ALOGE(LOGTAG "%s, Device not connected: %s", __func__,str);
         fprintf(stdout, "Device not connected: %s\n", str);
         return false;
     }
@@ -1754,7 +1754,7 @@ void Hfp_Ag::process_chld_pts(int chld, bt_bdaddr_t *bd_addr) {
             }
        break;
        default:
-            ALOGE(LOGTAG, "unhandled chld command %d", chld);
+            ALOGE(LOGTAG "unhandled chld command %d", chld);
             fprintf(stdout, "unhandled chld command %d\n", chld);
        break;
     }
@@ -1802,14 +1802,14 @@ void Hfp_Ag::get_and_send_operator_name(bt_bdaddr_t *bd_addr) {
                                  &cops_resp,
                                  sizeof(mcm_nw_get_operator_name_resp_msg_v01));
    if (ret_val == MCM_SUCCESS_V01 && cops_resp.operator_name_valid) {
-       ALOGD(LOGTAG, "getting operator name successful");
+       ALOGD(LOGTAG "getting operator name successful");
        if (sBtHfpAgInterface != NULL) {
            // TODO: cross check of short_eons has the operator name
            sBtHfpAgInterface->cops_response(cops_resp.operator_name.short_eons, bd_addr);
        }
    }
    else {
-       ALOGE(LOGTAG, "getting operator name list failed");
+       ALOGE(LOGTAG "getting operator name list failed");
        if (sBtHfpAgInterface != NULL) {
            sBtHfpAgInterface->cops_response("", bd_addr);
        }
@@ -1831,7 +1831,7 @@ void Hfp_Ag::get_and_send_subscriber_number(bt_bdaddr_t *bd_addr) {
    if (ret_val == MCM_SUCCESS_V01 &&
          get_phone_num_resp.resp.result == MCM_RESULT_SUCCESS_V01 &&
          get_phone_num_resp.phone_number_valid) {
-       ALOGD(LOGTAG, "getting subscriber info successful");
+       ALOGD(LOGTAG "getting subscriber info successful");
        if (sBtHfpAgInterface != NULL) {
            char phone_num_str[256];
            strlcpy(phone_num_str, "+CNUM: ,\"",strlen("+CNUM: ,\""));
@@ -1849,7 +1849,7 @@ void Hfp_Ag::get_and_send_subscriber_number(bt_bdaddr_t *bd_addr) {
        }
    }
    else {
-       ALOGE(LOGTAG, "getting subscriber info failed");
+       ALOGE(LOGTAG "getting subscriber info failed");
        if (sBtHfpAgInterface != NULL) {
            sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, bd_addr);
        }
@@ -1943,12 +1943,12 @@ int Hfp_Ag::get_current_calls() {
                                               &get_calls_resp_msg,
                                               sizeof(get_calls_resp_msg));
    if (ret_val == MCM_SUCCESS_V01) {
-       ALOGD(LOGTAG, "getting current call list successful");
+       ALOGD(LOGTAG "getting current call list successful");
        // store the call information
        process_call_list(get_calls_resp_msg.calls, get_calls_resp_msg.calls_len);
    }
    else
-       ALOGE(LOGTAG, "getting current call list failed");
+       ALOGE(LOGTAG "getting current call list failed");
 
    return ret_val;
 }
@@ -1958,7 +1958,7 @@ void Hfp_Ag::dial_call(char *number, bt_bdaddr_t *bd_addr) {
         (strlen(number) == 0) && (strlen(mLastDialledNumber) == 0) ||
          number[0] == '>' ||
          strlen(number) > MCM_MAX_PHONE_NUMBER_V01) {
-        ALOGE(LOGTAG, "MO call in progress, or number not available of redial or memory dialling not supported");
+        ALOGE(LOGTAG "MO call in progress, or number not available of redial or memory dialling not supported");
         fprintf(stdout, "MO call in progress, or number not available of redial or memory dialling not supported\n");
         // if MO call is already being initiated, send error
         // if it is redial request and we don't have last dialled number, send error
@@ -1996,7 +1996,7 @@ void Hfp_Ag::dial_call(char *number, bt_bdaddr_t *bd_addr) {
                                                    &token_id);
 
     if (ret_val != MCM_SUCCESS_V01) {
-        ALOGE(LOGTAG, "sending dial command failed");
+        ALOGE(LOGTAG "sending dial command failed");
         fprintf(stdout, LOGTAG "sending dial command failed\n");
         // send error if dial fails
         if (sBtHfpAgInterface != NULL)
@@ -2035,7 +2035,7 @@ uint32 Hfp_Ag::send_voice_cmd(mcm_voice_call_operation_t_v01 op) {
        call_op = op;
    }
    else {
-        ALOGE(LOGTAG, "sending %d command failed", op);
+        ALOGE(LOGTAG "sending %d command failed", op);
         fprintf(stdout, "sending %d command failed\n", op);
    }
 
@@ -2057,7 +2057,7 @@ uint32 Hfp_Ag::end_call(bthf_call_state_t state) {
 
     call_id = get_call_id(state);
     if (call_id == 0xFFFFFFFF) {
-        ALOGE(LOGTAG, "%s: No calls in state %u to hangup, returning", __func__, state);
+        ALOGE(LOGTAG "%s: No calls in state %u to hangup, returning", __func__, state);
         fprintf(stdout, "%s: No calls in state %u to hangup, returning\n", __func__, state);
         return MCM_ERROR_GENERIC_V01;
     }
@@ -2076,7 +2076,7 @@ uint32 Hfp_Ag::end_call(bthf_call_state_t state) {
                                                    &token_id);
 
    if (ret_val != MCM_SUCCESS_V01) {
-        ALOGE(LOGTAG, "sending hangup command failed");
+        ALOGE(LOGTAG "sending hangup command failed");
         fprintf(stdout, LOGTAG "sending hangup command failed\n");
    }
 
@@ -2122,7 +2122,7 @@ uint32 Hfp_Ag::process_chld(int chld) {
              ret_val = send_voice_cmd(MCM_VOICE_CALL_CONFERENCE_V01);
        break;
        default:
-          ALOGE(LOGTAG, "unhandled chld command %d", chld);
+          ALOGE(LOGTAG "unhandled chld command %d", chld);
           fprintf(stdout, "unhandled chld command %d\n", chld);
        break;
    }
@@ -2132,7 +2132,7 @@ uint32 Hfp_Ag::process_chld(int chld) {
 void Hfp_Ag::process_ril_ind(BtEvent* pEvent){
    if (pEvent->hfp_ag_event.hdl != mcm_client_hdl) {
        fprintf(stdout, "invalid mcm client handle, returning\n");
-       ALOGE(LOGTAG, "%s: invalid mcm client handle, returning\n");
+       ALOGE(LOGTAG "%s: invalid mcm client handle, returning\n");
        return;
    }
 
@@ -2172,7 +2172,7 @@ void Hfp_Ag::process_ril_ind(BtEvent* pEvent){
       // intentional fall through
       default:
           fprintf(stdout, "unhandled indication\n", pEvent->hfp_ag_event.msg_id);
-          ALOGD(LOGTAG, "unhandled indication %u\n", pEvent->hfp_ag_event.msg_id);
+          ALOGD(LOGTAG "unhandled indication %u\n", pEvent->hfp_ag_event.msg_id);
           break;
    }
 }
@@ -2180,7 +2180,7 @@ void Hfp_Ag::process_ril_ind(BtEvent* pEvent){
 void Hfp_Ag::process_ril_resp(BtEvent* pEvent){
    if (pEvent->hfp_ag_event.hdl != mcm_client_hdl) {
        fprintf(stdout, "invalid mcm client handle, returning\n");
-       ALOGE(LOGTAG, "%s: invalid mcm client handle, returning\n");
+       ALOGE(LOGTAG "%s: invalid mcm client handle, returning\n");
        return;
    }
 
@@ -2192,7 +2192,7 @@ void Hfp_Ag::process_ril_resp(BtEvent* pEvent){
 
           // if dial request failed, send error to remote
           if (resp->result != MCM_RESULT_SUCCESS_V01) {
-              ALOGE(LOGTAG, "dialling call failed with error %d", resp->error);
+              ALOGE(LOGTAG "dialling call failed with error %d", resp->error);
               fprintf(stdout, "dialling call failed with error %d\n", resp->error);
               if (sBtHfpAgInterface != NULL)
                   sBtHfpAgInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0, &pEvent->hfp_ag_event.bd_addr);
@@ -2206,7 +2206,7 @@ void Hfp_Ag::process_ril_resp(BtEvent* pEvent){
 
           // if voice command request failed, send error to remote
           if (resp->result != MCM_RESULT_SUCCESS_V01) {
-              ALOGE(LOGTAG, "voice command %d failed with error %d", call_op, resp->error);
+              ALOGE(LOGTAG "voice command %d failed with error %d", call_op, resp->error);
               fprintf(stdout, "voice command %d failed with error %d\n", call_op, resp->error);
           }
       }
@@ -2218,13 +2218,13 @@ void Hfp_Ag::process_ril_resp(BtEvent* pEvent){
 
           // if hangup request failed, send error to remote
           if (resp->result != MCM_RESULT_SUCCESS_V01) {
-              ALOGE(LOGTAG, "ending call failed with error %d", resp->error);
+              ALOGE(LOGTAG "ending call failed with error %d", resp->error);
               fprintf(stdout, "ending call failed with error %d\n", resp->error);
           }
       }
           break;
       default:
-          ALOGE(LOGTAG, "unhandled response %d", pEvent->hfp_ag_event.msg_id);
+          ALOGE(LOGTAG "unhandled response %d", pEvent->hfp_ag_event.msg_id);
           fprintf(stdout, "unhandled response %d\n", pEvent->hfp_ag_event.msg_id);
           break;
    }
@@ -2257,34 +2257,34 @@ void Hfp_Ag::init_modem() {
    lib_handle = dlopen(MCM_LIBRARY_NAME, RTLD_NOW);
 
    if (!lib_handle) {
-      ALOGE(LOGTAG, "%s unable to open %s: %s", __func__, MCM_LIBRARY_NAME, dlerror());
+      ALOGE(LOGTAG "%s unable to open %s: %s", __func__, MCM_LIBRARY_NAME, dlerror());
       return;
    }
 
    mcm_client_init_ptr = (mcm_client_init_t)dlsym(lib_handle, "mcm_client_init");
    // TODO: handle error
    if (mcm_client_init_ptr == NULL) {
-       ALOGE(LOGTAG, "unable to find mcm_client_init symbol");
+       ALOGE(LOGTAG "unable to find mcm_client_init symbol");
    }
 
    mcm_client_release_ptr = (mcm_client_release_t)dlsym(lib_handle, "mcm_client_release");
    // TODO: handle error
    if (mcm_client_release_ptr == NULL) {
-       ALOGE(LOGTAG, "unable to find mcm_client_release symbol");
+       ALOGE(LOGTAG "unable to find mcm_client_release symbol");
    }
    mcm_client_execute_command_async_ptr =
          (mcm_client_execute_command_async_t)dlsym(lib_handle,
                                            "mcm_client_execute_command_async");
    // TODO: handle error
    if (mcm_client_execute_command_async_ptr == NULL) {
-       ALOGE(LOGTAG, "unable to find mcm_client_execute_command_async symbol");
+       ALOGE(LOGTAG "unable to find mcm_client_execute_command_async symbol");
    }
    mcm_client_execute_command_sync_ptr =
          (mcm_client_execute_command_sync_t)dlsym(lib_handle,
                                           "mcm_client_execute_command_sync");
    // TODO: handle error
    if (mcm_client_execute_command_sync_ptr == NULL) {
-       ALOGE(LOGTAG, "unable to find mcm_client_execute_command_sync symbol");
+       ALOGE(LOGTAG "unable to find mcm_client_execute_command_sync symbol");
    }
 
    mcm_client_init_ptr(&mcm_client_hdl, ril_ind_cb, ril_resp_cb);
@@ -2308,9 +2308,9 @@ void Hfp_Ag::init_modem() {
                                              sizeof(resp_msg));
 
    if (ret_val == MCM_SUCCESS_V01)
-       ALOGD(LOGTAG, "registration of voice indications successful");
+       ALOGD(LOGTAG "registration of voice indications successful");
    else
-       ALOGE(LOGTAG, "registration of voice indications failed");
+       ALOGE(LOGTAG "registration of voice indications failed");
 
    // register for signal strength indications
    mcm_nw_event_register_req_msg_v01 nw_evt_req_msg;
@@ -2331,9 +2331,9 @@ void Hfp_Ag::init_modem() {
                                               &nw_evt_resp_msg,
                                               sizeof(nw_evt_resp_msg));
    if (ret_val == MCM_SUCCESS_V01)
-       ALOGD(LOGTAG, "registration of network indications successful");
+       ALOGD(LOGTAG "registration of network indications successful");
    else
-       ALOGE(LOGTAG, "registration of network indications failed");
+       ALOGE(LOGTAG "registration of network indications failed");
 
    // get current call list to update the headset
    ret_val = get_current_calls();
@@ -2367,7 +2367,7 @@ void Hfp_Ag::init_audio() {
    g_rate = 8000;
    mNrec = BTHF_NREC_STOP;
 
-   ALOGD(LOGTAG, "%s: init for PA", __func__);
+   ALOGD(LOGTAG "%s: init for PA", __func__);
 #endif
 }
 
@@ -2375,7 +2375,7 @@ void Hfp_Ag::set_audio_params() {
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
    char cmd[50];
 
-   ALOGD(LOGTAG, "%s: setting sample rate %s\n", __func__,
+   ALOGD(LOGTAG "%s: setting sample rate %s\n", __func__,
              (mWbsState == BTHF_WBS_YES ? "16000" : "8000"));
    fprintf(stdout, "%s: setting sample rate %s\n", __func__,
              (mWbsState == BTHF_WBS_YES ? "16000" : "8000"));
@@ -2394,7 +2394,7 @@ void Hfp_Ag::set_audio_params() {
      else {
        g_rate = 8000;
      }
-     ALOGD(LOGTAG, "%s: set params for PA rate:%d", __func__, g_rate);
+     ALOGD(LOGTAG "%s: set params for PA rate:%d", __func__, g_rate);
 #endif
 }
 
@@ -2402,7 +2402,7 @@ void Hfp_Ag::setup_sco_path() {
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
    char cmd[50];
 
-   ALOGD(LOGTAG, "%s: starting arec and aplay\n", __func__);
+   ALOGD(LOGTAG "%s: starting arec and aplay\n", __func__);
    fprintf(stdout, "%s: starting arec and aplay\n", __func__);
 
    // set sample rate before starting sco
@@ -2449,7 +2449,7 @@ void Hfp_Ag::teardown_sco_path() {
 #if defined(BT_ALSA_AUDIO_INTEGRATION)
     char cmd[50];
 
-    ALOGD(LOGTAG, "%s: killing arec and aplay\n", __func__);
+    ALOGD(LOGTAG "%s: killing arec and aplay\n", __func__);
     fprintf(stdout, "%s: killing arec and aplay\n", __func__);
 
     //strlcpy(cmd, "killall -9 arec",sizeof(cmd));
@@ -2464,7 +2464,7 @@ void Hfp_Ag::teardown_sco_path() {
       /*
       int ret = pa_routing_intf->pa_bt_set_param_fn(PA_BT_A2DP_SOURCE, "bta2dp_suspend=false");
       if (ret) {
-         ALOGE(LOGTAG, "%s failed to reset A2dpSuspended flag\n", __func__);
+         ALOGE(LOGTAG "%s failed to reset A2dpSuspended flag\n", __func__);
       }
       */
    }
@@ -2486,7 +2486,7 @@ void Hfp_Ag::release_audio() {
    if (pa_routing_intf && sco_connect) {
       int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_HFP_AG, false);
       if (ret) {
-         ALOGE(LOGTAG, "%s failed to disconnect\n", __func__);
+         ALOGE(LOGTAG "%s failed to disconnect\n", __func__);
       } else {
           sco_connect = false;
       }

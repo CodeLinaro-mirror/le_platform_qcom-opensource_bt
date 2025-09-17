@@ -45,23 +45,6 @@ AM_CPPFLAGS += -I${BT_SOURCE}/bt-app \
                -I${STAGING_INCDIR}/fluoride \
                -I${BT_SOURCE}/bt-app/utils/include
 
-if USE_BT_OBEX
-AM_CPPFLAGS += -DOI_CPU_TYPE=19 \
-               -I${BT_SOURCE}/bt-app/pbap_client/include \
-               -I${BT_SOURCE}/bt-app/opp/include \
-               -I${BT_SOURCE}/obex_profiles/include \
-               -I${BT_SOURCE}/obex_profiles/include/profiles \
-               -I${BT_SOURCE}/obex_profiles/profiles/obex \
-               -I${BT_SOURCE}/obex_profiles/sdk/include \
-               -I${BT_SOURCE}/obex_profiles/sdk/include/profiles \
-               -I${BT_SOURCE}/obex_profiles/sdk/oem
-endif
-
-if USE_BT_CTE
-AM_CPPFLAGS += -DUSE_BT_CTE \
-               -I${BT_SOURCE}/bt-app/cte/include
-endif
-
 AM_CPPFLAGS += @AROUTE_CFLAGS@
 if AUDIO_HAL_SUPPORTED
 AM_CPPFLAGS += -DBT_AUDIO_HAL_INTEGRATION
@@ -99,16 +82,29 @@ AM_CPPFLAGS += -DBT_AUDIO_ENABLE
 endif
 
 if USE_GEN_GATT
+AM_CPPFLAGS += -DUSE_GEN_GATT
 cpp_sources += ../rsp/src/Rsp.cpp
 endif
 
 
 if USE_BT_OBEX
+AM_CPPFLAGS += -DUSE_BT_OBEX \
+               -DOI_CPU_TYPE=19 \
+               -I${BT_SOURCE}/bt-app/pbap_client/include \
+               -I${BT_SOURCE}/bt-app/opp/include \
+               -I${BT_SOURCE}/obex_profiles/include \
+               -I${BT_SOURCE}/obex_profiles/include/profiles \
+               -I${BT_SOURCE}/obex_profiles/profiles/obex \
+               -I${BT_SOURCE}/obex_profiles/sdk/include \
+               -I${BT_SOURCE}/obex_profiles/sdk/include/profiles \
+               -I${BT_SOURCE}/obex_profiles/sdk/oem
 cpp_sources +=  ../pbap_client/src/PbapClient.cpp \
               ../opp/src/Opp.cpp
 endif
 
 if USE_BT_CTE
+AM_CPPFLAGS += -DUSE_BT_CTE \
+               -I${BT_SOURCE}/bt-app/cte/include
 cpp_sources +=  ../cte/src/Cte.cpp
 endif
 

@@ -3244,11 +3244,11 @@ void A2dp_Source::HandleDisableSource(void) {
     if (pa_routing_intf) {
         int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, false);
         if (!ret) {
-            ALOGD(LOGTAG, " BT a2dp source disconnect success");
+            ALOGD(LOGTAG " BT a2dp source disconnect success");
             fprintf(stdout, "BT a2dp source disconnect success\n");
         }
         else {
-            ALOGD(LOGTAG, " BT a2dp source disconnect failed");
+            ALOGD(LOGTAG " BT a2dp source disconnect failed");
             fprintf(stdout, "BT a2dp source disconnect failed\n");
         }
        pa_routing_intf_close(pa_routing_intf);
@@ -3399,17 +3399,17 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
             if (!pa_routing_intf) {
                 pa_routing_intf = pa_routing_intf_open();
                 if (!pa_routing_intf) {
-                   ALOGE(LOGTAG, " pa_routing_intf_open failed!!!");
+                   ALOGE(LOGTAG " pa_routing_intf_open failed!!!");
                 }
                 else {
-                   ALOGD(LOGTAG, " pa_routing_intf_open success!!!");
+                   ALOGD(LOGTAG " pa_routing_intf_open success!!!");
                    int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, true);
                    if (!ret) {
-                      ALOGD(LOGTAG, " BT a2dp source connect success");
+                      ALOGD(LOGTAG " BT a2dp source connect success");
                       fprintf(stdout, "BT a2dp source connect success\n");
                    }
                    else {
-                      ALOGD(LOGTAG, " BT a2dp source connect failed");
+                      ALOGD(LOGTAG " BT a2dp source connect failed");
                       fprintf(stdout, "BT a2dp source connect failed\n");
                    }
                 }
@@ -3448,17 +3448,17 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             if (!pa_routing_intf) {
                 pa_routing_intf = pa_routing_intf_open();
                 if (!pa_routing_intf) {
-                   ALOGE(LOGTAG, " pa_routing_intf_open failed!!!");
+                   ALOGE(LOGTAG " pa_routing_intf_open failed!!!");
                 }
                 else {
-                   ALOGD(LOGTAG, " pa_routing_intf_open success!!!");
+                   ALOGD(LOGTAG " pa_routing_intf_open success!!!");
                    int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, true);
                    if (!ret) {
-                      ALOGD(LOGTAG, " BT a2dp source connect success");
+                      ALOGD(LOGTAG " BT a2dp source connect success");
                       fprintf(stdout, "BT a2dp source connect success\n");
                    }
                    else {
-                      ALOGD(LOGTAG, " BT a2dp source connect failed");
+                      ALOGD(LOGTAG " BT a2dp source connect failed");
                       fprintf(stdout, "BT a2dp source connect failed\n");
                    }
                 }
@@ -3482,11 +3482,11 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             if (pa_routing_intf) {
                int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, false);
                if (!ret) {
-                  ALOGD(LOGTAG, " BT a2dp source disconnect success");
+                  ALOGD(LOGTAG " BT a2dp source disconnect success");
                   fprintf(stdout, "BT a2dp source disconnect success\n");
                }
                else {
-                  ALOGD(LOGTAG, " BT a2dp source disconnect failed");
+                  ALOGD(LOGTAG " BT a2dp source disconnect failed");
                   fprintf(stdout, "BT a2dp source disconnect failed\n");
                }
                pa_routing_intf_close(pa_routing_intf);
@@ -3672,11 +3672,11 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             if (pa_routing_intf) {
                int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SOURCE, false);
                if (!ret) {
-                  ALOGD(LOGTAG, " BT a2dp source disconnect success");
+                  ALOGD(LOGTAG " BT a2dp source disconnect success");
                   fprintf(stdout, "BT a2dp source disconnect success\n");
                }
                else {
-                  ALOGD(LOGTAG, " BT a2dp source disconnect failed");
+                  ALOGD(LOGTAG " BT a2dp source disconnect failed");
                   fprintf(stdout, "BT a2dp source disconnect failed\n");
                }
                pa_routing_intf_close(pa_routing_intf);

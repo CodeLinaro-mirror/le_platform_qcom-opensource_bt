@@ -615,7 +615,7 @@ void Hfp_Client::ProcessEvent(BtEvent* pEvent) {
             state_audio_on_handler(pEvent);
             break;
         case HFP_CLIENT_STATE_NOT_STARTED:
-            ALOGE(LOGTAG," STATE UNINITIALIZED, return");
+            ALOGE(LOGTAG " STATE UNINITIALIZED, return");
             break;
     }
 }
@@ -653,7 +653,7 @@ void Hfp_Client::state_disconnected_handler(BtEvent* pEvent) {
             change_state(HFP_CLIENT_STATE_CONNECTED);
             break;
         default:
-            ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
+            ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 }
@@ -662,7 +662,7 @@ void Hfp_Client::state_connecting_handler(BtEvent* pEvent) {
     ALOGD(LOGTAG "state_connecting_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_CONNECT_REQ:
-            ALOGE(LOGTAG,"Already in connecting_handler,Ignore request");
+            ALOGE(LOGTAG "Already in connecting_handler,Ignore request");
             fprintf(stdout,"Already in connecting_handler,Ignore request\n");
             break;
         case HFP_CLIENT_CONNECTING_CB:
@@ -694,7 +694,7 @@ void Hfp_Client::state_connecting_handler(BtEvent* pEvent) {
             change_state(HFP_CLIENT_STATE_DISCONNECTED);
             break;
         default:
-            ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
+            ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 }
@@ -705,13 +705,13 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
     BtEvent *pControlRequest, *pReleaseControlReq;
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_CONNECT_REQ:
-            ALOGE(LOGTAG,"Already in connected_handler,Ignore Request");
+            ALOGE(LOGTAG "Already in connected_handler,Ignore Request");
             fprintf(stdout,"Already in connected_handler,Ignore Request\n");
             break;
         case HFP_CLIENT_API_DISCONNECT_REQ:
             if (memcmp(&pEvent->hfp_client_event.bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
                 bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-                ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+                ALOGE(LOGTAG "%s, Device not connected: %s", __func__,str);
                 fprintf(stdout, "Device not connected: %s\n", str);
                 break;
             }
@@ -779,7 +779,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
         case HFP_CLIENT_API_CONNECT_AUDIO_REQ:
             if (memcmp(&pEvent->hfp_client_event.bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
                 bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-                ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+                ALOGE(LOGTAG "%s, Device not connected: %s", __func__,str);
                 fprintf(stdout, "Device not connected: %s\n", str);
                 break;
             }
@@ -1055,7 +1055,7 @@ void Hfp_Client::state_connected_handler(BtEvent* pEvent) {
             }
             break;
         default:
-            ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
+            ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 }
@@ -1066,13 +1066,13 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
     ALOGD(LOGTAG "state_audio_on_handler Processing event %d", pEvent->event_id);
     switch(pEvent->event_id) {
         case HFP_CLIENT_API_CONNECT_REQ:
-            ALOGE(LOGTAG,"Already in audio_on_handler,Ignore request");
+            ALOGE(LOGTAG "Already in audio_on_handler,Ignore request");
             fprintf(stdout,"Already in audio_on_handler,Ignore request\n");
             break;
         case HFP_CLIENT_API_DISCONNECT_REQ:
             if (memcmp(&pEvent->hfp_client_event.bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
                 bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-                ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+                ALOGE(LOGTAG "%s, Device not connected: %s", __func__,str);
                 fprintf(stdout, "Device not connected: %s\n", str);
                 break;
             }
@@ -1110,7 +1110,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
         case HFP_CLIENT_API_DISCONNECT_AUDIO_REQ:
             if (memcmp(&pEvent->hfp_client_event.bd_addr,&mConnectedDevice,sizeof(bt_bdaddr_t))) {
                 bdaddr_to_string(&pEvent->hfp_client_event.bd_addr, str, 18);
-                ALOGE(LOGTAG, "%s, Device not connected: %s", __func__,str);
+                ALOGE(LOGTAG "%s, Device not connected: %s", __func__,str);
                 fprintf(stdout, "Device not connected: %s\n", str);
                 break;
             }
@@ -1314,7 +1314,7 @@ void Hfp_Client::state_audio_on_handler(BtEvent* pEvent) {
             break;
 
         default:
-            ALOGD(LOGTAG," event not handled %d ", pEvent->event_id);
+            ALOGD(LOGTAG " event not handled %d ", pEvent->event_id);
             break;
     }
 
@@ -1333,13 +1333,13 @@ void Hfp_Client::ConfigureRingTonePlayback() {
 
 // plays 1 sec tone
 void Hfp_Client::PlayRingTone() {
-   ALOGD("%s:", __func__);
+   ALOGD(LOGTAG "%s:", __func__);
 #ifdef BT_AUDIO_PAL_INTEGRATION
   bool ret = false;
   char *buffer = (char*) osi_calloc(sizeof(ring_tone));
   if (!buffer) {
       fprintf(stdout, "memory allocation for playing ringtone failed\n");
-      ALOGE("%s: memory allocation for playing ringtone failed", __func__);
+      ALOGE(LOGTAG "%s: memory allocation for playing ringtone failed", __func__);
       return;
   }
 

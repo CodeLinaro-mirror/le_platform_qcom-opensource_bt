@@ -942,7 +942,7 @@ static void HandleA2dpSinkCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE])
 }
 
 static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
-    ALOGV(LOGTAG, "HandleA2DPSourceCommand cmd_id = %d", cmd_id);
+    ALOGV(LOGTAG "HandleA2DPSourceCommand cmd_id = %d", cmd_id);
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
@@ -1100,7 +1100,7 @@ static void HandleA2dpSourceCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE
 }
 
 static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
-    ALOGD(LOGTAG, "HandleHfpClientCommand cmd_id = %d", cmd_id);
+    ALOGD(LOGTAG "HandleHfpClientCommand cmd_id = %d", cmd_id);
     BtEvent *event = NULL;
     switch (cmd_id) {
         case CONNECT:
@@ -1322,7 +1322,7 @@ static void HandleHfpClientCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]
 }
 
 static void HandleHfpAGCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
-    ALOGD(LOGTAG, "HandleHfpAGCommand cmd_id = %d", cmd_id);
+    ALOGD(LOGTAG "HandleHfpAGCommand cmd_id = %d", cmd_id);
     fprintf(stdout, "HandleHfpAGCommand cmd_id = %d\n" , cmd_id);
     BtEvent *event = NULL;
     switch (cmd_id) {
@@ -1552,7 +1552,6 @@ static void HandleMainCommand(int cmd_id, char user_cmd[][COMMAND_ARG_SIZE]) {
             break;
 #endif
 #ifdef BT_AUDIO_ENABLE
-        case HFP_AG:
         case A2DP_SINK:
             menu_type = A2DP_SINK_MENU;
             DisplayMenu(menu_type);

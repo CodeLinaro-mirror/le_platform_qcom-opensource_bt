@@ -1,5 +1,6 @@
 if USE_GEN_GATT
 AM_CPPFLAGS = -O2 \
+              -DUSE_GEN_GATT \
               -D_GNU_SOURCE \
               -std=c++11 \
               -I${BT_SOURCE}/bt-app/utils/include \
@@ -53,6 +54,10 @@ cpp_sources = native/src/GattNativeInterfaceV2.cpp \
               lib/src/ScanManager.cpp
 
 AM_LDFLAGS := -lchrome ../utils/libbtappuuid.la
+
+if BT_AUDIO_ENABLE
+AM_CPPFLAGS += -DBT_AUDIO_ENABLE
+endif
 
 library_includedir = $(pkgincludedir)
 lib_LTLIBRARIES = libgengatt.la
