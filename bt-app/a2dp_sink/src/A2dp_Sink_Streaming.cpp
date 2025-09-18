@@ -189,9 +189,6 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
         case A2DP_SINK_STREAMING_FETCH_PCM_DATA:
 	    {
 	    ALOGD(LOGTAG " A2DP_SINK_STREAMING_FETCH_PCM_DATA");
-#ifdef ENABLE_GST_AUDIO_SINK
-	    GstMapInfo map;
-#endif
             if (pA2dpSinkStream) {
                 if (!pA2dpSinkStream->enable_notification_cb) {
                     if (!pA2dpSinkStream->pcm_timer) {
@@ -1152,28 +1149,15 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         mBtA2dpSinkStreamingVendorInterface->update_qahw_delay_vendor(qahw_delay);
     }
 #endif
-#if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
-    if (!sample_rate || !channel_count) {
-        return;
-    }
-    switch(sample_rate) {
-    case 44100:
-        pcm_buf_size = 7065;
-        break;
-    case 48000:
-        pcm_buf_size = 7680;
-        break;
-    }
-#endif
 #endif
 
 #ifdef ENABLE_GST_AUDIO_SINK
+    char pipeline_str[GST_PIPELINE_BUFF_SIZE] = {0};
     sample_rate = get_a2dp_sbc_sampling_rate(codec_config.sbc_config.samp_freq);
     channel_count = get_a2dp_sbc_channel_mode(codec_config.sbc_config.ch_mode);
+
     ALOGI(LOGTAG " sample_rate %d channel_count %d", sample_rate, channel_count);
-    if (!sample_rate || !channel_count) {
-        return;
-    }
+
     switch(sample_rate) {
     case 44100:
         pcm_buf_size = 7065*2;
@@ -1195,7 +1179,6 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
 	ALOGI(LOGTAG " pcm timer duration %d pcm_buf_size %d", pcm_timer_duration, pcm_buf_size);
 
         gst_init(NULL, NULL);
-	char pipeline_str[GST_PIPELINE_BUFF_SIZE] = {0};
 
 	snprintf(pipeline_str, sizeof(pipeline_str),
              "appsrc name=src ! queue max-size-time=600000000 ! rawaudioparse use-sink-caps=false format=pcm pcm-format=s16le sample-rate=%d num-channels=2 ! audioconvert ! autoaudiosink",sample_rate);
@@ -1209,10 +1192,21 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
 #endif
 
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
-    pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
+    if (!sample_rate || !channel_count) {
+        return;
+    }
 #ifndef ENABLE_GST_AUDIO_SINK
+    switch(sample_rate) {
+    case 44100:
+        pcm_buf_size = 7065;
+        break;
+    case 48000:
+        pcm_buf_size = 7680;
+        break;
+    }
     pcm_timer_duration = A2DP_SINK_PCM_FETCH_TIMER_DURATION;
 #endif
+    pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
     if (outputPcmSampleFile == NULL)
         outputPcmSampleFile = fopen(outputFilename, "ab");
 #endif
