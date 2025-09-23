@@ -48,6 +48,9 @@
 #include "ipc.hpp"
 #include "utils.h"
 #include "hardware/bt_hf_vendor.h"
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+#include "pa_routing_interface.h"
+#endif
 
 // for MDM, define, this, TODO: move it to bitbake
 //#define BT_ALSA_AUDIO_INTEGRATION 0
@@ -191,6 +194,9 @@ class Hfp_Ag {
     ControlStatusType mcontrolStatus;
     bthf_nrec_t mNrec;
     const bthf_vendor_interface_t *sBtHfpAgVendorInterface;
+#if defined(BT_AUDIO_PAL_INTEGRATION)
+    pa_routing_interface_t *pa_routing_intf;
+#endif
   public:
     Hfp_Ag(const bt_interface_t *bt_interface, config_t *config);
     ~Hfp_Ag();
@@ -234,14 +240,14 @@ class Hfp_Ag {
     void processSlcConnected();
 #endif
 
-#if defined(BT_ALSA_AUDIO_INTEGRATION)
     void init_audio();
     void set_audio_params();
     void setup_sco_path();
     void teardown_sco_path();
     void release_audio();
-#endif
+
     void configurescoaudio(bool enable);
+    void clear_audio_params();
 };
 
 #endif

@@ -34,6 +34,9 @@ AC_SUBST([OBEX_LIBS])
 PKG_CHECK_MODULES([PABTAUDIO], [pabtaudio])
 AC_SUBST([PABTAUDIO_CFLAGS])
 
+PKG_CHECK_MODULES([AROUTE], [audio_route])
+AC_SUBST([AROUTE_CFLAGS])
+
 AC_ARG_WITH([glib],
      AC_HELP_STRING([--with-glib],
         [enable glib, building HLOS systems which use glib]))
