@@ -4377,18 +4377,22 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     // checking for a2dp source
     is_a2dp_source_enabled_ = config_get_bool(config, CONFIG_DEFAULT_SECTION,
                                               BT_A2DP_SOURCE_ENABLED, false);
-    if (is_a2dp_sink_split_enabled_ == true &&
-        is_a2dp_source_enabled_ == true) {
-      ALOGE(LOGTAG
+
+    // checking for dynamic switch
+    is_dynamic_role_switch_enabled_=config_get_bool (config, CONFIG_DEFAULT_SECTION,
+                                        "BtDynamicRoleSwitch", false);
+
+    if ((is_a2dp_sink_split_enabled_ == true &&
+        is_a2dp_source_enabled_ == true) && !is_dynamic_role_switch_enabled_) {
+        ALOGE(LOGTAG
             " Both A2dp Src and A2dp Sink are enabled, disabling A2dp Src. Set \
               BtA2dpSourceEnable to true, BtA2dpSinkSplitEnable to false in bt_app.conf to \
               enable only A2dp Source");
-      fprintf(
-          stdout,
-          " Both A2dp Src and A2dp Sink are enabled, disabling A2dp Src. Set \n \
+        fprintf(stdout,
+            " Both A2dp Src and A2dp Sink are enabled, disabling A2dp Src. Set \n \
             BtA2dpSourceEnable to true, BtA2dpSinkSplitEnable to false in bt_app.conf to \n \
             enable only A2dp Source\n ");
-      is_a2dp_source_enabled_ = false;
+        is_a2dp_source_enabled_ = false;
     }
 
     if (is_a2dp_source_enabled_) {
@@ -4398,6 +4402,7 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for hfp client
     is_hfp_client_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_HFP_CLIENT_ENABLED, false);
+
     //checking for hfp ag
     is_hfp_ag_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_HFP_AG_ENABLED, false);
@@ -4405,13 +4410,15 @@ bool BluetoothApp::LoadConfigParameters (const char *configpath) {
     //checking for hid
     is_hid_enable_default_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_HID_ENABLED, false);
-    if (is_hfp_client_enabled_ == true && is_hfp_ag_enabled_ == true) {
+
+    if ((is_hfp_client_enabled_ == true &&
+        is_hfp_ag_enabled_ == true) && !is_dynamic_role_switch_enabled_) {
         ALOGE (LOGTAG " Both HFP AG and Client are enabled, disabling AG. Set \
-           BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
-           enable only AG");
+            BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
+            enable only AG");
         fprintf(stdout, " Both HFP AG and Client are enabled, disabling AG. Set \
-           BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
-           enable only AG\n" );
+            BtHfpAGEnable to true, BtHfClientEnable to false in bt_app.conf to \
+            enable only AG\n" );
         is_hfp_ag_enabled_ = false;
     }
     //checking for Pan handler

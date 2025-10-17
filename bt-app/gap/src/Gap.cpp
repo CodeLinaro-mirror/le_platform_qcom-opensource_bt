@@ -75,6 +75,9 @@ using std::string;
 
 Gap *g_gap = NULL;
 
+role_t current_role = ROLE_SINK;
+role_t active_role = ROLE_SINK;
+
 sd_bus_slot *m_sdbusSlot = nullptr;
 static char const *sObjPath = "/org/fluoride/hci0";
 #define DBUS_INTERFACE "org.fluoride.Adapter1"
@@ -582,6 +585,171 @@ void Gap::SendHCICommand(uint8_t *cmd_ptr) {
     return;
 }
 
+void Gap::EnableRoleBasedProfiles() {
+
+    int profile_id;
+    if (!this->config_) {
+        ALOGE(LOGTAG " config_ is null!");
+        return;
+    }
+
+    if (is_dynamic_role_switch_enabled_) {
+        FILE *f = fopen("/data/misc/bluetooth/role.conf", "r");
+        if (f) {
+            int role_value;
+            if (fscanf(f, "%d", &role_value) == 1) {
+                if (role_value == ROLE_SINK || role_value == ROLE_SRC) {
+                    current_role = static_cast<role_t>(role_value);
+                    ALOGE(LOGTAG "Current role:%s\n", roleToString(current_role));
+                    fprintf(stdout, "Current role:%s\n", roleToString(current_role));
+                } else {
+                ALOGE(LOGTAG " Invalid role value in file, defaulting to ROLE_SINK");
+                fprintf(stdout, "Invalid role value in file, defaulting to ROLE_SINK\n");
+                current_role = ROLE_SINK;
+                }
+            } else {
+                ALOGE(LOGTAG " Failed to read role value, defaulting to ROLE_SINK");
+                fprintf(stdout,
+                      "Failed to read role value, defaulting to ROLE_SINK\n");
+                current_role = ROLE_SINK;
+            }
+            fclose(f);
+        } else {
+            ALOGE(LOGTAG " Role file not found, defaulting to ROLE_SINK");
+            fprintf(stdout, "Role file not found, defaulting to ROLE_SINK\n");
+            current_role = ROLE_SINK;
+        }
+
+        ALOGE(LOGTAG "Loaded persisted role: %d", current_role);
+        active_role = current_role;
+
+        if (active_role == ROLE_SINK) {
+            this->profile_config[PROFILE_ID_A2DP_SOURCE].is_enabled = false;
+            this->profile_config[PROFILE_ID_HFP_AG].is_enabled = false;
+            this->profile_config[PROFILE_ID_AVRCP].is_enabled = false;
+
+            this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled =
+                config_get_bool(this->config_,
+                CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED_STRING, false);
+            this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled =
+                config_get_bool(this->config_,
+                CONFIG_DEFAULT_SECTION, BT_HFP_CLIENT_ENABLED_STRING, false);
+            this->profile_config[PROFILE_ID_AVRCP].is_enabled =
+                config_get_bool(this->config_,
+                CONFIG_DEFAULT_SECTION, BT_AVRCP_ENABLED_STRING, false);
+
+            ALOGE(LOGTAG " Role is A2DP_SINK. A2DP Sink enabled: %d, \
+                  HFP Client enabled: %d, AVRCP enabled: %d",
+                this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled,
+                this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled,
+                this->profile_config[PROFILE_ID_AVRCP].is_enabled);
+        } else {
+            this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = false;
+            this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled = false;
+            this->profile_config[PROFILE_ID_AVRCP].is_enabled = false;
+
+            this->profile_config[PROFILE_ID_A2DP_SOURCE].is_enabled =
+                config_get_bool(this->config_,
+                CONFIG_DEFAULT_SECTION, BT_A2DP_SOURCE_ENABLED_STRING, false);
+            this->profile_config[PROFILE_ID_HFP_AG].is_enabled =
+                config_get_bool(this->config_,
+                CONFIG_DEFAULT_SECTION, BT_HFP_AG_ENABLED_STRING, false);
+            this->profile_config[PROFILE_ID_AVRCP].is_enabled =
+                config_get_bool(this->config_,
+                CONFIG_DEFAULT_SECTION, BT_AVRCP_ENABLED_STRING, false);
+
+            ALOGE(LOGTAG " Role is A2DP_SRC. A2DP Source enabled: %d, \
+                  HFP AG enabled: %d, AVRCP enabled: %d",
+                this->profile_config[PROFILE_ID_A2DP_SOURCE].is_enabled,
+                this->profile_config[PROFILE_ID_HFP_AG].is_enabled,
+                this->profile_config[PROFILE_ID_AVRCP].is_enabled);
+        }
+    } else {
+        this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled =
+                     config_get_bool (this->config_,
+                     CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED_STRING, false);
+
+        this->profile_config[PROFILE_ID_A2DP_SOURCE].is_enabled =
+                     config_get_bool (this->config_,
+                     CONFIG_DEFAULT_SECTION, BT_A2DP_SOURCE_ENABLED_STRING, false);
+
+        this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled =
+                     config_get_bool (this->config_,
+                     CONFIG_DEFAULT_SECTION, BT_HFP_CLIENT_ENABLED_STRING, false);
+
+        this->profile_config[PROFILE_ID_HFP_AG].is_enabled =
+                     config_get_bool (this->config_,
+                     CONFIG_DEFAULT_SECTION, BT_HFP_AG_ENABLED_STRING, false);
+
+        this->profile_config[PROFILE_ID_AVRCP].is_enabled =
+                     config_get_bool (this->config_,
+                     CONFIG_DEFAULT_SECTION, BT_AVRCP_ENABLED_STRING, false);
+
+        if (this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled &&
+            this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled &&
+            this->profile_config[PROFILE_ID_A2DP_SOURCE].is_enabled &&
+            this->profile_config[PROFILE_ID_HFP_AG].is_enabled &&
+            this->profile_config[PROFILE_ID_AVRCP].is_enabled) {
+
+            ALOGE(LOGTAG"Both Sink and Source Profiles enabled,use dynamic switching\n");
+            fprintf(stdout,"Both Sink and Source Profiles enabled,use dynamic switching\n");
+        } else if (this->profile_config[PROFILE_ID_A2DP_SOURCE].is_enabled &&
+               this->profile_config[PROFILE_ID_HFP_AG].is_enabled &&
+               this->profile_config[PROFILE_ID_AVRCP].is_enabled) {
+
+            ALOGE(LOGTAG " Current role is Source\n");
+            fprintf(stdout, "Current role is Source\n");
+        } else {
+
+            ALOGE(LOGTAG "Current role is Sink\n");
+            fprintf(stdout, "Current role is Sink\n");
+        }
+    }
+
+    if ((this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled) ||
+       (this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled) ||
+       (this->profile_config[PROFILE_ID_HFP_AG].is_enabled)) {
+
+        this->profile_config[PROFILE_ID_BT_AM].is_enabled = true;
+        ALOGE(LOGTAG " BT_AM profile enabled due to active audio profiles.");
+    }
+
+    this->profile_config[PROFILE_ID_PAN].is_enabled =
+        config_get_bool(this->config_, CONFIG_DEFAULT_SECTION, BT_PAN_ENABLED, false);
+
+#ifdef USE_GEN_GATT
+/*
+    this->profile_config[PROFILE_ID_GATT].is_enabled = config_get_bool (config,
+                     CONFIG_DEFAULT_SECTION, BT_GATT_ENABLED, false);
+*/
+#ifdef USE_BLE_SOCKET_MANAGER
+    this->profile_config[PROFILE_ID_BLE_SM].is_enabled = config_get_bool (this->config_,
+                   CONFIG_DEFAULT_SECTION, BT_LE_SOCKET_MANAGER_ENABLED, false);
+#endif
+#endif
+
+    // SDP Client should be enabled and is not configurable to be disabled
+    this->profile_config[PROFILE_ID_SDP_CLIENT].is_enabled = true;
+
+    this->profile_config[PROFILE_ID_HID].is_enabled = config_get_bool (this->config_,
+                   CONFIG_DEFAULT_SECTION, BT_HID_ENABLED_STRING, false);
+
+#ifdef USE_BT_OBEX
+    this->profile_config[PROFILE_ID_PBAP_CLIENT].is_enabled = config_get_bool (this->config_,
+                     CONFIG_DEFAULT_SECTION, BT_PBAP_CLIENT_ENABLED, false);
+
+    this->profile_config[PROFILE_ID_OPP].is_enabled = config_get_bool (this->config_,
+                 CONFIG_DEFAULT_SECTION, BT_OPP_ENABLED, false);
+#endif
+
+    for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
+                                                            profile_id++) {
+        if(this->profile_config[profile_id].is_enabled) {
+            this->supported_profiles_count++;
+        }
+    }
+}
+
 void Gap::ProcessEvent(BtEvent* event) {
     bt_property_t prop;
     bt_scan_mode_t scan_mode;
@@ -661,6 +829,7 @@ void Gap::ProcessEvent(BtEvent* event) {
             break;
         case PROFILE_API_START:
             {
+               EnableRoleBasedProfiles();
 #ifdef USE_BT_OBEX
               /* Initialize OBEX if enabled in config */
                if (is_obex_enabled_) {
@@ -976,6 +1145,14 @@ void Gap::ProcessEvent(BtEvent* event) {
     }
 }
 
+const char* Gap::roleToString(role_t role) {
+    switch (role) {
+        case ROLE_SINK: return "SINK";
+        case ROLE_SRC:  return "SOURCE";
+        default:        return "UNKNOWN";
+    }
+}
+
 Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
 
     int profile_id;
@@ -993,6 +1170,9 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
                                     "BtA2dpSinkSplitEnable", false);
     is_user_input_enabled_ = config_get_bool (config, CONFIG_DEFAULT_SECTION,
                                     BT_USR_INPUT, false);
+    is_dynamic_role_switch_enabled_ =
+             config_get_bool (this->config_, CONFIG_DEFAULT_SECTION,
+                              "BtDynamicRoleSwitch", false);
 
 #ifdef USE_BT_OBEX
     is_obex_enabled_ = config_get_bool (config,
@@ -1054,61 +1234,6 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         else if(profile_id == PROFILE_ID_HID)
             this->profile_config[profile_id].thread_id = THREAD_ID_HID;
     }
-    this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled = config_get_bool (config,
-                     CONFIG_DEFAULT_SECTION, BT_A2DP_SINK_ENABLED_STRING, false);
-
-    this->profile_config[PROFILE_ID_A2DP_SOURCE].is_enabled = config_get_bool (config,
-                     CONFIG_DEFAULT_SECTION, BT_A2DP_SOURCE_ENABLED_STRING, false);
-
-    this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled = config_get_bool (config,
-                     CONFIG_DEFAULT_SECTION, BT_HFP_CLIENT_ENABLED_STRING, false);
-
-    this->profile_config[PROFILE_ID_HFP_AG].is_enabled = config_get_bool (config,
-                     CONFIG_DEFAULT_SECTION, BT_HFP_AG_ENABLED_STRING, false);
-
-    this->profile_config[PROFILE_ID_AVRCP].is_enabled = config_get_bool (config,
-                     CONFIG_DEFAULT_SECTION, BT_AVRCP_ENABLED_STRING, false);
-
-    if ((this->profile_config[PROFILE_ID_A2DP_SINK].is_enabled) ||
-        (this->profile_config[PROFILE_ID_HFP_CLIENT].is_enabled) ||
-        (this->profile_config[PROFILE_ID_HFP_AG].is_enabled)) {
-        this->profile_config[PROFILE_ID_BT_AM].is_enabled = true;
-    }
-
-    this->profile_config[PROFILE_ID_PAN].is_enabled = config_get_bool (config,
-                     CONFIG_DEFAULT_SECTION, BT_PAN_ENABLED, false);
-
-#ifdef USE_GEN_GATT
-/*
-    this->profile_config[PROFILE_ID_GATT].is_enabled = config_get_bool (config,
-                     CONFIG_DEFAULT_SECTION, BT_GATT_ENABLED, false);
-*/
-#ifdef USE_BLE_SOCKET_MANAGER
-    this->profile_config[PROFILE_ID_BLE_SM].is_enabled = config_get_bool (config,
-                   CONFIG_DEFAULT_SECTION, BT_LE_SOCKET_MANAGER_ENABLED, false);
-#endif
-#endif
-
-    // SDP Client should be enabled and is not configurable to be disabled
-    this->profile_config[PROFILE_ID_SDP_CLIENT].is_enabled = true;
-
-    this->profile_config[PROFILE_ID_HID].is_enabled = config_get_bool (config,
-                   CONFIG_DEFAULT_SECTION, BT_HID_ENABLED_STRING, false);
-
-#ifdef USE_BT_OBEX
-    this->profile_config[PROFILE_ID_PBAP_CLIENT].is_enabled = config_get_bool (config,
-                     CONFIG_DEFAULT_SECTION, BT_PBAP_CLIENT_ENABLED, false);
-
-    this->profile_config[PROFILE_ID_OPP].is_enabled = config_get_bool (config,
-                 CONFIG_DEFAULT_SECTION, BT_OPP_ENABLED, false);
-#endif
-
-    for(profile_id = PROFILE_ID_A2DP_SINK; profile_id < PROFILE_ID_MAX;
-                                                            profile_id++) {
-        if(this->profile_config[profile_id].is_enabled) {
-            this->supported_profiles_count++;
-        }
-    }
 
     ALOGV(LOGTAG "  sBtVendorInterface.");
     // Vendor interface
@@ -1139,26 +1264,55 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
         ALOGE(LOGTAG, " unable to create disable_timer timer.");
         return;
     }
-    static const sd_bus_vtable sSdAdapterDbusInterfaceVTable[] = {
-        SD_BUS_VTABLE_START(0),
+    if (is_dynamic_role_switch_enabled_) {
+        static const sd_bus_vtable sSdAdapterDbusInterfaceVTable[] = {
+            SD_BUS_VTABLE_START(0),
 
-        SD_BUS_PROPERTY("Name","s", Gap:: sd_getBtName, 0 ,
-                                  SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
-        SD_BUS_PROPERTY("Powered", "b", Gap::sd_getBtPowered, 0,
-                         SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
-        SD_BUS_METHOD("SetPowered", "i", nullptr,
-             Gap:: sd_setBtPowered,
-             SD_BUS_VTABLE_UNPRIVILEGED),
-        SD_BUS_METHOD("SetName", "s", nullptr,
-             Gap:: sd_setBtName,
-             SD_BUS_VTABLE_UNPRIVILEGED),
-        SD_BUS_VTABLE_END};
-    if(g_sdbus != NULL) {
-        int res = sd_bus_add_object_vtable(g_sdbus, &m_sdbusSlot, sObjPath,
-                                     DBUS_INTERFACE, sSdAdapterDbusInterfaceVTable, this);
-        if (res < 0) {
-            ALOGD(LOGTAG "interface init failed on path %s: %d - %s\n",
-                       sObjPath, -res, strerror(-res));
+            SD_BUS_PROPERTY("Name", "s", Gap::sd_getBtName, 0,
+                        SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
+            SD_BUS_PROPERTY("Powered", "b", Gap::sd_getBtPowered, 0,
+                        SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
+            SD_BUS_METHOD("SetPowered", "i", nullptr, Gap::sd_setBtPowered,
+                      SD_BUS_VTABLE_UNPRIVILEGED),
+            SD_BUS_METHOD("SetName", "s", nullptr, Gap::sd_setBtName,
+                      SD_BUS_VTABLE_UNPRIVILEGED),
+            SD_BUS_METHOD("SwitchRole", "s", "b", Gap::sd_switchRole,
+                      SD_BUS_VTABLE_UNPRIVILEGED),
+            SD_BUS_METHOD("GetRole", "", "s", Gap::sd_getRole,
+                      SD_BUS_VTABLE_UNPRIVILEGED),
+            SD_BUS_VTABLE_END
+        };
+        if (g_sdbus != NULL) {
+            int res = sd_bus_add_object_vtable(g_sdbus, &m_sdbusSlot, sObjPath,
+                                         DBUS_INTERFACE,
+                                         sSdAdapterDbusInterfaceVTable, this);
+            if (res < 0) {
+                ALOGD(LOGTAG "interface init failed on path %s: %d - %s\n", sObjPath,
+                -res, strerror(-res));
+            }
+        }
+    } else {
+        static const sd_bus_vtable sSdAdapterDbusInterfaceVTable[] = {
+            SD_BUS_VTABLE_START(0),
+
+            SD_BUS_PROPERTY("Name", "s", Gap::sd_getBtName, 0,
+                            SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
+            SD_BUS_PROPERTY("Powered", "b", Gap::sd_getBtPowered, 0,
+                            SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
+            SD_BUS_METHOD("SetPowered", "i", nullptr, Gap::sd_setBtPowered,
+                          SD_BUS_VTABLE_UNPRIVILEGED),
+            SD_BUS_METHOD("SetName", "s", nullptr, Gap::sd_setBtName,
+                          SD_BUS_VTABLE_UNPRIVILEGED),
+            SD_BUS_VTABLE_END
+        };
+        if (g_sdbus != NULL) {
+            int res = sd_bus_add_object_vtable(g_sdbus, &m_sdbusSlot, sObjPath,
+                                         DBUS_INTERFACE,
+                                         sSdAdapterDbusInterfaceVTable, this);
+            if (res < 0) {
+                ALOGD(LOGTAG "interface init failed on path %s: %d - %s\n", sObjPath,
+                -res, strerror(-res));
+            }
         }
     }
 }
@@ -1267,3 +1421,74 @@ int Gap:: sd_getBtName(sd_bus *bus, const char *path,
    return r;
 }
 
+int Gap::sd_switchRole(sd_bus_message *m, void *userdata,
+                       sd_bus_error *ret_error) {
+    const char *role_str = nullptr;
+    int r = sd_bus_message_read(m, "s", &role_str);
+    if (r < 0) {
+        ALOGE(LOGTAG "Failed to parse role string from message: %s\n",
+          strerror(-r));
+        return r;
+    }
+
+    int current_role = -1;
+    if (strcmp(role_str, "src") == 0) {
+        current_role = ROLE_SRC;
+    } else if (strcmp(role_str, "sink") == 0) {
+        current_role = ROLE_SINK;
+    } else {
+        ALOGE(LOGTAG "Invalid role string: %s\n", role_str);
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_INVALID_ARGS,
+                             "Role must be 'src' or 'sink'");
+    }
+
+    FILE *f = fopen("/data/misc/bluetooth/role.conf", "w");
+    if (f) {
+        fprintf(f, "%d\n", current_role);
+        fclose(f);
+        ALOGI(LOGTAG "Persisted new role: %s (%d)", role_str, current_role);
+    } else {
+        ALOGE(LOGTAG "Failed to write role.conf");
+        return sd_bus_reply_method_return(m, "b", false);
+    }
+
+    Gap *self = static_cast<Gap *>(userdata);
+    if (!self->is_dynamic_role_switch_enabled_) {
+        return sd_bus_error_set(ret_error, SD_BUS_ERROR_ACCESS_DENIED,
+                            "Dynamic role switching is disabled");
+    }
+
+    return sd_bus_reply_method_return(m, "b", true);
+}
+
+int Gap::sd_getRole(sd_bus_message *m, void *userdata,
+                    sd_bus_error *ret_error) {
+    FILE *f = fopen("/data/misc/bluetooth/role.conf", "r");
+    if (!f) {
+        ALOGE(LOGTAG "Failed to open role.conf");
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                             "Could not read role configuration");
+    }
+
+    int role = -1;
+    if (fscanf(f, "%d", &role) != 1) {
+        fclose(f);
+        ALOGE(LOGTAG "Failed to parse role.conf");
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                             "Invalid role configuration format");
+    }
+    fclose(f);
+
+    const char *role_str = nullptr;
+    if (role == ROLE_SRC) {
+        role_str = "src";
+    } else if (role == ROLE_SINK) {
+        role_str = "sink";
+    } else {
+        ALOGE(LOGTAG "Unknown role value: %d", role);
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                             "Unknown role value");
+    }
+
+    return sd_bus_reply_method_return(m, "s", role_str);
+}
