@@ -49,7 +49,19 @@ void ScanManager::start()
 
 void ScanManager::cleanup()
 {
+  for (ScanClient* client : mRegularScanClients) {
+    if (client) {
+      delete client;
+      client = NULL;
+    }
+  }
   mRegularScanClients.clear();
+  for (ScanClient* client : mBatchClients) {
+    if (client) {
+      delete client;
+      client = NULL;
+    }
+  }
   mBatchClients.clear();
   if(mScanNative != NULL) {
     delete(mScanNative);
@@ -221,6 +233,8 @@ void ScanManager:: handleStopScan(ScanClient *client)
   // actual client in that case.
   appDied = client->appDied;
   scannerId = client->scannerId;
+  delete client;
+  client = NULL;
   if(mScanNative != NULL)
     client = mScanNative->getRegularScanClient(scannerId);
   if (client == NULL) {
@@ -247,7 +261,8 @@ void ScanManager:: handleStopScan(ScanClient *client)
     }
     unregisterScanner(client->scannerId);
   }
-
+  delete client;
+  client = NULL;
 }
 
 void ScanManager:: handleFlushBatchResults(ScanClient *client)
@@ -403,6 +418,7 @@ void ScanManager::ScanNative::configureRegularScanParams()
       scanWindow[phyCnt] = millsToUnit(scanWindowLE1M);
       scanInterval[phyCnt] = millsToUnit(scanIntervalLE1M);
       phyCnt++;
+      delete settings;
     }
   }
   else {
@@ -426,6 +442,8 @@ void ScanManager::ScanNative::configureRegularScanParams()
       // convert scanWindow and scanInterval from ms to LE scan units(0.625ms)
       scanWindow[phyCnt] = millsToUnit(scanWindowLECoded);
       scanInterval[phyCnt] = millsToUnit(scanIntervalLECoded);
+      delete settings;
+      settings = NULL;
     }
   }
   else {
