@@ -693,6 +693,8 @@ void Gap::EnableRoleBasedProfiles() {
 
             ALOGE(LOGTAG"Both Sink and Source Profiles enabled,use dynamic switching\n");
             fprintf(stdout,"Both Sink and Source Profiles enabled,use dynamic switching\n");
+            ALOGE(LOGTAG"BT app is killed as both profiles are enabled\n");
+            fprintf(stdout,"BT app is killed as both profiles are enabled\n");
         } else if (this->profile_config[PROFILE_ID_A2DP_SOURCE].is_enabled &&
                this->profile_config[PROFILE_ID_HFP_AG].is_enabled &&
                this->profile_config[PROFILE_ID_AVRCP].is_enabled) {
