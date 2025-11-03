@@ -58,6 +58,11 @@ gstbt gstbtobj;
 
 #endif
 
+#ifdef ENABLE_GST_AUDIO_SINK
+#include <gst/gst.h>
+#include <gst/app/gstappsrc.h>
+#endif
+
 #define LOGTAG "A2DP_SINK_STREAMING"
 
 using namespace std;
@@ -98,6 +103,22 @@ extern "C" {
 #define DEFAULT_AAC_SYSTEM_DELAY    1530
 
 uint8_t get_rtp_offset(uint8_t* p_start, uint16_t codec_type);
+
+
+#ifdef ENABLE_GST_AUDIO_SINK
+GstElement* p = NULL;
+GstElement* appsrc = NULL;
+GstBus* bus = NULL;
+#define GST_PIPELINE_BUFF_SIZE	800
+#define GST_VOL_BUFF		50
+/*
+ * GST_VOL_MULTIPLIER_VAL = 65535/AUDIO_MAX_VOL_LEVEL
+ * AUDIO_MAX_VOL_LEVEL = 15
+ *
+ */
+#define GST_VOL_MULTIPLIER_VAL  4369
+#endif
+
 void BtA2dpSinkStreamingMsgHandler(void *msg) {
     BtEvent* pEvent = NULL;
     BtEvent* pCleanupEvent = NULL, *pControlRequest = NULL, *pReleaseControlReq = NULL;
@@ -166,7 +187,8 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
             PostMessage(THREAD_ID_BT_AM, pControlRequest);
             break;
         case A2DP_SINK_STREAMING_FETCH_PCM_DATA:
-            ALOGD(LOGTAG " A2DP_SINK_STREAMING_FETCH_PCM_DATA");
+	    {
+	    ALOGD(LOGTAG " A2DP_SINK_STREAMING_FETCH_PCM_DATA");
             if (pA2dpSinkStream) {
                 if (!pA2dpSinkStream->enable_notification_cb) {
                     if (!pA2dpSinkStream->pcm_timer) {
@@ -289,8 +311,14 @@ void BtA2dpSinkStreamingMsgHandler(void *msg) {
                 fwrite ((void*)pA2dpSinkStream->pcm_buf, 1, (size_t)(pcm_data_read), outputPcmSampleFile);
             }
 #endif
+#ifdef ENABLE_GST_AUDIO_SINK
+            GstBuffer *buffer = gst_buffer_new_allocate(NULL, pA2dpSinkStream->pcm_buf_size, NULL);
+            gst_buffer_fill(buffer, 0, pA2dpSinkStream->pcm_buf, pA2dpSinkStream->pcm_buf_size);
+            gst_app_src_push_buffer(GST_APP_SRC(appsrc), buffer);
+#endif
 #endif
             break;
+	}
         case A2DP_SINK_STREAMING_AM_RELEASE_CONTROL:
             ALOGD(LOGTAG " A2DP_SINK_STREAMING_AM_RELEASE_CONTROL");
             // release focus in this case.
@@ -1121,10 +1149,53 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         mBtA2dpSinkStreamingVendorInterface->update_qahw_delay_vendor(qahw_delay);
     }
 #endif
+#endif
+
+#ifdef ENABLE_GST_AUDIO_SINK
+    char pipeline_str[GST_PIPELINE_BUFF_SIZE] = {0};
+    sample_rate = get_a2dp_sbc_sampling_rate(codec_config.sbc_config.samp_freq);
+    channel_count = get_a2dp_sbc_channel_mode(codec_config.sbc_config.ch_mode);
+
+    ALOGI(LOGTAG " sample_rate %d channel_count %d", sample_rate, channel_count);
+
+    switch(sample_rate) {
+    case 44100:
+        pcm_buf_size = 7065*2;
+        break;
+    case 48000:
+        pcm_buf_size = 7680*2;
+        break;
+    }
+
+	pcm_timer_duration = (pcm_buf_size*1000)/(sample_rate*channel_count*2);
+	/* we should calculate pcm_timer_duration from buffer size
+	 * sample_rate * channel_count * 2 = Number of bytes for 1 second.
+	 * 2 for 16-bit-pcm, 3 for 24-bit-pcm etc
+	 * We have to start pcm timer for this duration */
+	pcm_timer_duration = pcm_timer_duration;
+	/* reeucing timer duration ensures that timer fires quicker and
+	 * effectlvely we pump slightly more data. This approach is taken to handle
+	 * timer skew */
+	ALOGI(LOGTAG " pcm timer duration %d pcm_buf_size %d", pcm_timer_duration, pcm_buf_size);
+
+        gst_init(NULL, NULL);
+
+	snprintf(pipeline_str, sizeof(pipeline_str),
+             "appsrc name=src ! queue max-size-time=600000000 ! rawaudioparse use-sink-caps=false format=pcm pcm-format=s16le sample-rate=%d num-channels=2 ! audioconvert ! autoaudiosink",sample_rate);
+
+	ALOGI(LOGTAG " gstpipeline string : %s", pipeline_str);
+
+	p = gst_parse_launch(pipeline_str, NULL);
+        appsrc = gst_bin_get_by_name(GST_BIN(p), "src");
+        bus = gst_pipeline_get_bus(GST_PIPELINE(p));
+        gst_element_set_state(p, GST_STATE_PLAYING);
+#endif
+
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
     if (!sample_rate || !channel_count) {
         return;
     }
+#ifndef ENABLE_GST_AUDIO_SINK
     switch(sample_rate) {
     case 44100:
         pcm_buf_size = 7065;
@@ -1133,15 +1204,15 @@ void A2dp_Sink_Streaming::ConfigureAudioHal() {
         pcm_buf_size = 7680;
         break;
     }
-    pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
     pcm_timer_duration = A2DP_SINK_PCM_FETCH_TIMER_DURATION;
+#endif
+    pcm_buf = (uint8_t*)osi_malloc(pcm_buf_size);
     if (outputPcmSampleFile == NULL)
         outputPcmSampleFile = fopen(outputFilename, "ab");
 #endif
 #if (defined(DUMP_COMPRESSED_DATA) && (DUMP_COMPRESSED_DATA == TRUE))
     if (outputPcmSampleFile == NULL)
         outputPcmSampleFile = fopen(outputFilename, "ab");
-#endif
 #endif
 }
 
@@ -1164,6 +1235,19 @@ void A2dp_Sink_Streaming::CloseAudioStream() {
         }
     }
 #endif
+
+#ifdef ENABLE_GST_AUDIO_SINK
+    gst_app_src_end_of_stream(GST_APP_SRC(appsrc));
+
+    gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_EOS);
+
+    gst_element_set_state(p, GST_STATE_NULL);
+
+    gst_object_unref(bus);
+    gst_object_unref(appsrc);
+    gst_object_unref(p);
+#endif
+
 #if (defined(DUMP_PCM_DATA) && (DUMP_PCM_DATA == TRUE))
     if (outputPcmSampleFile)
     {
@@ -1272,6 +1356,14 @@ void A2dp_Sink_Streaming::SetStreamVol(int curr_audio_index)
         return;
     }
     qahw_out_set_volume(out_stream, (float)curr_audio_index/15, (float)curr_audio_index/15);
+    ALOGD(LOGTAG " SetStreamVol = %d successfully", curr_audio_index);
+#endif
+#ifdef ENABLE_GST_AUDIO_SINK
+    char cmd[GST_VOL_BUFF] = {0};
+
+    ALOGD(LOGTAG " SetStreamVol curr_audio_index %d ", curr_audio_index);
+    snprintf(cmd, sizeof(cmd), "pactl set-sink-volume low-latency0 %u", (curr_audio_index * GST_VOL_MULTIPLIER_VAL));
+    system(cmd);
     ALOGD(LOGTAG " SetStreamVol = %d successfully", curr_audio_index);
 #endif
 }

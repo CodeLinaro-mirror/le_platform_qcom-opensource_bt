@@ -64,6 +64,10 @@ endif
 
 if AUDIO_HAL_SUPPORTED
 AM_CPPFLAGS += -DBT_AUDIO_HAL_INTEGRATION
+else
+if USE_GST_AUDIO_SINK
+AM_CPPFLAGS += -DENABLE_GST_AUDIO_SINK
+endif
 endif
 
 cpp_sources = ../utils/src/utils.cc \
@@ -131,6 +135,11 @@ else
  btapp_CFLAGS  = $(AM_CFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
  btapp_CPPFLAGS  = $(AM_CPPFLAGS) -DUSE_GLIB @GLIB_CFLAGS@
  btapp_LDFLAGS = $(requiredlibs) @GLIB_LIBS@
+if !AUDIO_HAL_SUPPORTED
+if USE_GST_AUDIO_SINK
+ btapp_CPPFLAGS += $(GSTREAMER_CFLAGS)
+endif
+endif
 endif
 
 else
@@ -148,6 +157,13 @@ endif
 if USE_GST
 gstbtapp_CFLAGS += $(GSTREAMER_CFLAGS)
 gstbtapp_LDFLAGS += $(GSTREAMER_LIBS) -lgstaudio-1.0 -lgstapp-1.0 -lgstbthelper
+else
+if !AUDIO_HAL_SUPPORTED
+if USE_GST_AUDIO_SINK
+ btapp_CFLAGS += $(GSTREAMER_CFLAGS)
+ btapp_LDFLAGS += $(GSTREAMER_LIBS) -lgstaudio-1.0 -lgstapp-1.0 -lgstreamer-1.0
+endif
+endif
 endif
 
 AM_LDFLAGS = $(LDFLAFGS)
