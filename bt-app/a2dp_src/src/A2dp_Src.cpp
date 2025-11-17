@@ -3377,6 +3377,7 @@ void A2dp_Source::HandleDisableSource(void) {
    alarm_free(set_play_postion_timer);
    set_abs_volume_timer = NULL;
    set_play_postion_timer = NULL;
+   a2dpSrcCodecList.clear();
    if(sBtA2dpSourceInterface != NULL) {
        sBtA2dpSourceInterface->cleanup();
        sBtA2dpSourceInterface = NULL;
