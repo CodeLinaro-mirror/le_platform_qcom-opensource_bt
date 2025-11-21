@@ -124,7 +124,7 @@ class FolderInfo {
     uint8_t   mPlayable;
     uint16_t  mCharsetId;
     short mDisplayableNameLength;
-    char* mDisplayableName;
+    std::string mDisplayableName;
     short mItemLength;
     short mEntryLength;
 
@@ -143,7 +143,7 @@ class MediaInfo {
     uint8_t   mType;
     uint16_t  mCharsetId;
     short mDisplayableNameLength;
-    char* mDisplayableName;
+    std::string mDisplayableName;
     uint8_t mNum_attrs;
     short mItemLength;
     short mEntryLength;

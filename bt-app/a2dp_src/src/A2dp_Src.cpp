@@ -2022,7 +2022,7 @@ const char* getString(int mAttrType,uint8_t* Uid) {
                     if(!memcmp(p->mUid , Uid, BTRC_UID_SIZE))
                     {
                         ALOGD(LOGTAG_AVRCP " Uid mactched, return title");
-                        return p->mDisplayableName;
+                        return p->mDisplayableName.c_str();
                     }
                     p++;
                 }
@@ -2330,8 +2330,8 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
 
                         while (p != p_end) {
                             //if (start == 0) {
-                                folderEntry = (char*)osi_malloc(p->RetrieveFolderEntryLength()*
-                                                               sizeof(char));
+//                                folderEntry = (char*)osi_malloc(p->RetrieveFolderEntryLength()*
+//                                                               sizeof(char));
                                 folderEntry = p->RetrieveFolderItemEntry();
                                 int length = p->RetrieveFolderEntryLength();
                                 ALOGD("p->RetrieveFolderEntryLength %d",length);
@@ -2417,8 +2417,8 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                         advance(p,start);
                         while (p != p_end) {
                             //if (start == 0) {
-                                mediaEntry = (char*)osi_malloc(p->RetrieveMediaEntryLength()*
-                                                               sizeof(char));
+//                                mediaEntry = (char*)osi_malloc(p->RetrieveMediaEntryLength()*
+//                                                               sizeof(char));
                                 mediaEntry = p->RetrieveMediaItemEntry();
                                 int length = p->RetrieveMediaEntryLength();
                                 folderItemLengths[availableMedias ++] = length;
@@ -2520,7 +2520,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
 
                 if (pMediaList.size() > 0) {
                     list<MediaInfo>::iterator p = pMediaList.begin();
-                    mediaEntry = (char*)osi_malloc(p->RetrieveMediaEntryLength()*sizeof(char));
+//                    mediaEntry = (char*)osi_malloc(p->RetrieveMediaEntryLength()*sizeof(char));
                     mediaEntry = p->RetrieveMediaItemEntry();
                     int length = p->RetrieveMediaEntryLength();
                     folderItemLengths[0] = length;
@@ -3377,6 +3377,7 @@ void A2dp_Source::HandleDisableSource(void) {
    alarm_free(set_play_postion_timer);
    set_abs_volume_timer = NULL;
    set_play_postion_timer = NULL;
+   a2dpSrcCodecList.clear();
    if(sBtA2dpSourceInterface != NULL) {
        sBtA2dpSourceInterface->cleanup();
        sBtA2dpSourceInterface = NULL;
@@ -4090,8 +4091,7 @@ FolderInfo :: FolderInfo(uint8_t   uid[],    uint8_t   type, uint8_t   playable,
     mPlayable = playable;
     mCharsetId = charsetId;
     mDisplayableNameLength = displayableNameLength;
-    mDisplayableName = (char*)osi_malloc(mDisplayableNameLength);
-    memcpy(&mDisplayableName, &displayableName, mDisplayableNameLength);
+    mDisplayableName.assign(displayableName, displayableNameLength);
     mItemLength = (short)(mDisplayableNameLength + BTRC_UID_SIZE + 1 + 2 + 2);
     mEntryLength = (short)(mItemLength + /* ITEM_LENGTH_LENGTH +*/ 1);
 }
@@ -4109,16 +4109,15 @@ char* FolderInfo :: RetrieveFolderItemEntry() {
     folderEntry1[position] = (char)mType;
     ALOGD(LOGTAG_AVRCP "RetrieveFolder type %d", folderEntry1[position]);
     position++;
-    folderEntry1[position] = (char)mPlayable; position++;
-    folderEntry1[position] = (char)(mCharsetId & 0xff); position++;
-    folderEntry1[position] = (char)((mCharsetId >> 8) & 0xff); position++;
-    folderEntry1[position] = (char)(mDisplayableNameLength & 0xff); position++;
-    folderEntry1[position] = (char)((mDisplayableNameLength >> 8) & 0xff); position++;
+    folderEntry1[position++] = (char)mPlayable;
+    folderEntry1[position++] = (char)(mCharsetId & 0xff);
+    folderEntry1[position++] = (char)((mCharsetId >> 8) & 0xff);
+    folderEntry1[position++] = (char)(mDisplayableNameLength & 0xff);
+    folderEntry1[position++] = (char)((mDisplayableNameLength >> 8) & 0xff);
     ALOGD("mDisplayableNameLength=%d",mDisplayableNameLength);
 
     for (count = 0; count < mDisplayableNameLength; count++){
-        folderEntry1[position] = (char)mDisplayableName[count];
-        position++;
+        folderEntry1[position++] = mDisplayableName[count];
     }
     if (position != mEntryLength) {
         ALOGE(LOGTAG_AVRCP "ERROR populating FolderItemEntry: position: %d mEntryLength: %d",
@@ -4138,8 +4137,7 @@ MediaInfo :: MediaInfo(uint8_t   uid[],    uint8_t   type,  uint16_t  charsetId,
     mType = type;
     mCharsetId = charsetId;
     mDisplayableNameLength = displayableNameLength;
-    mDisplayableName = (char*)osi_malloc(mDisplayableNameLength);
-    memcpy(&mDisplayableName, &displayableName, mDisplayableNameLength);
+    mDisplayableName.assign(displayableName, displayableNameLength);
     ALOGD(LOGTAG_AVRCP "  %s ", mDisplayableName);
     mNum_attrs = num_attrs;
     mItemLength = (short)(mDisplayableNameLength + BTRC_UID_SIZE + 1 + 2 + 2);
@@ -4159,14 +4157,14 @@ char* MediaInfo :: RetrieveMediaItemEntry() {
     mediaEntry1[position] = (char)mType;
     ALOGD(LOGTAG_AVRCP "RetrieveFolder type %d", mediaEntry1[position]);
     position++;
-    mediaEntry1[position] = (char)(mCharsetId & 0xff); position++;
-    mediaEntry1[position] = (char)((mCharsetId >> 8) & 0xff); position++;
-    mediaEntry1[position] = (char)(mDisplayableNameLength & 0xff); position++;
-    mediaEntry1[position] = (char)((mDisplayableNameLength >> 8) & 0xff); position++;
+    mediaEntry1[position++] = (char)(mCharsetId & 0xff);
+    mediaEntry1[position++] = (char)((mCharsetId >> 8) & 0xff);
+    mediaEntry1[position++] = (char)(mDisplayableNameLength & 0xff);
+    mediaEntry1[position++] = (char)((mDisplayableNameLength >> 8) & 0xff);
     for (count = 0; count < mDisplayableNameLength; count++){
-        mediaEntry1[position] = (char)mDisplayableName[count]; position++;
+        mediaEntry1[position++] = mDisplayableName[count];
     }
-    mediaEntry1[position] = (char)mNum_attrs; position++;
+    mediaEntry1[position++] = (char)mNum_attrs;
     if (position != mEntryLength) {
         ALOGE(LOGTAG_AVRCP "ERROR populating MediaItemEntry: position: %d mEntryLength: %d",
                             position, mEntryLength);
