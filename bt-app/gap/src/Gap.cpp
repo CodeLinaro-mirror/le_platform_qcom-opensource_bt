@@ -92,6 +92,7 @@ static char const *sObjPath = "/org/fluoride/hci0";
 
 static bool is_a2dp_split_sink_enabled;
 extern sd_bus *g_sdbus;
+static bool g_disable_in_progress = false;
 
 #ifdef __cplusplus
 extern "C" {
@@ -798,6 +799,7 @@ void Gap::ProcessEvent(BtEvent* event) {
                 bt_event->event_id = MAIN_EVENT_DISABLED;
                 bt_event->state_event.status = event->state_event.status;
                 PostMessage(THREAD_ID_MAIN, bt_event);
+                g_disable_in_progress = false;
             }
             if (g_sdbus != NULL) {
                 int res = sd_bus_emit_properties_changed(g_sdbus, sObjPath,
@@ -995,6 +997,8 @@ void Gap::ProcessEvent(BtEvent* event) {
                 break;
             }
 
+            g_disable_in_progress = true;
+
             if(profile_config[PROFILE_ID_PAN].is_enabled)
             {
                 bt_event = new BtEvent;
@@ -1137,8 +1141,13 @@ void Gap::ProcessEvent(BtEvent* event) {
 
         case GAP_EVENT_SSR_CLEANUP:
             /* Audio related cleanup can be done here.*/
-            ALOGD(LOGTAG " Killing the process after SSR_CLEANUP %d", event->event_id);
-            kill(getpid(), SIGKILL);
+            if (g_disable_in_progress) {
+                ALOGD(LOGTAG " SSR_CLEANUP during graceful disable; skipping process kill");
+                HandleDisable();
+            } else {
+                ALOGD(LOGTAG " Killing the process after SSR_CLEANUP %d", event->event_id);
+                kill(getpid(), SIGKILL);
+            }
             break;
 
         default:
