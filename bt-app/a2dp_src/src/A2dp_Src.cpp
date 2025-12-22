@@ -2846,6 +2846,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
             switch(pEvent->avrcpTargetEvent.arg1) {
                 case BTRC_EVT_PLAY_STATUS_CHANGED :
                     ALOGD(LOGTAG_AVRCP " AVRCP_TARGET_REG_NOTI: BTRC_EVT_PLAY_STATUS_CHANGED %d",playStatus);
+                    fprintf(stdout, "AVRCP_TARGET_REG_NOTI: BTRC_EVT_PLAY_STATUS_CHANGED %d\n", playStatus);
                     mPlayStatusNotiType = BTRC_NOTIFICATION_TYPE_INTERIM;
                     param.play_status = playStatus;
                     sBtAvrcpTargetInterface->register_notification_rsp(BTRC_EVT_PLAY_STATUS_CHANGED,
@@ -3717,7 +3718,7 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             }
             break;
         case A2DP_SOURCE_AUDIO_STOPPED:
-            fprintf(stdout, "A2DP Source Audio state changes to: %d ", pEvent->event_id);
+            fprintf(stdout, "A2DP Source Audio state changes to: %d \n", pEvent->event_id);
             if (playStatus != BTRC_PLAYSTATE_STOPPED)
             {
                playStatus = BTRC_PLAYSTATE_STOPPED;
