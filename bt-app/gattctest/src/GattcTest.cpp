@@ -1522,6 +1522,11 @@ void mRemoteDev:: printPaSyncedDevices()
 *********************************\n");
 }
 
+void mRemoteDev ::clearPaDevs()
+{
+  mDeviceMap.mapPaDev.clear();
+}
+
 void mRemoteDev ::clear()
 {
   mDeviceMap.mapClient.clear();
@@ -1859,6 +1864,7 @@ bool GattcTest :: isValidScanPhy(int phyValue){
 void GattcTest :: startScan()
 {
   ALOGD(LOGTAG "startScan");
+  mDeviceMap.clearPaDevs();
 
   if (mscanSettings != settingType::NO_SCAN_SETTING) {
     ALOGD(LOGTAG "SCAN_SETTING present mask (%d) \n", settingMask);
@@ -1982,4 +1988,3 @@ void GattcTest :: stopPeriodicSync(string bdaddr)
     fprintf(stdout, "StopPeriodicSync fail for not syncing device: %s\n", bdaddr.c_str());
   }
 }
-

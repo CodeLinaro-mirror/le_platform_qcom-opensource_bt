@@ -149,8 +149,8 @@ class mRemoteDev {
         int containsPaSyncedDevice(string dev);
         bool containsPaSyncedDevice(int sync_handle);
         void printPaSyncedDevices();
+        void clearPaDevs();
         void clear();
 };
 
 #endif
-
