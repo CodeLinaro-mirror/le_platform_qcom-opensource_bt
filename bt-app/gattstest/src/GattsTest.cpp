@@ -853,7 +853,11 @@ bool GattsTest::StartAdvertisement(string serverID, string advsetID)
     return false;
   }
   //fetching advertiser Callback instance for the server/advertiser instance key
-  gattstestAdvCb = advCBInstanceMap[serverId];
+  if (advCBInstanceMap.find(serverId) != advCBInstanceMap.end()) {
+      gattstestAdvCb = advCBInstanceMap[serverId];
+  } else {
+      gattstestAdvCb = NULL;
+  }
   //Finding corresponding Legacy flag details for the corresponding advertiser
   temp = AdvSet_list[advsetId -1];
   legacyflag = temp->legacyflag;
@@ -1084,12 +1088,13 @@ bool GattsTest::UnregisterServer(string instance)
     mServer = servInstanceMap[instanceId];
     mServer->close();
     if(!AdvSet_list.empty()){
-      AdvertisingSetCallback *mAdvSetCB;
-      mAdvSetCB = advCBInstanceMap[instanceId];
-      madvertiser->stopAdvertising(mAdvSetCB);
-      delete(mAdvSetCB);
-      mAdvSetCB = NULL;
-      advCBInstanceMap.erase(instanceId);
+      AdvertisingSetCallback *mAdvSetCB = NULL;
+      if (advCBInstanceMap.count(instanceId)) {
+        mAdvSetCB = advCBInstanceMap[instanceId];
+        madvertiser->stopAdvertising(mAdvSetCB);
+        delete mAdvSetCB;
+        advCBInstanceMap.erase(instanceId);
+      }
     }
     unordered_map <gattstestServerCallback*,GattServer*> ::iterator itr;
     for(itr = servCBInstanceMap.begin(); itr!= servCBInstanceMap.end(); ++itr) {
@@ -1272,7 +1277,3 @@ bool GattsTest::DisableGATTSTEST()
   advCBInstanceMap.clear();
   return true;
 }
-
-
-
-
