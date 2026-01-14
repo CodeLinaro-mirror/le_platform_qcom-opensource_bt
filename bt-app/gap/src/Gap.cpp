@@ -458,7 +458,7 @@ void BtGapMsgHandler(void *msg) {
 }
 
 void profile_startup_timer_expired(void *context) {
-    ALOGV(LOGTAG, " profile_startup_timer_expired");
+    ALOGV(LOGTAG " profile_startup_timer_expired");
 
     BtEvent *event = new BtEvent;
     event->event_id = GAP_EVENT_PROFILE_START_TIMEOUT;
@@ -466,7 +466,7 @@ void profile_startup_timer_expired(void *context) {
 }
 
 void profile_stop_timer_expired(void *context) {
-    ALOGV(LOGTAG, " profile_stop_timer_expired");
+    ALOGV(LOGTAG " profile_stop_timer_expired");
 
     BtEvent *event = new BtEvent;
     event->event_id = GAP_EVENT_PROFILE_STOP_TIMEOUT;
@@ -474,7 +474,7 @@ void profile_stop_timer_expired(void *context) {
 }
 
 void enable_timer_expired(void *context) {
-    ALOGV(LOGTAG, " enable_timer_expired");
+    ALOGV(LOGTAG " enable_timer_expired");
 
     BtEvent *event = new BtEvent;
     event->event_id = GAP_EVENT_ENABLE_TIMEOUT;
@@ -482,7 +482,7 @@ void enable_timer_expired(void *context) {
 }
 
 void disable_timer_expired(void *context) {
-    ALOGV(LOGTAG, " disable_timer_expired");
+    ALOGV(LOGTAG " disable_timer_expired");
 
     BtEvent *event = new BtEvent;
     event->event_id = GAP_EVENT_DISABLE_TIMEOUT;
@@ -1295,22 +1295,22 @@ Gap :: Gap(const bt_interface_t *bt_interface, config_t *config) {
     }
 
     if( !(profile_startup_timer = alarm_new())) {
-        ALOGE(LOGTAG, " unable to create profile_startup_timer timer.");
+        ALOGE(LOGTAG " unable to create profile_startup_timer timer.");
         return;
     }
 
     if( !(profile_stop_timer = alarm_new())) {
-        ALOGE(LOGTAG, " unable to create profile_stop_timer timer.");
+        ALOGE(LOGTAG " unable to create profile_stop_timer timer.");
         return;
     }
 
     if( !(enable_timer = alarm_new())) {
-        ALOGE(LOGTAG, " unable to create enable_timer timer.");
+        ALOGE(LOGTAG " unable to create enable_timer timer.");
         return;
     }
 
     if( !(disable_timer = alarm_new())) {
-        ALOGE(LOGTAG, " unable to create disable_timer timer.");
+        ALOGE(LOGTAG " unable to create disable_timer timer.");
         return;
     }
 }

@@ -932,7 +932,7 @@ Opp :: Opp(const bt_interface_t *bt_interface, config_t *config)
 }
 
 void opp_connect_timer_expired(void *context) {
-    ALOGD(LOGTAG, " opp_connect_timer_expired");
+    ALOGD(LOGTAG " opp_connect_timer_expired");
 
     BtEvent *event = new BtEvent;
     event->event_id = OPP_CONNECT_TIMEOUT;

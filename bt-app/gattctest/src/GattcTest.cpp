@@ -417,7 +417,7 @@ class gattctestClientCallback:public GattClientCallback
         ALOGD(LOGTAG "onDescriptorWrite Success ");
         fprintf(stdout, "onDescriptorWrite Success \n");
       } else if (status == GattClient::GATT_WRITE_NOT_PERMITTED) {
-        ALOGE(LOGTAG, "Write NOT PERMITTED for the descriptor");
+        ALOGE(LOGTAG "Write NOT PERMITTED for the descriptor");
         fprintf(stdout, "Write NOT PERMITTED for the descriptor\n");
       } else {
         ALOGE(LOGTAG "onDescriptorWrite FAILED %d", status);

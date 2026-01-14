@@ -762,7 +762,7 @@ void BtPbapClientMsgHandler(void *msg)
                 if(g_pbapClient) {
                   g_pbapClient->pbap_connect_timer = NULL;
                   if( !(g_pbapClient->pbap_connect_timer = alarm_new())) {
-                    ALOGE(LOGTAG, " unable to create pbap_connect_timer");
+                    ALOGE(LOGTAG " unable to create pbap_connect_timer");
                     return;
                   }
                 }
@@ -906,7 +906,7 @@ PbapClient :: PbapClient(const bt_interface_t *bt_interface, config_t *config)
 }
 
 void pbap_connect_timer_expired(void *context) {
-    ALOGD(LOGTAG, " pbap_connect_timer_expired");
+    ALOGD(LOGTAG " pbap_connect_timer_expired");
 
     BtEvent *event = new BtEvent;
     event->event_id = PBAP_CLIENT_CONNECT_TIMEOUT;

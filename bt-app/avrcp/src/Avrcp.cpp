@@ -144,6 +144,7 @@ void BtAvrcpMsgHandler(void *msg) {
         case AVRCP_CTRL_REG_NOTI_ABS_VOL_CB:
         case AVRCP_CTRL_VOL_CHANGED_NOTI_REQ:
         case AVRCP_CTRL_SET_ABS_VOL_CMD_CB:
+        case AVRCP_CTRL_PASS_THRU_CMD_CB:
         case AVRCP_BR_CONNECTED_CB:
         case AVRCP_BR_DISCONNECTED_CB:
             ALOGD( LOGTAG_CTRL " handle avrcp ctrl pass through events ");
@@ -226,7 +227,7 @@ static void btavrcpctrl_playerapplicationsetting_callback(bt_bdaddr_t *bd_addr, 
                                                           uint8_t num_ext_attr, btrc_player_app_ext_attr_t *ext_attrs) {
      ALOGD(LOGTAG_CTRL " btavrcpctrl_playerapplicationsetting_callback");
 }
- 
+
 static void btavrcpctrl_playerapplicationsetting_changed_callback(bt_bdaddr_t *bd_addr, btrc_player_settings_t *p_vals) {
      ALOGD(LOGTAG_CTRL " btrc_ctrl_playerapplicationsetting_changed_callback");
 }
@@ -565,6 +566,13 @@ static bt_status_t btavrcpctrl_search_rsp_vendor_callback(bt_bdaddr_t *bd_addr, 
 static void btavrctg_passthrough_cmd_vendor_callback(int id, int key_state, bt_bdaddr_t* bd_addr)
 {
     ALOGD(LOGTAG " btavrcptg_passthrough_cmd_callback id = %d key_state = %d", id, key_state);
+    if (key_state == KEY_PRESSED && (id == CMD_ID_VOL_UP || id == CMD_ID_VOL_DOWN)) {
+        BtEvent *pEvent = new BtEvent;
+        pEvent->avrcpCtrlPassThruEvent.event_id = AVRCP_CTRL_PASS_THRU_CMD_CB;
+        pEvent->avrcpCtrlPassThruEvent.key_id = id;
+        memcpy(&pEvent->avrcpCtrlPassThruEvent.bd_addr, bd_addr, sizeof(bt_bdaddr_t));
+        PostMessage(THREAD_ID_AVRCP, pEvent);
+    }
 }
 
 static void btavrcpctrl_setabsvol_cmd_callback(bt_bdaddr_t *bd_addr, uint8_t abs_vol, uint8_t label) {
@@ -823,6 +831,7 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
     int perVol = 0;
     bdstr_t bd_str;
     bool is_end;
+    int newIndex = curr_audio_index;
     std::list<std::string>::iterator bdstring;
     ALOGD(LOGTAG_CTRL " HandleAvrcpCTPassThruEvents event = %s",
             dump_message(pEvent->avrcpCtrlPassThruEvent.event_id));
@@ -945,6 +954,37 @@ void Avrcp::HandleAvrcpCTPassThruEvents(BtEvent* pEvent) {
             ALOGD(LOGTAG_CTRL " setabsvol cmd cb for AV & RC connected device, send to stack");
             setAbsVolume(&iter->mDevice, (int)pEvent->avrcpCtrlPassThruEvent.arg2,
                                          (int)pEvent->avrcpCtrlPassThruEvent.arg1);
+        }
+        else
+        {
+            ALOGD(LOGTAG_CTRL " Avrcp not connected or AV not connected");
+        }
+        break;
+    case AVRCP_CTRL_PASS_THRU_CMD_CB:
+        iter = FindAvDevice(pEvent->avrcpCtrlPassThruEvent.bd_addr,&is_end);
+        if (!is_end && (iter->mAvrcpConnected == true))
+        {
+            ALOGD(LOGTAG_CTRL " AVRCP_CTRL_PASS_THRU_CMD_CB current idex: %d", newIndex);
+            switch (pEvent->avrcpCtrlPassThruEvent.key_id) {
+                case CMD_ID_VOL_UP:
+                    if (newIndex < AUDIO_MAX_VOL_LEVEL) {
+                        newIndex++;
+                    }
+                    break;
+                case CMD_ID_VOL_DOWN:
+                    if (newIndex > 0) {
+                        newIndex--;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            ALOGD(LOGTAG_CTRL " AVRCP_CTRL_PASS_THRU_CMD_CB new idex: %d", newIndex);
+            if (newIndex != curr_audio_index) {
+                curr_audio_index = newIndex;
+                pA2dpSinkStream->SetStreamVol(curr_audio_index);
+                ALOGD(LOGTAG_CTRL " Avrcp set vol up/down: %d", pEvent->avrcpCtrlPassThruEvent.key_id);
+            }
         }
         else
         {
