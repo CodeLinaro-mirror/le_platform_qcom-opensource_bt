@@ -1366,13 +1366,13 @@ void Hfp_Client::ConfigureAudio(bool enable) {
        if (enable && !pa_hfp_is_connected) {
            ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_HFP_CLIENT, true);
            if(!ret) {
-               fprintf(stdout, "BT connect is success for SCO usecase\n");
-               ALOGD(LOGTAG " BT connect is success for SCO usecase");
+               fprintf(stdout, "BT connect is success for Client SCO usecase\n");
+               ALOGD(LOGTAG " BT connect is success for Client SCO usecase");
                pa_hfp_is_connected = true;
            }
            else {
-               fprintf(stdout, "BT connect failed for SCO usecase !!\n");
-               ALOGE(LOGTAG " BT connect failed for SCO usecase !!\n");
+               fprintf(stdout, "BT connect failed for Client SCO usecase !!\n");
+               ALOGE(LOGTAG " BT connect failed for Client SCO usecase !!\n");
                return;
            }
 
@@ -1411,8 +1411,8 @@ void Hfp_Client::ConfigureAudio(bool enable) {
 
            ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_HFP_CLIENT, false);
            if(!ret) {
-               fprintf(stdout, "BT disconnect is success for SCO usecase\n");
-               ALOGD(LOGTAG " BT disconnect is success for SCO usecase\n");
+               fprintf(stdout, "BT disconnect is success for Client SCO usecase\n");
+               ALOGD(LOGTAG " BT disconnect is success for Client SCO usecase\n");
                pa_hfp_is_connected = false;
            }
        }

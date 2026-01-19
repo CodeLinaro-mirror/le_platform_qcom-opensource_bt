@@ -3418,7 +3418,7 @@ void A2dp_Source::state_disconnected_handler(BtEvent* pEvent) {
 #endif
             break;
         default:
-            fprintf(stdout, "Event not processed in disconnected state %d ", pEvent->event_id);
+            fprintf(stdout, "Event not processed in disconnected state %d \n", pEvent->event_id);
             ALOGE(LOGTAG_A2DP " event not handled %d ", pEvent->event_id);
             break;
     }
@@ -3440,7 +3440,7 @@ void A2dp_Source::state_pending_handler(BtEvent* pEvent) {
             bt_status_t ret_val;
             ret_val = sBtA2dpSourceInterface->set_active_device(pEvent->a2dpSourceEvent.bd_addr);
             if (ret_val != BT_STATUS_SUCCESS) {
-                fprintf(stdout, "Failure setting active device %s", str);
+                fprintf(stdout, "Failure setting active device %s\n", str);
                 ALOGD(LOGTAG_A2DP "Failure setting active device %s", str);
                 break;
             }
@@ -3777,7 +3777,7 @@ void A2dp_Source::state_connected_handler(BtEvent* pEvent) {
             break;
             }
         default:
-            fprintf(stdout, "Event not processed in connected state %d ", pEvent->event_id);
+            fprintf(stdout, "Event not processed in connected state %d \n", pEvent->event_id);
             ALOGE(LOGTAG_A2DP " event not handled %d ", pEvent->event_id);
             break;
     }
