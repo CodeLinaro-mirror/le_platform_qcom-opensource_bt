@@ -273,12 +273,16 @@ void GattLibService::onScanResult(int eventType, int addressType,
     }
     std::string t(scanRecordData.begin(), scanRecordData.end());
 
+    ScanRecord* record = ScanRecord::parseFromBytes(scanRecordData);
     ScanResult *result =
             new ScanResult(address, eventType, primaryPhy, secondaryPhy, advertisingSid,
-                          txPower, rssi, periodicAdvInt,
-                          ScanRecord::parseFromBytes(scanRecordData));
+                          txPower, rssi, periodicAdvInt, record);
 
     if (!matchesFilters(client, result)) {
+      if (record) {
+        delete(record);
+        record = NULL;
+      }
       if (result != NULL) {
         delete(result);
       }
@@ -286,6 +290,10 @@ void GattLibService::onScanResult(int eventType, int addressType,
     }
 
     if ((settings->getCallbackType() & ScanSettings::CALLBACK_TYPE_ALL_MATCHES) == 0) {
+       if (record) {
+         delete(record);
+         record = NULL;
+       }
        if (result != NULL) {
          delete(result);
        }
@@ -304,6 +312,10 @@ void GattLibService::onScanResult(int eventType, int addressType,
       mScannerMap->remove(client->scannerId);
       if (!mScanManager) return;
       mScanManager->stopScan(client);
+    }
+    if (record) {
+      delete(record);
+      record = NULL;
     }
     if (result != NULL) {
       delete(result);
@@ -3084,6 +3096,14 @@ void GattLibService::HandleBleScannerScanResultEvent(BleScannerScanResultEvent *
   sGattService->onScanResult(event->event_type, event->addr_type, *(event->bda),
                     event->primary_phy, event->secondary_phy, event->advertising_sid,
                     event->tx_power, event->rssi, event->periodic_adv_int, p_value);
+  if (event->bda) {
+    delete event->bda;
+    event->bda = NULL;
+  }
+  if (event->adv_data) {
+    delete event->adv_data;
+    event->bda = NULL;
+  }
 }
 
 void GattLibService::HandleBleScannerBatchScanReportsEvent(
@@ -3285,6 +3305,10 @@ void GattLibService::HandleGattAdapterPropertyEvent(GattAdapterPropertyEvent *ev
                           event->len);
       break;
     }
+  if (event->val) {
+    delete[] event->val;
+    event->val = nullptr;
+  }
 }
 
 void GattLibService::HandleBleBatchScanTimeoutEvent(BleScannerBatchscantimeoutEvent *event)
