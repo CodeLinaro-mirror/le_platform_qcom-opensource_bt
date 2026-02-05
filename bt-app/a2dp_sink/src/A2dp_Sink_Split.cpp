@@ -1100,8 +1100,8 @@ void A2dp_Sink_Split::HandleDisableSink(void) {
         ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SINK, false);
         if (!ret) {
             pa_a2dp_is_connected = false;
-            ALOGD(LOGTAG " BT a2dp disconnect success");
-            fprintf(stdout, "BT a2dp disconnect success\n");
+            ALOGD(LOGTAG " BT a2dp sink disconnect success");
+            fprintf(stdout, "BT a2dp sink disconnect success\n");
         }
     }
 #endif
@@ -1204,11 +1204,11 @@ void A2dp_Sink_Split::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
                 int ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SINK, true);
                 if (!ret) {
                     pa_a2dp_is_connected = true;
-                    ALOGD(LOGTAG " BT a2dp connect success");
-                    fprintf(stdout, "BT a2dp connect success\n");
+                    ALOGD(LOGTAG " BT a2dp sink connect success");
+                    fprintf(stdout, "BT a2dp sink connect success\n");
                 } else {
-                    ALOGD(LOGTAG " BT a2dp connect fail");
-                    fprintf(stdout, "BT a2dp connect fail\n");
+                    ALOGD(LOGTAG " BT a2dp sink connect fail");
+                    fprintf(stdout, "BT a2dp sink connect fail\n");
                 }
             }
 #endif
@@ -1220,11 +1220,11 @@ void A2dp_Sink_Split::ConnectionManager(BtEvent* pEvent, bt_bdaddr_t dev) {
                 int ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SINK, false);
                 if (!ret) {
                     pa_a2dp_is_connected = false;
-                    ALOGD(LOGTAG " BT a2dp disconnect success");
-                    fprintf(stdout, "BT a2dp disconnect success\n");
+                    ALOGD(LOGTAG " BT a2dp sink disconnect success");
+                    fprintf(stdout, "BT a2dp sink disconnect success\n");
                 } else {
-                    ALOGD(LOGTAG " BT a2dp disconnect fail");
-                    fprintf(stdout, "BT a2dp disconnect fail\n");
+                    ALOGD(LOGTAG " BT a2dp sink disconnect fail");
+                    fprintf(stdout, "BT a2dp sink disconnect fail\n");
                 }
             }
             if (pA2dpSinkSplit->pa_routing_intf) {
@@ -1385,11 +1385,11 @@ void A2dp_Sink_Split::state_pending_handler(BtEvent* pEvent, list<A2dp_Device>::
                 int ret = pA2dpSinkSplit->pa_routing_intf->pa_bt_connect_fn(PA_BT_A2DP_SINK, false);
                 if (!ret) {
                     pa_a2dp_is_connected = false;
-                    ALOGD(LOGTAG " BT a2dp disconnect success");
-                    fprintf(stdout, "BT a2dp disconnect success\n");
+                    ALOGD(LOGTAG " BT a2dp sink disconnect success");
+                    fprintf(stdout, "BT a2dp sink disconnect success\n");
                 } else {
-                    ALOGD(LOGTAG " BT a2dp disconnect fail");
-                    fprintf(stdout, "BT a2dp disconnect fail\n");
+                    ALOGD(LOGTAG " BT a2dp sink disconnect fail");
+                    fprintf(stdout, "BT a2dp sink disconnect fail\n");
                 }
             }
             if (pA2dpSinkSplit->pa_routing_intf) {
