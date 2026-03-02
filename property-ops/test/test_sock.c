@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "../include/property_ops.h"
-#define SOCKETNAME  "/etc/bluetooth/btprop"
+#define SOCKETNAME  "/data/misc/bluetooth/btprop"
 #define STDIN       0
 #define STDOUT       1
 #define MAX_LEN     (1024)
@@ -55,7 +55,7 @@
     struct sockaddr_un sock_un;
     char buf[MAX_LEN];
     fd_set sock_set;
-	
+
 
 
     if( (sock = socket(AF_UNIX, SOCK_STREAM, 0) ) < 0){

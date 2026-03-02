@@ -797,11 +797,11 @@ void BtA2dpSinkSplitMsgHandler(void *msg) {
                             "btsink_enable=false");
                 }
                 if (ret) {
-                    ALOGE(LOGTAG " btsink_enable=%d failed\n");
+                    ALOGE(LOGTAG " btsink_enable=%d failed\n", pEvent->a2dpSinkEvent.arg1);
                     fprintf(stdout, "btsink_enable=%d failed\n", pEvent->a2dpSinkEvent.arg1);
                 }
                 else {
-                    ALOGE(LOGTAG " btsink_enable=%d success\n");
+                    ALOGE(LOGTAG " btsink_enable=%d success\n", pEvent->a2dpSinkEvent.arg1);
                     fprintf(stdout, "btsink_enable=%d success\n", pEvent->a2dpSinkEvent.arg1);
                 }
             }

@@ -77,7 +77,7 @@ using namespace gatt;
 using namespace btapp;
 #endif
 #define LOGTAG  "MAIN "
-#define LOCAL_SOCKET_NAME "/etc/bluetooth/btappsocket"
+#define LOCAL_SOCKET_NAME "/data/misc/bluetooth/btappsocket"
 int server_num;
 bool file_read = 0;
 bool init_advertiser_file = 0;
