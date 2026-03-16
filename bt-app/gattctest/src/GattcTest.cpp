@@ -471,8 +471,8 @@ class mscancallback : public ScanCallback
   public:
     void onScanResult(int callbackType, ScanResult *result)
     {
+      string deviceName;
       ScanRecord *sr = result->getScanRecord();
-      std::vector <Uuid> uuids = sr->getServiceUuids();
       int advSid = result->getAdvertisingSid();
       int paInterval = result->getPeriodicAdvertisingInterval();
       string bdaddr = result->getDevice();
@@ -480,18 +480,24 @@ class mscancallback : public ScanCallback
           result->getDevice().c_str());
       fprintf(stdout, "The scanned device is %s\n",
           result->getDevice().c_str());
-      fprintf(stdout, "The scanned device is %s\n",
-          sr->getDeviceName().c_str());
+      if (sr) {
+        deviceName = sr->getDeviceName();
+        std::vector <Uuid> uuids = sr->getServiceUuids();
+        fprintf(stdout, "The scanned device is %s\n",
+        deviceName.c_str());
 
-      if (paInterval != 0) {
-        // is pa device, add device into map, or update sid
-        DeviceProperties dev_property;
-        strlcpy(dev_property.name, sr->getDeviceName().c_str(), strlen(sr->getDeviceName().c_str()) + 1);
-        dev_property.adv_sid = advSid;
-        mDeviceMap.addUpdatePaDev(bdaddr, dev_property);
+        if (paInterval != 0) {
+          // is pa device, add device into map, or update sid
+          DeviceProperties dev_property;
+          strlcpy(dev_property.name, deviceName.c_str(), deviceName.length() + 1);
+          dev_property.adv_sid = advSid;
+          mDeviceMap.addUpdatePaDev(bdaddr, dev_property);
+        } else {
+          // not pa device, if contained in map, remove it
+          mDeviceMap.removePaDev(bdaddr);
+        }
       } else {
-        // not pa device, if contained in map, remove it
-        mDeviceMap.removePaDev(bdaddr);
+          ALOGD(LOGTAG "NULL scanrecord");
       }
     }
 

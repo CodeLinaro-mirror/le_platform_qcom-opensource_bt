@@ -768,6 +768,8 @@ static void track_adv_event_cb(btgatt_track_adv_info_t* p_adv_track_info) {
   event->blescanner_track_adv_event.p_adv_track_info.rssi_value = p_adv_track_info->rssi_value;
   event->blescanner_track_adv_event.p_adv_track_info.time_stamp = p_adv_track_info->time_stamp;
   event->blescanner_track_adv_event.p_adv_track_info.bd_addr = addr2Str(p_adv_track_info->bd_addr);
+  event->blescanner_track_adv_event.p_adv_track_info.adv_pkt_len = p_adv_track_info->adv_pkt_len;
+  event->blescanner_track_adv_event.p_adv_track_info.scan_rsp_len = p_adv_track_info->scan_rsp_len;
 
   if (p_adv_track_info->adv_pkt_len != 0) {
     event->blescanner_track_adv_event.p_adv_track_info.p_adv_pkt_data

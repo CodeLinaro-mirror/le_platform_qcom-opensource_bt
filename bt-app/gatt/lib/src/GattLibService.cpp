@@ -2968,6 +2968,22 @@ void GattLibService::HandleBleScannerBatchScanThresholdEvent(
 void GattLibService::HandleBleScannerTrackAdvEvent(BleScannerTrackAdvEvent *event)
 {
   if (!sGattService) return;
+
+  ALOGD(LOGTAG "HandleBleScannerTrackAdvEvent: bd_addr=%s, client_if=%d, adv_pkt_len=%d, scan_rsp_len=%d,"
+               "filt_index=%d, advertiser_state=%d, advertiser_info_present=%d, addr_type=%d,"
+               "tx_power=%d, rssi_value=%d, time_stamp=%d, bd_addr=%s",
+               event->p_adv_track_info.bd_addr->c_str(),
+               event->p_adv_track_info.client_if,
+               event->p_adv_track_info.adv_pkt_len,
+               event->p_adv_track_info.scan_rsp_len,
+               event->p_adv_track_info.filt_index,
+               event->p_adv_track_info.advertiser_state,
+               event->p_adv_track_info.advertiser_info_present,
+               event->p_adv_track_info.addr_type,
+               event->p_adv_track_info.tx_power,
+               event->p_adv_track_info.rssi_value,
+               event->p_adv_track_info.time_stamp);
+
   std::vector<uint8_t> advPkt(&event->p_adv_track_info.p_adv_pkt_data[0],
                    &event->p_adv_track_info.p_adv_pkt_data[event->p_adv_track_info.adv_pkt_len]);
   std::vector<uint8_t> scanRspPkt(&event->p_adv_track_info.p_scan_rsp_data[0],
