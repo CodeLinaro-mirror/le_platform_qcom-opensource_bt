@@ -1241,7 +1241,7 @@ void A2dp_Sink::state_connected_handler(BtEvent* pEvent, list<A2dp_Device>::iter
                     pA2dpSinkStream->StopDataFetchTimer();
                     sBtA2dpSinkVendorInterface->update_flushing_device_vendor(&pA2dpSinkStream->mStreamingDevice);
                     ALOGI(LOGTAG "in %s : StopDataFetchTimer() for dualsink SBC codec", __func__);
-                    fprintf(stdout, "in %s : StopDataFetchTimer() for dualsink SBC codec", __func__);
+                    fprintf(stdout, "in %s : StopDataFetchTimer() for dualsink SBC codec\n", __func__);
                 }
                 if (pAvrcp != NULL)
                     pAvrcp->SendPassThruCommandNative(CMD_ID_PAUSE,

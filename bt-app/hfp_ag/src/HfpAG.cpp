@@ -582,7 +582,7 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
                 sBtHfpAgInterface->connect(&pEvent->hfp_ag_event.bd_addr);
             }
             bdaddr_to_string(&mConnectingDevice, str, 18);
-            fprintf(stdout, "connecting with device %s", str);
+            fprintf(stdout, "connecting with device %s\n", str);
             ALOGD(LOGTAG " connecting with device %s", str);
             change_state(HFP_AG_STATE_PENDING);
             break;
@@ -595,7 +595,7 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
             memcpy(&mConnectedDevice, &pEvent->hfp_ag_event.bd_addr, sizeof(bt_bdaddr_t));
 
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            fprintf(stdout, " connected with device %s", str);
+            fprintf(stdout, " connected with device %s\n", str);
             ALOGD(LOGTAG " connected with device %s", str);
 
             change_state(HFP_AG_STATE_CONNECTED);
@@ -609,20 +609,20 @@ void Hfp_Ag::state_disconnected_handler(BtEvent* pEvent) {
         case HFP_AG_ADD_NUMBER:
             if (number_vec.size() < 2) {
               number_vec.insert(number_vec.end(), pEvent->hfp_ag_event.str);
-              fprintf(stdout, "\n %s - number added ", pEvent->hfp_ag_event.str);
+              fprintf(stdout, "\n %s - number added \n", pEvent->hfp_ag_event.str);
               ALOGD(LOGTAG "%s - number added ", pEvent->hfp_ag_event.str);
             } else {
-              fprintf(stdout, "\n Can not add more than 2 numbers ");
+              fprintf(stdout, "\n Can not add more than 2 numbers \n");
               ALOGD(LOGTAG "Can not add more than 2 numbers ");
             }
             break;
         case HFP_AG_DELETE_NUMBER:
             if (number_vec.size() > 0) {
               number_vec.pop_back();
-              fprintf(stdout, "\n number deleted ");
+              fprintf(stdout, "\n number deleted \n");
               ALOGD(LOGTAG "number deleted ");
             } else {
-              fprintf(stdout, "\n all numbers deleted/no Number added to delete ");
+              fprintf(stdout, "\n all numbers deleted/no Number added to delete \n");
               ALOGD(LOGTAG " all numbers deleted no Number added to delete ");
             }
             break;
@@ -647,13 +647,13 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
 
             bdaddr_to_string(&mConnectedDevice, str, 18);
-            fprintf(stdout, "connected with device %s", str);
+            fprintf(stdout, "connected with device %s\n", str);
             ALOGD(LOGTAG "connected with device %s", str);
             change_state(HFP_AG_STATE_CONNECTED);
             break;
         case HFP_AG_DISCONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Disconnected from or Unable to connect with device %s", str);
+            fprintf(stdout, "Disconnected from or Unable to connect with device %s\n", str);
             ALOGD(LOGTAG "Disconnected from or Unable to connect with device %s", str);
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
@@ -663,7 +663,7 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
         case HFP_AG_AUDIO_STATE_DISCONNECTED_CB:
 
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Disconnected SCO connection with device %s", str);
+            fprintf(stdout, "Disconnected SCO connection with device %s\n", str);
             ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
 
             clear_audio_params();
@@ -676,7 +676,7 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
                     bt_status_t ret_val = sBtHfpAgInterface->disconnect(
                              &memorized_evt[memorized_evt.size() -1].hfp_ag_event.bd_addr);
                     if (ret_val != BT_STATUS_SUCCESS) {
-                       fprintf(stdout, "Failure disconnecting with device %s", str);
+                       fprintf(stdout, "Failure disconnecting with device %s\n", str);
                        ALOGD(LOGTAG "Failure disconnecting with device %s", str);
                        break;
                     }
@@ -692,7 +692,7 @@ void Hfp_Ag::state_pending_handler(BtEvent* pEvent) {
 
 void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
     ALOGD(LOGTAG "state_connected_handler Processing event %d", pEvent->event_id);
-    fprintf(stdout, "state_connected_handler Processing event = %d", pEvent->event_id);
+    fprintf(stdout, "state_connected_handler Processing event = %d\n", pEvent->event_id);
     char str[18];
     BtEvent *pControlRequest, *pReleaseControlReq;
     switch(pEvent->event_id) {
@@ -706,13 +706,13 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                 bt_status_t ret_val;
                 ret_val = sBtHfpAgInterface->disconnect(&pEvent->hfp_ag_event.bd_addr);
                 if (ret_val != BT_STATUS_SUCCESS) {
-                    fprintf(stdout, "Failure disconnecting with device %s", str);
+                    fprintf(stdout, "Failure disconnecting with device %s\n", str);
                     ALOGD(LOGTAG "Failure disconnecting with device %s", str);
                     break;
                 }
             }
 
-            fprintf(stdout, "Disconnecting with device %s", str);
+            fprintf(stdout, "Disconnecting with device %s\n", str);
             ALOGD(LOGTAG "Disconnecting with device %s", str);
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
             memset(&mConnectingDevice, 0, sizeof(bt_bdaddr_t));
@@ -720,12 +720,12 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_SLC_CONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "SLC connected with device %s", str);
+            fprintf(stdout, "SLC connected with device %s\n", str);
             ALOGD(LOGTAG " SLC connected with device %s", str);
             bt_status_t ret_val;
             ret_val = sBtHfpAgInterface->set_active_device(&pEvent->hfp_ag_event.bd_addr);
             if (ret_val != BT_STATUS_SUCCESS) {
-                fprintf(stdout, "Failure setting active device %s", str);
+                fprintf(stdout, "Failure setting active device %s\n", str);
                 ALOGD(LOGTAG "Failure setting active device %s", str);
                 break;
             }
@@ -735,7 +735,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_DISCONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Disconnected with device %s", str);
+            fprintf(stdout, "Disconnected with device %s\n", str);
             ALOGD(LOGTAG "Disconnected with device %s", str);
 
             memset(&mConnectedDevice, 0, sizeof(bt_bdaddr_t));
@@ -783,26 +783,26 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
         case HFP_AG_ADD_NUMBER:
             if (number_vec.size() < 2) {
               number_vec.insert(number_vec.end(), pEvent->hfp_ag_event.str);
-              fprintf(stdout, "\n %s - number added ", pEvent->hfp_ag_event.str);
+              fprintf(stdout, "\n %s - number added \n", pEvent->hfp_ag_event.str);
               ALOGD(LOGTAG "%s - number added ", pEvent->hfp_ag_event.str);
             } else {
-              fprintf(stdout, "\n Can not add more than 2 numbers ");
+              fprintf(stdout, "\n Can not add more than 2 numbers \n");
               ALOGD(LOGTAG "Can not add more than 2 numbers ");
             }
             break;
         case HFP_AG_DELETE_NUMBER:
             if (number_vec.size() > 0) {
               number_vec.pop_back();
-              fprintf(stdout, "\n number deleted ");
+              fprintf(stdout, "\n number deleted \n");
               ALOGD(LOGTAG "number deleted ");
             } else {
-              fprintf(stdout, "\n all numbers deleted/no Number added to delete ");
+              fprintf(stdout, "\n all numbers deleted/no Number added to delete \n");
               ALOGD(LOGTAG " all numbers deleted no Number added to delete ");
             }
             break;
         case HFP_AG_SEND_DEVICE_STAT_NOTFY:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "VHFP_AG_SEND_DEVICE_STAT_NOTFY %s", str);
+            fprintf(stdout, "VHFP_AG_SEND_DEVICE_STAT_NOTFY %s\n", str);
             ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY %s", str);
             if(sBtHfpAgInterface != NULL) {
               if (pEvent->hfp_ag_event.arg1 == 0){
@@ -825,7 +825,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_VR_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "VR start/stop req from device %s", str);
+            fprintf(stdout, "VR start/stop req from device %s\n", str);
             ALOGD(LOGTAG "VR start/stop req from device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
@@ -895,7 +895,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_CIND_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Sending CIND resp to device %s", str);
+            fprintf(stdout, "Sending CIND resp to device %s\n", str);
             ALOGD(LOGTAG "Sending CIND resp to device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
@@ -916,7 +916,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
                ret_val = process_chld(pEvent->hfp_ag_event.arg1);
                if (ret_val != MCM_SUCCESS_V01) {
                    ALOGE(LOGTAG "error processing chld %d", pEvent->hfp_ag_event.arg1);
-                   fprintf(stdout, "error processing chld %d", pEvent->hfp_ag_event.arg1);
+                   fprintf(stdout, "error processing chld %d\n", pEvent->hfp_ag_event.arg1);
                }
 
                if (sBtHfpAgInterface != NULL) {
@@ -943,7 +943,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_COPS_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Sending COPS resp to device %s", str);
+            fprintf(stdout, "Sending COPS resp to device %s\n", str);
             ALOGD(LOGTAG "Sending COPS resp to device %s", str);
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -957,7 +957,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_SUBSCRIBER_INFO_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Sending CNUM resp to device %s", str);
+            fprintf(stdout, "Sending CNUM resp to device %s\n", str);
             ALOGD(LOGTAG "Sending CNUM resp to device %s", str);
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -972,7 +972,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_CLCC_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Sending CLCC resp to device %s", str);
+            fprintf(stdout, "Sending CLCC resp to device %s\n", str);
             ALOGD(LOGTAG "Sending CLCC resp to device %s", str);
 
             // TODO: cross check if we need to call get_current_calls here.
@@ -1037,14 +1037,14 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
 #endif
         case HFP_AG_KEY_PRESSED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "key press cb- AcceptVoipCall %s", str);
+            fprintf(stdout, "key press cb- AcceptVoipCall %s\n", str);
             ALOGD(LOGTAG "key press cb- AcceptVoipCall %s", str);
 
             AcceptVoipCall(&pEvent->hfp_ag_event.bd_addr);
             break;
         case HFP_AG_API_CONNECT_AUDIO_REQ:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Connecting SCO/eSCO with device %s", str);
+            fprintf(stdout, "Connecting SCO/eSCO with device %s\n", str);
             ALOGD(LOGTAG "Connecting SCO/eSCO with device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
@@ -1068,7 +1068,7 @@ void Hfp_Ag::state_connected_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_AUDIO_STATE_CONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "SCO/eSCO connected with device %s, codec %s", str,
+            fprintf(stdout, "SCO/eSCO connected with device %s, codec %s\n", str,
                 ((mWbsState == BTHF_WBS_YES)? "WBS": "NBS"));
             ALOGD(LOGTAG "SCO/eSCO connected with device %s, codec %s", str,
                 ((mWbsState == BTHF_WBS_YES)? "WBS": "NBS"));
@@ -1186,7 +1186,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
                 memorized_evt.push_back(tmpEvent);
             }
 
-            fprintf(stdout, "Disconnecting with device %s", str);
+            fprintf(stdout, "Disconnecting with device %s\n", str);
             ALOGD(LOGTAG "Disconnecting with device %s", str);
             change_state(HFP_AG_STATE_PENDING);
             break;
@@ -1196,13 +1196,13 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             }
 
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Disconnecting SCO/eSCO with device %s", str);
+            fprintf(stdout, "Disconnecting SCO/eSCO with device %s\n", str);
             ALOGD(LOGTAG "Disconnecting SCO/eSCO with device %s", str);
             break;
         case HFP_AG_AUDIO_STATE_DISCONNECTED_CB:
 
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Disconnected SCO connection with device %s", str);
+            fprintf(stdout, "Disconnected SCO connection with device %s\n", str);
             ALOGD(LOGTAG "Disconnected SCO connection with device %s", str);
 
             clear_audio_params();
@@ -1211,9 +1211,9 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_DISCONNECTED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Disconnected with device %s", str);
+            fprintf(stdout, "Disconnected with device %s\n", str);
             ALOGD(LOGTAG "Disconnected with device %s", str);
-            fprintf(stdout, "Clearing of SCO params for device %s", str);
+            fprintf(stdout, "Clearing of SCO params for device %s\n", str);
 
             clear_audio_params();
 
@@ -1250,26 +1250,26 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
         case HFP_AG_ADD_NUMBER:
             if (number_vec.size() < 2) {
               number_vec.insert(number_vec.end(), pEvent->hfp_ag_event.str);
-              fprintf(stdout, "\n %s - number added ", pEvent->hfp_ag_event.str);
+              fprintf(stdout, "\n %s - number added \n", pEvent->hfp_ag_event.str);
               ALOGD(LOGTAG "%s - number added ", pEvent->hfp_ag_event.str);
             } else {
-              fprintf(stdout, "\n Can not add more than 2 numbers ");
+              fprintf(stdout, "\n Can not add more than 2 numbers \n");
               ALOGD(LOGTAG "Can not add more than 2 numbers ");
             }
             break;
         case HFP_AG_DELETE_NUMBER:
             if (number_vec.size() > 0) {
               number_vec.pop_back();
-              fprintf(stdout, "\n number deleted ");
+              fprintf(stdout, "\n number deleted \n");
               ALOGD(LOGTAG " number deleted ");
             } else {
-              fprintf(stdout, "\n all numbers deleted/no Number added to delete ");
+              fprintf(stdout, "\n all numbers deleted/no Number added to delete \n");
               ALOGD(LOGTAG " all numbers deleted no Number added to delete ");
             }
             break;
         case HFP_AG_SEND_DEVICE_STAT_NOTFY:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "VHFP_AG_SEND_DEVICE_STAT_NOTFY %s", str);
+            fprintf(stdout, "VHFP_AG_SEND_DEVICE_STAT_NOTFY %s\n", str);
             ALOGD(LOGTAG "HFP_AG_SEND_DEVICE_STAT_NOTFY %s", str);
             if(sBtHfpAgInterface != NULL) {
               if (pEvent->hfp_ag_event.arg1 == 0){
@@ -1292,7 +1292,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_VR_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "VR start/stop req from device %s", str);
+            fprintf(stdout, "VR start/stop req from device %s\n", str);
             ALOGD(LOGTAG "VR start/stop req from device %s", str);
 
             // send error for VR start/stop request
@@ -1364,7 +1364,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_CIND_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Sending CIND resp to device %s", str);
+            fprintf(stdout, "Sending CIND resp to device %s\n", str);
             ALOGD(LOGTAG "Sending CIND resp to device %s", str);
 
             if (sBtHfpAgInterface != NULL) {
@@ -1385,7 +1385,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
                ret_val = process_chld(pEvent->hfp_ag_event.arg1);
                if (ret_val != MCM_SUCCESS_V01) {
                    ALOGE(LOGTAG "error processing chld %d", pEvent->hfp_ag_event.arg1);
-                   fprintf(stdout, "error processing chld %d", pEvent->hfp_ag_event.arg1);
+                   fprintf(stdout, "error processing chld %d\n", pEvent->hfp_ag_event.arg1);
                }
 
                if (sBtHfpAgInterface != NULL) {
@@ -1412,7 +1412,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_COPS_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Sending COPS resp to device %s", str);
+            fprintf(stdout, "Sending COPS resp to device %s\n", str);
             ALOGD(LOGTAG "Sending COPS resp to device %s", str);
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -1426,7 +1426,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_SUBSCRIBER_INFO_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Sending CNUM resp to device %s", str);
+            fprintf(stdout, "Sending CNUM resp to device %s\n", str);
             ALOGD(LOGTAG "Sending CNUM resp to device %s", str);
 
 #if defined(BT_MODEM_INTEGRATION)
@@ -1441,7 +1441,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
             break;
         case HFP_AG_CLCC_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "Sending CLCC resp to device %s", str);
+            fprintf(stdout, "Sending CLCC resp to device %s\n", str);
             ALOGD(LOGTAG "Sending CLCC resp to device %s", str);
 
             // TODO: cross check if we need to call get_current_calls here.
@@ -1506,7 +1506,7 @@ void Hfp_Ag::state_audio_on_handler(BtEvent* pEvent) {
 #endif
         case HFP_AG_KEY_PRESSED_CB:
             bdaddr_to_string(&pEvent->hfp_ag_event.bd_addr, str, 18);
-            fprintf(stdout, "key press cb- end the voip call %s", str);
+            fprintf(stdout, "key press cb- end the voip call %s\n", str);
             ALOGD(LOGTAG "key press cb- end the voip call %s", str);
 
             EndVoipCall(&pEvent->hfp_ag_event.bd_addr);
@@ -1695,22 +1695,22 @@ void Hfp_Ag::update_activecall_num(int active) {
     if (active) {
       if (mActiveCallsNum < 1) {
         mActiveCallsNum++;
-        fprintf(stdout, "\n Active call number updated,ActiveCallsNum: %d",
+        fprintf(stdout, "\n Active call number updated,ActiveCallsNum: %d\n",
                 mActiveCallsNum);
         ALOGD(LOGTAG "Active call number updated, ActiveCallsNum: %d", mActiveCallsNum);
       } else {
-        fprintf(stdout, "\n Can not make more than one active call, ActiveCallsNum: %d",
+        fprintf(stdout, "\n Can not make more than one active call, ActiveCallsNum: %d\n",
                 mActiveCallsNum);
         ALOGD(LOGTAG "Can not make more than one active call,ActiveCallsNum: %d",
               mActiveCallsNum);
       }
     } else if (mActiveCallsNum != 0) {
       mActiveCallsNum--;
-      fprintf(stdout, "\n Active call number updated,ActiveCallsNum: %d",
+      fprintf(stdout, "\n Active call number updated,ActiveCallsNum: %d\n",
               mActiveCallsNum);
       ALOGD(LOGTAG "Active call number updated, ActiveCallsNum: %d", mActiveCallsNum);
     } else {
-      fprintf(stdout, "\n No active calls, ActiveCallsNum:%d", mActiveCallsNum);
+      fprintf(stdout, "\n No active calls, ActiveCallsNum:%d\n", mActiveCallsNum);
       ALOGD(LOGTAG " No active calls, ActiveCallsNum:%d", mActiveCallsNum);
     }
 }
@@ -1719,22 +1719,22 @@ void Hfp_Ag::update_heldcall_num(int held) {
     if (held) {
       if (mHeldCallsNum < 1) {
         mHeldCallsNum++;
-        fprintf(stdout, "\n held call number updated,HeldCallsNum: %d",
+        fprintf(stdout, "\n held call number updated,HeldCallsNum: %d\n",
                 mHeldCallsNum);
         ALOGD(LOGTAG "held call number updated, HeldCallsNum: %d", mHeldCallsNum);
       } else {
-        fprintf(stdout, "\n Can not make more than one held call, HeldCallsNum: %d",
+        fprintf(stdout, "\n Can not make more than one held call, HeldCallsNum: %d\n",
                 mHeldCallsNum);
         ALOGD(LOGTAG "Can not make more than one held call,HeldCallsNum: %d",
                 mHeldCallsNum);
       }
     } else if (mHeldCallsNum != 0) {
       mHeldCallsNum--;
-      fprintf(stdout, "\n held call number updated,HeldCallsNum: %d",
+      fprintf(stdout, "\n held call number updated,HeldCallsNum: %d\n",
               mHeldCallsNum);
       ALOGD(LOGTAG "held call number updated, HeldCallsNum: %d", mHeldCallsNum);
     } else {
-      fprintf(stdout, "\n No held calls, HeldCallsNum:%d", mHeldCallsNum);
+      fprintf(stdout, "\n No held calls, HeldCallsNum:%d\n", mHeldCallsNum);
       ALOGD(LOGTAG " No held calls, HeldCallsNum:%d", mHeldCallsNum);
     }
 }
@@ -2424,7 +2424,7 @@ void Hfp_Ag::setup_sco_path() {
       if (!ret) {
          fprintf(stdout, "BT connect is success for AG SCO usecase\n");
          ALOGD(LOGTAG " BT connect is success for AG SCO usecase");
-	 sco_connect = true;
+         sco_connect = true;
       }
       else {
          fprintf(stdout, "BT connect failed for AG SCO usecase !!\n");
@@ -2486,7 +2486,7 @@ void Hfp_Ag::release_audio() {
    if (pa_routing_intf && sco_connect) {
       int ret = pa_routing_intf->pa_bt_connect_fn(PA_BT_HFP_AG, false);
       if (ret) {
-         ALOGE(LOGTAG "%s failed to disconnect\n", __func__);
+         ALOGE(LOGTAG "%s failed to disconnect for AG SCO usecase\n", __func__);
       } else {
           sco_connect = false;
       }
