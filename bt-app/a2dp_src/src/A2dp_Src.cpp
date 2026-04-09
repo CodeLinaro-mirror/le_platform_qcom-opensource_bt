@@ -1954,7 +1954,7 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
     char *folderItems, *playerEntry, *folderEntry, *mediaEntry;
     uint16_t num_attr, num_val, scope, set_addr_player_id = 0, set_br_player_id = 0;
     bool isSetVol, volAdj = false, player_found = false;
-    int i, pos = 0, song_len = 0, volIndex, start = 0,end = 0, count = 0, countElementLength = 0;
+    int i, pos = 0, song_len = 0, start = 0,end = 0, count = 0, countElementLength = 0;
     int countTotalBytes = 0, countTemp = 0, checkLength = 0, folderItemLengths[32];
     int availableMediaPlayers = 0, positionItemStart = 0, availableFolders = 0, availableMedias = 0;
     AvrcRspType ctype;
@@ -2483,23 +2483,20 @@ void A2dp_Source::HandleAvrcpEvents(BtEvent* pEvent) {
                 mVolCmdAdjustInProgress = false;
             }
 
-            volIndex = convertToAudioStreamVolume(absvol);
-            ALOGD(LOGTAG_AVRCP " Volume Index = %d", volIndex);
-
             if (mInitialRemoteVolume == -1) {
                 mInitialRemoteVolume = absvol;
             }
 
-            if (mLocalVolume != volIndex && (ctype == AVRC_RSP_ACCEPT ||
+            if (mLocalVolume != absvol && (ctype == AVRC_RSP_ACCEPT ||
                     ctype == AVRC_RSP_CHANGED || ctype == AVRC_RSP_INTERIM)) {
                 /* If the volume has successfully changed */
-                mLocalVolume = volIndex;
+                mLocalVolume = absvol;
                 if (mLastLocalVolume != -1 && ctype == AVRC_RSP_ACCEPT) {
-                    if (mLastLocalVolume != volIndex) {
+                    if (mLastLocalVolume != absvol) {
                         /* remote volume changed more than requested due to
                                       * local and remote has different volume steps */
                         ALOGD(LOGTAG_AVRCP "Remote returned vol does not match desired volume %d",
-                        mLastLocalVolume, " vs %d", volIndex);
+                        mLastLocalVolume, " vs %d", absvol);
                         mLastLocalVolume = mLocalVolume;
                     }
                 }
