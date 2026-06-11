@@ -460,7 +460,7 @@ static int readMsg(int sock_fd, unsigned char *b, int len, int *new_fd)
 static void waitForConnectSignal(int sock_fd, SOCK_CONNECT_SIGNAL *conn_params,
     int *new_fd)
 {
-    unsigned char read_bytes[20];
+    unsigned char read_bytes[20] = {0};
     int ret;
     OI_DBGTRACE(("waitForConnectSignal fd:%d", sock_fd));
     /* Set status as error by default */
